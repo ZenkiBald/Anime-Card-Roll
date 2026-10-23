@@ -1,7 +1,8 @@
 --!strict
--- Leaderboards. Rolls and Level show in the player list (leaderstats); three boards stand in town
--- at the map's Leaderboards marker: most rolls, rarest card owned (fusions count) and the fastest
--- Nightmare clear of the last boss in Bosses.luau. Scores go to OrderedDataStores once a minute,
+-- Leaderboards. Rolls, Level and Tower floor show in the player list (leaderstats); three boards stand
+-- in town at the map's Leaderboards marker: most rolls, rarest card owned (fusions count) and the fastest
+-- Nightmare clear of the last boss in Bosses.luau. A fourth, the highest Infinite Tower floor, stands
+-- beside the tower gate (World.luau's BoardSpot). Scores go to OrderedDataStores once a minute,
 -- then each board redraws its top 8. Without DataStore access (Studio with API access off) the
 -- boards just say there are no scores yet.
 
@@ -29,6 +30,7 @@ type Board = {
 	Sub: string,
 	Color: Color3,
 	Ascending: boolean, -- true when lower is better (times)
+	At: string?, -- stands at this part in workspace.Hub instead of in the row at the Leaderboards marker
 	Score: (data: any) -> number?, -- the save's score, nil when it has none
 	Show: (value: number) -> (string, Color3?),
 }
@@ -101,6 +103,20 @@ local BOARDS: { Board } = {
 			return string.format("%d:%04.1f", seconds // 60, seconds % 60), nil
 		end,
 	},
+	{
+		Id = "TowerFloor",
+		Title = "HIGHEST FLOOR",
+		Sub = "Infinite Tower",
+		Color = Color3.fromRGB(90, 230, 220),
+		Ascending = false,
+		At = "BoardSpot",
+		Score = function(data)
+			return if data.Tower.Floor > 0 then data.Tower.Floor else nil
+		end,
+		Show = function(value)
+			return `Floor {commas(value)}`, nil
+		end,
+	},
 }
 
 -- Player list ----------------------------------------------------------------------------------
@@ -108,7 +124,7 @@ local BOARDS: { Board } = {
 local function addStats(player: Player)
 	local folder = Instance.new("Folder")
 	folder.Name = "leaderstats"
-	for _, name in { "Rolls", "Level" } do
+	for _, name in { "Rolls", "Level", "Floor" } do
 		local value = Instance.new("IntValue")
 		value.Name = name
 		value.Parent = folder
@@ -122,7 +138,8 @@ local function updateStats()
 		local folder = player:FindFirstChild("leaderstats")
 		if profile and folder then
 			(folder :: any).Rolls.Value = profile.Data.TotalRolls;
-			(folder :: any).Level.Value = profile.Data.Level
+			(folder :: any).Level.Value = profile.Data.Level;
+			(folder :: any).Floor.Value = profile.Data.Tower.Floor
 		end
 	end
 end
@@ -315,27 +332,47 @@ function LeaderboardService.Start()
 	local map = workspace:FindFirstChild("Map")
 	local markers = map and map:FindFirstChild("Markers")
 	local marker = markers and markers:FindFirstChild("Leaderboards")
-	if marker == nil or not marker:IsA("BasePart") then
+	local hub = workspace:FindFirstChild("Hub")
+	local row = {}
+	for _, board in BOARDS do
+		if board.At == nil then
+			table.insert(row, board)
+		end
+	end
+	local views = {} -- [Board] = its rows
+	if marker and marker:IsA("BasePart") then
+		local model = Instance.new("Model")
+		model.Name = "Leaderboards"
+		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+		for i, board in row do
+			-- Side by side, first board on the left as you face them (the marker's right is the viewer's left).
+			local offset = ((#row + 1) / 2 - i) * 11
+			views[board] = buildBoard(model, marker.CFrame * CFrame.new(offset, 0, 0), board)
+		end
+		model.Parent = hub or workspace
+	else
 		warn("[Leaderboards] Map has no Leaderboards marker: no boards in town")
-		return
 	end
-	local model = Instance.new("Model")
-	model.Name = "Leaderboards"
-	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-	local views = {}
-	for i, board in BOARDS do
-		-- Side by side, first board on the left as you face them (the marker's right is the viewer's left).
-		local offset = ((#BOARDS + 1) / 2 - i) * 11
-		views[i] = buildBoard(model, marker.CFrame * CFrame.new(offset, 0, 0), board)
+	for _, board in BOARDS do
+		local spot = board.At and hub and hub:FindFirstChild(board.At, true)
+		if spot and spot:IsA("BasePart") then
+			local model = Instance.new("Model")
+			model.Name = `Board_{board.Id}`
+			model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+			views[board] = buildBoard(model, spot.CFrame, board)
+			model.Parent = hub
+		end
 	end
-	model.Parent = workspace:FindFirstChild("Hub") or workspace
 
 	task.spawn(function()
 		task.wait(5) -- let the first saves load
 		while true do
-			for i, board in BOARDS do
-				local store = DataStoreService:GetOrderedDataStore(`LB_{board.Id}{STORE_SUFFIX}`)
-				refreshBoard(board, store, views[i])
+			for _, board in BOARDS do
+				local view = views[board]
+				if view then
+					local store = DataStoreService:GetOrderedDataStore(`LB_{board.Id}{STORE_SUFFIX}`)
+					refreshBoard(board, store, view)
+				end
 			end
 			task.wait(REFRESH_SECONDS)
 		end

@@ -14,7 +14,7 @@ local MountService = require(script.Parent.MountService)
 local NameTagService = require(script.Parent.NameTagService)
 
 World.Build()
-BattleService.SetRewardHandler(RollService.RewardRolls)
+BattleService.SetRewardHandler(RollService.RewardRolls, RollService.TowerRewards)
 RollService.Start()
 DeckService.Start()
 MetaService.Start()

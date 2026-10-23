@@ -1,6 +1,7 @@
 --!nonstrict
 -- Hub life, all client-side: NPC figures breathe and sway, void shards spin, Kenji the
--- Card Sage gives tips when you talk to him, and each portal sign shows whether it's open for you.
+-- Card Sage gives tips when you talk to him, and each portal sign shows whether it's open for you
+-- (the Infinite Tower's sign shows your best floor).
 -- On spawn the camera turns to look the way the spawn faces (Roblox starts it facing -Z).
 
 local Players = game:GetService("Players")
@@ -34,6 +35,7 @@ local TIPS = {
 	"Spend Shards in the SHOP on faster rolls and more base luck.",
 	"Stay a while! Playtime gifts unlock the longer you play this session.",
 	"Long reveal? Tap SKIP to jump straight to the card.",
+	"The Infinite Tower never ends: every floor is a new foe, and every 10th a Guardian with artifacts.",
 }
 
 local animated = {} -- [Model] = { Base, Phase }
@@ -78,6 +80,13 @@ local function refreshSigns(hub: Instance)
 				sub.TextColor3 = Color3.fromRGB(170, 166, 190)
 			end
 		end
+	end
+	local gate = hub:FindFirstChild("TowerGate")
+	local anchor = gate and gate:FindFirstChild("SignAnchor")
+	local sign = anchor and anchor:FindFirstChild("Sign")
+	local sub = sign and sign:FindFirstChild("Sub")
+	if sub and sub:IsA("TextLabel") and State.Tower > 0 then
+		sub.Text = `Your best: floor {State.Tower} · next: floor {State.Tower + 1}`
 	end
 end
 

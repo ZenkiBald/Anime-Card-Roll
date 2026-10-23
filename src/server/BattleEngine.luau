@@ -33,7 +33,11 @@ export type UnitSpec = {
 	Border: string?,
 	Gear: { { Stat: string, Amount: number } }?, -- the accessory's effects (Items.CardEffects)
 }
-export type Setup = { Units: { UnitSpec }, BossId: string, Difficulty: string, Rng: Random? }
+-- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the boss's DEF / SPD:
+-- the Infinite Tower (Tower.luau) fights a boss's moves at stats scaled to the floor. Difficulty still
+-- picks which moves are in (MinDifficulty).
+export type Stats = { HP: number, ATK: number, WarnSeconds: number, DEF: number?, SPD: number? }
+export type Setup = { Units: { UnitSpec }, BossId: string, Difficulty: string, Rng: Random?, Stats: Stats? }
 
 -- Effects that only make sense on a card with HP.
 local HP_ONLY = { Heal = true, Shield = true, Cleanse = true, Evade = true, Revive = true }
@@ -107,8 +111,8 @@ end
 function Engine.new(setup: Setup)
 	local def = Bosses.Get(setup.BossId)
 	assert(def, `Unknown boss {setup.BossId}`)
-	local difficulty = def.Difficulties[setup.Difficulty]
-	assert(difficulty, `Unknown difficulty {setup.Difficulty}`)
+	assert(def.Difficulties[setup.Difficulty], `Unknown difficulty {setup.Difficulty}`)
+	local difficulty = setup.Stats or def.Difficulties[setup.Difficulty]
 
 	local self = setmetatable({}, Engine)
 	self.Rng = setup.Rng or Random.new()
@@ -139,8 +143,8 @@ function Engine.new(setup: Setup)
 		Moves = moves,
 		MaxHP = difficulty.HP,
 		ATK = difficulty.ATK,
-		DEF = def.DEF,
-		SPD = def.SPD,
+		DEF = math.min(B.MaxDEF, def.DEF + (setup.Stats and setup.Stats.DEF or 0)),
+		SPD = def.SPD + (setup.Stats and setup.Stats.SPD or 0),
 		Gauge = 0,
 		Alive = true,
 		Actions = 0,

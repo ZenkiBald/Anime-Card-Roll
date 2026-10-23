@@ -243,7 +243,8 @@ Battle.Init(playerGui, {
 	end,
 })
 
--- Hub NPCs: bosses open the boss screen, Kenji the Card Sage gives tips, Hoshi fuses, Madame Fortuna spins the wheel.
+-- Hub NPCs: bosses open the boss screen, Kenji the Card Sage gives tips, Hoshi fuses, Madame Fortuna spins the
+-- wheel, and the tower gate opens the boss screen's TOWER tab.
 HubFx.Start()
 -- Music and lighting follow the zone you walk into.
 ZoneFx.Start()
@@ -260,6 +261,8 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		Fusion.Open()
 	elseif prompt:GetAttribute("Npc") == "wheel" then
 		Wheel.Open()
+	elseif prompt:GetAttribute("Npc") == "tower" then
+		BossScreen.OpenTower()
 	end
 end)
 

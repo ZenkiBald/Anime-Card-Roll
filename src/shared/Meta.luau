@@ -185,6 +185,7 @@ Meta.Quests = {
 	{ Id = "fuse", Text = "Fuse a card", Stat = "Fusions", Goal = 1, Reward = { Shards = 80 } },
 	{ Id = "gifts", Text = "Claim 2 playtime gifts", Stat = "Gifts", Goal = 2, Reward = { Shards = 25 } },
 	{ Id = "potion", Text = "Use a potion", Stat = "Potions", Goal = 1, Reward = { Shards = 20 } },
+	{ Id = "tower", Text = "Climb 2 Infinite Tower floors", Stat = "TowerFloors", Goal = 2, Reward = { Shards = 50 } },
 } :: { Quest }
 
 Meta.QuestById = {} :: { [string]: Quest }

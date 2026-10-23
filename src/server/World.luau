@@ -1,7 +1,7 @@
 --!strict
 -- Sets up the world at server start.
 -- The real map (terrain, town, the three zones) is built in Studio and saved in the place under
--- workspace.Map; its Markers folder says where things go: Spawn, Sage, Fusion, and per boss Portal_<id>
+-- workspace.Map; its Markers folder says where things go: Spawn, Sage, Fusion, Wheel, Tower, and per boss Portal_<id>
 -- (the portal opening) and Boss_<id> (where the boss stands). This script adds the live parts
 -- there: the glowing portal, its sign, the boss NPC with its prompt, Kenji, Hoshi the Fusion Master
 -- and the spawn.
@@ -441,6 +441,110 @@ local function fortuneAt(hub: Instance, ground: CFrame)
 	end
 end
 
+-- The Infinite Tower's gate: a slim stone spire of four tiers that turn a little each step, neon bands
+-- between them, a crystal spinning at the top (HubFx spins parts marked Spin) and a glowing doorway
+-- whose prompt opens the tower screen. LeaderboardService hangs the highest-floor board on the
+-- BoardSpot beside it. `ground` stands on the floor, facing -Z (towards the players).
+local TOWER_TEAL = Color3.fromRGB(90, 230, 220)
+local TOWER_STONE = Color3.fromRGB(52, 46, 78)
+
+local function towerAt(hub: Instance, ground: CFrame)
+	local gate = Instance.new("Model")
+	gate.Name = "TowerGate"
+	gate.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	gate.Parent = hub
+	part({
+		Name = "Base",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1, 15, 15),
+		CFrame = ground * CFrame.new(0, 0.5, 3) * FLAT,
+		Color = Color3.fromRGB(70, 64, 92),
+		Material = Enum.Material.Slate,
+		Parent = gate,
+	})
+	part({
+		Name = "BaseRing",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 15.4, 15.4),
+		CFrame = ground * CFrame.new(0, 0.8, 3) * FLAT,
+		Color = TOWER_TEAL,
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+		Parent = gate,
+	})
+	local y = 1
+	local tiers = { { 10, 9 }, { 8.4, 8 }, { 6.8, 7 }, { 5.2, 6 } } -- width, height
+	for i, tier in tiers do
+		local width, height = tier[1], tier[2]
+		local turn = CFrame.Angles(0, math.rad((i - 1) * 12), 0) -- the bottom tier sits square behind the door
+		part({
+			Name = `Tier{i}`,
+			Size = Vector3.new(width, height, width),
+			CFrame = ground * CFrame.new(0, y + height / 2, 3) * turn,
+			Color = TOWER_STONE,
+			Material = Enum.Material.Slate,
+			Parent = gate,
+		})
+		y += height
+		part({
+			Name = `Band{i}`,
+			Size = Vector3.new(width + 0.6, 0.5, width + 0.6),
+			CFrame = ground * CFrame.new(0, y - 0.25, 3) * turn,
+			Color = TOWER_TEAL,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			Parent = gate,
+		})
+	end
+	local crystal = part({
+		Name = "Crystal",
+		Size = Vector3.new(2.6, 2.6, 2.6),
+		CFrame = ground * CFrame.new(0, y + 3, 3) * CFrame.Angles(math.rad(45), 0, math.rad(45)),
+		Color = TOWER_TEAL,
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+		Parent = gate,
+	})
+	crystal:SetAttribute("Spin", true)
+	local door = part({
+		Name = "Door",
+		Size = Vector3.new(4.4, 6.5, 0.3),
+		CFrame = ground * CFrame.new(0, 1 + 3.25, 3 - 5.05),
+		Color = TOWER_TEAL,
+		Material = Enum.Material.Neon,
+		Transparency = 0.25,
+		CanCollide = false,
+		Parent = gate,
+	})
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Climb the tower"
+	prompt.ObjectText = "Infinite Tower"
+	prompt.KeyboardKeyCode = Enum.KeyCode.F
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 16
+	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("Npc", "tower")
+	prompt.Parent = door
+	local signAnchor = part({
+		Name = "SignAnchor",
+		Size = Vector3.new(1, 1, 1),
+		CFrame = ground * CFrame.new(0, y + 6, 3),
+		Transparency = 1,
+		CanCollide = false,
+		Parent = gate,
+	})
+	sign(signAnchor, 2, "INFINITE TOWER", "Endless floors · rare artifacts", TOWER_TEAL)
+	part({
+		Name = "BoardSpot",
+		Size = Vector3.new(1, 1, 1),
+		CFrame = ground * CFrame.new(14, 0, 2) * CFrame.Angles(0, math.rad(-20), 0),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		Parent = gate,
+	})
+end
+
 -- The live parts of one world at the map's markers: a glowing portal filling the gate's opening,
 -- the world sign above it, and the boss standing guard.
 local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart, bossMarker: BasePart)
@@ -525,6 +629,14 @@ local function buildFromMap(map: Instance, markers: Instance)
 	else
 		local spot = spawnCFrame * CFrame.new(-20, -0.5, -6)
 		fortuneAt(hub, CFrame.lookAt(spot.Position, Vector3.new(spawnCFrame.X, spot.Y, spawnCFrame.Z)))
+	end
+	-- The Infinite Tower's gate at the Tower marker; without one, mirrored to the spawn's right.
+	local towerMarker = markers:FindFirstChild("Tower")
+	if towerMarker and towerMarker:IsA("BasePart") then
+		towerAt(hub, towerMarker.CFrame)
+	else
+		local spot = spawnCFrame * CFrame.new(24, -0.5, -6)
+		towerAt(hub, CFrame.lookAt(spot.Position, Vector3.new(spawnCFrame.X, spot.Y, spawnCFrame.Z)))
 	end
 	hub.Parent = workspace
 
@@ -626,6 +738,7 @@ function World.Build()
 	sageAt(hub, CFrame.lookAt(Vector3.new(11, 1.2 + sageHeight / 2, 8), Vector3.new(0, 1.2 + sageHeight / 2, 0)))
 	fuserAt(hub, CFrame.lookAt(Vector3.new(-14, 1.2, 8), Vector3.new(0, 1.2, 0)))
 	fortuneAt(hub, CFrame.lookAt(Vector3.new(0, 1.2, 20), Vector3.new(0, 1.2, 0)))
+	towerAt(hub, CFrame.lookAt(Vector3.new(30, 1.2, 18), Vector3.new(0, 1.2, 0)))
 	spawnAt(hub, CFrame.new(0, 1.4, 0))
 
 	hub.Parent = workspace

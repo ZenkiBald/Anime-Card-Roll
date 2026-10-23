@@ -11,6 +11,7 @@ local Cards = require(Shared.Cards)
 local Odds = require(Shared.Odds)
 local Rewards = require(Shared.Rewards)
 local Bosses = require(Shared.Bosses)
+local Tower = require(Shared.Tower)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -78,6 +79,7 @@ local function fullState(player: Player, data)
 		Summary = summary(player, data),
 		Decks = DeckService.State(data),
 		Progress = data.Progress,
+		Tower = data.Tower.Floor,
 		Battle = { AutoUlt = data.Settings.AutoUlt, Speed = data.Settings.BattleSpeed },
 		Mount = data.Settings.Mount,
 		Meta = MetaService.State(player, data),
@@ -153,33 +155,28 @@ end
 
 -- Boss reward rolls for a win at difficulty score d: 3 + 2d rolls with boss luck and a rarity
 -- floor, plus one card above the floor on a first clear (Rewards.luau has the numbers).
-function RollService.RewardRolls(player: Player, d: number, firstClear: boolean)
-	local profile = DataService.Get(player)
-	if profile == nil then
-		return nil
-	end
-	local reward = Rewards.For(d)
+-- Pays a win: `reward.Rolls` reward rolls at its luck and floor rarity (+1 at `bonus` or better), its
+-- Shards, a potion (sure, or by chance) and a roll for gear at `d` (Items.RollDrops, x `boost`).
+local function payWin(player: Player, profile, reward, bonus: string?, potion: string?, potionChance: number, d: number, boost: number)
 	local luck = Rewards.TotalLuck(reward.Luck, luckFor(player, profile.Data))
 	local results = {}
-	local function add(floor: string, bonus: boolean)
+	local function add(floor: string, isBonus: boolean)
 		local result = doRoll(player, profile, luck, floor)
 		result.Summary = nil
-		result.Bonus = bonus or nil
+		result.Bonus = isBonus or nil
 		table.insert(results, result)
 	end
 	for _ = 1, reward.Rolls do
 		add(reward.Floor, false)
 	end
-	if firstClear then
-		add(reward.Bonus, true)
+	if bonus then
+		add(bonus, true)
 	end
-	-- Every win pays Shards, may drop a potion, and rolls for an accessory and an artifact (Items.luau:
-	-- better odds and rarer gear on harder fights).
 	local bundle = { Shards = reward.Shards, Potions = {} }
-	if rng:NextNumber() < Config.Rewards.PotionChance then
-		bundle.Potions[reward.Potion] = 1
+	if potion and rng:NextNumber() < potionChance then
+		bundle.Potions[potion] = 1
 	end
-	local drops = Items.RollDrops(d, rng)
+	local drops = Items.RollDrops(d, rng, boost)
 	bundle.Accessories = drops.Accessories
 	bundle.Artifacts = drops.Artifacts
 	bundle = MetaService.Grant(profile.Data, bundle) -- the screen shows the Shard Gain bonus too
@@ -191,6 +188,28 @@ function RollService.RewardRolls(player: Player, d: number, firstClear: boolean)
 		Summary = summary(player, profile.Data),
 		Meta = MetaService.State(player, profile.Data),
 	}
+end
+
+function RollService.RewardRolls(player: Player, d: number, firstClear: boolean)
+	local profile = DataService.Get(player)
+	if profile == nil then
+		return nil
+	end
+	-- Every win pays Shards, may drop a potion, and rolls for an accessory and an artifact (Items.luau:
+	-- better odds and rarer gear on harder fights).
+	local reward = Rewards.For(d)
+	return payWin(player, profile, reward, if firstClear then reward.Bonus else nil, reward.Potion, Config.Rewards.PotionChance, d, 1)
+end
+
+-- A cleared Infinite Tower floor (paid once per floor): Tower.Reward says what. Guardians add a full
+-- boss reward, a bonus card, a sure potion and boosted gear odds.
+function RollService.TowerRewards(player: Player, floor: number)
+	local profile = DataService.Get(player)
+	if profile == nil then
+		return nil
+	end
+	local reward = Tower.Reward(floor)
+	return payWin(player, profile, reward, reward.Bonus, reward.Potion, 1, reward.D, reward.DropBoost)
 end
 
 local function cooldownLeft(player: Player): number
@@ -388,6 +407,11 @@ function RollService.Start()
 				potions[potion.Id] = 3
 			end
 			MetaService.Grant(profile.Data, { Shards = 1000, Potions = potions })
+		elseif action == "TowerUp" then
+			-- Skips 10 tower floors (no rewards), to try the higher floors.
+			profile.Data.Tower.Floor += 10
+		elseif action == "TowerReset" then
+			profile.Data.Tower.Floor = 0
 		elseif action == "Reset" then
 			stopAuto(player)
 			BattleService.Stop(player)

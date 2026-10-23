@@ -14,9 +14,10 @@ modules = [
     ("Rewards", root / "src" / "shared"),
     ("Items", root / "src" / "shared"),
     ("Meta", root / "src" / "shared"),
+    ("Tower", root / "src" / "shared"),
     ("BattleEngine", root / "src" / "server"),
 ]
-test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau"]
+test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau"]
 
 out = [(tests / "stubs.luau").read_text(encoding="utf-8"), (tests / "harness.luau").read_text(encoding="utf-8"), "MODULES = {}"]
 for name, folder in modules:

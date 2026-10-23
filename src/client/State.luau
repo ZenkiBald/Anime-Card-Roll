@@ -19,6 +19,7 @@ local State = {
 	},
 	Decks = { Active = 1, Presets = {} }, -- presets: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} },
+	Tower = 0, -- highest Infinite Tower floor cleared
 	Battle = { AutoUlt = false, Speed = 1 },
 	-- Long-term progression (MetaService.State): potions, upgrades, Index claims, daily, gifts, milestones,
 	-- daily quests ({ Day, ResetIn, List = { { Id, Progress, Claimed } } }), level and stat points.
@@ -65,6 +66,9 @@ function State.ApplyFull(full)
 	end
 	if full.Battle then
 		State.Battle = full.Battle
+	end
+	if full.Tower then
+		State.Tower = full.Tower
 	end
 	if full.Mount then
 		State.Mount = full.Mount -- the mount ridden last (PETS remembers it)
@@ -165,6 +169,11 @@ end
 
 function State.ApplyProgress(progress)
 	State.Progress = progress
+	changed:Fire("progress")
+end
+
+function State.ApplyTower(floor: number)
+	State.Tower = floor
 	changed:Fire("progress")
 end
 

@@ -54,9 +54,20 @@ Shards. Accessories (9): one per card, battle-only buffs (SPD, Crit, CritDamage,
 permanent unit buffs in `BattleEngine` (never ATK / HP, so Deck Power and rarity order don't move). Saved as
 `Gear` { Artifacts, Accessories, Worn, Cards }; MetaService actions WearArtifact / RemoveArtifact / WearAccessory
 / RemoveAccessory; BAG tabs in `UI/BagGear`. Test tools: GIVE ITEMS.
-Planned next (user's design, 2026-10-23): the Infinite Tower (random enemy each floor, harder and better rewards
-per floor, rare artifact drops via `Items.RollDrops(d, rng, boost)`); traits rolled onto cards. All these stay
-SMALL: rarity still wins.
+Infinite Tower (`Tower.luau`, 2026-10-23, built in a cloud session: headless tests only, not yet seen in Studio):
+endless floors, progress saved as `Tower.Floor` (highest cleared; you always fight Floor + 1, each floor pays once).
+Each floor's enemy is an "Echo" of a world boss (its moves, model tinted, backdrop) picked by a seeded hash of the
+floor (same everywhere, previewable); Vex from floor 24, Tenrai from 30. Recommended power 9k x 1.068^(floor-1)
+(floor 48 ~ Tenrai Nightmare, no top); HP / ATK from `Tower.Curve.Points` (simulator-fitted anchors, log-joined).
+Boss move set by floor (Hard from 15, Nightmare from 30); affixes from floor 5 (Swift / Armored / Brutal /
+Colossal, fair trades). Every 10th floor a Guardian (1.15x power): full boss reward rolls, bonus card, sure potion,
+4x gear odds. Rewards use D = floor x 0.25 (`Rewards.For`, `Items.RollDrops(d, rng, boost)`). Server:
+`BattleStart("tower")` (BattleService picks the floor; `Engine.new` takes `Stats` to override HP / ATK),
+`RollService.TowerRewards`. Client: TOWER tab on the BATTLE screen (`BossScreen.OpenTower`), NEXT FLOOR / TRY AGAIN
+on the result panel, a tower gate in town at the map's `Tower` marker (falls back to the spawn's right), a HIGHEST
+FLOOR board beside it, Floor in the player list, a daily quest (TowerFloors), dev +10 FLOORS / TOWER TO FLOOR 1.
+Opens after `Tower.UnlockAfter` (Kurogane Normal) when unlock rules are on. `tests/tower_test.luau` checks it.
+Planned next: traits rolled onto cards. Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
 refreshed every 60 s.
@@ -102,6 +113,7 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   `Borders` (card border odds, colours and bonus), `Items` (artifacts, accessories, drop odds, gear bonuses),
   `Deck` (deck rules, validation, Deck Power, Auto-build), `Bosses` (boss stats, moves, difficulties, unlocks),
   `Rewards` (boss reward rolls / luck / floor per difficulty score D), `BossModels` (NPC figures from plain parts),
+  `Tower` (Infinite Tower floors, enemies, affixes, curve, rewards),
   `Cards` also has the fusion helpers (`FusedRarity`, `MaxFusion`, `Stat`, `Power(card, stars, fusion)`),
   `CardArt` (card chibi figures from `Card.Look`), `Meta` (potions, upgrades, Index rewards, daily, gifts,
   milestones, daily quests, levels and stat points, server events, the Lucky Wheel, and the luck / cooldown formulas
@@ -144,7 +156,9 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 - Boss HP / ATK per difficulty are tuned so the deck in `tests/fixtures.luau` for each fight (about its
   recommended power, fusions allowed via the fixture's `Fusion`) wins in 60-90 s; `tests/battle_test.luau` checks
   all 12 fights. Re-run it after changing
-  cards, bosses or battle rules, and retune if it fails.
+  cards, bosses or battle rules, and retune if it fails. `tests/tower_test.luau` does the same for the tower: each
+  fixture deck must beat every enemy (and affix) at the floor matching its power, 90%+ with a median under 100 s
+  (retune `Tower.Curve.Points` or the enemy HP multipliers if it fails).
 - Original characters only, no real anime characters or names.
 - Keep it cheap on phones: UI-first, plain Frames + tweens for effects, no textures or 3D particles in reveals;
   at most one 3D model per ViewportFrame. The world uses StreamingEnabled; keep the map under ~15k parts and
@@ -166,6 +180,6 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 - Type check (needs luau-lsp): `rojo sourcemap default.project.json --include-non-scripts -o sourcemap.json` then
   `luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions @roblox=tests/defs/globalTypes.d.luau --ignore "**/ProfileStore.luau" src/`
 - UI property names check (props set through `Kit.new` aren't type checked): `python tests/check_props.py tests/defs/globalTypes.d.luau src`
-- Odds / pity / card stat / progression / deck / battle tests (needs the `luau` CLI): `python tests/bundle.py` then `luau tests/bundle_out.luau`
+- Odds / pity / card stat / progression / deck / battle / tower tests (needs the `luau` CLI): `python tests/bundle.py` then `luau tests/bundle_out.luau`
 
 Tool versions are pinned in `rokit.toml` (`rokit install`).

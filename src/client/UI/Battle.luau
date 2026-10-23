@@ -14,6 +14,7 @@ local Cards = require(Shared.Cards)
 local Bosses = require(Shared.Bosses)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
+local Tower = require(Shared.Tower)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -1218,7 +1219,7 @@ end
 
 -- Intro ------------------------------------------------------------------------------------------
 
-local function playIntro(boss, difficulty: string, deckPower: number, seconds: number)
+local function playIntro(boss, subtitle: string, deckPower: number, seconds: number)
 	for _, child in intro:GetChildren() do
 		if child:IsA("GuiObject") then
 			child:Destroy()
@@ -1257,7 +1258,7 @@ local function playIntro(boss, difficulty: string, deckPower: number, seconds: n
 		return frame
 	end
 	local left = panel(true, Theme.Color.Accent, Theme.Color.AccentDeep, "YOUR DECK", `Deck Power {Kit.commas(deckPower)}`)
-	local right = panel(false, boss.Accent, boss.Deep, string.upper(boss.Name), `{boss.Title} · {string.upper(difficulty)}`)
+	local right = panel(false, boss.Accent, boss.Deep, string.upper(current.BossName), subtitle)
 	local vs = Kit.label({
 		Text = "VS",
 		Font = Theme.Font.Display,
@@ -1457,13 +1458,19 @@ local function showResults(summary)
 	end
 
 	local timeText = string.format("%d:%04.1f", summary.Time // 60, summary.Time % 60)
-	line(`{current.BossName} · {current.Difficulty}`, Theme.Color.Text, 24, Theme.Font.Heavy)
+	local tower = current.Tower
+	line(if tower then `{current.BossName} · Floor {tower.Floor}` else `{current.BossName} · {current.Difficulty}`, Theme.Color.Text, 24, Theme.Font.Heavy)
+	if summary.Tower then
+		State.ApplyTower(summary.Tower)
+	end
 	if summary.Result == "Win" then
 		local notes = {}
-		if summary.FirstClear then
+		if tower then
+			table.insert(notes, `Floor {tower.Floor} cleared!`)
+		elseif summary.FirstClear then
 			table.insert(notes, "First clear!")
 		end
-		if summary.NewBest and not summary.FirstClear then
+		if summary.NewBest and not summary.FirstClear and not tower then
 			table.insert(notes, "New best time!")
 		end
 		if summary.SpeedUnlocked and not current.SpeedUnlocked then
@@ -1622,12 +1629,14 @@ local function showResults(summary)
 	back.Activated:Connect(function()
 		exit()
 	end)
-	local again = Kit.button("FIGHT AGAIN", Theme.Color.Roll, Theme.Color.RollDeep, {
+	-- In the tower, a win moves on to the next floor and a loss retries the same one.
+	local againText = if tower == nil then "FIGHT AGAIN" elseif summary.Result == "Win" then "NEXT FLOOR" else "TRY AGAIN"
+	local again = Kit.button(againText, Theme.Color.Roll, Theme.Color.RollDeep, {
 		LayoutOrder = 2,
 		Size = UDim2.new(0, 210, 1, 0),
 		Parent = buttons,
 	})
-	local bossId, difficulty = current.BossId, current.Difficulty
+	local bossId, difficulty = if tower then Tower.Id else current.BossId, current.Difficulty
 	again.Activated:Connect(function()
 		local ok, message = startFight(bossId, difficulty)
 		if not ok and message then
@@ -1652,12 +1661,15 @@ local function setSpeedLabel()
 end
 
 local function begin(start, bossId: string, difficulty: string)
-	local boss = Bosses.Get(bossId)
+	-- A tower floor fights a boss's echo (start.Tower: Tower.FloorAt): its model, moves and backdrop.
+	local tower = start.Tower
+	local boss = Bosses.Get(if tower then tower.Boss else bossId)
 	current = {
 		Info = start.Info,
-		BossId = bossId,
-		Difficulty = difficulty,
-		BossName = boss.Name,
+		BossId = boss.Id,
+		Difficulty = if tower then tower.Difficulty else difficulty,
+		Tower = tower,
+		BossName = if tower then tower.Name else boss.Name,
 		BossColor = boss.Accent,
 		Speed = start.Speed,
 		SpeedUnlocked = start.SpeedUnlocked,
@@ -1691,7 +1703,7 @@ local function begin(start, bossId: string, difficulty: string)
 	if bossView then
 		bossView.Frame:Destroy()
 	end
-	bossView = ModelView.new(bossId, {
+	bossView = ModelView.new(boss.Id, {
 		Name = "BossView",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -1699,6 +1711,9 @@ local function begin(start, bossId: string, difficulty: string)
 		ZIndex = 2,
 		Parent = bossHolder,
 	}, 10)
+	if tower then
+		bossView:SetTint(if tower.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
+	end
 	barrierRing.Visible = false
 
 	for i, unit in start.Info.Allies do
@@ -1706,10 +1721,19 @@ local function begin(start, bossId: string, difficulty: string)
 		local tile = makeTile(unit, i)
 		tile.Parent = if string.sub(unit.Id, 1, 1) == "A" then frontRow else backRow
 	end
-	local diffIndex = Bosses.DifficultyIndex(difficulty)
-	bossName.Text = `{string.upper(boss.Name)}  <font color="#A8A2C8">{boss.Title}</font>`
-	bossChip.Label.Text = string.upper(difficulty)
-	bossChip.BackgroundColor3 = if diffIndex == 3 then Theme.Color.Danger elseif diffIndex == 2 then Theme.Color.Roll else Theme.Color.Quick
+	local diffIndex = Bosses.DifficultyIndex(current.Difficulty)
+	local subtitle = `{boss.Title} · {string.upper(current.Difficulty)}`
+	if tower then
+		local affix = tower.Affix and Tower.AffixById[tower.Affix]
+		subtitle = `Infinite Tower · Floor {tower.Floor}` .. (if affix then ` · {string.upper(affix.Name)}` else "")
+		bossName.Text = `{string.upper(tower.Name)}  <font color="#A8A2C8">{if affix then `{affix.Icon} {affix.Name}` else boss.Title}</font>`
+		bossChip.Label.Text = `FLOOR {tower.Floor}`
+		bossChip.BackgroundColor3 = if tower.Guardian then Theme.Color.Gold else Color3.fromRGB(40, 170, 165)
+	else
+		bossName.Text = `{string.upper(boss.Name)}  <font color="#A8A2C8">{boss.Title}</font>`
+		bossChip.Label.Text = string.upper(difficulty)
+		bossChip.BackgroundColor3 = if diffIndex == 3 then Theme.Color.Danger elseif diffIndex == 2 then Theme.Color.Roll else Theme.Color.Quick
+	end
 	bossHpFill.Size = UDim2.fromScale(1, 1)
 	bossHpTrail.Size = UDim2.fromScale(1, 1)
 	bossBarrier.Size = UDim2.fromScale(0, 1)
@@ -1721,10 +1745,10 @@ local function begin(start, bossId: string, difficulty: string)
 
 	gui.Enabled = true
 	hooks.OnStart()
-	playIntro(boss, difficulty, start.DeckPower or 0, start.Intro or 2)
+	playIntro(boss, subtitle, start.DeckPower or 0, start.Intro or 2)
 end
 
-function startFight(bossId: string, difficulty: string)
+function startFight(bossId: string, difficulty: string?)
 	if current and not current.Ended then
 		return false, nil
 	end
@@ -2226,7 +2250,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 end
 
 -- Starts a fight. Returns false and a message when the server refuses.
-function Battle.Start(bossId: string, difficulty: string): (boolean, string?)
+-- bossId is a boss id, or Tower.Id for the next tower floor (then difficulty is ignored).
+function Battle.Start(bossId: string, difficulty: string?): (boolean, string?)
 	return startFight(bossId, difficulty)
 end
 

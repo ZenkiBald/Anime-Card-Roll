@@ -1,7 +1,8 @@
 --!nonstrict
 -- Boss screen: pick a world and difficulty, see the boss in 3D, compare Deck Power with the
 -- recommended power, preview the rewards, switch deck presets, then fight.
--- Opened from the BATTLE button or by challenging a boss in the hub.
+-- The TOWER tab shows the player's next Infinite Tower floor (Tower.luau) the same way.
+-- Opened from the BATTLE button, by challenging a boss in the hub, or at the tower gate.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,6 +15,7 @@ local Rarity = require(Shared.Rarity)
 local Rewards = require(Shared.Rewards)
 local Meta = require(Shared.Meta)
 local Items = require(Shared.Items)
+local Tower = require(Shared.Tower)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -27,13 +29,15 @@ local BossScreen = {}
 
 export type Actions = {
 	EditDeck: () -> (),
-	Fight: (bossId: string, difficulty: string) -> (boolean, string?),
+	Fight: (bossId: string, difficulty: string?) -> (boolean, string?), -- bossId may be Tower.Id
 }
 
 local actions: Actions
 local modal
 local bossId = Bosses.List[1].Id
 local difficulty = "Normal"
+local mode = "boss" -- "boss" | "tower"
+local TOWER_COLOR = Color3.fromRGB(90, 230, 220)
 local showcase: Frame -- left: the boss in 3D
 local showcaseGradient: UIGradient
 local showcaseName: TextLabel
@@ -146,11 +150,13 @@ end
 
 local refresh
 
-local function setShowcase(boss)
+-- `floor` (Tower.FloorAt) shows the boss as that tower floor's echo.
+local function setShowcase(boss, floor)
 	showcaseGradient.Color = ColorSequence.new(boss.Accent:Lerp(Color3.new(0, 0, 0), 0.25), boss.Deep)
-	showcaseName.Text = string.upper(boss.Name)
-	showcaseTitle.Text = boss.Title
-	showcaseWorld.Text = `WORLD {boss.World} · {string.upper(boss.WorldName)}`
+	local affix = floor and floor.Affix and Tower.AffixById[floor.Affix]
+	showcaseName.Text = string.upper(if floor then floor.Name else boss.Name)
+	showcaseTitle.Text = if affix then `{affix.Icon} {affix.Name}: {affix.Text}` else boss.Title
+	showcaseWorld.Text = if floor then `INFINITE TOWER · FLOOR {floor.Floor}` else `WORLD {boss.World} · {string.upper(boss.WorldName)}`
 	if viewBoss ~= boss.Id then
 		if view then
 			view.Frame:Destroy()
@@ -165,8 +171,16 @@ local function setShowcase(boss)
 		}, 0, 5)
 		viewBoss = boss.Id
 	end
+	if floor then
+		view:SetTint(if floor.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
+		return
+	end
 	local locked = not Bosses.IsUnlocked(cleared(), boss.Id, "Normal")
 	view:SetTint(if locked then Color3.fromRGB(60, 56, 80) else Color3.new(1, 1, 1))
+end
+
+local function towerOpen(): boolean
+	return not Config.Unlocks.Enabled or cleared()[Tower.UnlockAfter] == true
 end
 
 local function buildTabs()
@@ -177,13 +191,201 @@ local function buildTabs()
 	end
 	for i, other in Bosses.List do
 		local open = Bosses.IsUnlocked(cleared(), other.Id, "Normal")
-		local button = pill(tabs, if open then `WORLD {other.World}` else `WORLD {other.World} · LOCKED`, i, if open then 92 else 150, other.Accent, other.Id == bossId, not open)
+		local button = pill(tabs, if open then `WORLD {other.World}` else `WORLD {other.World} · LOCKED`, i, if open then 92 else 150, other.Accent, mode == "boss" and other.Id == bossId, not open)
 		button.Activated:Connect(function()
+			mode = "boss"
 			bossId = other.Id
 			difficulty = "Normal"
 			refresh()
 		end)
 	end
+	local towerButton = pill(tabs, "TOWER", #Bosses.List + 1, 92, TOWER_COLOR, mode == "tower", not towerOpen())
+	towerButton.Activated:Connect(function()
+		mode = "tower"
+		refresh()
+	end)
+end
+
+-- Deck presets, a peek at the active deck, and EDIT DECK + FIGHT (rows from `order` on). `fight`
+-- returns what actions.Fight does, or nothing when it refused by itself.
+local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -> (boolean?, string?), label: string?)
+	local presetRow = row(order0, 36)
+	for i = 1, Config.Deck.Presets do
+		local preset = State.Decks.Presets[i] or Deck.Empty()
+		local button = pill(presetRow, `DECK {i} · {Kit.commas(Deck.Power(preset, State.Cards))}`, i, 136, Theme.Color.Accent, i == State.Decks.Active, false)
+		button.Activated:Connect(function()
+			if i == State.Decks.Active then
+				return
+			end
+			local ok, result = pcall(function()
+				return Remotes.Deck:InvokeServer("Select", i)
+			end)
+			if ok and result and result.Decks then
+				State.ApplyDecks(result.Decks)
+			end
+		end)
+	end
+
+	local peek = row(order0 + 1, 52)
+	local order = 0
+	for _, deckRow in Deck.Rows do
+		for _, id in deck[deckRow] do
+			order += 1
+			local card = if id ~= "" then Cards.Get(id) else nil
+			local chip = Kit.new("Frame", {
+				LayoutOrder = order,
+				Size = UDim2.fromOffset(50, 50),
+				BackgroundColor3 = if card then card.Accent else Theme.Color.PanelLight,
+				BackgroundTransparency = if card then 0 else 0.5,
+				Parent = peek,
+			}, { Kit.corner(UDim.new(0.25, 0)) })
+			if card then
+				Kit.stroke(Rarity.Get(card.Rarity).Color, 2, 0).Parent = chip
+			end
+			Kit.label({
+				Text = if card then card.Glyph else "-",
+				Font = Theme.Font.Display,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromScale(0.8, 0.6),
+				Parent = chip,
+			}, 22)
+		end
+		if deckRow == "Attack" then
+			order += 1
+			Kit.new("Frame", { LayoutOrder = order, Size = UDim2.fromOffset(12, 50), BackgroundTransparency = 1, Parent = peek })
+		end
+	end
+
+	-- Buttons
+	local buttons = row(order0 + 2, 60)
+	local edit = Kit.button("EDIT DECK", Theme.Color.Auto, Theme.Color.AutoDeep, {
+		LayoutOrder = 1,
+		Size = UDim2.new(0, 170, 1, 0),
+		Parent = buttons,
+	})
+	edit.Activated:Connect(function()
+		actions.EditDeck()
+	end)
+	local fightButton = Kit.button(if unlocked then label or "FIGHT!" else "LOCKED", Theme.Color.Roll, Theme.Color.RollDeep, {
+		LayoutOrder = 2,
+		Size = UDim2.new(0, 220, 1, 0),
+		Parent = buttons,
+	})
+	Kit.dim(fightButton, not unlocked)
+	fightButton.Activated:Connect(function()
+		if unlocked and Deck.Count(deck, "Attack") == 0 then
+			hint("Put at least one Attack card in your deck first")
+			return
+		end
+		local ok, message = fight()
+		if ok then
+			modal:Close()
+		elseif message then
+			hint(message)
+		end
+	end)
+end
+
+-- The TOWER tab: the next floor's enemy, its power check and what clearing it pays.
+local function buildTower()
+	local floorNo = (State.Tower or 0) + 1
+	local floor = Tower.FloorAt(floorNo)
+	local boss = Bosses.Get(floor.Boss)
+	local unlocked = towerOpen()
+	local deck = State.ActiveDeck() or Deck.Empty()
+	local power = Deck.Power(deck, State.Cards)
+	setShowcase(boss, floor)
+	buildTabs()
+
+	text(
+		body,
+		1,
+		"Climb as high as you can: every floor is a random echo of a world boss, stronger and richer than the last. Each floor pays once.",
+		Theme.Color.Muted,
+		17,
+		Theme.Font.Bold
+	)
+	local foe = box(2, if floor.Guardian then Theme.Color.Gold else TOWER_COLOR)
+	text(
+		foe,
+		1,
+		`FLOOR {floorNo} · <b>{string.upper(floor.Name)}</b>` .. (if floor.Guardian then `  <font color="#FFC42E">GUARDIAN</font>` else ""),
+		if floor.Guardian then Theme.Color.Gold else TOWER_COLOR,
+		21,
+		Theme.Font.Heavy
+	)
+	text(foe, 2, `{boss.Name}'s moves ({floor.Difficulty} set): {boss.Mechanic}`, Theme.Color.Text, 16, Theme.Font.Bold)
+	local affix = floor.Affix and Tower.AffixById[floor.Affix]
+	if affix then
+		text(foe, 3, `{affix.Icon} <b>{string.upper(affix.Name)}</b>: {affix.Text}`, Color3.fromRGB(255, 170, 230), 17, Theme.Font.Heavy)
+	end
+	if not unlocked then
+		text(body, 3, `LOCKED · {Tower.UnlockHint()} to open the tower.`, Theme.Color.Roll, 15, Theme.Font.Heavy)
+	end
+
+	local enough = power >= floor.Recommended
+	local powerBox = box(4, if enough then Theme.Color.Quick else Theme.Color.Roll)
+	text(
+		powerBox,
+		1,
+		`Recommended <b>{Kit.commas(floor.Recommended)}</b>   ·   Your deck <font color="{if enough then "#56D68A" else "#FF7846"}"><b>{Kit.commas(power)}</b></font>`,
+		Theme.Color.Text,
+		21,
+		Theme.Font.Heavy
+	)
+
+	local reward = Tower.Reward(floorNo)
+	local rarity = Rarity.Get(reward.Floor)
+	local rewardBox = box(5, Theme.Color.Gold)
+	text(rewardBox, 1, if floor.Guardian then "GUARDIAN REWARDS" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
+	text(
+		rewardBox,
+		2,
+		`<b>{reward.Rolls}</b> reward rolls  ·  <b>{string.format("%.2f", reward.Luck)}x</b> luck  ·  every card <font color="#{rarity.Color:ToHex()}"><b>{reward.Floor}</b></font> or better`,
+		Theme.Color.Text,
+		18
+	)
+	local extras = `+💎{reward.Shards} Shards`
+	if reward.Bonus then
+		extras ..= `  ·  +1 <font color="#{Rarity.Get(reward.Bonus).Color:ToHex()}"><b>{reward.Bonus}</b></font> card`
+	end
+	if reward.Potion then
+		local potion = Meta.PotionById[reward.Potion]
+		extras ..= `  ·  {potion.Icon} {potion.Name}`
+	end
+	text(rewardBox, 3, extras, Theme.Color.Text, 17, Theme.Font.Bold)
+	local accessoryChance, artifactChance = Tower.DropChances(floorNo)
+	text(
+		rewardBox,
+		4,
+		`🎒 Accessory <b>{math.floor(accessoryChance * 100 + 0.5)}%</b>  ·  Artifact <b>{string.format("%.1f", artifactChance * 100)}%</b>`,
+		Color3.fromRGB(255, 170, 230),
+		17,
+		Theme.Font.Bold
+	)
+	if not floor.Guardian then
+		local guardian = Tower.NextGuardian(floorNo)
+		local _, guardianArtifact = Tower.DropChances(guardian)
+		text(
+			rewardBox,
+			5,
+			`Next Guardian: floor {guardian} · artifact {math.floor(guardianArtifact * 100 + 0.5)}%, a sure potion and a bonus card`,
+			Theme.Color.Gold,
+			16,
+			Theme.Font.Heavy
+		)
+	end
+	text(rewardBox, 6, if floorNo > 1 then `✓ Best floor {floorNo - 1}` else "Your first climb!", Theme.Color.Quick, 17, Theme.Font.Heavy)
+
+	deckAndFight(6, deck, unlocked, function()
+		if not unlocked then
+			hint(`{Tower.UnlockHint()} first`)
+			return
+		end
+		return actions.Fight(Tower.Id, nil)
+	end, `CLIMB · FLOOR {floorNo}`)
+	hintLabel.Parent = body
 end
 
 local function build()
@@ -192,6 +394,10 @@ local function build()
 		if child:IsA("GuiObject") then
 			child:Destroy()
 		end
+	end
+	if mode == "tower" then
+		buildTower()
+		return
 	end
 	local boss = Bosses.Get(bossId)
 	local fight = boss.Difficulties[difficulty]
@@ -306,86 +512,12 @@ local function build()
 		)
 	end
 
-	-- Deck presets + a peek at the active deck.
-	local presetRow = row(6, 36)
-	for i = 1, Config.Deck.Presets do
-		local preset = State.Decks.Presets[i] or Deck.Empty()
-		local button = pill(presetRow, `DECK {i} · {Kit.commas(Deck.Power(preset, State.Cards))}`, i, 136, Theme.Color.Accent, i == State.Decks.Active, false)
-		button.Activated:Connect(function()
-			if i == State.Decks.Active then
-				return
-			end
-			local ok, result = pcall(function()
-				return Remotes.Deck:InvokeServer("Select", i)
-			end)
-			if ok and result and result.Decks then
-				State.ApplyDecks(result.Decks)
-			end
-		end)
-	end
-
-	local peek = row(7, 52)
-	local order = 0
-	for _, deckRow in Deck.Rows do
-		for _, id in deck[deckRow] do
-			order += 1
-			local card = if id ~= "" then Cards.Get(id) else nil
-			local chip = Kit.new("Frame", {
-				LayoutOrder = order,
-				Size = UDim2.fromOffset(50, 50),
-				BackgroundColor3 = if card then card.Accent else Theme.Color.PanelLight,
-				BackgroundTransparency = if card then 0 else 0.5,
-				Parent = peek,
-			}, { Kit.corner(UDim.new(0.25, 0)) })
-			if card then
-				Kit.stroke(Rarity.Get(card.Rarity).Color, 2, 0).Parent = chip
-			end
-			Kit.label({
-				Text = if card then card.Glyph else "-",
-				Font = Theme.Font.Display,
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.fromScale(0.8, 0.6),
-				Parent = chip,
-			}, 22)
-		end
-		if deckRow == "Attack" then
-			order += 1
-			Kit.new("Frame", { LayoutOrder = order, Size = UDim2.fromOffset(12, 50), BackgroundTransparency = 1, Parent = peek })
-		end
-	end
-
-	-- Buttons
-	local buttons = row(8, 60)
-	local edit = Kit.button("EDIT DECK", Theme.Color.Auto, Theme.Color.AutoDeep, {
-		LayoutOrder = 1,
-		Size = UDim2.new(0, 170, 1, 0),
-		Parent = buttons,
-	})
-	edit.Activated:Connect(function()
-		actions.EditDeck()
-	end)
-	local fightButton = Kit.button(if unlocked then "FIGHT!" else "LOCKED", Theme.Color.Roll, Theme.Color.RollDeep, {
-		LayoutOrder = 2,
-		Size = UDim2.new(0, 220, 1, 0),
-		Parent = buttons,
-	})
-	Kit.dim(fightButton, not unlocked)
-	fightButton.Activated:Connect(function()
+	deckAndFight(6, deck, unlocked, function()
 		if not unlocked then
 			hint(`{Bosses.UnlockHint(boss.Id, difficulty)} first`)
 			return
 		end
-		if Deck.Count(deck, "Attack") == 0 then
-			hint("Put at least one Attack card in your deck first")
-			return
-		end
-		local ok, message = actions.Fight(bossId, difficulty)
-		if ok then
-			modal:Close()
-		elseif message then
-			hint(message)
-		end
+		return actions.Fight(bossId, difficulty)
 	end)
 	hintLabel.Parent = body -- its own row: inside the wrapping button row it pushed the buttons up
 end
@@ -506,7 +638,16 @@ function BossScreen.Toggle()
 	modal:Toggle()
 end
 
+-- The TOWER tab, from the tower gate.
+function BossScreen.OpenTower()
+	mode = "tower"
+	modal:Open()
+end
+
 function BossScreen.Open(id: string?)
+	if id then
+		mode = "boss"
+	end
 	if id and Bosses.Get(id) then
 		if id ~= bossId then
 			difficulty = "Normal"
