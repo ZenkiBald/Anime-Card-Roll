@@ -342,7 +342,7 @@ local function buildTower()
 	text(
 		rewardBox,
 		2,
-		`<b>{reward.Rolls}</b> reward rolls  ·  <b>{string.format("%.2f", reward.Luck)}x</b> luck  ·  every card <font color="#{rarity.Color:ToHex()}"><b>{reward.Floor}</b></font> or better`,
+		`<b>{reward.Rolls}</b> reward rolls (saved to your BAG)  ·  <b>{string.format("%.2f", reward.Luck)}x</b> boss luck  ·  every card <font color="#{rarity.Color:ToHex()}"><b>{reward.Floor}</b></font> or better`,
 		Theme.Color.Text,
 		18
 	)
@@ -470,7 +470,7 @@ local function build()
 	text(
 		rewardBox,
 		2,
-		`<b>{reward.Rolls}</b> reward rolls  ·  <b>{string.format("%.2f", reward.Luck)}x</b> luck  ·  every card <font color="#{floor.Color:ToHex()}"><b>{reward.Floor}</b></font> or better`,
+		`<b>{reward.Rolls}</b> reward rolls (saved to your BAG)  ·  <b>{string.format("%.2f", reward.Luck)}x</b> boss luck  ·  every card <font color="#{floor.Color:ToHex()}"><b>{reward.Floor}</b></font> or better`,
 		Theme.Color.Text,
 		18
 	)

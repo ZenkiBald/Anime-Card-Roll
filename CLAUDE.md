@@ -67,7 +67,15 @@ Colossal, fair trades). Every 10th floor a Guardian (1.15x power): full boss rew
 on the result panel, a tower gate in town at the map's `Tower` marker (falls back to the spawn's right), a HIGHEST
 FLOOR board beside it, Floor in the player list, a daily quest (TowerFloors), dev +10 FLOORS / TOWER TO FLOOR 1.
 Opens after `Tower.UnlockAfter` (Kurogane Normal) when unlock rules are on. `tests/tower_test.luau` checks it.
-Planned next: traits rolled onto cards. Keep it SMALL: rarity still wins.
+Auto-climb: after a tower win the next floor starts after a 4 s countdown (AUTO CLIMB toggle on the result panel).
+Roll bank (2026-10-23, user's call): boss and tower reward rolls are no longer rolled on the spot; they're saved as
+tickets `RollBank["<floor>|<luck x 100>"] = count` (`Rewards.TicketKey` / `BankGroups`) and opened from BAG > ROLLS
+(`UI/BagRolls`, `OpenRolls` remote, up to `Rewards.MaxOpen` per press) or OPEN NOW on the result panel. A ticket
+keeps its boss luck; the player's luck at opening multiplies on top (cap 5x), so saving them for a potion or
+LUCKY STORM pays. The BAG badge counts them. Fusion panel: `busy` now always clears (pcall + panel close), the
+old lock-after-one-fusion bug.
+Planned next: 4v4 squad battles (user picked: enemy squad of boss + 3 guards, auto with tap-to-target); traits
+rolled onto cards. Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
 refreshed every 60 s.

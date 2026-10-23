@@ -23,7 +23,8 @@
         "Travel": { "$className": "RemoteEvent" },
         "Fuse": { "$className": "RemoteFunction" },
         "Mount": { "$className": "RemoteEvent" },
-        "Progress": { "$className": "RemoteEvent" }
+        "Progress": { "$className": "RemoteEvent" },
+        "OpenRolls": { "$className": "RemoteFunction" }
       }
     },
     "ServerScriptService": {

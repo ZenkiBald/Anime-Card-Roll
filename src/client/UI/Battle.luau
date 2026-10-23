@@ -25,6 +25,7 @@ local Effects = require(script.Parent.Effects)
 local ModelView = require(script.Parent.ModelView)
 local CardView = require(script.Parent.CardView)
 local RewardReveal = require(script.Parent.RewardReveal)
+local RollBank = require(script.Parent.RollBank)
 local Abilities = require(script.Parent.Abilities)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
@@ -1304,6 +1305,9 @@ end
 local exit -- forward declarations
 local startFight
 
+local AUTO_CLIMB_SECONDS = 4
+local autoClimb = true -- tower: start the next floor by itself after a win (AUTO CLIMB toggles, for the session)
+
 local function showResults(summary)
 	current.Ended = true
 	warnBanner.Visible = false
@@ -1320,7 +1324,11 @@ local function showResults(summary)
 	}
 	local title = titles[summary.Result] or titles.Lose
 	local rewards = summary.Rewards
-	local hasRewards = rewards ~= nil and rewards.Results ~= nil and #rewards.Results > 0
+	-- Reward rolls are saved to the roll bank (RollBank); the panel shows them and can open them now.
+	local hasRewards = rewards ~= nil and (rewards.Banked or 0) > 0
+	if rewards and rewards.Bank then
+		State.ApplyBank(rewards.Bank)
+	end
 
 	-- Kit panel: the same purple panel art and slanted title banner as every other screen.
 	local panel = Kit.new("Frame", {
@@ -1483,8 +1491,8 @@ local function showResults(summary)
 		if hasRewards then
 			local floor = rewards.Floor and Rarity.Get(rewards.Floor)
 			local floorText = if floor then `<font color="#{floor.Color:ToHex()}">{rewards.Floor}+</font> cards` else nil
-			stat("REWARD ROLLS", tostring(#rewards.Results), Theme.Color.Gold, nil, floorText)
-			stat("LUCK", string.format("%.2fx", rewards.Luck or 1), Theme.Color.Quick, "Luck")
+			stat("REWARD ROLLS", `+{rewards.Banked}`, Theme.Color.Gold, nil, floorText)
+			stat("BOSS LUCK", string.format("%.2fx", rewards.BossLuck or 1), Theme.Color.Quick, "Luck", "x your luck")
 			local bundle = rewards.Bundle
 			if bundle and bundle.Shards and bundle.Shards > 0 then
 				local potions = if bundle.Potions then Meta.Describe({ Potions = bundle.Potions }) else ""
@@ -1577,7 +1585,6 @@ local function showResults(summary)
 		Position = UDim2.new(0.5, 0, 1, -22),
 		Size = UDim2.new(1, -44, 0, 52),
 		BackgroundTransparency = 1,
-		Visible = not hasRewards,
 		Parent = panel,
 	}, {
 		Kit.new("UIListLayout", {
@@ -1614,9 +1621,69 @@ local function showResults(summary)
 			BackgroundTransparency = 1,
 			Parent = box,
 		})
-		RewardReveal.Play(area, rewards, function()
-			if buttons.Parent then
-				buttons.Visible = true
+		-- The saved rolls as a big ticket, with OPEN NOW to roll them here (or keep them for a luck potion).
+		local floorTier = Rarity.Get(rewards.Floor)
+		local ticket = Kit.tile({
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.38),
+			Size = UDim2.fromScale(0.8, 0.5),
+			Parent = area,
+		}, floorTier.Color)
+		local count = Kit.label({
+			Text = `🎟️ {rewards.Banked} REWARD ROLLS`,
+			Font = Theme.Font.Display,
+			TextColor3 = Theme.Color.Gold,
+			Position = UDim2.fromScale(0.05, 0.08),
+			Size = UDim2.fromScale(0.9, 0.36),
+			Parent = ticket,
+		}, 40)
+		Kit.textStroke(Color3.fromRGB(70, 40, 0), 2, 0).Parent = count
+		local bonusText = if rewards.BonusFloor then ` + 1 <font color="#{Rarity.Get(rewards.BonusFloor).Color:ToHex()}">{rewards.BonusFloor}+</font> bonus` else ""
+		Kit.label({
+			Text = `Every card <font color="#{floorTier.Color:ToHex()}"><b>{rewards.Floor}</b></font> or better{bonusText}  ·  {string.format("%.2f", rewards.BossLuck or 1)}x boss luck`,
+			RichText = true,
+			Font = Theme.Font.Heavy,
+			Position = UDim2.fromScale(0.05, 0.48),
+			Size = UDim2.fromScale(0.9, 0.2),
+			Parent = ticket,
+		}, 20)
+		Kit.label({
+			Text = "Saved to BAG › ROLLS. Your own luck counts when you open them: save them for a luck potion or LUCKY STORM!",
+			Font = Theme.Font.Bold,
+			TextColor3 = Theme.Color.Muted,
+			TextWrapped = true,
+			Position = UDim2.fromScale(0.05, 0.7),
+			Size = UDim2.fromScale(0.9, 0.24),
+			Parent = ticket,
+		}, 15)
+		local openNow = Kit.button("OPEN NOW", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0.7),
+			Size = UDim2.fromOffset(200, 50),
+			Parent = area,
+		})
+		openNow.Activated:Connect(function()
+			current.StopClimb = true
+			openNow.Visible = false
+			-- The ticket's floor first, then the bonus card's.
+			local opened = {}
+			for _, floor in { rewards.Floor, rewards.BonusFloor } do
+				local want = if floor == rewards.BonusFloor and floor ~= rewards.Floor then 1 else rewards.Banked - (if rewards.BonusFloor then 1 else 0)
+				local result, message = RollBank.Open(floor, want)
+				if result then
+					for _, r in result.Results do
+						table.insert(opened, r)
+					end
+					opened.Summary = result.Summary
+				elseif message then
+					hint(message)
+				end
+			end
+			if #opened > 0 and area.Parent then
+				ticket:Destroy()
+				RewardReveal.Play(area, { Results = opened, Summary = opened.Summary })
+			else
+				openNow.Visible = true
 			end
 		end)
 	end
@@ -1637,12 +1704,45 @@ local function showResults(summary)
 		Parent = buttons,
 	})
 	local bossId, difficulty = if tower then Tower.Id else current.BossId, current.Difficulty
-	again.Activated:Connect(function()
+	local function goAgain()
 		local ok, message = startFight(bossId, difficulty)
 		if not ok and message then
 			hint(message)
 		end
+	end
+	again.Activated:Connect(function()
+		current.StopClimb = true
+		goAgain()
 	end)
+	-- Auto-climb: after a tower win the next floor starts by itself after a short countdown, unless the
+	-- player opens their rolls, leaves, or switches it off.
+	if tower and summary.Result == "Win" then
+		local auto = Kit.button(if autoClimb then "AUTO CLIMB: ON" else "AUTO CLIMB: OFF", Theme.Color.PanelLight, Theme.Color.Panel, {
+			LayoutOrder = 3,
+			Size = UDim2.new(0, 190, 1, 0),
+			Parent = buttons,
+		})
+		local fight = current
+		auto.Activated:Connect(function()
+			autoClimb = not autoClimb
+			auto.Label.Text = if autoClimb then "AUTO CLIMB: ON" else "AUTO CLIMB: OFF"
+			if not autoClimb then
+				again.Label.Text = againText
+			end
+		end)
+		task.spawn(function()
+			for left = AUTO_CLIMB_SECONDS, 1, -1 do
+				if current ~= fight or fight.StopClimb or not autoClimb or again.Parent == nil then
+					return
+				end
+				again.Label.Text = `{againText} · {left}`
+				task.wait(1)
+			end
+			if current == fight and not fight.StopClimb and autoClimb and again.Parent then
+				goAgain()
+			end
+		end)
+	end
 end
 
 -- Scene -----------------------------------------------------------------------------------------

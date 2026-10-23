@@ -299,7 +299,7 @@ Hud.SetBadgeSource(function()
 	return {
 		GIFTS = MetaClient.GiftsClaimable(),
 		INDEX = MetaClient.IndexClaimable(),
-		BAG = MetaClient.PotionCount(),
+		BAG = MetaClient.PotionCount() + MetaClient.BankCount(),
 		STATS = State.Meta.StatPoints or 0,
 	}
 end)

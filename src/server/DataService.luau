@@ -46,6 +46,8 @@ local TEMPLATE = {
 	Wheel = { Spins = 1, Progress = 0 },
 	-- Infinite Tower (Tower.luau): the highest floor cleared; the next fight is Floor + 1.
 	Tower = { Floor = 0 },
+	-- Saved reward rolls from boss and tower wins (Rewards.TicketKey -> count), opened from the BAG.
+	RollBank = {},
 }
 
 -- Test saves live in their own store so launch data starts clean.

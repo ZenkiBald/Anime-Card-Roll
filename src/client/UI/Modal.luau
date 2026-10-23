@@ -224,6 +224,9 @@ function Modal:Close()
 		setBlur(false)
 	end
 	self.Gui.Enabled = false
+	if self.OnClose then
+		self.OnClose()
+	end
 end
 
 function Modal:Toggle()

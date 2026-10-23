@@ -41,7 +41,9 @@ local grid: ScrollingFrame
 local detail: Frame
 local hintLabel: TextLabel
 local selectedId: string? = nil
-local busy = false
+local busy = false -- true while a fusion is in flight or its animation is on screen
+local fusionToken = 0 -- bumped by each fusion and by closing the panel, so a stale animation can't unlock a newer one
+local fusionStage: Frame? = nil
 local hintToken = 0
 
 local function hint(text: string)
@@ -99,7 +101,24 @@ end
 local drawGrid -- forward declaration
 
 -- The big fusion moment: the old card shakes and shrinks into a flash, the fused card bursts out.
-local function playFusion(cardId: string, before, after)
+-- Ends the fusion on screen (if it's still the current one) and unlocks the FUSE button. Before this
+-- existed, `busy` only cleared on "Tap to continue": an error in the animation, or closing the panel at
+-- the wrong moment, left fusion locked for the rest of the session.
+local function endFusion(token: number)
+	if token ~= fusionToken then
+		return
+	end
+	if fusionStage then
+		fusionStage:Destroy()
+		fusionStage = nil
+	end
+	busy = false
+	if modal.IsOpen then
+		drawGrid()
+	end
+end
+
+local function playFusion(cardId: string, before, after, token: number)
 	local card = Cards.Get(cardId)
 	local rarity = Cards.FusedRarity(card, after.Fusion)
 	local tier = Rarity.Get(rarity)
@@ -113,6 +132,7 @@ local function playFusion(cardId: string, before, after)
 		ClipsDescendants = true, -- keeps the light rays inside the box
 		Parent = detail,
 	}, { Kit.corner(UDim.new(0, 18)) })
+	fusionStage = stage
 	local old = CardView.new(cardId, { Owned = true, Stars = before.Stars, Fusion = before.Fusion, Compact = true })
 	old.AnchorPoint = Vector2.new(0.5, 0.5)
 	old.Position = UDim2.fromScale(0.5, 0.45)
@@ -173,9 +193,7 @@ local function playFusion(cardId: string, before, after)
 		Parent = stage,
 	})
 	closer.Activated:Connect(function()
-		stage:Destroy()
-		busy = false
-		drawGrid()
+		endFusion(token)
 	end)
 	tap.TextTransparency = 0
 end
@@ -198,7 +216,13 @@ local function fuse(cardId: string)
 	if result.Meta then
 		State.ApplyMeta(result.Meta)
 	end
-	playFusion(cardId, before, result.Card)
+	fusionToken += 1
+	local token = fusionToken
+	local played, err = pcall(playFusion, cardId, before, result.Card, token)
+	if not played then
+		warn(`[Fusion] animation failed: {err}`)
+		endFusion(token)
+	end
 end
 
 local function drawDetail()
@@ -422,6 +446,12 @@ function Fusion.Init(playerGui: Instance)
 	modal.OnOpen = function()
 		if not busy then
 			drawGrid()
+		end
+	end
+	-- Closing mid-animation ends it: the card is already fused on the server.
+	modal.OnClose = function()
+		if busy and fusionStage then
+			endFusion(fusionToken)
 		end
 	end
 end

@@ -21,12 +21,14 @@ local MetaService = require(script.Parent.MetaService)
 local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
 local Items = require(Shared.Items)
+local RateLimit = require(script.Parent.RateLimit)
 
 local RollService = {}
 
 local rng = Random.new()
 
 local lastRoll = {} -- [Player] = os.clock() of their last roll
+local openLimiter = RateLimit.new(0.5, 2) -- the roll bank's OPEN: one press every 2 s
 local autoGeneration = {} -- [Player] = number; bumping it stops the running Auto Roll loop
 local autoActive = {} -- [Player] = true while Auto Roll is running
 
@@ -80,6 +82,7 @@ local function fullState(player: Player, data)
 		Decks = DeckService.State(data),
 		Progress = data.Progress,
 		Tower = data.Tower.Floor,
+		RollBank = data.RollBank,
 		Battle = { AutoUlt = data.Settings.AutoUlt, Speed = data.Settings.BattleSpeed },
 		Mount = data.Settings.Mount,
 		Meta = MetaService.State(player, data),
@@ -153,24 +156,16 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?)
 	}
 end
 
--- Boss reward rolls for a win at difficulty score d: 3 + 2d rolls with boss luck and a rarity
--- floor, plus one card above the floor on a first clear (Rewards.luau has the numbers).
--- Pays a win: `reward.Rolls` reward rolls at its luck and floor rarity (+1 at `bonus` or better), its
--- Shards, a potion (sure, or by chance) and a roll for gear at `d` (Items.RollDrops, x `boost`).
+-- Pays a win: `reward.Rolls` reward rolls at its boss luck and floor rarity (+1 at `bonus` or better)
+-- go into the roll bank as tickets; its Shards, a potion (sure, or by chance) and a roll for gear at `d`
+-- (Items.RollDrops, x `boost`) are paid right away.
 local function payWin(player: Player, profile, reward, bonus: string?, potion: string?, potionChance: number, d: number, boost: number)
-	local luck = Rewards.TotalLuck(reward.Luck, luckFor(player, profile.Data))
-	local results = {}
-	local function add(floor: string, isBonus: boolean)
-		local result = doRoll(player, profile, luck, floor)
-		result.Summary = nil
-		result.Bonus = isBonus or nil
-		table.insert(results, result)
-	end
-	for _ = 1, reward.Rolls do
-		add(reward.Floor, false)
-	end
+	local bank = profile.Data.RollBank
+	local key = Rewards.TicketKey(reward.Floor, reward.Luck)
+	bank[key] = (bank[key] or 0) + reward.Rolls
 	if bonus then
-		add(bonus, true)
+		local bonusKey = Rewards.TicketKey(bonus, reward.Luck)
+		bank[bonusKey] = (bank[bonusKey] or 0) + 1
 	end
 	local bundle = { Shards = reward.Shards, Potions = {} }
 	if potion and rng:NextNumber() < potionChance then
@@ -181,13 +176,48 @@ local function payWin(player: Player, profile, reward, bonus: string?, potion: s
 	bundle.Artifacts = drops.Artifacts
 	bundle = MetaService.Grant(profile.Data, bundle) -- the screen shows the Shard Gain bonus too
 	return {
-		Results = results,
-		Luck = luck,
+		Banked = reward.Rolls + (if bonus then 1 else 0),
+		BonusFloor = bonus,
+		BossLuck = reward.Luck,
 		Floor = reward.Floor,
+		Bank = bank,
 		Bundle = bundle,
 		Summary = summary(player, profile.Data),
 		Meta = MetaService.State(player, profile.Data),
 	}
+end
+
+-- Opens up to `count` banked tickets of one rarity floor, best boss luck first, each at that luck x the
+-- player's luck right now (capped like every roll). Returns the results for the reward fan.
+local function openTickets(player: Player, profile, floor: string, count: number)
+	local bank = profile.Data.RollBank
+	local playerLuck = luckFor(player, profile.Data)
+	local results = {}
+	local group
+	for _, g in Rewards.BankGroups(bank) do
+		if g.Floor == floor then
+			group = g
+		end
+	end
+	if group == nil then
+		return results
+	end
+	for _, key in group.Keys do
+		local _, bossLuck = Rewards.ParseTicket(key)
+		while #results < count and (bank[key] or 0) > 0 do
+			bank[key] -= 1
+			local result = doRoll(player, profile, Rewards.TotalLuck(bossLuck :: number, playerLuck), floor)
+			result.Summary = nil
+			table.insert(results, result)
+		end
+		if bank[key] <= 0 then
+			bank[key] = nil
+		end
+		if #results >= count then
+			break
+		end
+	end
+	return results
 end
 
 function RollService.RewardRolls(player: Player, d: number, firstClear: boolean)
@@ -277,6 +307,34 @@ function RollService.Start()
 			return { Ok = false, Reason = "Loading" }
 		end
 		return fullState(player, profile.Data)
+	end
+
+	-- The roll bank: OpenRolls(floor, count) opens saved reward tickets of that rarity floor.
+	Remotes.OpenRolls.OnServerInvoke = function(player: Player, floor: unknown, count: unknown)
+		if type(floor) ~= "string" or table.find(Rarity.Order, floor) == nil or type(count) ~= "number" or count ~= count then
+			return { Ok = false, Reason = "BadRequest" }
+		end
+		local profile = DataService.Get(player)
+		if profile == nil then
+			return { Ok = false, Reason = "Loading" }
+		end
+		if BattleService.InBattle(player) then
+			return { Ok = false, Reason = "InBattle" }
+		end
+		if not openLimiter:Allow(player) then
+			return { Ok = false, Reason = "TooFast" }
+		end
+		local results = openTickets(player, profile, floor, math.clamp(math.floor(count), 1, Rewards.MaxOpen))
+		if #results == 0 then
+			return { Ok = false, Reason = "NoTickets" }
+		end
+		return {
+			Ok = true,
+			Results = results,
+			Bank = profile.Data.RollBank,
+			Summary = summary(player, profile.Data),
+			Meta = MetaService.State(player, profile.Data),
+		}
 	end
 
 	Remotes.Roll.OnServerInvoke = function(player: Player, mode: unknown)

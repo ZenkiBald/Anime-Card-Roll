@@ -175,3 +175,16 @@ do
 	local rate = campaign(Tower.FloorAt(30, Tower.Enemies[1], false), deck, owned, 10)
 	check(rate == 0, "a World 1 deck can't climb to floor 30")
 end
+
+-- 4. Roll bank ----------------------------------------------------------------------------------
+do
+	local Rewards = MODULES.Rewards
+	local key = Rewards.TicketKey("Rare", 2.4)
+	local floor, luck = Rewards.ParseTicket(key)
+	check(key == "Rare|240" and floor == "Rare" and near(luck, 2.4), "a saved roll keeps its rarity floor and boss luck")
+	check(Rewards.ParseTicket("Nope|100") == nil and Rewards.ParseTicket("Rare") == nil, "bad ticket keys are ignored")
+	local groups = Rewards.BankGroups({ ["Rare|240"] = 3, ["Rare|310"] = 2, ["Epic|400"] = 1, ["Uncommon|135"] = 0 })
+	check(#groups == 2 and groups[1].Floor == "Epic" and groups[2].Count == 5 and groups[2].Keys[1] == "Rare|310",
+		"the bank groups by floor, rarest first, best luck first")
+	check(Rewards.BankCount({ ["Rare|240"] = 3, ["Epic|400"] = 2 }) == 5, "the bank counts every saved roll")
+end

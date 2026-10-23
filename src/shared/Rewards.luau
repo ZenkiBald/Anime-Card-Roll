@@ -43,6 +43,63 @@ function Rewards.For(d: number): Reward
 	}
 end
 
+-- The roll bank: reward rolls from boss and tower wins are saved as tickets, not rolled on the spot.
+-- A ticket keeps its rarity floor and boss luck; the player's own luck is applied when it's opened, so
+-- saving tickets for a luck potion or a LUCKY STORM pays off. Saved as RollBank[key] = count, where
+-- key = "<floor>|<luck x 100>", e.g. "Rare|240".
+Rewards.MaxOpen = 50 -- tickets opened by one OPEN press
+
+function Rewards.TicketKey(floor: string, luck: number): string
+	return `{floor}|{math.floor(luck * 100 + 0.5)}`
+end
+
+function Rewards.ParseTicket(key: string): (string?, number?)
+	local floor, luck = string.match(key, "^(%a+)|(%d+)$")
+	if floor == nil or table.find(Rarity.Order, floor) == nil then
+		return nil, nil
+	end
+	return floor, tonumber(luck) / 100
+end
+
+-- Tickets per rarity floor, rarest first: { { Floor, Count, BestLuck, Keys (best luck first) } }.
+function Rewards.BankGroups(bank: { [string]: number }): { { Floor: string, Count: number, BestLuck: number, Keys: { string } } }
+	local byFloor = {}
+	for key, count in bank do
+		local floor, luck = Rewards.ParseTicket(key)
+		if floor and luck and count > 0 then
+			local group = byFloor[floor]
+			if group == nil then
+				group = { Floor = floor, Count = 0, BestLuck = 0, Keys = {} }
+				byFloor[floor] = group
+			end
+			group.Count += count
+			group.BestLuck = math.max(group.BestLuck, luck)
+			table.insert(group.Keys, key)
+		end
+	end
+	local groups = {}
+	for _, group in byFloor do
+		table.sort(group.Keys, function(a, b)
+			local _, la = Rewards.ParseTicket(a)
+			local _, lb = Rewards.ParseTicket(b)
+			return (la :: number) > (lb :: number)
+		end)
+		table.insert(groups, group)
+	end
+	table.sort(groups, function(a, b)
+		return Rarity.Index(a.Floor) > Rarity.Index(b.Floor)
+	end)
+	return groups
+end
+
+function Rewards.BankCount(bank: { [string]: number }?): number
+	local n = 0
+	for _, count in bank or {} do
+		n += count
+	end
+	return n
+end
+
 -- Boss luck x the player's own luck, under the overall cap.
 function Rewards.TotalLuck(bossLuck: number, playerLuck: number): number
 	return math.min(Config.Roll.LuckCap, bossLuck * playerLuck)
