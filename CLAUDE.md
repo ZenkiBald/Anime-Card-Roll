@@ -103,9 +103,9 @@ cards and their deck; CHANGE FAVOURITE on your own.
 Artifacts + Worn); pity removed (rolls are pure luck; `Config.Pity`, the HUD counter and odds bars are gone);
 3D chibi card figures removed (`CardArt` and every card's `Look` deleted): a card shows `Image` (2D, filling the
 card) or its glyph until the user's AI illustrations arrive; roll reveals no longer say FUSE / copies ("DUPE").
-Traits (`Traits.luau`): every pull rolls one (Rare 75% / Epic 20% / Legendary 4.5% / Mythic 0.5%, shown in the
-ODDS panel), the card keeps its best (`Cards[id].Trait`); REROLL TRAIT in the Index (200 Shards, MetaService
-"RerollTrait", replaces it); battle-only effects (SPD / Crit / CritDamage / Guard / StartEnergy, never ATK / HP)
+Traits (`Traits.luau`): since Phase 2 NOT rolled on pulls; bought at the Trait Master for Trait Shards (see Phase 2
+below; Rare 75% / Epic 20% / Legendary 4.5% / Mythic 0.5%, shown in the ODDS panel; `Cards[id].Trait` / `Trait2`);
+battle-only effects (SPD / Crit / CritDamage / Guard / StartEnergy, never ATK / HP)
 applied in BattleEngine like the old accessories (UnitSpec.Trait). Trait chip on cards. Test tools: GIVE TRAITS.
 CODES (menu button, `UI/Codes`): `src/server/Codes.luau` (server-only list; once per player, optional Expires),
 `CodeService` + `Redeem` remote, saved in `Codes`. Add a code = one entry in Codes.luau.
@@ -137,6 +137,42 @@ every hitter paid (`Raid.Reward`: Shards by damage, capped, + Roll Pack, top hit
 odds) and RAID LUCK x2 for the whole server for 10 min (attribute RaidLuckEnds, in MetaService.Luck and
 State.Luck); failed: half Shards. Client: RAID tab on the BATTLE screen (live pool / timer / top hitters), raid pill
 under the event pill (tap to join), raid result panel, payout toast. Daily quest "raid". Dev: START RAID.
+Phase 2 (2026-10-23, user's spec; built in the cloud, headless tests only, not yet seen in Studio). The spec's
+DBZ x Naruto roster / boss mapping (#6) was NOT done: original characters only (copyright, DMCA takedowns).
+- Trait loop: pulls roll no trait. `TraitShards` currency (top bar, BAG): bosses 1-5 by D x2 first clear
+  (`Rewards.TraitShards`), every tower floor (Guardians 10 + floor/5), raids (`Raid.Reward`), quests, playtime
+  gifts, the wheel, codes, x2 on a Cost Challenge. Kenshin the Trait Master (NPC beside Hoshi, map marker
+  `TraitMaster` else 12 studs right of `Fusion`; `BossModels.traitmaster`; panel `UI/TraitMaster`, Index shortcut):
+  `TraitService` + `TraitMaster` remote: Roll (10) / LockRoll (25: keep one slot, roll the other twice, pick) /
+  Choose (0 keep, 1-2 apply); the roll waits as `Cards[id].Pending` until chosen; slot 2 at Awakening node 4.
+- Rolling: `RollBoost.luau` + server `Momentum.luau`: Momentum chain (+1% speed / +0.01x luck per 10 rolls, max
+  500; breaks after 30 s idle, paused in fights; HUD meter over ROLL). Every 25th lifetime roll is an Overcharge
+  Surge (`RollService` rollClick): Auto = Rare+ with 1.5x border / foil odds; a click inside the 1.5 s window after
+  the cooldown (or the Auto Roll pass) = PERFECT: 3 cards, the first Epic+, 2x border / foil odds (`result.Extra`).
+  Tiered luck (`Odds`: weight = base x luck ^ `Rarity.LuckExponent`, renormalised), cap 25x (Commons ~28% there).
+  Foils (`Foils.luau`, every pull, kept like borders in `Cards[id].Foils`, best worn, battle-only): Aura 10% (+8%
+  Skill DMG), Golden Ki 1.9% (+15 energy), Demon Seal 0.1% (+35% ATK, 5% HP per action, never below 1 HP).
+  Awakening (`Awaken.luau`, `Cards[id].Awaken` = highest node): 20 / 40 / 60 / 80 copies = +10% stats
+  (`Cards.Stat` 6th arg) / +15% Skill DMG / bond 400% / trait slot 2; fusing (100) = node 5: +25 Trait Shards and
+  +0.05x base luck per fusion (MetaService.BaseLuck counts fusions). Rarity still wins on stats (odds_test).
+- Pack Alchemy (`Packs.Condense`, `PackAlchemy` remote, BAG): 10 x 10 -> 1 x 100, 10 x 100 -> 1 x 1000; INFUSE a Mega
+  Pack (2,500 Shards) into "1000:<Element>": that element x1.5 inside each rarity, 2x borders under LUCKY STORM /
+  Raid Luck / a Totem.
+- Combat: Stagger bar on leaders and raid Colossi (`Config.Battle.Stagger*`: 1.2% a hit, counter element x2.5,
+  Cosmic x1.5, weak x0.5; full = 5 s Staggered: no actions, warned move cancelled, DEF 0, Ultimates +50%; staggered
+  at half HP loses its first phase-2 move). Slot Links: each Support card's `Link` (Cards.luau) buffs Attack slot
+  N from Support slot N. Deck Cost (`Cards.Cost` by base rarity 1/1/2/3/4/6/8, `Deck.Cost`): COST CHALLENGE toggle
+  on boss fights (BattleStart 3rd arg `{ Cost = true }`, cap 30, x2 Trait Shards). Unit effects (both trait slots,
+  foil, Awakening, mutator) go in `UnitSpec.Trait` (stats incl. SkillDMG, ATK, HPCost). Bosses / tower retuned.
+- Monetization (`MonetizationConfig.luau`: ids 0 = placeholders, `MockPurchases`; `MonetizationService`, remotes
+  Store / StoreState, `UI/Store`, STORE menu button): Fast Roll (-30% cooldown), Auto Roll+ (opens Auto Roll;
+  perfect surges), Triple Roll (3 cards a click, packs open 3x faster), VIP (+25% Shards / XP, +2 presets
+  `DeckService.PresetCount`, golden name tag via player attribute VIP, +25% Trait Shards, x2 luck), Server Luck
+  Totem dev product (ProcessReceipt, once per PurchaseId in `Purchases`; x2 server luck 10 min via attribute
+  TotemLuckEnds + a totem model by the spawn; buyer gets 2 Big Roll Packs + 50 Trait Shards). Random perks (luck,
+  Trait Shard bonus, Triple Roll, perfect surges, the Totem) only where `ArePaidRandomItemsRestricted` is false
+  (unknown = restricted); the STORE greys them out and links to ODDS. Mock buys (Studio / TestMode, id 0) save in
+  `MockPasses`. Dev: +200 TRAIT SHARDS, +20 COPIES ALL, GIVE FOILS.
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
@@ -186,6 +222,8 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   `Rewards` (boss reward rolls / luck / floor per difficulty score D), `BossModels` (NPC figures from plain parts),
   `Tower` (Infinite Tower floors, enemies, affixes, curve, rewards, daily mutators),
   `Elements` (element wheel, synergies, bonds), `Raid` (server raid schedule, Colossus sizing, pool, rewards),
+  `Foils` (foil editions), `Awaken` (Awakening nodes), `RollBoost` (Momentum + Overcharge Surge),
+  `MonetizationConfig` (pass / product ids, perks, mock toggle),
   `Cards` also has the fusion helpers (`FusedRarity`, `MaxFusion`, `Stat`, `Power(card, stars, fusion)`),
   `Traits` (card traits: odds, effects, reroll cost), `Meta` (potions, upgrades, Index rewards, daily, gifts,
   milestones, daily quests, levels and stat points, server events, the Lucky Wheel, and the luck / cooldown formulas
@@ -202,12 +240,13 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   copies and max rarity, then fuses), `LeaderboardService` (leaderstats + the town boards; test scores go to
   `LB_*_Test_1` stores),
   `ProfileService` (Profile remote: public profiles of players in the server), `RaidService` (the server's raid
-  pool, hitters, payouts, Raid Luck), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
+  pool, hitters, payouts, Raid Luck), `TraitService` (Trait Master rolls), `Momentum` (roll chains),
+  `MonetizationService` (passes, policy gating, Luck Totem, receipts), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient` (progression calls, badge counts),
   `HubFx` (NPC idle animation, sage tips, portal lock labels), `ZoneFx` (zone music + lighting mood),
   `UI/*` (Kit helpers incl. `Kit.tile` / `Kit.dimTile`, Theme, Skin (UI kit image ids), BorderFx (card border frames), Title, Travel, Settings, Fusion, Modal (blurred-world
   panel with slanted banner), Controls (option pills, tabs, search, headers), CardView (full card), CardTile (square
-  grid tile), ElementUi (element badges / rich text), ElementGuide (ELEMENTS panel), Reveal, Effects, Hud, Index, OddsPanel, Bag + BagGear, Stats, Shop, Gifts, DevPanel, DeckBuilder, BossScreen,
+  grid tile), ElementUi (element badges / rich text), ElementGuide (ELEMENTS panel), TraitMaster, Store, Reveal, Effects, Hud, Index, OddsPanel, Bag + BagGear, Stats, Shop, Gifts, DevPanel, DeckBuilder, BossScreen,
   Battle, RewardReveal, ModelView (3D figure in a ViewportFrame), Sfx).
 - Remotes are declared in `default.project.json` under ReplicatedStorage.Remotes.
 - Not in Rojo: the map lives only in the place file (published to Roblox): `workspace.Map` (Town, EmberVillage,
@@ -225,8 +264,9 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   difficulty one entry in `src/shared/Bosses.luau`, a new artifact one entry in `src/shared/Items.luau`, a new trait one entry in `src/shared/Traits.luau`,
   a new potion / gift / milestone / quest one entry in `src/shared/Meta.luau`
   (no other code changes). Only Secret signatures are coded in `BattleEngine`.
-- Potions, upgrades and gifts are earned in game only. Selling luck potions for Robux would make them paid random
-  items (see the policy rule below).
+- Potions, upgrades and gifts are earned in game only. Robux sales live only in MonetizationConfig /
+  MonetizationService; any perk that changes odds or gives random rewards is marked Random and gated by
+  PolicyService (see the policy rule below).
 - Boss HP / ATK per difficulty are tuned so the deck in `tests/fixtures.luau` for each fight (about its
   recommended power, fusions allowed via the fixture's `Fusion`) wins in 60-90 s; `tests/battle_test.luau` checks
   all 12 fights. Re-run it after changing
@@ -254,6 +294,6 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 - Type check (needs luau-lsp): `rojo sourcemap default.project.json --include-non-scripts -o sourcemap.json` then
   `luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions @roblox=tests/defs/globalTypes.d.luau --ignore "**/ProfileStore.luau" src/`
 - UI property names check (props set through `Kit.new` aren't type checked): `python tests/check_props.py tests/defs/globalTypes.d.luau src`
-- Odds / card stat / progression / deck / battle / tower / pack / strategy (elements, raids) tests (needs the `luau` CLI): `python tests/bundle.py` then `luau tests/bundle_out.luau`
+- Odds / card stat / progression / deck / battle / tower / pack / strategy (elements, raids) / phase 2 tests (needs the `luau` CLI): `python tests/bundle.py` then `luau tests/bundle_out.luau`
 
 Tool versions are pinned in `rokit.toml` (`rokit install`).
