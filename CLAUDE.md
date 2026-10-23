@@ -36,7 +36,7 @@ sides, not saved); the server counts progress with `MetaService.Track(player, st
 fusions, gifts and potions. Rebirth was removed (2026-10-23, user's call: a card game doesn't need it; long-term
 luck comes from artifacts and accessories). Stat points: every level past 1 gives a point for Luck, Roll Speed,
 Border Chance, Shard Gain or XP Gain (`Meta.Stats`, capped per stat; STATS menu button, `UI/Stats`; reset for
-Shards). BAG menu button (`UI/Bag`) replaces POTIONS: tabs Potions / Artifacts / Accessories (the last two are
+Shards). BAG menu button (`UI/Bag`) replaces POTIONS (now one item grid, see BAG below; the old tabs were
 placeholders until they drop). The Lucky Wheel is an NPC, Madame Fortuna, at the map's `Wheel` marker (falls
 back near the spawn) with a turning wheel booth; no HUD wheel button.
 Card borders (`Borders.luau`, 2026-10-23): every pull also rolls a border on its own, Normal / Gold (1 in 25) /
