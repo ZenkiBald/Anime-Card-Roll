@@ -1,9 +1,12 @@
 --!nonstrict
 -- Avatar auras: a character whose player wears a card as their avatar (EQUIP AS AVATAR in the DECK
--- inspector; NameTagService sets the AvatarCard / AvatarElement / AvatarBorder attributes) glows in that
--- card's element colour (a soft light and a few slow sparks). While walking, a Rainbow-border avatar
--- leaves fire footsteps and a Secret-border one sheds celestial motes. Drawn on each client, only for
--- characters near the camera: one light, one emitter and short-lived footstep parts per player.
+-- inspector) glows in that card's element colour (a soft light and a few slow sparks). While walking, a
+-- Rainbow-border avatar leaves fire footsteps and a Secret-border one sheds celestial motes. Drawn on each
+-- client, only for characters near the camera: one light, one emitter and short-lived footstep parts each.
+-- Where the look comes from, newest first: the local player's own prediction (Avatars.Predict, drawn the
+-- moment EQUIP is tapped), the server's AuraReplication event (AvatarService fires it to everyone on a
+-- change), then the character's AvatarElement / AvatarBorder attributes (for players already wearing one
+-- when this client joined).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,6 +17,8 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Elements = require(Shared.Elements)
+local Cards = require(Shared.Cards)
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Theme = require(script.Parent.UI.Theme)
 
@@ -25,6 +30,9 @@ local CHECK_EVERY = 0.25
 
 local folder: Folder
 local auras = {} -- [character] = { Key, Attachment, Light, Sparks, Motes?, Border, NextStep, LeftFoot }
+-- [character] = { Element = string?, Border = string } from the server event or a local prediction
+-- (Element nil = no aura); wins over the attributes.
+local overrides = {}
 
 local function clear(character)
 	local aura = auras[character]
@@ -116,6 +124,47 @@ local function footstep(root: BasePart, humanoid: Humanoid, aura)
 	Debris:AddItem(part, 1.1)
 end
 
+-- The aura a character should show: (element, border), element nil for none.
+local function look(character: Model): (string?, string)
+	local override = overrides[character]
+	if override then
+		return override.Element, override.Border
+	end
+	local element = character:GetAttribute("AvatarElement")
+	local border = character:GetAttribute("AvatarBorder")
+	return if type(element) == "string" then element else nil, if type(border) == "string" then border else "Normal"
+end
+
+local function override(character: Model?, cardId: string, border: string)
+	if character == nil then
+		return
+	end
+	local card = Cards.Get(cardId)
+	overrides[character] = { Element = if card then card.Element else nil, Border = border }
+	-- Redraw right away instead of on the next tick.
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if card and root and root:IsA("BasePart") then
+		build(character, root, card.Element, border)
+	else
+		clear(character)
+	end
+end
+
+-- Client prediction: the local player's aura changes the moment EQUIP AS AVATAR is tapped (cardId "" =
+-- take it off); the server's AuraReplication answer (or Avatars.Revert on a refusal) settles it.
+function Avatars.Predict(cardId: string, border: string?)
+	override(Players.LocalPlayer.Character, cardId, border or "Normal")
+end
+
+-- The server refused the equip: back to what the server last said.
+function Avatars.Revert()
+	local character = Players.LocalPlayer.Character
+	if character then
+		overrides[character] = nil
+		clear(character)
+	end
+end
+
 local function update(now: number)
 	local camera = Workspace.CurrentCamera
 	local seen = {}
@@ -123,16 +172,17 @@ local function update(now: number)
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		local element = character and character:GetAttribute("AvatarElement")
-		if root == nil or humanoid == nil or type(element) ~= "string" then
+		if root == nil or humanoid == nil then
+			continue
+		end
+		local element, border = look(character)
+		if element == nil then
 			continue
 		end
 		if camera and (camera.CFrame.Position - root.Position).Magnitude > RANGE then
 			continue
 		end
 		seen[character] = true
-		local border = character:GetAttribute("AvatarBorder")
-		border = if type(border) == "string" then border else "Normal"
 		local aura = auras[character]
 		if aura == nil or aura.Key ~= `{element}:{border}` or aura.Attachment.Parent ~= root then
 			build(character, root, element, border)
@@ -152,12 +202,22 @@ local function update(now: number)
 			clear(character)
 		end
 	end
+	for character in overrides do
+		if character.Parent == nil then
+			overrides[character] = nil -- respawned or left
+		end
+	end
 end
 
 function Avatars.Start()
 	folder = Instance.new("Folder")
 	folder.Name = "AvatarFx"
 	folder.Parent = Workspace
+	Remotes:WaitForChild("AuraReplication").OnClientEvent:Connect(function(character, cardId, border)
+		if typeof(character) == "Instance" and character:IsA("Model") and type(cardId) == "string" and type(border) == "string" then
+			override(character, cardId, border)
+		end
+	end)
 	local nextCheck = 0
 	RunService.Heartbeat:Connect(function()
 		local now = os.clock()

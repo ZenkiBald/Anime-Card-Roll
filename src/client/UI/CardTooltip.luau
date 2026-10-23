@@ -3,8 +3,8 @@
 --   PC: the card scales to 1.15 (0.15 s quad) and rises to ZIndex 50 on MouseEnter; after 0.25 s of
 --   hovering, the flyout opens beside it. MouseLeave closes it and puts the card back.
 --   Touch: a long press (or a tap) opens the flyout; a tap anywhere else closes it.
--- Flyout (280 px obsidian, 1.2 px border in the element's colour): name, title, element badge, role badge,
--- border tier ("Gold Border · 4x"); then the Basic (name, target, formula), the Skill (name, cooldown,
+-- Flyout (280 px obsidian, 1.2 px border in the element's colour): name, title, element badge, role badge
+-- (the card's `Role`), border tier ("Gold Border · 4x"); then the Basic (name, target, formula), the Skill (name, cooldown,
 -- stagger, effect), the Ultimate (bold italic name, energy cost, text) and the card's bond links.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -47,28 +47,6 @@ local gui: ScreenGui? = nil
 local flyout: Frame? = nil
 local owner: GuiObject? = nil -- the card the open flyout belongs to
 
--- A card's battle role, read from what its abilities do: heals = Mender, shields / taunts / guard = Warder,
--- burns / debuffs = Hexer, else Striker.
-function CardTooltip.Role(card): string
-	local has = {}
-	for _, ability in card.Abilities do
-		for _, effect in ability.Effects do
-			has[effect.Kind] = true
-			if effect.Kind == "Buff" and effect.Stat == "Guard" then
-				has.Guard = true
-			end
-		end
-	end
-	if has.Heal or has.Revive then
-		return "Mender"
-	elseif has.Shield or has.Taunt or has.Guard or has.Evade then
-		return "Warder"
-	elseif has.Burn or has.Debuff then
-		return "Hexer"
-	end
-	return "Striker"
-end
-
 local function targetText(ability): string
 	for _, effect in ability.Effects do
 		if effect.Kind == "Damage" or effect.Kind == "Burn" or effect.Kind == "Debuff" then
@@ -110,7 +88,7 @@ local function build(cardId: string, border: string): Frame?
 	local element = Elements.Get(card.Element)
 	local edge = if element then element.Color else Theme.Color.Line
 	local tier = Borders.Get(border)
-	local role = CardTooltip.Role(card)
+	local role = card.Role -- Cards.luau: Striker | Hexer | Mender | Warder
 	local frame = Kit.new("Frame", {
 		Name = "CardTooltip",
 		Size = UDim2.fromOffset(WIDTH, 0),
@@ -165,7 +143,7 @@ local function build(cardId: string, border: string): Frame?
 	line(
 		`{if element then badge(`{element.Icon} {string.upper(element.Name)}`, element.Color) .. "   " else ""}{badge(
 			`◆ {string.upper(role)}`,
-			ROLE_COLORS[role]
+			ROLE_COLORS[role] or Theme.Color.Muted
 		)}   {badge(Borders.Label(border), tier.Color)}`,
 		Theme.Font.Heavy,
 		Theme.Color.Text,

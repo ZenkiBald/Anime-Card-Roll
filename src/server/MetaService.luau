@@ -23,6 +23,7 @@ local RateLimit = require(script.Parent.RateLimit)
 local NpcRange = require(script.Parent.NpcRange)
 local MonetizationService = require(script.Parent.MonetizationService)
 local Momentum = require(script.Parent.Momentum)
+local AvatarService = require(script.Parent.AvatarService)
 
 local MetaService = {}
 
@@ -396,11 +397,12 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 		return true
 	elseif action == "SetAvatar" then
 		-- Wear an owned card as your look in town (its element aura; Rainbow / Secret borders add a
-		-- walking trail): NameTagService puts it on the character. "" takes it off.
+		-- walking trail): AvatarService puts it on the character and replicates it. "" takes it off.
 		if arg ~= "" and (type(arg) ~= "string" or data.Cards[arg] == nil) then
 			return false, "BadRequest"
 		end
 		data.Settings.Avatar = arg
+		AvatarService.Apply(player, true) -- every client redraws now, not on a polling loop
 		return true
 	elseif action == "ClaimQuest" then
 		local quest = type(arg) == "string" and Meta.QuestById[arg]

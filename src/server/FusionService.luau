@@ -20,6 +20,7 @@ local DataService = require(script.Parent.DataService)
 local MetaService = require(script.Parent.MetaService)
 local RateLimit = require(script.Parent.RateLimit)
 local NpcRange = require(script.Parent.NpcRange)
+local AvatarService = require(script.Parent.AvatarService)
 
 local FusionService = {}
 
@@ -62,6 +63,7 @@ local function fuse(player: Player, cardId: unknown, border: unknown): { [string
 	entry.Fusion = (entry.Fusion or 0) + 1 -- fusions done (node 5 luck)
 	entry.Awaken = math.max(entry.Awaken or 0, 4) -- nodes 1-4 stay open for good
 	local granted = MetaService.Grant(profile.Data, { TraitShards = Awaken.FusionTraitShards }, player)
+	AvatarService.Apply(player) -- if this is the worn avatar card, its aura moves up a border now
 	MetaService.Track(player, "Fusions")
 	MetaService.AddXP(player, profile.Data, Meta.XP.Fusion)
 	return {

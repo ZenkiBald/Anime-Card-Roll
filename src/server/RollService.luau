@@ -36,6 +36,7 @@ local MonetizationService = require(script.Parent.MonetizationService)
 local Momentum = require(script.Parent.Momentum)
 local TutorialService = require(script.Parent.TutorialService)
 local NpcRange = require(script.Parent.NpcRange)
+local AvatarService = require(script.Parent.AvatarService)
 
 local RollService = {}
 
@@ -197,6 +198,9 @@ local function doRoll(player: Player, profile, luck: number?, batch: { XP: numbe
 
 	-- The copy goes on the pile of its border; the card keeps every border it has found and wears the best.
 	local newBorder = addCopy(entry, border)
+	if newBorder and profile.Data.Settings.Avatar == card.Id then
+		AvatarService.Apply(player) -- the worn card found a better border: its trail changes now
+	end
 
 	-- And a foil (Foils.luau), kept the same way.
 	local foil = Foils.Pick(rng:NextNumber(), o.FoilMult)

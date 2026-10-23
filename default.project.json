@@ -14,6 +14,7 @@
         "SetAuto": { "$className": "RemoteEvent" },
         "AutoResult": { "$className": "RemoteEvent" },
         "Announce": { "$className": "RemoteEvent" },
+        "AuraReplication": { "$className": "RemoteEvent" },
         "Dev": { "$className": "RemoteFunction" },
         "Deck": { "$className": "RemoteFunction" },
         "BattleStart": { "$className": "RemoteFunction" },

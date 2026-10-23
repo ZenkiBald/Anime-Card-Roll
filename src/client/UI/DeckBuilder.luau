@@ -35,6 +35,7 @@ local ElementGuide = require(script.Parent.ElementGuide)
 local Waypoint = require(script.Parent.Waypoint)
 local CardTooltip = require(script.Parent.CardTooltip)
 local MetaClient = require(script.Parent.Parent.MetaClient)
+local Avatars = require(script.Parent.Parent.Avatars)
 local State = require(script.Parent.Parent.State)
 
 local DeckBuilder = {}
@@ -572,11 +573,16 @@ local function drawInspector()
 	})
 	avatar.Activated:Connect(function()
 		local want = if State.Meta.Avatar == card.Id then "" else card.Id
+		-- Predict: the aura changes on the character this frame; the server's AuraReplication settles it.
+		Avatars.Predict(want, best)
+		Sfx.Play("Upgrade", 1.2)
 		local result = MetaClient.Call("SetAvatar", want)
 		if result and result.Ok then
-			Sfx.Play("Upgrade", 1.2)
 			hint(if want ~= "" then `{card.Name} is now your avatar aura` else "Avatar aura off")
 			drawInspector()
+		else
+			Avatars.Revert()
+			hint("Couldn't change your avatar, try again")
 		end
 	end)
 	master.Activated:Connect(function()

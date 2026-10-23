@@ -91,6 +91,15 @@ for _, card in Cards.List do
 	bandOk = bandOk and card.Weight > 0
 end
 check(bandOk, "ATK 450-600 with HP = 2 x ATK; Support PWR 270-330 with no HP; every card has a Weight")
+local ROLES = { Striker = true, Hexer = true, Mender = true, Warder = true }
+local rolesOk = true
+for _, card in Cards.List do
+	if not ROLES[card.Role] then
+		rolesOk = false
+		print(`   {card.Id}: Role {card.Role}`)
+	end
+end
+check(rolesOk, "every card declares its Role: Striker / Hexer / Mender / Warder")
 
 -- 7. The border always wins: 4x steps, and the best card at max stars and Awakening node 4 on one border
 -- never reaches the weakest 0-star card on the next.

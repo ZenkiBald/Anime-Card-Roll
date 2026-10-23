@@ -255,11 +255,14 @@ overrides the rarity / fusion / border notes above wherever they disagree:
 - Boss cards: `kurogane_card` / `rimeveil_card` / `vex_card` / `tenrai_card` (`Boss` field) join that player's pool
   after the boss's first Normal clear ("KUROGANE UNLOCKED IN THE CARD VAULT!" on the result panel,
   `summary.CardUnlocked`).
-- Avatar: EQUIP AS AVATAR in the DECK inspector (MetaService "SetAvatar", `Settings.Avatar`); NameTagService sets
-  AvatarCard / AvatarElement / AvatarBorder on the character; client `Avatars.luau` draws the element aura, fire
-  footsteps (Rainbow) or celestial motes (Secret) while walking.
+- Avatar: EQUIP AS AVATAR in the DECK inspector (MetaService "SetAvatar", `Settings.Avatar`). The client predicts it
+  (`Avatars.Predict`, drawn the same frame; `Avatars.Revert` on a refusal); `AvatarService.Apply` sets AvatarCard /
+  AvatarElement / AvatarBorder on the character (for later joiners) and fires `AuraReplication` (character, cardId,
+  border) to every client, on equip, respawn, fusion and a new border on the worn card (10 s safety pass, change
+  only). Client `Avatars.luau` draws the element aura, fire footsteps (Rainbow) or celestial motes (Secret).
 - `UI/CardTooltip`: DECK plates + CARD VAULT tiles zoom to 1.15 on hover, a 0.25 s hover (touch: tap / long press)
-  opens a 280 px flyout: name, title, element, role (Striker / Hexer / Mender / Warder, read from the abilities),
+  opens a 280 px flyout: name, title, element, role (each card's `Role` in Cards.luau: Striker / Hexer / Mender /
+  Warder),
   "Gold Border · 4x", Basic (target, formula), Skill (CD, stagger), Ultimate (energy), bonds.
 - Bosses / tower rescaled to the new power line (Kurogane Normal 45k ... Tenrai Nightmare 774k; fixtures use borders).
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: the border still wins.
@@ -330,7 +333,8 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   `LB_*_Test_1` stores),
   `ProfileService` (Profile remote: public profiles of players in the server), `RaidService` (the server's raid
   pool, hitters, payouts, Raid Luck), `TraitService` (Trait Master rolls), `Momentum` (roll chains),
-  `MonetizationService` (passes, policy gating, Luck Totem, Shard bundles, receipts), `NpcRange` (town NPC
+  `MonetizationService` (passes, policy gating, Luck Totem, Shard bundles, receipts), `AvatarService` (avatar auras:
+  character attributes + the AuraReplication event), `NpcRange` (town NPC
   services only beside their NPC), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient` (progression calls, badge counts),
   `LightingSetup` (the twilight base light), `Followers` (shoulder pets, mount stride sway), `Avatars` (avatar auras / trails),
@@ -352,7 +356,7 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   one line (HP = 2 x ATK); stars add +5% each, max 5; a maxed card on one border never reaches a 0-star card on the
   next (odds_test checks). Traits stay small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border
   fusion only: 100 copies at one border -> 1 copy at the next.
-- Content is data: a new card is one entry in `src/shared/Cards.luau` (stats, abilities, `Weight`, `Image`), a new boss or
+- Content is data: a new card is one entry in `src/shared/Cards.luau` (stats, abilities, `Role`, `Weight`, `Image`), a new boss or
   difficulty one entry in `src/shared/Bosses.luau`, a new artifact one entry in `src/shared/Items.luau`, a new trait one entry in `src/shared/Traits.luau`,
   a new potion / gift / milestone / quest one entry in `src/shared/Meta.luau`
   (no other code changes). Only Secret signatures are coded in `BattleEngine`.

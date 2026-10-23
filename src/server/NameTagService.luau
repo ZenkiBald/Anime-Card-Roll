@@ -131,29 +131,12 @@ local function refresh(player: Player)
 	gui.Pill.Edge.Color = if rarity then Borders.Get(rarity).Color else Color3.fromRGB(150, 110, 255)
 end
 
--- The card worn as an avatar (MetaService "SetAvatar"): its element and border go on the character as
--- attributes, and every client draws the aura and trail (UI/Avatars).
-local function wearAvatar(player: Player)
-	local character = player.Character
-	local profile = DataService.Get(player)
-	if character == nil or profile == nil then
-		return
-	end
-	local id = profile.Data.Settings.Avatar or ""
-	local card = Cards.Get(id)
-	local entry = profile.Data.Cards[id]
-	character:SetAttribute("AvatarCard", if card and entry then id else nil)
-	character:SetAttribute("AvatarElement", if card and entry then card.Element else nil)
-	character:SetAttribute("AvatarBorder", if card and entry then Borders.Best(entry.Borders) else nil)
-end
-
 function NameTagService.Start()
 	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function(character)
 			if build(character, player) then
 				refresh(player)
 			end
-			wearAvatar(player)
 		end)
 		if player.Character then
 			task.spawn(function()
@@ -172,8 +155,7 @@ function NameTagService.Start()
 			task.wait(REFRESH_SECONDS)
 			for _, player in Players:GetPlayers() do
 				refresh(player)
-				wearAvatar(player)
-			end
+				end
 		end
 	end)
 end
