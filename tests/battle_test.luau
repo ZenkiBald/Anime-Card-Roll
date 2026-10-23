@@ -117,7 +117,7 @@ do
 end
 
 do
-	-- Accessories: a speed charm makes the card faster for the whole fight, a spark earring starts its
+	-- Traits: a speed trait makes the card faster for the whole fight, an energy trait starts its
 	-- Ultimate charged, and neither changes the card's ATK.
 	local owned = F.allOwned(0)
 	local deck = Deck.AutoBuild(owned)
@@ -125,13 +125,13 @@ do
 	local plain = Engine.new({ Units = units, BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
 	for _, unit in units do
 		if unit.Id == "A1" then
-			unit.Gear = { { Stat = "SPD", Amount = 0.1 }, { Stat = "StartEnergy", Amount = 0.25 } }
+			unit.Trait = { { Stat = "SPD", Amount = 0.1 }, { Stat = "StartEnergy", Amount = 0.25 } }
 		end
 	end
 	local geared = Engine.new({ Units = units, BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
-	check(math.abs(geared:Speed(geared.ById.A1) - plain:Speed(plain.ById.A1) * 1.1) < 1e-6, "a +10% speed accessory makes the card 10% faster")
-	check(geared.ById.A1.Energy == 0.25 * Config.Battle.UltimateCost, "a spark earring starts the Ultimate a quarter charged")
-	check(geared.ById.A1.Main == plain.ById.A1.Main, "accessories never change a card's ATK")
+	check(math.abs(geared:Speed(geared.ById.A1) - plain:Speed(plain.ById.A1) * 1.1) < 1e-6, "a +10% speed trait makes the card 10% faster")
+	check(geared.ById.A1.Energy == 0.25 * Config.Battle.UltimateCost, "a +25% energy trait starts the Ultimate a quarter charged")
+	check(geared.ById.A1.Main == plain.ById.A1.Main, "traits never change a card's ATK")
 end
 
 -- 3. Boss mechanics -------------------------------------------------------------------------

@@ -13,7 +13,7 @@ local Bosses = require(Shared.Bosses)
 local Deck = require(Shared.Deck)
 local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
-local Items = require(Shared.Items)
+local Traits = require(Shared.Traits)
 local Tower = require(Shared.Tower)
 
 local Remotes = ReplicatedStorage.Remotes
@@ -178,7 +178,7 @@ local function deckUnits(data, deck)
 					Stars = owned.Stars,
 					Fusion = owned.Fusion,
 					Border = Borders.Best(owned.Borders),
-					Gear = Items.CardEffects(data.Gear, id),
+					Trait = Traits.Effects(owned.Trait),
 				})
 			end
 		end

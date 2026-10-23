@@ -23,11 +23,6 @@ Config.Unlocks = {
 	AutoRoll = { Rolls = 50, Seconds = 600 },
 }
 
-Config.Pity = {
-	Epic = 50, -- an Epic or better is guaranteed by the 50th roll without one
-	Legendary = 300, -- a Legendary or better by the 300th
-}
-
 Config.MaxStars = 5
 Config.StarBonus = 0.05 -- +5% stats per star
 

@@ -5,9 +5,9 @@ local Rarity = MODULES.Rarity
 local Meta = MODULES.Meta
 local Rewards = MODULES.Rewards
 
--- Gear (Items.luau): drop odds grow with D, rarities sum to 1, worn artifacts add bonuses.
+-- Artifacts (Items.luau): drop odds grow with D, rarities sum to 1, worn artifacts add bonuses.
 local Items = MODULES.Items
-check(Items.AccessoryChance(12) > Items.AccessoryChance(1) and Items.ArtifactChance(12) > Items.ArtifactChance(1), "harder fights drop gear more often")
+check(Items.ArtifactChance(12) > Items.ArtifactChance(1), "harder fights drop artifacts more often")
 for _, d in { 1, 6, 12 } do
 	local sum = 0
 	for _, chance in Items.RarityChances(d) do
@@ -24,19 +24,44 @@ check(math.abs(Items.ArtifactBonus(gear, "Luck") - (0.05 + 0.02 * 2 + 0.5)) < 1e
 check(Items.ArtifactBonus(gear, "ShardGain") == 0, "an artifact in the bag (not worn) does nothing")
 check(math.abs(Meta.BaseLuck({}, {}, nil, 1, gear) - (1 + 0.59)) < 1e-9, "worn artifacts raise base luck")
 check(Meta.Describe({ Artifacts = { voideye = 1 } }):find("Void Eye") ~= nil, "loot text names the artifact")
-for _, accessory in Items.Accessories do
-	for _, effect in accessory.Effects do
-		check(effect.Stat ~= "ATK" and effect.Stat ~= "HP", `{accessory.Id} never adds ATK / HP, so rarity still wins`)
-	end
-end
 local drng = Random.new(3)
-local accessoryDrops = 0
-for _ = 1, 20000 do
-	if Items.RollDrops(6, drng).Accessories then
-		accessoryDrops += 1
+local artifactDrops = 0
+for _ = 1, 40000 do
+	if Items.RollDrops(6, drng).Artifacts then
+		artifactDrops += 1
 	end
 end
-check(math.abs(accessoryDrops / 20000 - Items.AccessoryChance(6)) < 0.015, "accessories drop at their listed chance")
+check(math.abs(artifactDrops / 40000 - Items.ArtifactChance(6)) < 0.006, "artifacts drop at their listed chance")
+
+-- Traits (Traits.luau): odds add up, rarer tiers are rarer, picks follow the odds, never ATK / HP.
+local Traits = MODULES.Traits
+local traitSum = 0
+for _, chance in Traits.Chances() do
+	traitSum += chance
+end
+check(math.abs(traitSum - 1) < 1e-9, "trait odds add up to 100%")
+local traitsOk = true
+for i = 2, #Traits.Tiers do
+	traitsOk = traitsOk and Traits.Tiers[i].Chance < Traits.Tiers[i - 1].Chance
+end
+for _, trait in Traits.List do
+	for _, effect in trait.Effects do
+		traitsOk = traitsOk and effect.Stat ~= "ATK" and effect.Stat ~= "HP"
+	end
+	traitsOk = traitsOk and Rarity.Get(trait.Tier) ~= nil
+end
+check(traitsOk, "rarer trait tiers are rarer, and no trait adds ATK / HP (rarity still wins)")
+check(Traits.Pick(0, 0) == Traits.List[1].Id and Traits.TierIndex(Traits.Pick(0.9999, 0)) == #Traits.Tiers, "trait picks span every tier")
+check(Traits.Better("godspeed", "swift") and not Traits.Better("swift", "fleet") and Traits.Better("swift", nil), "a better trait beats a worse one or none")
+local trng = Random.new(9)
+local mythic = 0
+for _ = 1, 200000 do
+	if Traits.TierIndex(Traits.Pick(trng:NextNumber(), trng:NextNumber())) == #Traits.Tiers then
+		mythic += 1
+	end
+end
+check(math.abs(mythic / 200000 - Traits.Tiers[#Traits.Tiers].Chance) < 0.001, "Mythic traits roll at their listed chance")
+check(Traits.Text("tempest"):find("speed") ~= nil, "trait text names its effects")
 
 -- Luck sources.
 check(near(Meta.BaseLuck({ Luck = 0 }, {}), 1), "base luck starts at 1x")

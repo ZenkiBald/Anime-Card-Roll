@@ -14,6 +14,7 @@ modules = [
     ("Rewards", root / "src" / "shared"),
     ("Packs", root / "src" / "shared"),
     ("Items", root / "src" / "shared"),
+    ("Traits", root / "src" / "shared"),
     ("Meta", root / "src" / "shared"),
     ("Tower", root / "src" / "shared"),
     ("BattleEngine", root / "src" / "server"),

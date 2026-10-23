@@ -25,7 +25,8 @@
         "Mount": { "$className": "RemoteEvent" },
         "Progress": { "$className": "RemoteEvent" },
         "OpenPack": { "$className": "RemoteFunction" },
-        "Profile": { "$className": "RemoteFunction" }
+        "Profile": { "$className": "RemoteFunction" },
+        "Redeem": { "$className": "RemoteFunction" }
       }
     },
     "ServerScriptService": {

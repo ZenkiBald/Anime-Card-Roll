@@ -1,17 +1,16 @@
 --!nonstrict
--- Draws a card, full-art: the character (an uploaded illustration, Card.Image, or the 3D chibi figure
--- from CardArt.luau) fills the card on a sunburst in the rarity colour, with chips, the big name, the
--- headline ability, tags and DMG / HP on top of it. Cards not found yet show a dark silhouette.
+-- Draws a card, full-art: the character's 2D illustration (Card.Image) fills the card on a sunburst in
+-- the rarity colour, with chips, the big name, the headline ability, tags and DMG / HP on top of it.
+-- Cards without an illustration yet show their glyph big; cards not found yet show a dark silhouette.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
-local CardArt = require(Shared.CardArt)
 
 local Borders = require(Shared.Borders)
+local Traits = require(Shared.Traits)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -28,6 +27,7 @@ export type Options = {
 	Compact: boolean?, -- small grid tile: hides title and stats
 	Animate: boolean?, -- the figure sways (big reveals and detail views only)
 	Border: string?, -- Borders.luau id: Gold / Rainbow / Secret frame (and its small stat bonus)
+	Trait: string?, -- Traits.luau id: shown as the first tag chip, in its tier colour
 }
 
 local SILHOUETTE = Color3.fromRGB(14, 10, 24)
@@ -36,60 +36,22 @@ local function starText(stars: number): string
 	return string.rep("★", stars) .. string.rep("☆", 5 - stars)
 end
 
--- The character's art: an uploaded illustration (Card.Image) if there is one, otherwise the
--- 3D chibi figure in a ViewportFrame; nil when the card has neither.
-function CardView.Art(cardId: string, owned: boolean, animate: boolean?): GuiObject?
+-- The character's 2D illustration (Card.Image) as an ImageLabel; nil until the card has one (callers
+-- show the card's glyph instead). `animate` is kept for callers; images don't sway.
+function CardView.Art(cardId: string, owned: boolean, _animate: boolean?): GuiObject?
 	local card = Cards.Get(cardId)
-	if card == nil then
+	if card == nil or card.Image == nil then
 		return nil
 	end
-	if card.Image then
-		return Kit.new("ImageLabel", {
-			Name = "Art",
-			Size = UDim2.fromScale(1, 1),
-			BackgroundTransparency = 1,
-			Image = card.Image,
-			ScaleType = Enum.ScaleType.Crop,
-			ImageColor3 = if owned then Color3.new(1, 1, 1) else SILHOUETTE,
-			ZIndex = 2,
-		})
-	end
-	if card.Look == nil then
-		return nil
-	end
-	local viewport = Kit.new("ViewportFrame", {
+	return Kit.new("ImageLabel", {
 		Name = "Art",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
-		Ambient = Color3.fromRGB(175, 165, 190),
-		LightColor = Color3.fromRGB(255, 246, 236),
-		LightDirection = Vector3.new(-0.5, -1, 0.7),
+		Image = card.Image,
+		ScaleType = Enum.ScaleType.Crop,
 		ImageColor3 = if owned then Color3.new(1, 1, 1) else SILHOUETTE,
-		ImageTransparency = if owned then 0 else 0.1,
 		ZIndex = 2,
 	})
-	local model = CardArt.Build(card.Look)
-	model.Parent = viewport
-	local camera = Instance.new("Camera")
-	camera.FieldOfView = CardArt.FieldOfView
-	camera.CFrame = CardArt.CameraCFrame
-	camera.Parent = viewport
-	viewport.CurrentCamera = camera
-
-	if animate then
-		local base = model:GetPivot()
-		local start = os.clock()
-		local connection
-		connection = RunService.RenderStepped:Connect(function()
-			if viewport.Parent == nil then
-				connection:Disconnect()
-				return
-			end
-			local t = os.clock() - start
-			model:PivotTo(base * CFrame.new(0, math.sin(t * 2.2) * 0.06, 0) * CFrame.Angles(0, math.sin(t * 0.9) * 0.35, 0))
-		end)
-	end
-	return viewport
 end
 
 -- "130.01K" / "1.25M" for the stat footer.
@@ -262,15 +224,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 	})
 	local art = CardView.Art(card.Id, owned, options.Animate)
 	if art then
-		if card.Image then
-			art.Size = UDim2.fromScale(1, 1) -- an illustration fills the whole card
-		else
-			-- The 3D figure, framed large and a little high so the footer doesn't cover its feet.
-			art.AnchorPoint = Vector2.new(0.5, 0.5)
-			art.Position = UDim2.fromScale(0.5, if compact then 0.5 else 0.44)
-			art.Size = UDim2.fromScale(1.25, if compact then 1 else 0.9)
-		end
-		art.Parent = portrait
+		art.Parent = portrait -- the illustration fills the whole card
 	end
 	if art == nil or not owned then
 		Kit.label({
@@ -382,16 +336,21 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			}, 30)
 			Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.3).Parent = abilityName
 
-			-- Tag chips: the card's role and its always-on abilities.
+			-- Tag chips: the card's trait (in its tier colour), its role and its always-on abilities.
 			local tags = row(frame, "Tags", 0.755, 0.13, true)
-			local tagList = { if card.Type == "Attack" then "⚔️ Attack" else "✨ Support" }
+			local tagList = {}
+			local trait = Traits.Get(options.Trait)
+			if trait then
+				table.insert(tagList, { `{trait.Icon} {trait.Name}`, Rarity.Get(trait.Tier).Color })
+			end
+			table.insert(tagList, { if card.Type == "Attack" then "⚔️ Attack" else "✨ Support", Color3.fromRGB(230, 228, 245) })
 			for _, a in card.Abilities do
 				if (a.Slot == "Passive" or a.Slot == "Aura" or a.Slot == "Signature") and #tagList < 4 then
-					table.insert(tagList, `{SLOT_ICON[a.Slot]} {a.Name}`)
+					table.insert(tagList, { `{SLOT_ICON[a.Slot]} {a.Name}`, Color3.fromRGB(230, 228, 245) })
 				end
 			end
-			for i, tagText in tagList do
-				local tag = chip(tags, i, tagText, Color3.fromRGB(230, 228, 245), 0.45, Color3.fromRGB(26, 20, 50))
+			for i, tagInfo in tagList do
+				local tag = chip(tags, i, tagInfo[1], tagInfo[2], 0.45, Color3.fromRGB(26, 20, 50))
 				tag.Size = UDim2.new(0.45, 0, 0.44, 0)
 			end
 		end

@@ -38,7 +38,7 @@ export type UnitSpec = {
 	Stars: number,
 	Fusion: number?,
 	Border: string?,
-	Gear: { { Stat: string, Amount: number } }?, -- the accessory's effects (Items.CardEffects)
+	Trait: { { Stat: string, Amount: number } }?, -- the card's trait effects (Traits.Effects)
 }
 -- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the leader's DEF / SPD:
 -- the Infinite Tower (Tower.luau) fights a boss's moves at stats scaled to the floor. Difficulty still
@@ -108,15 +108,15 @@ local function newUnit(spec: UnitSpec)
 	}
 	unit.HP = unit.MaxHP
 	unit.SkillCooldown = if unit.Skill then (unit.Skill.Every or 3) - 1 else 0
-	-- The card's accessory (Items.luau): a head start on its Ultimate, or a buff that lasts the whole
+	-- The card's trait (Traits.luau): a head start on its Ultimate, or a buff that lasts the whole
 	-- fight (Left = huge, so it never runs out and bosses can't steal it).
-	for i, effect in spec.Gear or {} do
+	for i, effect in spec.Trait or {} do
 		if effect.Stat == "StartEnergy" then
 			if unit.Ultimate then
 				unit.Energy = math.min(B.UltimateCost, unit.Energy + effect.Amount * B.UltimateCost)
 			end
 		else
-			unit.Buffs[`Gear:{i}`] = { Stat = effect.Stat, Amount = effect.Amount, Left = math.huge }
+			unit.Buffs[`Trait:{i}`] = { Stat = effect.Stat, Amount = effect.Amount, Left = math.huge }
 		end
 	end
 	return unit

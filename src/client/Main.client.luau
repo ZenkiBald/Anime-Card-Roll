@@ -29,6 +29,7 @@ local Pets = require(UI.Pets)
 local Wheel = require(UI.Wheel)
 local PlayerList = require(UI.PlayerList)
 local Profile = require(UI.Profile)
+local Codes = require(UI.Codes)
 local Dash = require(script.Parent.Dash)
 local Followers = require(script.Parent.Followers)
 local OddsPanel = require(UI.OddsPanel)
@@ -202,6 +203,7 @@ end)
 Wheel.Init(playerGui)
 PlayerList.SetHidden("Title", Title.IsOpen())
 Profile.Init(playerGui, Index.Toggle)
+Codes.Init(playerGui)
 PlayerList.Init(playerGui, Profile.Open)
 Dash.Start(Title.IsOpen)
 Followers.Start()
@@ -293,6 +295,7 @@ Hud.Init(playerGui, {
 	OnTravel = Travel.Toggle,
 	OnSettings = Settings.Toggle,
 	OnPets = Pets.Toggle,
+	OnCodes = Codes.Toggle,
 	OnDev = if State.TestMode then DevPanel.Toggle else nil,
 })
 

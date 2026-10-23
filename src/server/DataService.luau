@@ -20,7 +20,6 @@ local TEMPLATE = {
 	Cards = {}, -- [cardId] = { Copies = number, Stars = number }
 	TotalRolls = 0,
 	Shards = 0,
-	Pity = { Epic = 0, Legendary = 0 },
 	Playtime = 0, -- seconds, saved when the player leaves
 	-- Favorite: the card shown as the player's picture in the server list and on their name tag ("" = none).
 	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "" },
@@ -42,13 +41,15 @@ local TEMPLATE = {
 	Stats = {},
 	-- Boss drops (Items.luau): artifacts owned (id -> level) and the ones worn, accessories owned but
 	-- not worn (id -> count) and the one each card wears (cardId -> accessory id).
-	Gear = { Artifacts = {}, Accessories = {}, Worn = {}, Cards = {} },
+	Gear = { Artifacts = {}, Worn = {} },
 	-- Lucky Wheel: banked free spins and seconds played toward the next one.
 	Wheel = { Spins = 1, Progress = 0 },
 	-- Infinite Tower (Tower.luau): the highest floor cleared; the next fight is Floor + 1.
 	Tower = { Floor = 0 },
 	-- Roll Packs from boss and tower wins (Packs.luau id -> count), opened from the BAG.
 	Packs = {},
+	-- Redeem codes already used (CODES, Codes.luau): CODE -> true.
+	Codes = {},
 }
 
 -- Test saves live in their own store so launch data starts clean.
@@ -139,6 +140,21 @@ local function onPlayerAdded(player: Player)
 
 	profile:AddUserId(player.UserId) -- GDPR compliance
 	profile:Reconcile() -- fill in fields added to TEMPLATE after this save was made
+	-- Card accessories were removed: any the player had (in the bag or worn) are refunded as Shards.
+	local gear = profile.Data.Gear
+	if type(gear.Accessories) == "table" or type(gear.Cards) == "table" then
+		local count = 0
+		for _, n in gear.Accessories or {} do
+			count += if type(n) == "number" then n else 0
+		end
+		for _ in gear.Cards or {} do
+			count += 1
+		end
+		profile.Data.Shards += count * 150
+		gear.Accessories = nil
+		gear.Cards = nil
+	end
+	profile.Data.Pity = nil -- rolls are pure luck now
 	-- Saves from the short-lived roll bank (rarity tickets) get their tickets back as Roll Packs.
 	local bank = profile.Data.RollBank
 	if type(bank) == "table" then

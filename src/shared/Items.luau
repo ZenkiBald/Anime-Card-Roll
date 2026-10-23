@@ -1,10 +1,9 @@
 --!strict
--- Gear that drops from boss wins (and later the Infinite Tower), kept in the BAG.
---   Artifacts: relics for the player. Wear up to ArtifactSlots; each boosts luck, roll speed, border
---     chance, Shards or XP. A duplicate levels it up (up to MaxLevel); past that it melts into Shards.
---   Accessories: worn by cards, one each, for speed, crits, guard or a head start on the Ultimate.
---     They never add ATK / HP, so Deck Power and "rarity always wins" stay as they are.
--- Shared so the BAG, the boss screen and the server agree on every number. Adding an item is one entry.
+-- Artifacts: relics that drop from boss wins and Infinite Tower floors, kept in the BAG. Wear up to
+-- ArtifactSlots; each boosts luck, roll speed, border chance, Shards or XP. A duplicate levels it up
+-- (up to MaxLevel); past that it melts into Shards. (Card accessories were removed on 2026-10-23:
+-- per-card battle bonuses are traits now, Traits.luau.)
+-- Shared so the BAG, the boss screen and the server agree on every number. Adding an artifact is one entry.
 
 local Items = {}
 
@@ -17,9 +16,6 @@ export type Artifact = {
 	Amount: number, -- at level 1
 	PerLevel: number, -- added for each level past 1
 }
-
-export type Effect = { Stat: string, Amount: number } -- battle buff: SPD | Crit | CritDamage | Guard | StartEnergy
-export type Accessory = { Id: string, Name: string, Icon: string, Rarity: string, Effects: { Effect } }
 
 Items.ArtifactSlots = 3
 Items.MaxLevel = 5
@@ -37,51 +33,19 @@ Items.Artifacts = {
 	{ Id = "stormcrown", Name = "Storm Crown", Icon = "👑", Rarity = "Mythic", Kind = "Border", Amount = 0.5, PerLevel = 0.1 },
 } :: { Artifact }
 
-Items.Accessories = {
-	{ Id = "feather", Name = "Feather Charm", Icon = "🪶", Rarity = "Rare", Effects = { { Stat = "SPD", Amount = 0.05 } } },
-	{ Id = "hawkeye", Name = "Hawk-Eye Pendant", Icon = "🎯", Rarity = "Rare", Effects = { { Stat = "Crit", Amount = 0.05 } } },
-	{ Id = "bangle", Name = "Iron Bangle", Icon = "🛡️", Rarity = "Rare", Effects = { { Stat = "Guard", Amount = 0.06 } } },
-	{ Id = "spark", Name = "Spark Earring", Icon = "⚡", Rarity = "Epic", Effects = { { Stat = "StartEnergy", Amount = 0.25 } } },
-	{ Id = "fang", Name = "Tiger Fang", Icon = "🐯", Rarity = "Epic", Effects = { { Stat = "CritDamage", Amount = 0.2 } } },
-	{ Id = "scarf", Name = "Gale Scarf", Icon = "🧣", Rarity = "Epic", Effects = { { Stat = "SPD", Amount = 0.09 } } },
-	{ Id = "scale", Name = "Dragon Scale", Icon = "🐉", Rarity = "Legendary", Effects = { { Stat = "Guard", Amount = 0.12 } } },
-	{
-		Id = "phoenix",
-		Name = "Phoenix Plume",
-		Icon = "🪽",
-		Rarity = "Legendary",
-		Effects = { { Stat = "Crit", Amount = 0.08 }, { Stat = "CritDamage", Amount = 0.15 } },
-	},
-	{
-		Id = "thunder",
-		Name = "Thunder Crest",
-		Icon = "🌩️",
-		Rarity = "Mythic",
-		Effects = { { Stat = "SPD", Amount = 0.12 }, { Stat = "StartEnergy", Amount = 0.35 } },
-	},
-} :: { Accessory }
-
 Items.ArtifactById = {} :: { [string]: Artifact }
 for _, artifact in Items.Artifacts do
 	Items.ArtifactById[artifact.Id] = artifact
-end
-Items.AccessoryById = {} :: { [string]: Accessory }
-for _, accessory in Items.Accessories do
-	Items.AccessoryById[accessory.Id] = accessory
 end
 
 -- A max-level artifact that drops again melts into this many Shards.
 Items.MeltShards = { Rare = 150, Epic = 400, Legendary = 1200, Mythic = 4000 } :: { [string]: number }
 
 -- Drops -------------------------------------------------------------------------------------------
--- Every boss win rolls once for an accessory and once for an artifact. The chance and the rarity mix
--- improve with the fight's difficulty score D (1-12).
+-- Every boss win and tower floor rolls once for an artifact. The chance and the rarity mix improve with
+-- the fight's difficulty score D (1-12 for bosses, floor x 0.25 in the tower).
 
 Items.ItemRarities = { "Rare", "Epic", "Legendary", "Mythic" }
-
-function Items.AccessoryChance(d: number): number
-	return math.min(0.6, 0.2 + 0.03 * d)
-end
 
 function Items.ArtifactChance(d: number): number
 	return math.min(0.15, 0.03 + 0.007 * d)
@@ -135,17 +99,11 @@ local function pickFrom(list: { any }, rarity: string, roll: number): string?
 	return pool[math.clamp(math.floor(roll * #pool) + 1, 1, #pool)]
 end
 
--- What a win at D drops: { Accessories = { id = 1 }?, Artifacts = { id = 1 }? }. `rng` is a Random.
--- `boost` multiplies both chances (the Infinite Tower and events can use it).
-function Items.RollDrops(d: number, rng: Random, boost: number?): { Accessories: { [string]: number }?, Artifacts: { [string]: number }? }
+-- What a win at D drops: { Artifacts = { id = 1 }? }. `rng` is a Random. `boost` multiplies the chance
+-- (tower Guardians use it).
+function Items.RollDrops(d: number, rng: Random, boost: number?): { Artifacts: { [string]: number }? }
 	local drops = {}
 	local mult = boost or 1
-	if rng:NextNumber() < Items.AccessoryChance(d) * mult then
-		local id = pickFrom(Items.Accessories, pickRarity(d, rng:NextNumber()), rng:NextNumber())
-		if id then
-			drops.Accessories = { [id] = 1 }
-		end
-	end
 	if rng:NextNumber() < Items.ArtifactChance(d) * mult then
 		local id = pickFrom(Items.Artifacts, pickRarity(d, rng:NextNumber()), rng:NextNumber())
 		if id then
@@ -159,13 +117,11 @@ end
 
 export type Gear = {
 	Artifacts: { [string]: number }, -- owned: id -> level
-	Accessories: { [string]: number }, -- owned, not worn: id -> count
 	Worn: { string }, -- artifact ids being worn (up to ArtifactSlots)
-	Cards: { [string]: string }, -- cardId -> accessory id it wears
 }
 
 function Items.Empty(): Gear
-	return { Artifacts = {}, Accessories = {}, Worn = {}, Cards = {} }
+	return { Artifacts = {}, Worn = {} }
 end
 
 -- An artifact's bonus at a level.
@@ -189,21 +145,7 @@ function Items.ArtifactBonus(gear: Gear?, kind: string): number
 	return total
 end
 
--- The battle effects of the accessory a card wears (empty when none).
-function Items.CardEffects(gear: Gear?, cardId: string): { Effect }
-	local id = gear and gear.Cards and gear.Cards[cardId]
-	local accessory = id and Items.AccessoryById[id]
-	return if accessory then accessory.Effects else {}
-end
-
--- "+5% speed", "+0.25x luck" ...
-local STAT_TEXT = {
-	SPD = "speed",
-	Crit = "crit chance",
-	CritDamage = "crit damage",
-	Guard = "less damage taken",
-	StartEnergy = "Ultimate charge at the start",
-}
+-- "+0.25x luck", "+5% faster rolls" ...
 local KIND_TEXT = {
 	RollSpeed = "faster rolls",
 	Border = "border chance",
@@ -221,14 +163,6 @@ function Items.ArtifactText(artifact: Artifact, level: number): string
 		return string.format("+%.2fx luck", value)
 	end
 	return `+{percent(value)} {KIND_TEXT[artifact.Kind] or artifact.Kind}`
-end
-
-function Items.AccessoryText(accessory: Accessory): string
-	local parts = {}
-	for _, effect in accessory.Effects do
-		table.insert(parts, `+{percent(effect.Amount)} {STAT_TEXT[effect.Stat] or effect.Stat}`)
-	end
-	return table.concat(parts, ", ")
 end
 
 return Items

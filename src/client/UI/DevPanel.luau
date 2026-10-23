@@ -109,7 +109,6 @@ function DevPanel.Init(playerGui: Instance)
 				Outcome = "New",
 				Stars = 0,
 				Copies = 1,
-				PityTriggered = false,
 			})
 		end)
 	end
@@ -137,7 +136,6 @@ function DevPanel.Init(playerGui: Instance)
 				Border = id,
 				NewBorder = true,
 				Borders = { [id] = true },
-				PityTriggered = false,
 			})
 		end)
 	end
@@ -205,13 +203,21 @@ function DevPanel.Init(playerGui: Instance)
 	fill.Activated:Connect(function()
 		devCall("FillCopies") -- every owned card gets enough copies to fuse
 	end)
-	local items = Kit.button("GIVE ITEMS", Color3.fromRGB(255, 120, 220), Color3.fromRGB(140, 40, 110), {
+	local items = Kit.button("GIVE ARTIFACTS", Color3.fromRGB(255, 120, 220), Color3.fromRGB(140, 40, 110), {
 		LayoutOrder = 5,
 		Size = UDim2.fromOffset(150, 36),
 		Parent = fightRow,
 	})
 	items.Activated:Connect(function()
-		devCall("GiveItems") -- one of every artifact, two of every accessory
+		devCall("GiveItems") -- one of every artifact
+	end)
+	local traits = Kit.button("GIVE TRAITS", Color3.fromRGB(176, 92, 255), Theme.Color.AccentDeep, {
+		LayoutOrder = 6,
+		Size = UDim2.fromOffset(150, 36),
+		Parent = fightRow,
+	})
+	traits.Activated:Connect(function()
+		devCall("GiveTraits") -- a random trait on every owned card
 	end)
 
 	-- Events, wheel and levels.

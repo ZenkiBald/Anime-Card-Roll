@@ -22,6 +22,7 @@ local MetaService = require(script.Parent.MetaService)
 local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
 local Items = require(Shared.Items)
+local Traits = require(Shared.Traits)
 local RateLimit = require(script.Parent.RateLimit)
 
 local RollService = {}
@@ -58,7 +59,6 @@ local function summary(player: Player, data)
 	return {
 		TotalRolls = data.TotalRolls,
 		Shards = data.Shards,
-		Pity = { Epic = data.Pity.Epic, Legendary = data.Pity.Legendary },
 		Luck = luckFor(player, data),
 		Cooldown = cooldownFor(data),
 		AutoStop = data.Settings.AutoStop,
@@ -74,7 +74,7 @@ end
 local function fullState(player: Player, data)
 	local cards = {}
 	for id, entry in data.Cards do
-		cards[id] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders }
+		cards[id] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders, Trait = entry.Trait }
 	end
 	return {
 		Ok = true,
@@ -91,7 +91,8 @@ local function fullState(player: Player, data)
 	}
 end
 
--- One roll: pick rarity (with luck, floor + pity), pick card, apply duplicates, update pity.
+-- One roll: pick rarity (luck only, no pity: pure luck), pick card, apply duplicates, roll a border
+-- and a trait.
 -- Duplicates add stars up to the max, then pile up as copies for the Fusion Master (FusionService).
 -- luck / minFloor default to the player's own luck and no floor.
 -- `batch` (opening a Roll Pack): XP is added up in batch.XP for one AddXP at the end, nothing is
@@ -99,14 +100,11 @@ end
 local function doRoll(player: Player, profile, luck: number?, minFloor: string?, batch: { XP: number }?)
 	local data = profile.Data
 
-	local pityFloor = Odds.PityFloor(data.Pity)
-	local floor = Odds.HigherFloor(pityFloor, minFloor)
-	local chances = Odds.Chances(luck or luckFor(player, data), floor)
+	local chances = Odds.Chances(luck or luckFor(player, data), minFloor)
 	local tier = Odds.PickTier(chances, rng)
 	local pool = Cards.ByRarity[tier]
 	local card = pool[rng:NextInteger(1, #pool)]
 
-	Odds.UpdatePity(data.Pity, tier)
 	data.TotalRolls += 1
 	MetaService.Track(player, "Rolls")
 	if Rarity.AtLeast(tier, "Epic") then
@@ -143,6 +141,14 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?,
 		entry.Borders[border] = true
 	end
 
+	-- And a trait (Traits.luau): the card keeps the best one it has rolled.
+	local trait = Traits.Pick(rng:NextNumber(), rng:NextNumber())
+	local newTrait = false
+	if Traits.Better(trait, entry.Trait) then
+		entry.Trait = trait
+		newTrait = true
+	end
+
 	if batch == nil and (Rarity.AtLeast(tier, Config.AnnounceFrom) or Borders.Index(border) >= Borders.Index("Rainbow")) then
 		Remotes.Announce:FireAllClients(player.DisplayName, card.Id, border)
 	end
@@ -158,14 +164,16 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?,
 		Border = border, -- the border this pull rolled
 		NewBorder = newBorder, -- first time this card got it
 		Borders = entry.Borders, -- every border the card has found
-		PityTriggered = pityFloor ~= nil and floor == pityFloor and floor ~= minFloor,
+		Trait = trait, -- the trait this pull rolled
+		NewTrait = newTrait, -- better than the card's old one, so the card took it
+		CardTrait = entry.Trait, -- the card's trait now
 		Summary = if batch then nil else summary(player, data),
 		Quests = if batch then nil else MetaService.QuestState(player, data), -- roll quests tick with every roll
 	}
 end
 
 -- Pays a win: Roll Packs into the player's packs (opened later, at their luck then), Shards, a potion
--- (sure, or by chance) and a roll for gear at `d` (Items.RollDrops, x `boost`).
+-- (sure, or by chance) and a roll for an artifact at `d` (Items.RollDrops, x `boost`).
 local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, d: number, boost: number)
 	local held = profile.Data.Packs
 	for id, count in packs or {} do
@@ -176,7 +184,6 @@ local function payWin(player: Player, profile, packs: { [string]: number }?, sha
 		bundle.Potions[potion] = 1
 	end
 	local drops = Items.RollDrops(d, rng, boost)
-	bundle.Accessories = drops.Accessories
 	bundle.Artifacts = drops.Artifacts
 	bundle = MetaService.Grant(profile.Data, bundle) -- the screen shows the Shard Gain bonus too
 	return {
@@ -229,7 +236,7 @@ local function openPack(player: Player, profile, pack: Packs.Pack)
 	local state = {}
 	for id in cards do
 		local entry = data.Cards[id]
-		state[id] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders }
+		state[id] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders, Trait = entry.Trait }
 	end
 	return shown, counts, newCards, state, luck
 end
@@ -239,8 +246,8 @@ function RollService.RewardRolls(player: Player, d: number, firstClear: boolean)
 	if profile == nil then
 		return nil
 	end
-	-- Every win drops Roll Packs, pays Shards, may drop a potion, and rolls for an accessory and an
-	-- artifact (Items.luau: better odds and rarer gear on harder fights).
+	-- Every win drops Roll Packs, pays Shards, may drop a potion, and rolls for an artifact (Items.luau:
+	-- better odds and rarer artifacts on harder fights).
 	local reward = Rewards.For(d)
 	return payWin(player, profile, Packs.ForBoss(d, firstClear), reward.Shards, reward.Potion, Config.Rewards.PotionChance, d, 1)
 end
@@ -466,15 +473,17 @@ function RollService.Start()
 				end
 			end
 		elseif action == "GiveItems" then
-			-- One of every artifact and two of every accessory, to try the BAG.
-			local bundle = { Artifacts = {}, Accessories = {} }
+			-- One of every artifact, to try the BAG.
+			local bundle = { Artifacts = {} }
 			for _, artifact in Items.Artifacts do
 				bundle.Artifacts[artifact.Id] = 1
 			end
-			for _, accessory in Items.Accessories do
-				bundle.Accessories[accessory.Id] = 2
-			end
 			MetaService.Grant(profile.Data, bundle)
+		elseif action == "GiveTraits" then
+			-- A random trait on every owned card (replacing), to see them on cards and in battle.
+			for _, entry in profile.Data.Cards do
+				entry.Trait = Traits.Pick(rng:NextNumber(), rng:NextNumber())
+			end
 		elseif action == "GiveSpins" then
 			profile.Data.Wheel.Spins = Meta.Wheel.MaxSpins
 		elseif action == "AddXP" then

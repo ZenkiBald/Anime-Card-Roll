@@ -1,5 +1,5 @@
 --!nonstrict
--- Main screen: the three roll buttons bottom-middle with the pity counter over ROLL, the icon menu
+-- Main screen: the three roll buttons bottom-middle, the icon menu
 -- on the left (red badges when something is ready to claim), the SETTINGS gear top right (the server
 -- list, UI/PlayerList, sits beside it), the Auto Roll feed on the right, running potions as tiles in
 -- the bottom-right corner, the server announcement banner and reward toasts.
@@ -10,7 +10,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rarity = require(Shared.Rarity)
-local Odds = require(Shared.Odds)
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
@@ -37,7 +36,6 @@ local shownValues = {} -- [key] = last number shown, to pop the chip when it cha
 local hiddenBy = { Battle = false, Reveal = false }
 local autoStopButton: any
 local boostRow: Frame
-local pityLabel: TextLabel
 local hintLabel: TextLabel
 local feed: Frame
 local banner: any
@@ -282,6 +280,7 @@ export type Handlers = {
 	OnTravel: () -> (),
 	OnSettings: () -> (),
 	OnPets: () -> (),
+	OnCodes: () -> (),
 	OnDev: (() -> ())?,
 }
 
@@ -346,19 +345,6 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Parent = cooldownBar,
 	}, { Kit.corner(UDim.new(1, 0)) })
-
-	-- Over ROLL: rolls left until the next guaranteed Legendary (pity), like "251/300".
-	pityLabel = Kit.label({
-		Name = "Pity",
-		Text = "",
-		RichText = true,
-		Font = Theme.Font.Display,
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -2),
-		Size = UDim2.new(1, 0, 0.28, 0),
-		Parent = rollButton,
-	}, 20)
-	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.1).Parent = pityLabel
 
 	quickButton = Kit.new("TextButton", {
 		Name = "QuickRoll",
@@ -494,8 +480,9 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	menuButton("GIFTS", "🎁", 6, Theme.Color.Gold, handlers.OnGifts)
 	menuButton("TRAVEL", "🧭", 7, Theme.Color.Support, handlers.OnTravel)
 	menuButton("STATS", "📈", 8, Color3.fromRGB(255, 120, 220), handlers.OnStats)
+	menuButton("CODES", "🎟️", 9, Color3.fromRGB(86, 180, 255), handlers.OnCodes)
 	if handlers.OnDev then
-		menuButton("DEV", "🛠️", 9, Theme.Color.Danger, handlers.OnDev)
+		menuButton("DEV", "🛠️", 10, Theme.Color.Danger, handlers.OnDev)
 	end
 
 	-- SETTINGS gear, top right (volume and effects quality) ------------------------------------
@@ -901,10 +888,6 @@ function Hud.Refresh()
 	setCurrency("Rolls", Kit.commas(s.TotalRolls), s.TotalRolls)
 	autoStopButton.Label.Text = if s.AutoStop == "Never" then "STOP: NEVER" else `STOP: {string.upper(s.AutoStop)}+`
 	rollButton.Sub.Text = string.format("%.2gs", State.Cooldown())
-	if s.Pity then
-		local _, legendaryLeft = Odds.PityRemaining(s.Pity)
-		pityLabel.Text = `<font color="#FFC42E">LEGENDARY</font> {Config.Pity.Legendary - legendaryLeft}/{Config.Pity.Legendary}`
-	end
 	Hud.SetAuto(s.AutoActive)
 	Hud.RefreshLevel()
 
@@ -1092,8 +1075,7 @@ function Hud.FeedAdd(result)
 	local suffix = if result.Outcome == "New"
 		then " <font color='#FFC42E'>NEW</font>"
 		elseif result.Outcome == "Star" then ` ★{result.Stars}`
-		elseif result.Copies >= Config.FusionCopies then " <font color='#FF8A3D'>FUSE!</font>"
-		else ` {result.Copies}/{Config.FusionCopies}`
+		else ""
 	local entry = Kit.new("Frame", {
 		Name = "Entry",
 		LayoutOrder = feedOrder,

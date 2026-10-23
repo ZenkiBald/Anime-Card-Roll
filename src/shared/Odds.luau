@@ -3,8 +3,8 @@
 -- so what players see is exactly what the server uses.
 --
 -- Luck multiplies every Rare-and-above chance; the extra comes out of Common.
--- A rarity floor upgrades any result below it to the floor tier, so luck still
--- decides the rare pulls.
+-- A rarity floor (optional) upgrades any result below it to the floor tier. There is no pity: every
+-- roll is pure luck.
 
 local Config = require(script.Parent.Config)
 local Rarity = require(script.Parent.Rarity)
@@ -12,7 +12,6 @@ local Rarity = require(script.Parent.Rarity)
 local Odds = {}
 
 export type Chances = { [string]: number }
-export type Pity = { Epic: number, Legendary: number }
 
 -- Percent chance for each rarity at the given luck and optional floor. Always sums to 100.
 function Odds.Chances(luck: number, floor: string?): Chances
@@ -49,33 +48,6 @@ function Odds.Chances(luck: number, floor: string?): Chances
 	return chances
 end
 
--- The higher of two floors (either may be nil).
-function Odds.HigherFloor(a: string?, b: string?): string?
-	if a == nil then
-		return b
-	end
-	if b == nil then
-		return a
-	end
-	return if Rarity.Index(a) >= Rarity.Index(b) then a else b
-end
-
--- Floor forced by pity on the NEXT roll, or nil.
-function Odds.PityFloor(pity: Pity): string?
-	if pity.Legendary >= Config.Pity.Legendary - 1 then
-		return "Legendary"
-	end
-	if pity.Epic >= Config.Pity.Epic - 1 then
-		return "Epic"
-	end
-	return nil
-end
-
--- Rolls left until each pity guarantee kicks in (1 = the next roll).
-function Odds.PityRemaining(pity: Pity): (number, number)
-	return Config.Pity.Epic - pity.Epic, Config.Pity.Legendary - pity.Legendary
-end
-
 -- Pick a rarity from a chance table using the given Random.
 function Odds.PickTier(chances: Chances, rng: Random): string
 	local roll = rng:NextNumber() * 100
@@ -93,20 +65,6 @@ function Odds.PickTier(chances: Chances, rng: Random): string
 		end
 	end
 	return lastNonZero
-end
-
--- Record a pulled rarity in the pity counters.
-function Odds.UpdatePity(pity: Pity, pulled: string)
-	if Rarity.AtLeast(pulled, "Epic") then
-		pity.Epic = 0
-	else
-		pity.Epic += 1
-	end
-	if Rarity.AtLeast(pulled, "Legendary") then
-		pity.Legendary = 0
-	else
-		pity.Legendary += 1
-	end
 end
 
 -- "12.5%", "0.900%", "0.0100%" depending on size.

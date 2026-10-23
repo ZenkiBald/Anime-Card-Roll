@@ -23,8 +23,7 @@ local function badgeText(result): string
 	elseif result.Outcome == "Star" then
 		return `★{result.Stars}`
 	end
-	-- Copies piled up toward the next fusion (short: the badge is small).
-	return if result.Copies >= Config.FusionCopies then "FUSE!" else `x{result.Copies}`
+	return "DUPE"
 end
 
 -- Cards keep a 0.72 shape by default; the grid cell already has that shape, so dropping the

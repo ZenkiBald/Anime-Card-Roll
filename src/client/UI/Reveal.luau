@@ -16,6 +16,7 @@ local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Borders = require(Shared.Borders)
+local Traits = require(Shared.Traits)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -44,13 +45,13 @@ local function outcomeText(result): string
 		text = "NEW CARD!"
 	elseif result.Outcome == "Star" then
 		text = `★ Star up!  {result.Stars}/{Config.MaxStars}`
-	elseif (result.Copies or 0) >= Config.FusionCopies then
-		text = "🔥 Ready to fuse! See the Fusion Master"
 	else
-		text = `Fusion  {result.Copies}/{Config.FusionCopies}`
+		text = "Duplicate"
 	end
-	if result.PityTriggered then
-		text ..= "   ·   Pity guarantee"
+	-- A better trait than the card had: the card took it.
+	local trait = result.NewTrait and Traits.Get(result.Trait)
+	if trait then
+		text ..= `   ·   New trait: {trait.Icon} {trait.Name}`
 	end
 	return text
 end
@@ -452,7 +453,7 @@ local function playFull(result)
 		closeBars()
 	end
 	back:Destroy()
-	local front = CardView.new(card.Id, { Owned = true, Stars = result.Stars, Animate = true, Border = borderId })
+	local front = CardView.new(card.Id, { Owned = true, Stars = result.Stars, Animate = true, Border = borderId, Trait = result.CardTrait })
 	unlock(front)
 	front.Parent = flip
 	Kit.tween(flip, 0.16, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
@@ -675,8 +676,7 @@ function Reveal.Quick(result)
 		then `{string.upper(borderId)}!`
 		elseif result.Outcome == "New" then "NEW"
 		elseif result.Outcome == "Star" then `★{result.Stars}`
-		elseif result.Copies >= Config.FusionCopies then "FUSE!"
-		else `x{result.Copies}`
+		else "DUPE"
 	local badge = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0),

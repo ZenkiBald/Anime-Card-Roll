@@ -367,18 +367,18 @@ local function buildTower()
 		extras ..= `  ·  {potion.Icon} {potion.Name}`
 	end
 	text(rewardBox, 3, extras, Theme.Color.Text, 17, Theme.Font.Bold)
-	local accessoryChance, artifactChance = Tower.DropChances(floorNo)
+	local artifactChance = Tower.ArtifactChance(floorNo)
 	text(
 		rewardBox,
 		4,
-		`🎒 Accessory <b>{math.floor(accessoryChance * 100 + 0.5)}%</b>  ·  Artifact <b>{string.format("%.1f", artifactChance * 100)}%</b>`,
+		`🔮 Artifact drop <b>{string.format("%.1f", artifactChance * 100)}%</b>`,
 		Color3.fromRGB(255, 170, 230),
 		17,
 		Theme.Font.Bold
 	)
 	if not floor.Guardian then
 		local guardian = Tower.NextGuardian(floorNo)
-		local _, guardianArtifact = Tower.DropChances(guardian)
+		local guardianArtifact = Tower.ArtifactChance(guardian)
 		text(
 			rewardBox,
 			5,
@@ -494,16 +494,16 @@ local function build()
 		17,
 		Theme.Font.Bold
 	)
-	-- Gear odds for this fight (Items.luau: harder fights drop more often, and rarer gear).
+	-- Artifact odds for this fight (Items.luau: harder fights drop them more often, and rarer ones).
 	local rarityChances = Items.RarityChances(fight.D)
 	local rarest = if (rarityChances.Mythic or 0) > 0 then "Mythic" else "Legendary"
 	text(
 		rewardBox,
 		4,
-		`🎒 Accessory <b>{math.floor(Items.AccessoryChance(fight.D) * 100 + 0.5)}%</b>  ·  Artifact <b>{string.format(
+		`🔮 Artifact drop <b>{string.format("%.1f", Items.ArtifactChance(fight.D) * 100)}%</b>  ·  <font color="#{Rarity.Get(rarest).Color:ToHex()}">{rarest}</font> artifact {string.format(
 			"%.1f",
-			Items.ArtifactChance(fight.D) * 100
-		)}%</b>  ·  <font color="#{Rarity.Get(rarest).Color:ToHex()}">{rarest}</font> gear {string.format("%.1f", rarityChances[rarest] * 100)}%`,
+			rarityChances[rarest] * 100
+		)}%`,
 		Color3.fromRGB(255, 170, 230),
 		17,
 		Theme.Font.Bold

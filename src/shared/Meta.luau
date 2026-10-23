@@ -12,7 +12,6 @@ export type Bundle = {
 	Shards: number?,
 	Potions: { [string]: number }?,
 	Artifacts: { [string]: number }?, -- Items.luau ids
-	Accessories: { [string]: number }?,
 	Packs: { [string]: number }?, -- Roll Packs (Packs.luau ids)
 }
 
@@ -475,12 +474,6 @@ function Meta.Describe(bundle: Bundle): string
 		local artifact = Items.ArtifactById[id]
 		if artifact then
 			table.insert(parts, `{artifact.Icon} {artifact.Name}`)
-		end
-	end
-	for id in bundle.Accessories or {} do
-		local accessory = Items.AccessoryById[id]
-		if accessory then
-			table.insert(parts, `{accessory.Icon} {accessory.Name}`)
 		end
 	end
 	local packs = Packs.Describe(bundle.Packs)

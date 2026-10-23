@@ -11,7 +11,7 @@ the rarity reveal ladder, 18 starter cards, duplicates -> stars -> fusion copies
 test tools; the deck builder (4 + 4 slots, 3 presets, Auto-build); the server-run battle engine; all 3 worlds
 (Kurogane, Rimeveil, Null Emperor Vex; World 4 Tenrai added later) on Normal / Hard / Nightmare with unlocks; boss reward rolls with luck,
 floors and first-clear bonuses; 3D boss NPCs in the hub and in battle (built from parts in `BossModels`);
-3D chibi card art for all 18 cards (`CardArt`, from each card's `Look`); long-term progression (`Meta`):
+long-term progression (`Meta`):
 potions, Shard Shop upgrades, the Index with completion rewards (replaces the old Collection / ODDS button;
 the odds panel opens from the Index and the HUD stats), daily streak, playtime gifts, roll milestones;
 SKIP on long reveals and the boss reward fan.
@@ -46,14 +46,11 @@ stays under the next rarity; odds_test checks). `UI/BorderFx` draws the frames; 
 card back, then slams a "NEW RAINBOW!" ribbon on and calls "RAINBOW LEGENDARY!"; Rainbow / Secret always get the
 full reveal, stop Auto Roll when new, and are announced to the server. The odds panel lists border odds, the Index
 detail shows found borders. Test tools: border reveal previews and GIVE BORDERS.
-Gear (`Items.luau`, 2026-10-23): every boss win rolls for an accessory (20% + 3% x D, max 60%) and an artifact
-(3% + 0.7% x D, max 15%), rarer gear on harder fights (Mythic only from D 7); the boss screen shows the odds and
-the victory screen calls out drops. Artifacts (10, Rare-Mythic): wear 3, each adds Luck / RollSpeed / Border /
-ShardGain / XPGain (`Meta.Bonus` = stat points + worn artifacts); duplicates level them to 5, then melt into
-Shards. Accessories (9): one per card, battle-only buffs (SPD, Crit, CritDamage, Guard, StartEnergy) applied as
-permanent unit buffs in `BattleEngine` (never ATK / HP, so Deck Power and rarity order don't move). Saved as
-`Gear` { Artifacts, Accessories, Worn, Cards }; MetaService actions WearArtifact / RemoveArtifact / WearAccessory
-/ RemoveAccessory; BAG tabs in `UI/BagGear`. Test tools: GIVE ITEMS.
+Artifacts (`Items.luau`, 2026-10-23): every boss win / tower floor rolls for an artifact (3% + 0.7% x D, max 15%,
+x4 on Guardians), rarer ones on harder fights (Mythic only from D 7). 10 artifacts (Rare-Mythic): wear 3, each adds
+Luck / RollSpeed / Border / ShardGain / XPGain (`Meta.Bonus` = stat points + worn artifacts); duplicates level
+them to 5, then melt into Shards. Saved as `Gear` { Artifacts, Worn }; MetaService WearArtifact / RemoveArtifact.
+Test tools: GIVE ARTIFACTS.
 Infinite Tower (`Tower.luau`, 2026-10-23, built in a cloud session: headless tests only, not yet seen in Studio):
 endless floors, progress saved as `Tower.Floor` (highest cleared; you always fight Floor + 1, each floor pays once).
 Each floor's enemy is an "Echo" of a world boss (its moves, model tinted, backdrop) picked by a seeded hash of the
@@ -102,7 +99,17 @@ WORN tag) with tabs ALL / PACKS / POTIONS / ARTIFACTS / ACCESSORIES, search, and
 Profiles: tap anyone in the server list for PROFILE (`UI/Profile`, `ProfileService` + `Profile` remote, players in
 this server only): favourite card big, level, Deck Power, rolls, tower floor, bosses, Index, playtime, strongest
 cards and their deck; CHANGE FAVOURITE on your own.
-Planned next: traits rolled onto cards; AI card illustrations (user) to replace the chibi figures. Keep it SMALL: rarity still wins.
+2026-10-23 cleanup (user's calls): card accessories removed (saves refund 150 Shards each; `Gear` is just
+Artifacts + Worn); pity removed (rolls are pure luck; `Config.Pity`, the HUD counter and odds bars are gone);
+3D chibi card figures removed (`CardArt` and every card's `Look` deleted): a card shows `Image` (2D, filling the
+card) or its glyph until the user's AI illustrations arrive; roll reveals no longer say FUSE / copies ("DUPE").
+Traits (`Traits.luau`): every pull rolls one (Rare 75% / Epic 20% / Legendary 4.5% / Mythic 0.5%, shown in the
+ODDS panel), the card keeps its best (`Cards[id].Trait`); REROLL TRAIT in the Index (200 Shards, MetaService
+"RerollTrait", replaces it); battle-only effects (SPD / Crit / CritDamage / Guard / StartEnergy, never ATK / HP)
+applied in BattleEngine like the old accessories (UnitSpec.Trait). Trait chip on cards. Test tools: GIVE TRAITS.
+CODES (menu button, `UI/Codes`): `src/server/Codes.luau` (server-only list; once per player, optional Expires),
+`CodeService` + `Redeem` remote, saved in `Codes`. Add a code = one entry in Codes.luau.
+Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
 refreshed every 60 s.
@@ -150,7 +157,7 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   `Rewards` (boss reward rolls / luck / floor per difficulty score D), `BossModels` (NPC figures from plain parts),
   `Tower` (Infinite Tower floors, enemies, affixes, curve, rewards),
   `Cards` also has the fusion helpers (`FusedRarity`, `MaxFusion`, `Stat`, `Power(card, stars, fusion)`),
-  `CardArt` (card chibi figures from `Card.Look`), `Meta` (potions, upgrades, Index rewards, daily, gifts,
+  `Traits` (card traits: odds, effects, reroll cost), `Meta` (potions, upgrades, Index rewards, daily, gifts,
   milestones, daily quests, levels and stat points, server events, the Lucky Wheel, and the luck / cooldown formulas
   both sides use), `Mounts` (ride pets).
 - `src/server` -> ServerScriptService.Server: `Main.server`, `DataService` (ProfileStore saves),
@@ -164,7 +171,7 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   area in, then pivots beside the zone's Boss_ marker / Spawn), `FusionService` (Fuse remote: checks ownership,
   copies and max rarity, then fuses), `LeaderboardService` (leaderstats + the town boards; test scores go to
   `LB_*_Test_1` stores),
-  `ProfileService` (Profile remote: public profiles of players in the server), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
+  `ProfileService` (Profile remote: public profiles of players in the server), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient` (progression calls, badge counts),
   `HubFx` (NPC idle animation, sage tips, portal lock labels), `ZoneFx` (zone music + lighting mood),
   `UI/*` (Kit helpers incl. `Kit.tile` / `Kit.dimTile`, Theme, Skin (UI kit image ids), BorderFx (card border frames), Title, Travel, Settings, Fusion, Modal (blurred-world
@@ -181,9 +188,10 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 
 - The server owns every roll, stat and result; the client only requests and animates. Validate every remote argument on the server.
 - Rarity always wins: each tier's stats are >= 1.6x the tier below; a card stays within +-10% of its tier base; stars add +5% each, max 5.
+  Traits and borders stay small (traits never add ATK / HP). Rolls are pure luck: no pity.
   Fusion keeps this: a fused card counts as its new rarity (stats scaled by the tier multipliers), never more.
-- Content is data: a new card is one entry in `src/shared/Cards.luau` (stats, abilities, `Look`), a new boss or
-  difficulty one entry in `src/shared/Bosses.luau`, a new artifact / accessory one entry in `src/shared/Items.luau`,
+- Content is data: a new card is one entry in `src/shared/Cards.luau` (stats, abilities, `Image`), a new boss or
+  difficulty one entry in `src/shared/Bosses.luau`, a new artifact one entry in `src/shared/Items.luau`, a new trait one entry in `src/shared/Traits.luau`,
   a new potion / gift / milestone / quest one entry in `src/shared/Meta.luau`
   (no other code changes). Only Secret signatures are coded in `BattleEngine`.
 - Potions, upgrades and gifts are earned in game only. Selling luck potions for Robux would make them paid random

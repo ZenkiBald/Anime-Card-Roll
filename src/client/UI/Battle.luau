@@ -1774,14 +1774,12 @@ local function showResults(summary)
 			elseif bundle then
 				line(`Loot: {Meta.Describe(bundle)}`, Theme.Color.Gold, 20)
 			end
-			-- Gear drops get their own loud line (they go in the BAG).
-			if bundle and (bundle.Artifacts or bundle.Accessories) then
-				local gearText = Meta.Describe({ Artifacts = bundle.Artifacts, Accessories = bundle.Accessories })
-				local isArtifact = bundle.Artifacts ~= nil
-				line(`{if isArtifact then "ARTIFACT DROP!" else "NEW GEAR!"}  {gearText}`, if isArtifact then Color3.fromRGB(255, 120, 220) else Theme.Color.Gold, 24)
+			-- An artifact drop gets its own loud line (it goes in the BAG).
+			if bundle and bundle.Artifacts then
+				line(`ARTIFACT DROP!  {Meta.Describe({ Artifacts = bundle.Artifacts })}`, Color3.fromRGB(255, 120, 220), 24)
 				task.delay(0.5, function()
-					Sfx.Sting(if isArtifact then "Legendary" else "Epic", true)
-					Effects.Sparks(panel, if isArtifact then Color3.fromRGB(255, 120, 220) else Theme.Color.Gold, 24, 1)
+					Sfx.Sting("Legendary", true)
+					Effects.Sparks(panel, Color3.fromRGB(255, 120, 220), 24, 1)
 				end)
 			end
 			if rewards.Meta then

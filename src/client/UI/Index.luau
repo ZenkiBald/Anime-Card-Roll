@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
+local Traits = require(Shared.Traits)
 local Config = require(Shared.Config)
 local Odds = require(Shared.Odds)
 local Meta = require(Shared.Meta)
@@ -79,7 +80,7 @@ local function showDetail(card)
 		Parent = panel,
 	}, { Kit.padding(10) })
 	local best = if entry then Borders.Best(entry.Borders) else "Normal"
-	local view = CardView.new(card.Id, { Owned = owned, Stars = stars, Fusion = fusion, Animate = owned, Border = best })
+	local view = CardView.new(card.Id, { Owned = owned, Stars = stars, Fusion = fusion, Animate = owned, Border = best, Trait = entry and entry.Trait })
 	view.AnchorPoint = Vector2.new(0.5, 0.5)
 	view.Position = UDim2.fromScale(0.5, 0.5)
 	view.Parent = left
@@ -170,6 +171,39 @@ local function showDetail(card)
 		if best ~= "Normal" then
 			line(`Wearing {best}: +{math.floor(Borders.Get(best).Bonus * 100 + 0.5)}% stats`, Theme.Font.Bold, Borders.Get(best).Color, 18, 15)
 		end
+		-- Trait: the best one this card has rolled, and REROLL (Shards, replaces it).
+		local trait = Traits.Get(entry.Trait)
+		local traitLine = line(
+			if trait
+				then `Trait  <font color="#{Rarity.Get(trait.Tier).Color:ToHex()}"><b>{trait.Icon} {string.upper(trait.Name)}</b></font>  ({trait.Tier}): {Traits.Text(trait.Id)}`
+				else "Trait  none yet: every pull of this card rolls one",
+			Theme.Font.Heavy,
+			Theme.Color.Text,
+			20,
+			16
+		)
+		order += 1
+		local reroll = Kit.button(`REROLL TRAIT 💎{Traits.RerollCost}`, Color3.fromRGB(176, 92, 255), Theme.Color.AccentDeep, {
+			LayoutOrder = order,
+			Size = UDim2.new(0, 230, 0, 40),
+			ZIndex = 22,
+			Parent = right,
+		})
+		reroll.Activated:Connect(function()
+			local result = MetaClient.Call("RerollTrait", card.Id)
+			if not result.Ok then
+				reroll.Label.Text = if result.Reason == "NoShards" then "NOT ENOUGH SHARDS" else "TRY AGAIN"
+				return
+			end
+			-- The server rolled it and says which trait came out.
+			local new = result.Extra and Traits.Get(result.Extra.Trait)
+			if new and State.Cards[card.Id] then
+				State.Cards[card.Id].Trait = new.Id
+				Sfx.Sting(new.Tier, true)
+				traitLine.Text = `Trait  <font color="#{Rarity.Get(new.Tier).Color:ToHex()}"><b>{new.Icon} {string.upper(new.Name)}</b></font>  ({new.Tier}): {Traits.Text(new.Id)}`
+			end
+		end)
+
 		-- FAVOURITE: this card becomes your picture in the server list and on your name tag.
 		order += 1
 		local isFav = State.Meta.Favorite == card.Id

@@ -45,22 +45,6 @@ export type Ability = {
 	Every: number?, -- Skill: used instead of the Basic every N actions
 }
 
--- How the card's character is drawn (CardArt.luau builds a chibi figure from this).
-export type Look = {
-	Skin: Color3,
-	Hair: Color3,
-	Outfit: Color3,
-	Outfit2: Color3, -- sleeves / legs
-	Trim: Color3,
-	Eyes: Color3,
-	Style: string, -- hair: Spiky | Long | Bob | Ponytail | Twin | Swept | Short | Bald
-	Head: string?, -- Headband | Witch | Crown | Halo | Horns | Helmet | Hood | Straw | Flower | Glasses | Mask
-	Prop: string?, -- Fists | Kunai | Sword | Katana | Lance | Bow | Staff | Shield | TowerShield | Drum | Fan | Book | Orb | Clock | Sun | Blade
-	PropColor: Color3?,
-	Aura: Color3?, -- ring of light behind the figure
-	GlowEye: boolean?, -- one glowing eye
-}
-
 export type Card = {
 	Id: string,
 	Name: string,
@@ -72,8 +56,7 @@ export type Card = {
 	SPD: number,
 	Glyph: string, -- initials, used where the 3D art isn't drawn
 	Accent: Color3, -- portrait background colour
-	Look: Look?, -- the character's 3D chibi art
-	Image: string?, -- optional uploaded illustration ("rbxassetid://..."); drawn instead of the 3D art
+	Image: string?, -- the card's 2D illustration ("rbxassetid://..."); cards without one show their glyph
 	Abilities: { Ability },
 }
 
@@ -97,17 +80,6 @@ local list: { Card } = {
 		HP = 360,
 		SPD = 95,
 		Glyph = "RK",
-		Look = {
-			Skin = Color3.fromRGB(230, 180, 140),
-			Hair = Color3.fromRGB(110, 70, 40),
-			Outfit = Color3.fromRGB(230, 120, 60),
-			Outfit2 = Color3.fromRGB(60, 50, 60),
-			Trim = Color3.fromRGB(220, 60, 60),
-			Eyes = Color3.fromRGB(120, 70, 40),
-			Style = "Spiky",
-			Head = "Headband",
-			Prop = "Fists",
-		},
 		Accent = Color3.fromRGB(196, 120, 72),
 		Abilities = { ability("Basic", "Heavy Jab", "100% ATK", { { Kind = "Damage", Pct = 1 } }) },
 	},
@@ -121,18 +93,6 @@ local list: { Card } = {
 		HP = 420,
 		SPD = 115,
 		Glyph = "KD",
-		Look = {
-			Skin = Color3.fromRGB(240, 205, 180),
-			Hair = Color3.fromRGB(40, 50, 90),
-			Outfit = Color3.fromRGB(50, 60, 100),
-			Outfit2 = Color3.fromRGB(35, 40, 70),
-			Trim = Color3.fromRGB(200, 60, 70),
-			Eyes = Color3.fromRGB(90, 120, 200),
-			Style = "Ponytail",
-			Head = "Mask",
-			Prop = "Kunai",
-			PropColor = Color3.fromRGB(200, 60, 70),
-		},
 		Accent = Color3.fromRGB(120, 140, 170),
 		Abilities = { ability("Basic", "Twin Kunai", "2 hits x 50% ATK on random enemies", { { Kind = "Damage", Pct = 0.5, Hits = 2, Target = "RandomEnemy" } }) },
 	},
@@ -146,17 +106,6 @@ local list: { Card } = {
 		HP = 620,
 		SPD = 100,
 		Glyph = "TM",
-		Look = {
-			Skin = Color3.fromRGB(236, 196, 160),
-			Hair = Color3.fromRGB(30, 26, 34),
-			Outfit = Color3.fromRGB(240, 150, 60),
-			Outfit2 = Color3.fromRGB(90, 50, 30),
-			Trim = Color3.fromRGB(255, 210, 120),
-			Eyes = Color3.fromRGB(200, 120, 40),
-			Style = "Swept",
-			Prop = "Sword",
-			PropColor = Color3.fromRGB(255, 170, 70),
-		},
 		Accent = Color3.fromRGB(255, 160, 70),
 		Abilities = {
 			ability("Basic", "Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
@@ -175,17 +124,6 @@ local list: { Card } = {
 		HP = 680,
 		SPD = 110,
 		Glyph = "MR",
-		Look = {
-			Skin = Color3.fromRGB(245, 215, 190),
-			Hair = Color3.fromRGB(255, 220, 90),
-			Outfit = Color3.fromRGB(250, 245, 230),
-			Outfit2 = Color3.fromRGB(240, 200, 60),
-			Trim = Color3.fromRGB(255, 230, 90),
-			Eyes = Color3.fromRGB(230, 170, 40),
-			Style = "Twin",
-			Prop = "Bow",
-			PropColor = Color3.fromRGB(255, 220, 90),
-		},
 		Accent = Color3.fromRGB(255, 220, 90),
 		Abilities = {
 			ability("Basic", "Spark Arrow", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
@@ -204,17 +142,6 @@ local list: { Card } = {
 		HP = 1000,
 		SPD = 120,
 		Glyph = "SI",
-		Look = {
-			Skin = Color3.fromRGB(238, 200, 170),
-			Hair = Color3.fromRGB(200, 230, 255),
-			Outfit = Color3.fromRGB(40, 90, 170),
-			Outfit2 = Color3.fromRGB(30, 40, 70),
-			Trim = Color3.fromRGB(90, 180, 255),
-			Eyes = Color3.fromRGB(90, 180, 255),
-			Style = "Spiky",
-			Prop = "Sword",
-			PropColor = Color3.fromRGB(120, 210, 255),
-		},
 		Accent = Color3.fromRGB(90, 180, 255),
 		Abilities = {
 			ability("Basic", "Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
@@ -233,17 +160,6 @@ local list: { Card } = {
 		HP = 1700,
 		SPD = 105,
 		Glyph = "AK",
-		Look = {
-			Skin = Color3.fromRGB(240, 200, 175),
-			Hair = Color3.fromRGB(210, 40, 60),
-			Outfit = Color3.fromRGB(150, 20, 40),
-			Outfit2 = Color3.fromRGB(60, 20, 30),
-			Trim = Color3.fromRGB(255, 200, 90),
-			Eyes = Color3.fromRGB(230, 60, 70),
-			Style = "Long",
-			Prop = "Lance",
-			PropColor = Color3.fromRGB(230, 60, 70),
-		},
 		Accent = Color3.fromRGB(230, 60, 70),
 		Abilities = {
 			ability("Basic", "Thrust", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
@@ -266,18 +182,6 @@ local list: { Card } = {
 		HP = 2700,
 		SPD = 110,
 		Glyph = "KR",
-		Look = {
-			Skin = Color3.fromRGB(225, 185, 150),
-			Hair = Color3.fromRGB(30, 60, 50),
-			Outfit = Color3.fromRGB(50, 150, 130),
-			Outfit2 = Color3.fromRGB(30, 40, 45),
-			Trim = Color3.fromRGB(70, 220, 170),
-			Eyes = Color3.fromRGB(60, 180, 140),
-			Style = "Swept",
-			Prop = "Katana",
-			PropColor = Color3.fromRGB(90, 230, 180),
-			GlowEye = true,
-		},
 		Accent = Color3.fromRGB(70, 200, 160),
 		Abilities = {
 			ability("Basic", "Cut", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
@@ -300,19 +204,6 @@ local list: { Card } = {
 		HP = 4600,
 		SPD = 100,
 		Glyph = "NO",
-		Look = {
-			Skin = Color3.fromRGB(245, 220, 215),
-			Hair = Color3.fromRGB(160, 120, 255),
-			Outfit = Color3.fromRGB(70, 40, 120),
-			Outfit2 = Color3.fromRGB(40, 24, 70),
-			Trim = Color3.fromRGB(255, 220, 120),
-			Eyes = Color3.fromRGB(170, 130, 255),
-			Style = "Long",
-			Head = "Witch",
-			Prop = "Orb",
-			PropColor = Color3.fromRGB(190, 150, 255),
-			Aura = Color3.fromRGB(150, 110, 255),
-		},
 		Accent = Color3.fromRGB(150, 110, 255),
 		Abilities = {
 			ability("Basic", "Star Bolt", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
@@ -338,19 +229,6 @@ local list: { Card } = {
 		HP = 8100,
 		SPD = 115,
 		Glyph = "RJ",
-		Look = {
-			Skin = Color3.fromRGB(210, 190, 200),
-			Hair = Color3.fromRGB(25, 20, 35),
-			Outfit = Color3.fromRGB(40, 30, 60),
-			Outfit2 = Color3.fromRGB(20, 16, 30),
-			Trim = Color3.fromRGB(200, 90, 255),
-			Eyes = Color3.fromRGB(220, 90, 255),
-			Style = "Spiky",
-			Head = "Horns",
-			Prop = "Blade",
-			PropColor = Color3.fromRGB(200, 90, 255),
-			Aura = Color3.fromRGB(120, 60, 200),
-		},
 		Accent = Color3.fromRGB(40, 30, 70),
 		Abilities = {
 			ability("Basic", "Shadow Edge", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
@@ -374,18 +252,6 @@ local list: { Card } = {
 		Main = 60,
 		SPD = 100,
 		Glyph = "HN",
-		Look = {
-			Skin = Color3.fromRGB(245, 220, 195),
-			Hair = Color3.fromRGB(110, 190, 100),
-			Outfit = Color3.fromRGB(230, 245, 220),
-			Outfit2 = Color3.fromRGB(120, 180, 110),
-			Trim = Color3.fromRGB(255, 150, 200),
-			Eyes = Color3.fromRGB(90, 160, 80),
-			Style = "Bob",
-			Head = "Flower",
-			Prop = "Staff",
-			PropColor = Color3.fromRGB(130, 230, 120),
-		},
 		Accent = Color3.fromRGB(120, 200, 110),
 		Abilities = {
 			ability("Basic", "Herbal Mend", "Heal the most hurt Attack card 100% PWR", {
@@ -402,17 +268,6 @@ local list: { Card } = {
 		Main = 55,
 		SPD = 90,
 		Glyph = "GR",
-		Look = {
-			Skin = Color3.fromRGB(215, 170, 130),
-			Hair = Color3.fromRGB(60, 40, 30),
-			Outfit = Color3.fromRGB(230, 140, 50),
-			Outfit2 = Color3.fromRGB(170, 90, 30),
-			Trim = Color3.fromRGB(120, 60, 30),
-			Eyes = Color3.fromRGB(60, 40, 30),
-			Style = "Bald",
-			Prop = "Shield",
-			PropColor = Color3.fromRGB(200, 170, 110),
-		},
 		Accent = Color3.fromRGB(200, 170, 110),
 		Abilities = {
 			ability("Basic", "Stone Palm", "Shield the most hurt Attack card 150% PWR", {
@@ -429,17 +284,6 @@ local list: { Card } = {
 		Main = 100,
 		SPD = 105,
 		Glyph = "SZ",
-		Look = {
-			Skin = Color3.fromRGB(245, 215, 200),
-			Hair = Color3.fromRGB(255, 140, 180),
-			Outfit = Color3.fromRGB(250, 250, 250),
-			Outfit2 = Color3.fromRGB(220, 40, 60),
-			Trim = Color3.fromRGB(220, 40, 60),
-			Eyes = Color3.fromRGB(240, 110, 150),
-			Style = "Twin",
-			Prop = "Drum",
-			PropColor = Color3.fromRGB(220, 60, 70),
-		},
 		Accent = Color3.fromRGB(240, 110, 150),
 		Abilities = {
 			ability("Basic", "War Drum", "All Attack cards +8% ATK for 1 turn", {
@@ -459,18 +303,6 @@ local list: { Card } = {
 		Main = 92,
 		SPD = 100,
 		Glyph = "IB",
-		Look = {
-			Skin = Color3.fromRGB(230, 225, 235),
-			Hair = Color3.fromRGB(150, 170, 200),
-			Outfit = Color3.fromRGB(120, 140, 170),
-			Outfit2 = Color3.fromRGB(80, 90, 120),
-			Trim = Color3.fromRGB(200, 220, 255),
-			Eyes = Color3.fromRGB(160, 190, 230),
-			Style = "Long",
-			Head = "Hood",
-			Prop = "Fan",
-			PropColor = Color3.fromRGB(200, 220, 255),
-		},
 		Accent = Color3.fromRGB(150, 170, 200),
 		Abilities = {
 			ability("Basic", "Mist Veil", "60% PWR damage + target -10% ATK for 1 turn", {
@@ -491,18 +323,6 @@ local list: { Card } = {
 		Main = 160,
 		SPD = 110,
 		Glyph = "YA",
-		Look = {
-			Skin = Color3.fromRGB(245, 230, 230),
-			Hair = Color3.fromRGB(170, 210, 255),
-			Outfit = Color3.fromRGB(240, 245, 255),
-			Outfit2 = Color3.fromRGB(120, 160, 230),
-			Trim = Color3.fromRGB(150, 200, 255),
-			Eyes = Color3.fromRGB(120, 170, 255),
-			Style = "Long",
-			Head = "Halo",
-			Prop = "Staff",
-			PropColor = Color3.fromRGB(180, 220, 255),
-		},
 		Accent = Color3.fromRGB(150, 200, 255),
 		Abilities = {
 			ability("Basic", "Moon Touch", "Heal the most hurt Attack card 100% PWR", {
@@ -523,18 +343,6 @@ local list: { Card } = {
 		Main = 245,
 		SPD = 85,
 		Glyph = "TS",
-		Look = {
-			Skin = Color3.fromRGB(210, 170, 135),
-			Hair = Color3.fromRGB(60, 60, 70),
-			Outfit = Color3.fromRGB(130, 140, 155),
-			Outfit2 = Color3.fromRGB(80, 85, 95),
-			Trim = Color3.fromRGB(255, 200, 90),
-			Eyes = Color3.fromRGB(100, 110, 130),
-			Style = "Short",
-			Head = "Helmet",
-			Prop = "TowerShield",
-			PropColor = Color3.fromRGB(255, 200, 90),
-		},
 		Accent = Color3.fromRGB(140, 150, 165),
 		Abilities = {
 			ability("Basic", "Guard", "Shield the most hurt Attack card 150% PWR", {
@@ -558,18 +366,6 @@ local list: { Card } = {
 		Main = 430,
 		SPD = 115,
 		Glyph = "LM",
-		Look = {
-			Skin = Color3.fromRGB(240, 215, 200),
-			Hair = Color3.fromRGB(40, 50, 110),
-			Outfit = Color3.fromRGB(40, 50, 110),
-			Outfit2 = Color3.fromRGB(25, 30, 70),
-			Trim = Color3.fromRGB(110, 140, 255),
-			Eyes = Color3.fromRGB(110, 140, 255),
-			Style = "Bob",
-			Head = "Glasses",
-			Prop = "Book",
-			PropColor = Color3.fromRGB(140, 170, 255),
-		},
 		Accent = Color3.fromRGB(110, 140, 255),
 		Abilities = {
 			ability("Basic", "Field Care", "Heal the most hurt Attack card 100% PWR", {
@@ -595,19 +391,6 @@ local list: { Card } = {
 		Main = 740,
 		SPD = 100,
 		Glyph = "OR",
-		Look = {
-			Skin = Color3.fromRGB(235, 215, 200),
-			Hair = Color3.fromRGB(190, 240, 240),
-			Outfit = Color3.fromRGB(40, 140, 150),
-			Outfit2 = Color3.fromRGB(20, 80, 90),
-			Trim = Color3.fromRGB(90, 220, 220),
-			Eyes = Color3.fromRGB(90, 220, 220),
-			Style = "Swept",
-			Head = "Halo",
-			Prop = "Clock",
-			PropColor = Color3.fromRGB(90, 220, 220),
-			Aura = Color3.fromRGB(90, 220, 220),
-		},
 		Accent = Color3.fromRGB(90, 220, 220),
 		Abilities = {
 			ability("Basic", "Gentle Hours", "Heal all Attack cards 60% PWR", {
@@ -632,19 +415,6 @@ local list: { Card } = {
 		Main = 1230,
 		SPD = 110,
 		Glyph = "AU",
-		Look = {
-			Skin = Color3.fromRGB(250, 225, 200),
-			Hair = Color3.fromRGB(255, 214, 120),
-			Outfit = Color3.fromRGB(255, 250, 240),
-			Outfit2 = Color3.fromRGB(240, 200, 120),
-			Trim = Color3.fromRGB(255, 190, 60),
-			Eyes = Color3.fromRGB(255, 180, 60),
-			Style = "Long",
-			Head = "Crown",
-			Prop = "Sun",
-			PropColor = Color3.fromRGB(255, 200, 90),
-			Aura = Color3.fromRGB(255, 214, 140),
-		},
 		Accent = Color3.fromRGB(255, 214, 140),
 		Abilities = {
 			ability("Basic", "Radiant Heal", "Heal all Attack cards 80% PWR", {
@@ -676,18 +446,6 @@ local list: { Card } = {
 		HP = 1040,
 		SPD = 128,
 		Glyph = "HY",
-		Look = {
-			Skin = Color3.fromRGB(240, 205, 175),
-			Hair = Color3.fromRGB(120, 220, 170),
-			Outfit = Color3.fromRGB(235, 245, 240),
-			Outfit2 = Color3.fromRGB(50, 120, 100),
-			Trim = Color3.fromRGB(120, 230, 180),
-			Eyes = Color3.fromRGB(80, 200, 150),
-			Style = "Ponytail",
-			Head = "Headband",
-			Prop = "Kunai",
-			PropColor = Color3.fromRGB(150, 240, 200),
-		},
 		Accent = Color3.fromRGB(110, 220, 170),
 		Abilities = {
 			ability("Basic", "Wind Cut", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
@@ -706,18 +464,6 @@ local list: { Card } = {
 		Main = 250,
 		SPD = 105,
 		Glyph = "AM",
-		Look = {
-			Skin = Color3.fromRGB(245, 220, 205),
-			Hair = Color3.fromRGB(70, 110, 190),
-			Outfit = Color3.fromRGB(240, 240, 250),
-			Outfit2 = Color3.fromRGB(70, 110, 190),
-			Trim = Color3.fromRGB(130, 190, 255),
-			Eyes = Color3.fromRGB(90, 150, 240),
-			Style = "Long",
-			Head = "Flower",
-			Prop = "Fan",
-			PropColor = Color3.fromRGB(130, 190, 255),
-		},
 		Accent = Color3.fromRGB(100, 160, 240),
 		Abilities = {
 			ability("Basic", "Rain Prayer", "Heal the most hurt Attack card 120% PWR", {
@@ -740,18 +486,6 @@ local list: { Card } = {
 		HP = 2800,
 		SPD = 112,
 		Glyph = "TB",
-		Look = {
-			Skin = Color3.fromRGB(230, 190, 160),
-			Hair = Color3.fromRGB(250, 230, 150),
-			Outfit = Color3.fromRGB(60, 80, 140),
-			Outfit2 = Color3.fromRGB(30, 36, 70),
-			Trim = Color3.fromRGB(255, 220, 90),
-			Eyes = Color3.fromRGB(255, 210, 80),
-			Style = "Swept",
-			Head = "Helmet",
-			Prop = "Lance",
-			PropColor = Color3.fromRGB(255, 225, 110),
-		},
 		Accent = Color3.fromRGB(250, 210, 90),
 		Abilities = {
 			ability("Basic", "Lance Strike", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
@@ -774,20 +508,6 @@ local list: { Card } = {
 		Main = 760,
 		SPD = 105,
 		Glyph = "AY",
-		Look = {
-			Skin = Color3.fromRGB(235, 210, 195),
-			Hair = Color3.fromRGB(40, 40, 70),
-			Outfit = Color3.fromRGB(30, 30, 60),
-			Outfit2 = Color3.fromRGB(70, 60, 120),
-			Trim = Color3.fromRGB(255, 230, 80),
-			Eyes = Color3.fromRGB(255, 230, 80),
-			Style = "Twin",
-			Head = "Hood",
-			Prop = "Orb",
-			PropColor = Color3.fromRGB(255, 235, 110),
-			Aura = Color3.fromRGB(255, 225, 80),
-			GlowEye = true,
-		},
 		Accent = Color3.fromRGB(255, 220, 80),
 		Abilities = {
 			ability("Basic", "Static Ward", "Shield the most hurt Attack card 180% PWR", {

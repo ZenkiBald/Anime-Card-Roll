@@ -99,7 +99,7 @@ Tower.ShardsBase = 20 -- Shards = 20 + 5 x floor, x3 on a Guardian
 Tower.ShardsPerFloor = 5
 Tower.GuardianShards = 3
 Tower.DropBoost = 1 -- gear drop chance multiplier (Items.RollDrops) on an ordinary floor
-Tower.GuardianDropBoost = 4 -- and on a Guardian: an artifact up to 60%, an accessory almost sure
+Tower.GuardianDropBoost = 4 -- and on a Guardian: an artifact up to 60%
 
 export type Floor = {
 	Floor: number,
@@ -266,10 +266,10 @@ function Tower.Reward(floor: number): Reward
 	}
 end
 
--- The gear odds a floor's win rolls (for the tower screen): accessory and artifact chance.
-function Tower.DropChances(floor: number): (number, number)
+-- The chance a floor's win drops an artifact (for the tower screen).
+function Tower.ArtifactChance(floor: number): number
 	local reward = Tower.Reward(floor)
-	return math.min(1, Items.AccessoryChance(reward.D) * reward.DropBoost), math.min(1, Items.ArtifactChance(reward.D) * reward.DropBoost)
+	return math.min(1, Items.ArtifactChance(reward.D) * reward.DropBoost)
 end
 
 -- "Beat Kurogane on Normal": what opens the tower (with Config.Unlocks on).

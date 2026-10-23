@@ -76,8 +76,8 @@ local rewardsOk = true
 local lastShards = 0
 for floor = 1, 120 do
 	local r = Tower.Reward(floor)
-	local acc, art = Tower.DropChances(floor)
-	if acc > 1 or art > 1 or art <= 0 then
+	local art = Tower.ArtifactChance(floor)
+	if art > 1 or art <= 0 then
 		rewardsOk = false
 	end
 	for id, count in r.Packs or {} do

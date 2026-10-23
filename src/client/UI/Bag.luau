@@ -1,10 +1,10 @@
 --!nonstrict
 -- BAG: everything you carry as one grid of small square tiles (like a backpack): a rarity badge
 -- top-left, the count top-right, the item's colour round the edge, and a timer / level / WORN tag along
--- the bottom. Tabs filter it (ALL / PACKS / POTIONS / ARTIFACTS / ACCESSORIES) and SEARCH finds by name.
+-- the bottom. Tabs filter it (ALL / PACKS / POTIONS / ARTIFACTS) and SEARCH finds by name.
 -- Tapping a tile shows it on the right with what you can do with it:
 --   Roll Packs: OPEN (rolls at your luck now; the pulls play over the bag, PackOpen)
---   Potions: USE / BUY      Artifacts: WEAR / REMOVE (3 slots)      Accessories: WEAR on a card / REMOVE
+--   Potions: USE / BUY      Artifacts: WEAR / REMOVE (3 slots)
 -- The server checks every action (MetaService, RollService "OpenPack").
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,15 +14,12 @@ local Meta = require(Shared.Meta)
 local Items = require(Shared.Items)
 local Packs = require(Shared.Packs)
 local Rarity = require(Shared.Rarity)
-local Cards = require(Shared.Cards)
-local Borders = require(Shared.Borders)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
 local Controls = require(script.Parent.Controls)
 local Sfx = require(script.Parent.Sfx)
-local CardTile = require(script.Parent.CardTile)
 local PackOpen = require(script.Parent.PackOpen)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
@@ -34,10 +31,9 @@ local TABS = {
 	{ Name = "PACKS", Color = Color3.fromRGB(255, 160, 60) },
 	{ Name = "POTIONS", Color = Color3.fromRGB(86, 214, 138) },
 	{ Name = "ARTIFACTS", Color = Color3.fromRGB(255, 120, 220) },
-	{ Name = "ACCESSORIES", Color = Color3.fromRGB(176, 92, 255) },
 }
-local KIND_ORDER = { Pack = 1, Potion = 2, Artifact = 3, Accessory = 4 }
-local KIND_TAB = { Pack = "PACKS", Potion = "POTIONS", Artifact = "ARTIFACTS", Accessory = "ACCESSORIES" }
+local KIND_ORDER = { Pack = 1, Potion = 2, Artifact = 3 }
+local KIND_TAB = { Pack = "PACKS", Potion = "POTIONS", Artifact = "ARTIFACTS" }
 local GOLD_DEEP = Color3.fromRGB(150, 100, 10)
 
 local modal
@@ -50,7 +46,7 @@ local currentTab = "ALL"
 local search = ""
 local selectedKey: string? = nil
 local tiles = {} -- [key] = { Button, Sub, Entry } so timers tick without a rebuild
-local busy = false -- a pack reveal or the card picker is over the bag
+local busy = false -- a pack reveal is over the bag
 local hintToken = 0
 
 local function hint(text: string)
@@ -137,31 +133,6 @@ local function entries()
 			})
 		end
 	end
-	local wearers = {} -- [accessory id] = { card ids }
-	for cardId, id in data.Cards or {} do
-		wearers[id] = wearers[id] or {}
-		table.insert(wearers[id], cardId)
-	end
-	for i, accessory in Items.Accessories do
-		local count = (data.Accessories or {})[accessory.Id] or 0
-		local on = wearers[accessory.Id] or {}
-		if count > 0 or #on > 0 then
-			add({
-				Key = `Accessory:{accessory.Id}`,
-				Kind = "Accessory",
-				Id = accessory.Id,
-				Item = accessory,
-				Name = accessory.Name,
-				Icon = accessory.Icon,
-				Color = Rarity.Get(accessory.Rarity).Color,
-				Rarity = accessory.Rarity,
-				Count = count,
-				Wearers = on,
-				Worn = #on > 0,
-				Order = i,
-			})
-		end
-	end
 	table.sort(list, function(a, b)
 		if a.Kind ~= b.Kind then
 			return KIND_ORDER[a.Kind] < KIND_ORDER[b.Kind]
@@ -182,8 +153,6 @@ local function subText(entry): (string, Color3)
 		return clock(State.PotionLeft(entry.Id)), Theme.Color.Quick
 	elseif entry.Kind == "Artifact" then
 		return if entry.Worn then `WORN · Lv{entry.Level}` else `Lv{entry.Level}`, if entry.Worn then Theme.Color.Gold else Theme.Color.Text
-	elseif entry.Kind == "Accessory" and entry.Worn then
-		return `ON {#entry.Wearers}`, Theme.Color.Gold
 	elseif entry.Kind == "Pack" then
 		return `{Kit.commas(entry.Item.Rolls)} rolls`, Theme.Color.Text
 	end
@@ -329,7 +298,7 @@ local function call(name: string, arg: any, okText: string?): boolean
 	return result.Ok
 end
 
--- A cover over the whole bag (pack reveals, the card picker); close() takes it away.
+-- A cover over the whole bag (pack reveals); close() takes it away.
 local function cover(): (Frame, () -> ())
 	busy = true
 	local frame = Kit.new("Frame", {
@@ -397,79 +366,6 @@ local function openPack(pack)
 			buttons.Visible = true
 		end
 	end)
-end
-
--- Which card wears an accessory: every owned card as a tile, with what it wears now.
-local function pickCard(accessory)
-	if busy then
-		return
-	end
-	local frame, close = cover()
-	local title = Kit.label({
-		Text = `Who wears the {accessory.Icon} {accessory.Name}?  <font color="#96FFBE">{Items.AccessoryText(accessory)}</font>`,
-		RichText = true,
-		Font = Theme.Font.Display,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.new(0, 14, 0, 8),
-		Size = UDim2.new(1, -150, 0, 30),
-		ZIndex = 31,
-		Parent = frame,
-	}, 22)
-	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = title
-	local back = Kit.button("BACK", Theme.Color.PanelLight, Theme.Color.Panel, {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -10, 0, 6),
-		Size = UDim2.fromOffset(120, 40),
-		ZIndex = 31,
-		Parent = frame,
-	})
-	back.Activated:Connect(close)
-	local list = Kit.new("ScrollingFrame", {
-		Position = UDim2.new(0, 10, 0, 52),
-		Size = UDim2.new(1, -20, 1, -62),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 4,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
-		ZIndex = 31,
-		Parent = frame,
-	}, {
-		Kit.new("UIGridLayout", { CellSize = UDim2.fromOffset(104, 128), CellPadding = UDim2.fromOffset(10, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
-	})
-	local owned = {}
-	for _, card in Cards.List do
-		if State.Cards[card.Id] then
-			table.insert(owned, card)
-		end
-	end
-	table.sort(owned, function(a, b)
-		return Rarity.Index(a.Rarity) > Rarity.Index(b.Rarity)
-	end)
-	local wearing = gear().Cards or {}
-	for i, card in owned do
-		local entry = State.Cards[card.Id]
-		local cell = Kit.new("Frame", { LayoutOrder = i, BackgroundTransparency = 1, ZIndex = 31, Parent = list })
-		local cardTile = CardTile.new(card.Id, { Owned = true, Stars = entry.Stars, Fusion = entry.Fusion, Border = Borders.Best(entry.Borders) })
-		cardTile.Size = UDim2.new(1, 0, 1, -20)
-		cardTile.Parent = cell
-		local on = wearing[card.Id] and Items.AccessoryById[wearing[card.Id]]
-		Kit.label({
-			Text = if on then `{on.Icon} {on.Name}` else card.Name,
-			Font = Theme.Font.Heavy,
-			TextColor3 = if on then Theme.Color.Gold else Theme.Color.Text,
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.fromScale(0.5, 1),
-			Size = UDim2.new(1, 0, 0, 18),
-			ZIndex = 32,
-			Parent = cell,
-		}, 14)
-		cardTile.Activated:Connect(function()
-			if call("WearAccessory", { Card = card.Id, Item = accessory.Id }, `{card.Name} now wears the {accessory.Name}`) then
-				close()
-			end
-		end)
-	end
 end
 
 local function showDetail(entry)
@@ -558,41 +454,6 @@ local function showDetail(entry)
 				end
 				call("WearArtifact", item.Id, `{item.Name} worn: {Items.ArtifactText(item, entry.Level)}`)
 			end)
-		end
-	elseif entry.Kind == "Accessory" then
-		detailText(4, `<b>{Items.AccessoryText(item)}</b> for the card wearing it (battle only)`, Theme.Color.Gold, 16, Theme.Font.Heavy)
-		local row = actionRow(5)
-		local wear = action(row, "WEAR ON A CARD", Theme.Color.Gold, GOLD_DEEP, 1, entry.Count > 0, function()
-			if entry.Count > 0 then
-				pickCard(item)
-			else
-				hint("They're all being worn")
-			end
-		end)
-		wear.Size = UDim2.new(1, 0, 1, 0)
-		-- Who wears one, each with REMOVE.
-		for i, cardId in entry.Wearers or {} do
-			local card = Cards.Get(cardId)
-			if card then
-				local wornRow = actionRow(5 + i)
-				wornRow.Size = UDim2.new(1, 0, 0, 36)
-				Kit.label({
-					LayoutOrder = 1,
-					Text = `On {card.Name}`,
-					Font = Theme.Font.Heavy,
-					TextXAlignment = Enum.TextXAlignment.Left,
-					Size = UDim2.new(0.58, 0, 1, 0),
-					Parent = wornRow,
-				}, 16)
-				local remove = Kit.button("REMOVE", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), {
-					LayoutOrder = 2,
-					Size = UDim2.new(0.4, 0, 1, 0),
-					Parent = wornRow,
-				})
-				remove.Activated:Connect(function()
-					call("RemoveAccessory", cardId, `{item.Name} back in the bag`)
-				end)
-			end
 		end
 	end
 end

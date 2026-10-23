@@ -1,6 +1,6 @@
 --!nonstrict
--- Live odds with the player's current luck and any pity guarantee applied.
--- Uses the same Odds module as the server, so the numbers always match.
+-- Live odds with the player's current luck (pure luck: there is no pity), the border odds and every
+-- trait's odds. Uses the same Odds / Borders / Traits modules as the server, so the numbers always match.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,6 +11,7 @@ local Odds = require(Shared.Odds)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
+local Traits = require(Shared.Traits)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -24,49 +25,14 @@ local rows = {} -- [rarity] = { Chance, OneIn }
 local borderRows = {} -- [border id] = { Chance, OneIn }
 local borderTitle: TextLabel
 local luckLabel: TextLabel
-local epicBar: Frame
-local legendaryBar: Frame
-local epicLabel: TextLabel
-local legendaryLabel: TextLabel
-
-local function pityBar(parent: Instance, y: number, color: Color3)
-	local track = Kit.new("Frame", {
-		Position = UDim2.new(0, 0, 0, y + 22),
-		Size = UDim2.new(1, 0, 0, 10),
-		BackgroundColor3 = Theme.Color.PanelLight,
-		Parent = parent,
-	}, { Kit.corner(UDim.new(1, 0)) })
-	local fill = Kit.new("Frame", {
-		Name = "Fill",
-		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = color,
-		Parent = track,
-	}, { Kit.corner(UDim.new(1, 0)) })
-	local label = Kit.label({
-		Position = UDim2.new(0, 0, 0, y),
-		Size = UDim2.new(1, 0, 0, 20),
-		Font = Theme.Font.Bold,
-		TextColor3 = Theme.Color.Text,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextScaled = false,
-		TextSize = 16,
-		Text = "",
-		Parent = parent,
-	}, 16)
-	return fill, label
-end
-
 local function refresh()
-	local summary = State.Summary
-	local floor = Odds.PityFloor(summary.Pity)
 	local luck = State.Luck()
-	local chances = Odds.Chances(luck, floor)
+	local chances = Odds.Chances(luck)
 	for name, row in rows do
 		row.Chance.Text = Odds.FormatPercent(chances[name])
 		row.OneIn.Text = Odds.FormatOneIn(chances[name])
 	end
-	local floorText = if floor then `   ·   Next roll guaranteed {floor} or better` else ""
-	luckLabel.Text = string.format("Luck %.2fx%s", luck, floorText)
+	luckLabel.Text = string.format("Luck %.2fx   ·   every roll is pure luck", luck)
 
 	local boost = Meta.Bonus(State.Meta.Stats, State.Meta.Gear, "Border")
 	local borderChances = Borders.Chances(boost)
@@ -77,12 +43,6 @@ local function refresh()
 	borderTitle.Text = if boost > 0
 		then `BORDERS  <font color="#FF78DC">(+{math.floor(boost * 100 + 0.5)}% Border Chance)</font>`
 		else "BORDERS"
-
-	local epicLeft, legendaryLeft = Odds.PityRemaining(summary.Pity)
-	epicLabel.Text = `Epic or better guaranteed within {epicLeft} rolls`
-	legendaryLabel.Text = `Legendary or better guaranteed within {legendaryLeft} rolls`
-	epicBar.Size = UDim2.fromScale(summary.Pity.Epic / Config.Pity.Epic, 1)
-	legendaryBar.Size = UDim2.fromScale(summary.Pity.Legendary / Config.Pity.Legendary, 1)
 end
 
 function OddsPanel.Init(playerGui: Instance)
@@ -224,18 +184,51 @@ function OddsPanel.Init(playerGui: Instance)
 		borderRows[border.Id] = { Chance = chance, OneIn = oneIn }
 	end
 
-	local pity = Kit.new("Frame", {
-		Name = "Pity",
+	-- Traits: also rolled on every pull, on their own (Traits.luau); a card keeps its best one.
+	Kit.label({
 		LayoutOrder = 20,
-		Size = UDim2.new(1, 0, 0, 96),
-		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 28),
+		Font = Theme.Font.Display,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 22,
+		Text = "TRAITS",
 		Parent = scroll,
-	}, { Kit.new("UIPadding", { PaddingTop = UDim.new(0, 10) }) })
-	epicBar, epicLabel = pityBar(pity, 0, Rarity.Get("Epic").Color)
-	legendaryBar, legendaryLabel = pityBar(pity, 44, Rarity.Get("Legendary").Color)
+	}, 22)
+	local traitChances = Traits.Chances()
+	for i = #Traits.List, 1, -1 do
+		local trait = Traits.List[i]
+		local tier = Rarity.Get(trait.Tier)
+		local row = Kit.new("Frame", {
+			Name = "Trait" .. trait.Id,
+			LayoutOrder = 21 + (#Traits.List - i),
+			Size = UDim2.new(1, 0, 0, 36),
+			BackgroundColor3 = Theme.Color.PanelLight,
+			Parent = scroll,
+		}, { Kit.corner(UDim.new(0, 10)) })
+		Kit.label({
+			Text = `{trait.Icon} {string.upper(trait.Name)}  <font color="#A8A2C8">{Traits.Text(trait.Id)}</font>`,
+			RichText = true,
+			Font = Theme.Font.Heavy,
+			TextColor3 = tier.Color,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.new(0, 10, 0.2, 0),
+			Size = UDim2.new(0.7, -10, 0.6, 0),
+			Parent = row,
+		}, 16)
+		Kit.label({
+			Text = `{Odds.FormatPercent(traitChances[trait.Id] * 100)}  ·  {Odds.FormatOneIn(traitChances[trait.Id] * 100)}`,
+			Font = Theme.Font.Heavy,
+			TextColor3 = Theme.Color.Muted,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			Position = UDim2.new(0.7, 0, 0.2, 0),
+			Size = UDim2.new(0.3, -8, 0.6, 0),
+			Parent = row,
+		}, 15)
+	end
 
 	Kit.label({
-		LayoutOrder = 30,
+		LayoutOrder = 60,
 		Size = UDim2.new(1, 0, 0, 40),
 		Font = Theme.Font.Medium,
 		TextColor3 = Theme.Color.Muted,
@@ -243,8 +236,8 @@ function OddsPanel.Init(playerGui: Instance)
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextScaled = false,
 		TextSize = 14,
-		Text = "Rolls are free. Each card within a rarity is equally likely. Every pull also rolls a border on its own; "
-			.. "a card wears the best border it has found. Probabilities are rounded, so the displayed values may not add up to exactly 100%.",
+		Text = "Rolls are free and pure luck (no pity). Each card within a rarity is equally likely. Every pull also rolls a border "
+			.. "and a trait on their own; a card keeps the best of each it has found. Probabilities are rounded, so the displayed values may not add up to exactly 100%.",
 		Parent = scroll,
 	}, 14)
 

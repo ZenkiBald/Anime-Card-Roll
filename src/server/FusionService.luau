@@ -49,7 +49,7 @@ local function fuse(player: Player, cardId: unknown)
 	return {
 		Ok = true,
 		CardId = cardId,
-		Card = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders },
+		Card = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders, Trait = entry.Trait },
 		Rarity = Cards.FusedRarity(card, entry.Fusion),
 		Meta = MetaService.State(player, profile.Data), -- the "fuse a card" quest
 	}

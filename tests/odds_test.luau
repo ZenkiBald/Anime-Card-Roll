@@ -1,4 +1,4 @@
--- Logic checks for the shared modules: odds math, pity, card stat rules.
+-- Logic checks for the shared modules: odds math (pure luck, no pity), card stat rules.
 local Config = MODULES.Config
 local Rarity = MODULES.Rarity
 local Cards = MODULES.Cards
@@ -66,27 +66,6 @@ for _, name in Rarity.Order do
 	end
 end
 check(sampledOk, "1,000,000 sampled rolls match the odds (within 5 sigma)")
-
--- 6. Pity: never more than 50 rolls without Epic+, or 300 without Legendary+.
-local pity = { Epic = 0, Legendary = 0 }
-local sinceEpic, sinceLegendary, worstEpic, worstLegendary = 0, 0, 0, 0
-for _ = 1, 300000 do
-	local floor = Odds.PityFloor(pity)
-	local tier = Odds.PickTier(Odds.Chances(1, floor), rng)
-	Odds.UpdatePity(pity, tier)
-	sinceEpic += 1
-	sinceLegendary += 1
-	if Rarity.AtLeast(tier, "Epic") then
-		worstEpic = math.max(worstEpic, sinceEpic)
-		sinceEpic = 0
-	end
-	if Rarity.AtLeast(tier, "Legendary") then
-		worstLegendary = math.max(worstLegendary, sinceLegendary)
-		sinceLegendary = 0
-	end
-end
-check(worstEpic <= Config.Pity.Epic, `Epic pity holds (longest wait {worstEpic} of {Config.Pity.Epic})`)
-check(worstLegendary <= Config.Pity.Legendary, `Legendary pity holds (longest wait {worstLegendary} of {Config.Pity.Legendary})`)
 
 -- 7. Card set shape: the 18 starters (2+2 Common and Uncommon per type, 1 per type above) plus the
 -- World 4 cards (Rare + Legendary Attack, Epic + Mythic Support).

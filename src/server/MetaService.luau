@@ -13,6 +13,7 @@ local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Rarity = require(Shared.Rarity)
 local Items = require(Shared.Items)
+local Traits = require(Shared.Traits)
 local Packs = require(Shared.Packs)
 
 local Remotes = ReplicatedStorage.Remotes
@@ -52,11 +53,6 @@ function MetaService.Grant(data, bundle: Meta.Bundle)
 			end
 		end
 	end
-	for id, count in bundle.Accessories or {} do
-		if Items.AccessoryById[id] and count > 0 then
-			data.Gear.Accessories[id] = (data.Gear.Accessories[id] or 0) + count
-		end
-	end
 	if bundle.Potions then
 		for id, count in bundle.Potions do
 			if Meta.PotionById[id] and count > 0 then
@@ -73,6 +69,7 @@ function MetaService.Grant(data, bundle: Meta.Bundle)
 end
 
 local devLuck = {} -- [Player] = base luck set from the dev panel (test phase only)
+local traitRng = Random.new() -- REROLL TRAIT
 
 function MetaService.SetDevLuck(player: Player, luck: number?)
 	devLuck[player] = luck
@@ -415,37 +412,18 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 		end
 		table.remove(data.Gear.Worn, index)
 		return true
-	elseif action == "WearAccessory" then
-		-- arg = { Card = cardId, Item = accessoryId }: the card must be owned and the accessory in the bag.
-		if type(arg) ~= "table" then
+	elseif action == "RerollTrait" then
+		-- Shards for a fresh trait roll on an owned card (it replaces the old one, better or worse).
+		if type(arg) ~= "string" or data.Cards[arg] == nil then
 			return false, "BadRequest"
 		end
-		local cardId, itemId = (arg :: any).Card, (arg :: any).Item
-		if type(cardId) ~= "string" or data.Cards[cardId] == nil or type(itemId) ~= "string" or Items.AccessoryById[itemId] == nil then
-			return false, "BadRequest"
+		if data.Shards < Traits.RerollCost then
+			return false, "NoShards"
 		end
-		if (data.Gear.Accessories[itemId] or 0) <= 0 then
-			return false, "NoItem"
-		end
-		local old = data.Gear.Cards[cardId]
-		if old then
-			data.Gear.Accessories[old] = (data.Gear.Accessories[old] or 0) + 1
-		end
-		data.Gear.Accessories[itemId] -= 1
-		if data.Gear.Accessories[itemId] <= 0 then
-			data.Gear.Accessories[itemId] = nil
-		end
-		data.Gear.Cards[cardId] = itemId
-		return true
-	elseif action == "RemoveAccessory" then
-		local cardId = type(arg) == "string" and arg
-		local itemId = cardId and data.Gear.Cards[cardId]
-		if not itemId then
-			return false, "BadRequest"
-		end
-		data.Gear.Cards[cardId] = nil
-		data.Gear.Accessories[itemId] = (data.Gear.Accessories[itemId] or 0) + 1
-		return true
+		data.Shards -= Traits.RerollCost
+		local trait = Traits.Pick(traitRng:NextNumber(), traitRng:NextNumber())
+		data.Cards[arg].Trait = trait
+		return true, nil, nil, { Card = arg, Trait = trait }
 	elseif action == "ResetStats" then
 		local cost = Meta.StatResetCost(data.Stats)
 		if cost == 0 then
@@ -473,8 +451,8 @@ function MetaService.Start()
 		if not limiter:Allow(player) then
 			return { Ok = false, Reason = "TooFast" }
 		end
-		local ok, reason, granted = handle(player, profile.Data, action, arg)
-		return { Ok = ok, Reason = reason, Granted = granted, Meta = MetaService.State(player, profile.Data) }
+		local ok, reason, granted, extra = handle(player, profile.Data, action, arg)
+		return { Ok = ok, Reason = reason, Granted = granted, Extra = extra, Meta = MetaService.State(player, profile.Data) }
 	end
 
 	-- Once a second, for everyone in the game: running potions tick down, the Lucky Wheel fills toward

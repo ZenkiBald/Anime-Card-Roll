@@ -25,7 +25,7 @@ local limiter = RateLimit.new(2, 4)
 local TOP_CARDS = 6
 
 local function cardInfo(id: string, entry): { [string]: any }
-	return { Id = id, Stars = entry.Stars, Fusion = entry.Fusion, Border = Borders.Best(entry.Borders) }
+	return { Id = id, Stars = entry.Stars, Fusion = entry.Fusion, Border = Borders.Best(entry.Borders), Trait = entry.Trait }
 end
 
 local function profileOf(target: Player)

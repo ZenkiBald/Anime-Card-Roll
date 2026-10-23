@@ -6,11 +6,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Meta = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Meta"))
 
 local State = {
-	Cards = {}, -- [cardId] = { Copies, Stars }
+	Cards = {}, -- [cardId] = { Copies, Stars, Fusion, Borders, Trait }
 	Summary = {
 		TotalRolls = 0,
 		Shards = 0,
-		Pity = { Epic = 0, Legendary = 0 },
 		Luck = 1,
 		AutoStop = "Legendary",
 		AutoActive = false,
@@ -152,7 +151,7 @@ end
 
 function State.ApplyRoll(result)
 	if result.CardId then
-		State.Cards[result.CardId] = { Copies = result.Copies, Stars = result.Stars, Fusion = result.Fusion, Borders = result.Borders }
+		State.Cards[result.CardId] = { Copies = result.Copies, Stars = result.Stars, Fusion = result.Fusion, Borders = result.Borders, Trait = result.CardTrait }
 	end
 	if result.Quests then
 		State.Meta.Quests = result.Quests
@@ -165,7 +164,7 @@ end
 
 -- A card's entry after a fusion (from FusionService).
 function State.ApplyCard(cardId: string, entry)
-	State.Cards[cardId] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders }
+	State.Cards[cardId] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders, Trait = entry.Trait }
 	changed:Fire("cards")
 end
 
