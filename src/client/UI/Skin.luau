@@ -10,6 +10,10 @@
 
 local Skin = {}
 
+-- The obsidian look (2026-10-23) draws panels, buttons and card frames in code: the cartoon kit art
+-- below is kept but switched off. Icons still apply. Set true to bring the kit art back.
+Skin.KitArt = false
+
 -- Sizes and margins match the kit drawn in the "Anime Card Roll - UI Kit" Figma file (exported at 2x).
 Skin.Images = {
 	Panel = { Id = "rbxassetid://99549726104701", Size = Vector2.new(1024, 1024), Margin = 220, Scale = 0.22 },
@@ -92,14 +96,14 @@ end
 
 function Skin.Has(name: string): boolean
 	local def = Skin.Images[name]
-	return def ~= nil and def.Id ~= ""
+	return Skin.KitArt and def ~= nil and def.Id ~= ""
 end
 
 -- Puts the named image behind `target`'s content and hides its built-in fill, gradient, outline and
 -- gloss. Returns the image, or nil when that skin has no id yet (the built-in look stays).
 function Skin.Apply(target: GuiObject, name: string): ImageLabel?
 	local def = Skin.Images[name]
-	if def == nil or def.Id == "" then
+	if not Skin.KitArt or def == nil or def.Id == "" then
 		return nil
 	end
 	target.BackgroundTransparency = 1
@@ -142,8 +146,8 @@ end
 -- Draws the rarity's card frame over a card or tile; returns nil when there's no frame image yet.
 function Skin.Frame(target: GuiObject, rarity: string, zIndex: number): ImageLabel?
 	local id = Skin.Frames[rarity]
-	if id == nil or id == "" then
-		return nil
+	if not Skin.KitArt or id == nil or id == "" then
+		return nil -- the card's own neon rarity edge shows instead
 	end
 	for _, child in target:GetChildren() do
 		if child:IsA("UIStroke") then

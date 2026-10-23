@@ -29,6 +29,7 @@ MetaClient.Reasons = {
 	TooFast = "Slow down a little",
 	Loading = "Still loading",
 	NoSpins = "No spins yet: play a little longer",
+	TooFar = "Stand beside Madame Fortuna to spin",
 }
 
 -- Called with (bundle) whenever something is granted, to show a reward toast.

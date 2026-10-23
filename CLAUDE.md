@@ -192,11 +192,34 @@ Playtest pass (2026-10-23, user's plan; built in the cloud, headless tests + lua
   happen (`TutorialService.Note` from TraitService, RollService Condense, BattleService). Tracker banner above the
   menu (tap = claim when ready, else KENJI'S PATH); talking to Kenji opens the path until it's done, then tips.
   Titles: `Titles` set + `Settings.Title` (worn: name tags, profiles).
-- HUD regroup: top bar = Shards, Trait Shards, Rolls (luck + ODDS under it). The menu is 4 categories, each a
-  popover: BATTLE (Bosses, Tower, Raid, Cost = boss screen with Cost Challenge on), SQUAD (Deck, Index, Traits,
-  Stats), HUB (Kenji, Quests = GIFTS, Fusion, Bag incl. alchemy, Wheel, Travel), STORE (Passes, Shards = Shard
-  Shop, Totem, Codes), + DEV in TestMode. Item badges add up on their category. The left column (tracker + menu)
-  scales with the screen (`layoutLeft`, ~0.6 on a phone); the Momentum line goes short on narrow docks.
+- HUD: top bar = Shards, Trait Shards, Rolls (luck + ODDS under it). The left column (tracker + menu) scales with
+  the screen (`layoutLeft`, ~0.6 on a phone); the Momentum line goes short on narrow docks. (The 4-category
+  popover menu from this pass was replaced the same day, see below.)
+Shonen overhaul (2026-10-23, user's spec; cloud-built, headless tests + luau-lsp only, not yet seen in Studio):
+- HUD menu = six direct buttons, no flyouts: BATTLE (boss screen: bosses, tower, raid, Cost Challenge), BAG,
+  SQUAD, QUESTS, TRAVEL, STORE (+ DEV in TestMode). Badges: QUESTS (gifts + Kenji), SQUAD (Index + stat points), BAG.
+- Tabbed panels (`Modal.Tabbed` + `host:Page(tab, region?, heading?)`: a page acts like a Modal for the screen
+  module, so DeckBuilder / Index / Stats / Shop / Gifts / Tutorial / Fusion take an optional `host` in Init):
+  SQUAD = DECK | INDEX | UPGRADES (Stats left half + Shard Shop right half); QUESTS = KENJI'S PATH (✓ once done) |
+  DAILY & GIFTS; Hoshi's panel = FUSION | PACK ALCHEMY (`UI/Alchemy`, moved out of the BAG).
+- STORE: one full-screen scroll: GAME PASSES, SHARDS & SERVER TOTEM (`MonetizationConfig.ShardBundles`, dev
+  products, ProductId 0 = mock; Shards buy luck potions / upgrades, so bundles follow the paid random items rule
+  like the totem: "BuyShards", ProcessReceipt once per PurchaseId), REDEEM CODES at the bottom (`Codes.Build`).
+- Town NPC exclusivity: fusion + pack alchemy only at Hoshi, traits only at Kenshin, the wheel only at Madame
+  Fortuna (no HUD buttons, no Index shortcut). Server-enforced: `NpcRange` (World registers every NPC's spot;
+  FusionService, RollService PackAlchemy, TraitService Roll / LockRoll, MetaService SpinWheel answer "TooFar"
+  beyond 24 studs; an NPC never placed doesn't block). Kenji's hints point at the NPCs.
+- Look: dark obsidian glass (`Theme`: Panel 11,14,22 at 0.15 transparency, frames 18,22,34 at 0.1, Line 45,55,80,
+  Neon cyan for active / selected), 5 px corners (`Kit.corner`; full-round stays only on square things), 1.2 px
+  strokes (`Kit.stroke`: <= 2 -> 1.2, heavier -> 2), Gotham fonts (Display GothamBlack, Heavy GothamBold, Bold
+  GothamMedium, Medium Gotham; billboards too); buttons are dark metal with a neon trim + glow line; the cartoon
+  UI kit art is off (`Skin.KitArt = false`; icons still apply); old purples were mapped to slate.
+- Lighting (`LightingSetup.luau`, run first in Main.client; reuses existing effects): 18:45 twilight, Brightness
+  1.8, ambient 20,25,40 / outdoor 45,50,75, soft shadows, grade (contrast 0.18, sat -0.05), bloom (0.65 / 24 / 1.8),
+  atmosphere (0.32 density, haze 1.5). ZoneFx moods are dusk / night variants on top. `Technology = Future` can
+  only be set in Studio: run `tools/studio/lighting.luau` once and save the place.
+- Town VFX (World `townLights`): a warm PointLight (2 / 14 / 255,150,60, no shadows) in the 24 town lanterns
+  nearest the fountain, rising embers at the fountain and every portal (`embers`).
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
@@ -265,11 +288,13 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   `LB_*_Test_1` stores),
   `ProfileService` (Profile remote: public profiles of players in the server), `RaidService` (the server's raid
   pool, hitters, payouts, Raid Luck), `TraitService` (Trait Master rolls), `Momentum` (roll chains),
-  `MonetizationService` (passes, policy gating, Luck Totem, receipts), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
+  `MonetizationService` (passes, policy gating, Luck Totem, Shard bundles, receipts), `NpcRange` (town NPC
+  services only beside their NPC), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient` (progression calls, badge counts),
+  `LightingSetup` (the twilight base light),
   `HubFx` (NPC idle animation, sage tips, portal lock labels), `ZoneFx` (zone music + lighting mood),
   `UI/*` (Kit helpers incl. `Kit.tile` / `Kit.dimTile`, Theme, Skin (UI kit image ids), BorderFx (card border frames), Title, Travel, Settings, Fusion, Modal (blurred-world
-  panel with slanted banner), Controls (option pills, tabs, search, headers), CardView (full card), CardTile (square
+  obsidian panel with title tab; `Modal.Tabbed` pages), Alchemy (Hoshi's PACK ALCHEMY tab), Controls (option pills, tabs, search, headers), CardView (full card), CardTile (square
   grid tile), ElementUi (element badges / rich text), ElementGuide (ELEMENTS panel), TraitMaster, Store, Reveal, Effects, Hud, Index, OddsPanel, Bag + BagGear, Stats, Shop, Gifts, DevPanel, DeckBuilder, BossScreen,
   Battle, RewardReveal, ModelView (3D figure in a ViewportFrame), Sfx).
 - Remotes are declared in `default.project.json` under ReplicatedStorage.Remotes.
@@ -288,7 +313,8 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   difficulty one entry in `src/shared/Bosses.luau`, a new artifact one entry in `src/shared/Items.luau`, a new trait one entry in `src/shared/Traits.luau`,
   a new potion / gift / milestone / quest one entry in `src/shared/Meta.luau`
   (no other code changes). Only Secret signatures are coded in `BattleEngine`.
-- Potions, upgrades and gifts are earned in game only. Robux sales live only in MonetizationConfig /
+- Potions, upgrades and gifts are earned in game only (Shards can also come from the STORE's Shard bundles,
+  which are gated like random items because Shards buy luck). Robux sales live only in MonetizationConfig /
   MonetizationService; any perk that changes odds or gives random rewards is marked Random and gated by
   PolicyService (see the policy rule below).
 - Boss HP / ATK per difficulty are tuned so the deck in `tests/fixtures.luau` for each fight (about its
@@ -300,7 +326,10 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 - Original characters only, no real anime characters or names.
 - Keep it cheap on phones: UI-first, plain Frames + tweens for effects, no textures or 3D particles in reveals;
   at most one 3D model per ViewportFrame. The world uses StreamingEnabled; keep the map under ~15k parts and
-  few lights (the Abyss has 6), and give multi-part props ModelStreamingMode Atomic.
+  few lights (the Abyss has 6, town lanterns are capped at 24 with no shadows), and give multi-part props
+  ModelStreamingMode Atomic.
+- Town services stay at their NPCs (Hoshi: fusion + alchemy, Kenshin: traits, Fortuna: wheel): no HUD
+  shortcut, and the server checks `NpcRange.Near`.
 - Creator Store models: strip every script before use (tools/studio/stage.luau does). Sounds: licensed
   libraries only (Pro Sound Effects, APM Music) or ones shipped with Roblox; all ids live in `UI/Sfx.luau`.
 - Leave `Config.TestMode = true` during testing. Setting it false hides the dev panel, enables unlock rules

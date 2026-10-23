@@ -33,7 +33,7 @@ export type Options = {
 }
 
 local function outlined(label: TextLabel, thickness: number?)
-	Kit.textStroke(Color3.fromRGB(16, 8, 30), thickness or 2, 0).Parent = label
+	Kit.textStroke(Color3.fromRGB(6, 7, 11), thickness or 2, 0).Parent = label
 	return label
 end
 
@@ -114,7 +114,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		outlined(Kit.label({
 			Text = "?",
 			Font = Theme.Font.Display,
-			TextColor3 = Color3.fromRGB(200, 196, 230),
+			TextColor3 = Color3.fromRGB(194, 204, 225),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.45),
 			Size = UDim2.fromScale(0.5, 0.36),
@@ -195,7 +195,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 			Name = "Stars",
 			Position = UDim2.fromScale(0.28, 0.07),
 			Size = UDim2.fromScale(0.3, 0.17),
-			BackgroundColor3 = Color3.fromRGB(20, 14, 40),
+			BackgroundColor3 = Color3.fromRGB(8, 10, 15),
 			BackgroundTransparency = 0.25,
 			ZIndex = 5,
 			Parent = button,

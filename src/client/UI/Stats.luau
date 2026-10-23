@@ -106,7 +106,7 @@ local function statRow(parent: Instance, stat, order: number)
 		Size = UDim2.new(0.45, 0, 0, 28),
 		Parent = row,
 	}, 28)
-	Kit.textStroke(Color3.fromRGB(20, 8, 44), 2, 0).Parent = name
+	Kit.textStroke(Color3.fromRGB(8, 11, 17), 2, 0).Parent = name
 	local count = Kit.label({
 		Text = "",
 		Font = Theme.Font.Display,
@@ -117,7 +117,7 @@ local function statRow(parent: Instance, stat, order: number)
 		Size = UDim2.new(0.2, 0, 0, 28),
 		Parent = row,
 	}, 26)
-	Kit.textStroke(Color3.fromRGB(20, 8, 44), 2, 0).Parent = count
+	Kit.textStroke(Color3.fromRGB(8, 11, 17), 2, 0).Parent = count
 	local effect = Kit.label({
 		Text = "",
 		Font = Theme.Font.Heavy,
@@ -130,7 +130,7 @@ local function statRow(parent: Instance, stat, order: number)
 	local track = Kit.new("Frame", {
 		Position = UDim2.new(0, 88, 0, 64),
 		Size = UDim2.new(1, -236, 0, 12),
-		BackgroundColor3 = Color3.fromRGB(14, 8, 30),
+		BackgroundColor3 = Color3.fromRGB(6, 7, 11),
 		Parent = row,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(stat.Color, 1.5, 0.5) })
 	local fill = Kit.new("Frame", {
@@ -160,8 +160,9 @@ local function statRow(parent: Instance, stat, order: number)
 	rows[stat.Id] = { Count = count, Effect = effect, Fill = fill, Add = add }
 end
 
-function StatsPanel.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "StatsGui", "STATS", Vector2.new(0.7, 0.84), Vector2.new(780, 620))
+-- `host`: the SQUAD panel (Modal.Tabbed); stat points are the left half of its UPGRADES tab.
+function StatsPanel.Init(playerGui: Instance, host: any?)
+	modal = if host then host:Page("UPGRADES", "Left", "Stat points") else Modal.new(playerGui, "StatsGui", "STATS", Vector2.new(0.7, 0.84), Vector2.new(780, 620))
 
 	pointsLabel = Kit.label({
 		Text = "",

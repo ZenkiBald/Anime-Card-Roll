@@ -23,7 +23,6 @@ local Sfx = require(script.Parent.Sfx)
 local PackOpen = require(script.Parent.PackOpen)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
-local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Bag = {}
 
@@ -175,7 +174,7 @@ local function tile(entry, order: number)
 		Parent = grid,
 	}, {
 		Kit.corner(UDim.new(0.14, 0)),
-		Kit.gradient(ColorSequence.new(entry.Color:Lerp(Color3.fromRGB(20, 12, 36), 0.62), Color3.fromRGB(16, 10, 30)), 90),
+		Kit.gradient(ColorSequence.new(entry.Color:Lerp(Color3.fromRGB(7, 9, 14), 0.62), Color3.fromRGB(16, 10, 30)), 90),
 	})
 	local stroke = Kit.stroke(entry.Color, if entry.Key == selectedKey then 4 else 2.5, if held then 0 else 0.5)
 	stroke.Parent = button
@@ -308,7 +307,7 @@ local function cover(): (Frame, () -> ())
 	local frame = Kit.new("Frame", {
 		Name = "Cover",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(12, 7, 30),
+		BackgroundColor3 = Color3.fromRGB(6, 7, 11),
 		BackgroundTransparency = 0.04,
 		Active = true,
 		ZIndex = 30,
@@ -372,25 +371,6 @@ local function openPack(pack)
 	end)
 end
 
--- Pack Alchemy (RollService): "Condense" or "Infuse".
-local function alchemy(action: string, packId: string, element: string?)
-	local ok, result = pcall(function()
-		return Remotes.PackAlchemy:InvokeServer(action, packId, element)
-	end)
-	if not ok or result == nil or not result.Ok then
-		local reason = if ok and result then result.Reason else nil
-		hint(if reason == "NotEnough" then "Not enough packs" elseif reason == "NoShards" then "Not enough Shards" else "Couldn't do that")
-		return
-	end
-	State.ApplyPacks(result.Packs)
-	if result.Meta then
-		State.ApplyMeta(result.Meta)
-	end
-	local made = Packs.ById[result.Made]
-	Sfx.Play("Upgrade", 1.15)
-	hint(if made then `Made a {made.Name}!` else "Done")
-end
-
 local function showDetail(entry)
 	clear(detail)
 	detail:SetAttribute("Timer", nil)
@@ -415,7 +395,7 @@ local function showDetail(entry)
 		Parent = detail,
 	}, {
 		Kit.corner(UDim.new(0, 16)),
-		Kit.gradient(ColorSequence.new(entry.Color:Lerp(Color3.fromRGB(20, 12, 36), 0.5), Color3.fromRGB(16, 10, 30)), 90),
+		Kit.gradient(ColorSequence.new(entry.Color:Lerp(Color3.fromRGB(7, 9, 14), 0.5), Color3.fromRGB(16, 10, 30)), 90),
 		Kit.stroke(entry.Color, 3, 0),
 	})
 	Kit.label({ Text = entry.Icon, Font = Theme.Font.Heavy, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.5, 0.8), Parent = big }, 80)
@@ -447,29 +427,9 @@ local function showDetail(entry)
 				hint("Beat bosses and every 5th tower floor for packs")
 			end
 		end)
-		-- Pack Alchemy: 10 of a size condense into one of the next.
-		local rule = Packs.Condense[item.Id]
-		if rule then
-			local to = Packs.ById[rule.To]
-			action(row, `CONDENSE {rule.Need} → 1 {to.Icon}`, Theme.Color.Accent, Theme.Color.AccentDeep, 2, entry.Count >= rule.Need, function()
-				alchemy("Condense", item.Id)
-			end)
-		end
-		-- A Mega Pack can be infused with an element for Shards.
-		if item.Id == "1000" then
-			detailText(7, `INFUSE (💎{Kit.commas(Packs.InfuseCost)}): pick an element for this Mega Pack`, Theme.Color.Text, 15, Theme.Font.Heavy)
-			local elementRow = actionRow(8)
-			for i, element in Packs.InfuseElements do
-				local button = Kit.button(element.Icon, element.Color, element.Color:Lerp(Color3.new(0, 0, 0), 0.5), {
-					LayoutOrder = i,
-					Size = UDim2.new(0.2, -7, 1, 0),
-					Parent = elementRow,
-				})
-				Kit.dim(button, entry.Count < 1 or (State.Summary.Shards or 0) < Packs.InfuseCost)
-				button.Activated:Connect(function()
-					alchemy("Infuse", "1000", element.Id)
-				end)
-			end
+		-- Condensing and infusing are done in town, at Hoshi's PACK ALCHEMY.
+		if Packs.Condense[item.Id] or item.Id == "1000" then
+			detailText(7, "⚗️ Condense 10 into a bigger pack, or infuse a Mega Pack with an element: visit Hoshi the Fusion Master in town.", Theme.Color.Muted, 14, Theme.Font.Heavy)
 		end
 	elseif entry.Kind == "Potion" then
 		detailText(4, item.Text, Theme.Color.Text, 17, Theme.Font.Heavy)
@@ -551,7 +511,7 @@ function Bag.Refresh()
 	end
 	if #list == 0 then
 		Kit.label({
-			Text = if search ~= "" then "Nothing matches that search." else "Nothing here yet: beat bosses, climb the tower and claim GIFTS.",
+			Text = if search ~= "" then "Nothing matches that search." else "Nothing here yet: beat bosses, climb the tower and claim QUESTS gifts.",
 			Font = Theme.Font.Heavy,
 			TextColor3 = Theme.Color.Muted,
 			TextWrapped = true,
@@ -671,7 +631,7 @@ function Bag.Init(playerGui: Instance)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 72),
 		Size = UDim2.new(0.33, 0, 1, -72),
-		BackgroundColor3 = Color3.fromRGB(16, 9, 38),
+		BackgroundColor3 = Color3.fromRGB(7, 9, 14),
 		BackgroundTransparency = 0.2,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,

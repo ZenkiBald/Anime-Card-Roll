@@ -18,6 +18,7 @@ local DataService = require(script.Parent.DataService)
 local MetaService = require(script.Parent.MetaService)
 local RateLimit = require(script.Parent.RateLimit)
 local TutorialService = require(script.Parent.TutorialService)
+local NpcRange = require(script.Parent.NpcRange)
 
 local TraitService = {}
 
@@ -109,6 +110,9 @@ local function handle(player: Player, action: unknown, cardId: unknown, arg: unk
 	end
 	if not limiter:Allow(player) then
 		return { Ok = false, Reason = "TooFast" }
+	end
+	if not NpcRange.Near(player, "traitmaster") then
+		return { Ok = false, Reason = "TooFar" } -- traits are rolled beside Kenshin
 	end
 	if (data.TraitShards or 0) < cost then
 		return { Ok = false, Reason = "NoTraitShards" }

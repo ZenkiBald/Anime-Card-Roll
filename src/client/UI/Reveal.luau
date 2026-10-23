@@ -138,7 +138,7 @@ local function heartbeat(root: Instance, skipped: () -> boolean)
 	local label = Kit.label({
 		Text = "? ? ?",
 		Font = Theme.Font.Display,
-		TextColor3 = Color3.fromRGB(230, 220, 255),
+		TextColor3 = Color3.fromRGB(219, 230, 254),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.44),
 		Size = UDim2.fromScale(0.5, 0.18),
@@ -522,7 +522,7 @@ local function playFull(result)
 			Position = UDim2.new(0, left + 40, 0.44, 0),
 			Size = UDim2.fromOffset(width, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
-			BackgroundColor3 = Color3.fromRGB(16, 9, 38),
+			BackgroundColor3 = Color3.fromRGB(7, 9, 14),
 			BackgroundTransparency = 0.15,
 			ZIndex = 21,
 			Parent = root,

@@ -50,8 +50,8 @@ function Title.Show(playerGui: Instance)
 	}, {
 		Kit.gradient(
 			ColorSequence.new({
-				ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 18, 86)),
-				ColorSequenceKeypoint.new(0.55, Color3.fromRGB(18, 10, 40)),
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(16, 21, 33)),
+				ColorSequenceKeypoint.new(0.55, Color3.fromRGB(8, 10, 15)),
 				ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 4, 20)),
 			}),
 			90
@@ -85,7 +85,7 @@ function Title.Show(playerGui: Instance)
 		Parent = logo,
 	}, 96)
 	Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 240, 160), Color3.fromRGB(255, 170, 40)), 90).Parent = top
-	Kit.textStroke(Color3.fromRGB(60, 20, 120), 6, 0).Parent = top
+	Kit.textStroke(Color3.fromRGB(23, 29, 46), 6, 0).Parent = top
 	local bottom = Kit.label({
 		Text = "ROLL",
 		Font = Theme.Font.Display,
@@ -95,7 +95,7 @@ function Title.Show(playerGui: Instance)
 		Parent = logo,
 	}, 110)
 	Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 150, 230), Color3.fromRGB(176, 92, 255)), 90).Parent = bottom
-	Kit.textStroke(Color3.fromRGB(40, 12, 90), 6, 0).Parent = bottom
+	Kit.textStroke(Color3.fromRGB(17, 22, 34), 6, 0).Parent = bottom
 	local logoScale = Kit.new("UIScale", { Scale = 0.3, Parent = logo })
 	Kit.tween(logoScale, 0.6, { Scale = 1 }, Enum.EasingStyle.Back)
 	loop(logo, { Rotation = 1 }, 2.4)
@@ -152,7 +152,7 @@ function Title.Show(playerGui: Instance)
 	status = Kit.label({
 		Text = "Roll · Collect · Fuse · Fight",
 		Font = Theme.Font.Heavy,
-		TextColor3 = Color3.fromRGB(210, 196, 255),
+		TextColor3 = Color3.fromRGB(205, 216, 238),
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.92),
 		Size = UDim2.fromScale(0.6, 0.04),

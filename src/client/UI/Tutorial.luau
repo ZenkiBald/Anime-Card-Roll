@@ -174,7 +174,8 @@ function TutorialUi.Init(
 	playerGui: Instance,
 	slot: GuiObject,
 	announceFn: (text: string, hint: string?) -> (),
-	changeFn: (active: boolean, ready: boolean) -> ()
+	changeFn: (active: boolean, ready: boolean) -> (),
+	host: any? -- the QUESTS panel (Modal.Tabbed): the path is its first tab
 )
 	announce = announceFn
 	onChange = changeFn
@@ -182,7 +183,7 @@ function TutorialUi.Init(
 		Name = "Tracker",
 		Size = UDim2.fromScale(1, 1),
 		AutoButtonColor = false,
-		BackgroundColor3 = Color3.fromRGB(28, 20, 50),
+		BackgroundColor3 = Color3.fromRGB(10, 12, 19),
 		BackgroundTransparency = 0.1,
 		Text = "",
 		Parent = slot,
@@ -234,7 +235,7 @@ function TutorialUi.Init(
 		end
 	end)
 
-	modal = Modal.new(playerGui, "KenjiGui", "KENJI'S PATH", Vector2.new(0.7, 0.84), Vector2.new(760, 640))
+	modal = if host then host:Page("KENJI'S PATH") else Modal.new(playerGui, "KenjiGui", "KENJI'S PATH", Vector2.new(0.7, 0.84), Vector2.new(760, 640))
 	list = Kit.new("ScrollingFrame", {
 		Name = "Quests",
 		Size = UDim2.fromScale(1, 1),

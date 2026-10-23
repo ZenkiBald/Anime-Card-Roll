@@ -21,6 +21,7 @@ local Awaken = require(Shared.Awaken)
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
 local RateLimit = require(script.Parent.RateLimit)
+local NpcRange = require(script.Parent.NpcRange)
 local MonetizationService = require(script.Parent.MonetizationService)
 local Momentum = require(script.Parent.Momentum)
 
@@ -412,6 +413,9 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 		MetaService.AddXP(player, data, Meta.XP.Quest)
 		return true, nil, MetaService.Grant(data, quest.Reward, player)
 	elseif action == "SpinWheel" then
+		if not NpcRange.Near(player, "fortune") then
+			return false, "TooFar" -- the wheel spins beside Madame Fortuna
+		end
 		if data.Wheel.Spins <= 0 then
 			return false, "NoSpins"
 		end

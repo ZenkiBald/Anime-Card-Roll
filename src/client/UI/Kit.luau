@@ -33,14 +33,42 @@ function Kit.new(className: string, props: { [string]: any }?, children: { Insta
 	return inst
 end
 
+-- Sharp 5 px corners everywhere (Theme.Corner). A full-round radius (scale 1) stays round only on
+-- square-ish things (dots, badges, round icons); on a long bar or pill it turns sharp too.
 function Kit.corner(radius: UDim?): UICorner
-	return Kit.new("UICorner", { CornerRadius = radius or UDim.new(0.18, 0) })
+	local corner = Kit.new("UICorner", { CornerRadius = Theme.Corner })
+	if radius ~= nil and radius.Scale >= 1 then
+		local sizeConnection: RBXScriptConnection? = nil
+		local function fit()
+			local parent = corner.Parent
+			if parent and parent:IsA("GuiObject") then
+				local size = parent.AbsoluteSize
+				local ratio = if size.Y > 0 then size.X / size.Y else 1
+				corner.CornerRadius = if ratio > 0.75 and ratio < 1.34 then radius else Theme.Corner
+			end
+		end
+		corner:GetPropertyChangedSignal("Parent"):Connect(function()
+			if sizeConnection then
+				sizeConnection:Disconnect()
+				sizeConnection = nil
+			end
+			local parent = corner.Parent
+			if parent and parent:IsA("GuiObject") then
+				sizeConnection = parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+				fit()
+			end
+		end)
+	end
+	return corner
 end
 
+-- Thin edges: anything up to 2 px draws at Theme.Stroke (1.2); heavier (an active or rare highlight)
+-- at 2. The colour is the caller's: slate for plain frames, neon for rare / active ones.
 function Kit.stroke(color: Color3, thickness: number?, transparency: number?): UIStroke
+	local asked = thickness or 2
 	return Kit.new("UIStroke", {
 		Color = color,
-		Thickness = thickness or 2,
+		Thickness = if asked <= 2 then Theme.Stroke else 2,
 		Transparency = transparency or 0,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
@@ -144,7 +172,11 @@ function Kit.pressable(button: GuiButton)
 	button.MouseLeave:Connect(release)
 end
 
--- Standard panel button with a label.
+-- Standard panel button with a label: dark metallic body (a bevel: lighter top edge, darker base) with
+-- neon trim and a glowing base line in `color`. `deep` tints the body.
+local METAL_TOP = Color3.fromRGB(34, 40, 58)
+local METAL_BOTTOM = Color3.fromRGB(12, 15, 23)
+
 function Kit.button(text: string, color: Color3, deep: Color3, props: { [string]: any }?): TextButton
 	local base = {
 		AutoButtonColor = false,
@@ -157,21 +189,46 @@ function Kit.button(text: string, color: Color3, deep: Color3, props: { [string]
 		end
 	end
 	local button = Kit.new("TextButton", base, {
-		Kit.corner(UDim.new(0.25, 0)),
-		Kit.gradient(Kit.twoTone(color, deep), 90),
-		Kit.stroke(Color3.new(1, 1, 1), 1.5, 0.75),
+		Kit.corner(),
+		Kit.gradient(Kit.twoTone(METAL_TOP:Lerp(deep, 0.35), METAL_BOTTOM:Lerp(deep, 0.12)), 90),
+		Kit.stroke(color, 1.2, 0.05),
+	})
+	-- Bevel: a faint light line along the top edge, and the neon glow line along the base.
+	Kit.new("Frame", {
+		Name = "Gloss",
+		Position = UDim2.new(0, 3, 0, 1),
+		Size = UDim2.new(1, -6, 0, 1),
+		BorderSizePixel = 0,
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.82,
+		Parent = button,
+	})
+	Kit.new("Frame", {
+		Name = "Trim",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -1),
+		Size = UDim2.new(1, -10, 0, 2),
+		BorderSizePixel = 0,
+		BackgroundColor3 = color,
+		BackgroundTransparency = 0.15,
+		Parent = button,
+	}, {
+		Kit.new("UIGradient", {
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.8), NumberSequenceKeypoint.new(0.5, 0), NumberSequenceKeypoint.new(1, 0.8) }),
+		}),
 	})
 	Skin.Apply(button, Skin.ButtonFor(color)) -- uploaded button art, when there is some
 	local label = Kit.label({
 		Name = "Label",
-		Text = text,
+		Text = string.upper(text),
 		Font = Theme.Font.Display,
-		Size = UDim2.fromScale(0.86, 0.62),
-		Position = UDim2.fromScale(0.5, 0.5),
+		TextColor3 = Theme.Color.Text,
+		Size = UDim2.fromScale(0.86, 0.56),
+		Position = UDim2.fromScale(0.5, 0.48),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Parent = button,
-	}, 22)
-	Kit.textStroke(Color3.fromRGB(30, 10, 70), 1.5, 0.1).Parent = label
+	}, 20)
+	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.5).Parent = label
 	Kit.pressable(button)
 	return button
 end
@@ -185,8 +242,8 @@ function Kit.dim(button: GuiObject, dimmed: boolean)
 	end
 end
 
--- Chunky tile for inside kit panels (gift boxes, result stats): lighter purple gradient, bright edge
--- and a soft gloss along the top. `edge` recolours the outline; `className` "TextButton" makes the
+-- Tile for inside panels (gift boxes, result stats, rows): slate glass a step above the panel, a thin
+-- edge (pass a neon `edge` for rare / active ones) and a hairline of light along the top. `edge` recolours the outline; `className` "TextButton" makes the
 -- whole tile tappable (with the usual press bounce).
 function Kit.tile(props: { [string]: any }, edge: Color3?, className: string?): any
 	local base = { BackgroundColor3 = Color3.new(1, 1, 1) }
@@ -197,19 +254,23 @@ function Kit.tile(props: { [string]: any }, edge: Color3?, className: string?): 
 	for key, value in props do
 		base[key] = value
 	end
+	if base.BackgroundTransparency == nil then
+		base.BackgroundTransparency = Theme.Glass.Frame
+	end
 	local frame = Kit.new(className or "Frame", base, {
-		Kit.corner(UDim.new(0, 16)),
+		Kit.corner(),
 		Kit.gradient(ColorSequence.new(Theme.Color.TileTop, Theme.Color.TileBottom), 90),
-		Kit.stroke(edge or Theme.Color.TileEdge, 2.5, 0.1),
+		Kit.stroke(edge or Theme.Color.TileEdge, 1.2, 0.1),
 	})
 	Kit.new("Frame", {
 		Name = "Gloss",
-		Position = UDim2.new(0, 8, 0, 4),
-		Size = UDim2.new(1, -16, 0.3, 0),
+		Position = UDim2.new(0, 4, 0, 1),
+		Size = UDim2.new(1, -8, 0, 1),
+		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.9,
+		BackgroundTransparency = 0.88,
 		Parent = frame,
-	}, { Kit.corner(UDim.new(0, 12)) })
+	})
 	if className == "TextButton" then
 		Kit.pressable(frame)
 	end
@@ -227,11 +288,11 @@ function Kit.dimTile(frame: GuiObject, dimmed: boolean)
 		cover = Kit.new("Frame", {
 			Name = "Dim",
 			Size = UDim2.fromScale(1, 1),
-			BackgroundColor3 = Color3.fromRGB(14, 8, 30),
-			BackgroundTransparency = 0.42,
+			BackgroundColor3 = Color3.fromRGB(5, 7, 12),
+			BackgroundTransparency = 0.4,
 			ZIndex = 5,
 			Parent = frame,
-		}, { Kit.corner(UDim.new(0, 16)) })
+		}, { Kit.corner() })
 	end
 	cover.Visible = dimmed
 end

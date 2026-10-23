@@ -53,7 +53,7 @@ local function build(character: Model, player: Player): BillboardGui?
 	label(gui, {
 		Name = "PlayerName",
 		Text = player.DisplayName,
-		Font = Enum.Font.FredokaOne,
+		Font = Enum.Font.GothamBlack,
 		Size = UDim2.fromScale(1, 0.5),
 	})
 	-- The pill with stars and the rarest card.
@@ -76,7 +76,7 @@ local function build(character: Model, player: Player): BillboardGui?
 		Name = "Info",
 		Text = "",
 		RichText = true,
-		Font = Enum.Font.BuilderSansExtraBold,
+		Font = Enum.Font.GothamBold,
 		Position = UDim2.fromScale(0.05, 0.12),
 		Size = UDim2.fromScale(0.9, 0.76),
 	})

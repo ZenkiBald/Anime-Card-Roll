@@ -1,7 +1,7 @@
 --!nonstrict
--- Which zone the player is walking in: the music crossfades and the light shifts (golden evening in
--- Ember Village, cold bright haze on Frostfang Peaks, violet night in the Neon Abyss, storm dusk with
--- lightning on Stormspire Isle), with sakura petals drifting in town and autumn leaves in Ember Village.
+-- Which zone the player is walking in: the music crossfades and the light shifts from the twilight base
+-- (ember dusk in Ember Village, cold blue dusk on Frostfang Peaks, violet night in the Neon Abyss, storm
+-- dusk with lightning on Stormspire Isle), with sakura petals drifting in town and autumn leaves in Ember Village.
 -- Zones come from ReplicatedStorage.Zones (World publishes them from the map's Zone_ markers);
 -- a place without a map just plays the town music. Lighting changes here are local to this player.
 
@@ -16,30 +16,30 @@ local State = require(script.Parent.State)
 
 local ZoneFx = {}
 
--- Lighting per zone; anything not listed goes back to how the map saved it.
+-- Lighting per zone, on top of the twilight base (LightingSetup); anything not listed goes back to the
+-- base. All dusk or night: warm ember dusk, cold blue dusk on the peaks (exposure down so snow and
+-- Rimeveil don't blow out), violet night in the Abyss, storm dusk.
 local MOODS = {
 	EmberVillage = {
-		Lighting = { ClockTime = 17.3, Brightness = 2.6, OutdoorAmbient = Color3.fromRGB(170, 130, 120) },
-		Atmosphere = { Color = Color3.fromRGB(255, 200, 160), Decay = Color3.fromRGB(200, 110, 90), Density = 0.3, Haze = 1.6 },
-		Grade = { TintColor = Color3.fromRGB(255, 236, 214), Saturation = 0.22 },
+		Lighting = { ClockTime = 18.1, Brightness = 2, OutdoorAmbient = Color3.fromRGB(80, 55, 50) },
+		Atmosphere = { Color = Color3.fromRGB(70, 45, 40), Decay = Color3.fromRGB(40, 20, 18), Density = 0.34, Haze = 1.7 },
+		Grade = { TintColor = Color3.fromRGB(255, 236, 220), Saturation = 0.05 },
 	},
-	-- Snow and ice are near-white: exposure down and a little contrast keep them (and Rimeveil) from
-	-- blowing out.
 	FrostfangPeaks = {
-		Lighting = { ClockTime = 13.5, Brightness = 2.3, OutdoorAmbient = Color3.fromRGB(140, 152, 180), ExposureCompensation = -0.6 },
-		Atmosphere = { Color = Color3.fromRGB(210, 226, 250), Decay = Color3.fromRGB(140, 170, 220), Density = 0.32, Haze = 1.3 },
-		Grade = { TintColor = Color3.fromRGB(230, 242, 255), Saturation = 0.15, Contrast = 0.15 },
+		Lighting = { ClockTime = 17.9, Brightness = 1.9, OutdoorAmbient = Color3.fromRGB(60, 70, 95), ExposureCompensation = -0.4 },
+		Atmosphere = { Color = Color3.fromRGB(60, 72, 100), Decay = Color3.fromRGB(25, 32, 55), Density = 0.34, Haze = 1.4 },
+		Grade = { TintColor = Color3.fromRGB(230, 240, 255), Saturation = -0.08, Contrast = 0.2 },
 	},
 	NeonAbyss = {
-		Lighting = { ClockTime = 0.4, Brightness = 2, OutdoorAmbient = Color3.fromRGB(110, 80, 150), Ambient = Color3.fromRGB(90, 60, 130) },
-		Atmosphere = { Color = Color3.fromRGB(150, 90, 220), Decay = Color3.fromRGB(70, 30, 120), Density = 0.42, Haze = 2 },
-		Grade = { TintColor = Color3.fromRGB(235, 210, 255), Saturation = 0.3 },
+		Lighting = { ClockTime = 0.4, Brightness = 1.4, OutdoorAmbient = Color3.fromRGB(50, 35, 80), Ambient = Color3.fromRGB(35, 25, 60) },
+		Atmosphere = { Color = Color3.fromRGB(50, 30, 85), Decay = Color3.fromRGB(20, 10, 40), Density = 0.42, Haze = 2 },
+		Grade = { TintColor = Color3.fromRGB(235, 220, 255), Saturation = 0.1 },
 	},
 	-- Storm dusk: dim, cold and hazy; lightning (below) does the rest.
 	StormspireIsle = {
-		Lighting = { ClockTime = 17.6, Brightness = 2, OutdoorAmbient = Color3.fromRGB(124, 132, 164), ExposureCompensation = 0 },
-		Atmosphere = { Color = Color3.fromRGB(130, 140, 170), Decay = Color3.fromRGB(60, 66, 100), Density = 0.42, Haze = 2.2 },
-		Grade = { TintColor = Color3.fromRGB(210, 220, 255), Saturation = -0.1, Contrast = 0.14 },
+		Lighting = { ClockTime = 17.6, Brightness = 1.6, OutdoorAmbient = Color3.fromRGB(55, 60, 80), ExposureCompensation = 0 },
+		Atmosphere = { Color = Color3.fromRGB(45, 50, 70), Decay = Color3.fromRGB(20, 24, 40), Density = 0.42, Haze = 2.2 },
+		Grade = { TintColor = Color3.fromRGB(215, 225, 255), Saturation = -0.12, Contrast = 0.2 },
 	},
 }
 

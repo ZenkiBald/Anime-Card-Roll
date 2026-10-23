@@ -35,7 +35,7 @@ local questRows = {} -- [questId] = refs
 local questDayShown = nil
 
 local GOLD_DEEP = Color3.fromRGB(170, 110, 0)
-local CAPTION = Color3.fromRGB(214, 200, 255)
+local CAPTION = Color3.fromRGB(207, 219, 241)
 local CLAIMED_GREEN = Color3.fromRGB(120, 240, 160)
 
 local function hint(text: string)
@@ -120,7 +120,7 @@ local function rewardFace(frame: GuiObject, bundle, iconTop: number, iconKey: st
 		Size = UDim2.new(0.92, 0, 0, 28),
 		Parent = frame,
 	}, 28)
-	Kit.textStroke(Color3.fromRGB(30, 12, 70), 2, 0).Parent = amount
+	Kit.textStroke(Color3.fromRGB(13, 17, 27), 2, 0).Parent = amount
 	local extra = if shards > 0 and bundle.Potions then Meta.Describe({ Potions = bundle.Potions }) else ""
 	if extra ~= "" then
 		Kit.label({
@@ -196,7 +196,7 @@ local function buildQuests()
 		local track = Kit.new("Frame", {
 			Position = UDim2.new(0, 14, 0, 42),
 			Size = UDim2.new(0.74, -14, 0, 14),
-			BackgroundColor3 = Color3.fromRGB(14, 8, 30),
+			BackgroundColor3 = Color3.fromRGB(6, 7, 11),
 			Parent = row,
 		}, { Kit.corner(UDim.new(1, 0)) })
 		local fill = Kit.new("Frame", {
@@ -370,7 +370,7 @@ local function build()
 		local track = Kit.new("Frame", {
 			Position = UDim2.new(0, 14, 0, 40),
 			Size = UDim2.new(0.64, -14, 0, 12),
-			BackgroundColor3 = Color3.fromRGB(14, 8, 30),
+			BackgroundColor3 = Color3.fromRGB(6, 7, 11),
 			Parent = row,
 		}, { Kit.corner(UDim.new(1, 0)) })
 		local fill = Kit.new("Frame", {
@@ -484,8 +484,9 @@ function Gifts.Refresh()
 	end
 end
 
-function Gifts.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "GiftsGui", "GIFTS", Vector2.new(0.84, 0.86), Vector2.new(940, 700))
+-- `host`: the QUESTS panel (Modal.Tabbed); daily quests and gifts are its second tab.
+function Gifts.Init(playerGui: Instance, host: any?)
+	modal = if host then host:Page("DAILY & GIFTS") else Modal.new(playerGui, "GiftsGui", "GIFTS", Vector2.new(0.84, 0.86), Vector2.new(940, 700))
 	hintLabel = Kit.label({
 		Text = "",
 		Font = Theme.Font.Heavy,

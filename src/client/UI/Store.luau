@@ -1,5 +1,6 @@
 --!nonstrict
--- STORE (menu button): the Robux passes and the Server Luck Totem (MonetizationConfig.luau). The server
+-- STORE (menu button): one full-screen scroll. Top: the Robux passes; middle: Shard bundles and the
+-- Server Luck Totem (MonetizationConfig.luau); bottom: REDEEM CODES (UI/Codes builds into it). The server
 -- decides everything (MonetizationService): BUY prompts the real purchase, or grants a mock one in
 -- Studio / test mode while the id is still 0. Perks marked 🎲 change odds or hand out random rewards;
 -- where paid random items aren't allowed (PolicyService) they show greyed out and the totem isn't sold.
@@ -16,6 +17,7 @@ local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
 local Sfx = require(script.Parent.Sfx)
+local Codes = require(script.Parent.Codes)
 local State = require(script.Parent.Parent.State)
 
 local Store = {}
@@ -46,12 +48,52 @@ local function hint(text: string)
 	end)
 end
 
+-- Clears the rows (the codes box stays: it keeps what's typed).
 local function clear()
 	for _, child in list:GetChildren() do
-		if child:IsA("GuiObject") then
+		if child:IsA("GuiObject") and not child:GetAttribute("Keep") then
 			child:Destroy()
 		end
 	end
+end
+
+-- A section heading across the scroll: neon caps and a thin rule.
+local function section(order: number, title: string, note: string?)
+	local frame = Kit.new("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, if note then 48 else 30),
+		BackgroundTransparency = 1,
+		Parent = list,
+	})
+	Kit.label({
+		Text = title,
+		Font = Theme.Font.Display,
+		TextColor3 = Theme.Color.Neon,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(2, 2),
+		Size = UDim2.new(1, -4, 0, 22),
+		Parent = frame,
+	}, 20)
+	if note then
+		Kit.label({
+			Text = note,
+			Font = Theme.Font.Bold,
+			TextColor3 = Theme.Color.Muted,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.fromOffset(2, 26),
+			Size = UDim2.new(1, -4, 0, 16),
+			Parent = frame,
+		}, 14)
+	end
+	Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 1),
+		BorderSizePixel = 0,
+		BackgroundColor3 = Theme.Color.Line,
+		Parent = frame,
+	})
+	return frame
 end
 
 local draw -- below
@@ -141,16 +183,25 @@ function draw()
 	end
 	clear()
 	local store = State.Store
+	section(1, "GAME PASSES", "Yours for good")
 	for i, pass in MonetizationConfig.Passes do
-		row(i, pass.Color, pass.Icon, string.upper(pass.Name), pass.Perks, pass.Price, store.Passes[pass.Key] == true, function()
+		row(10 + i, pass.Color, pass.Icon, string.upper(pass.Name), pass.Perks, pass.Price, store.Passes[pass.Key] == true, function()
 			request("Buy", pass.Key)
 		end)
+	end
+	section(40, "SHARDS & SERVER TOTEM", "Buy as often as you like")
+	for i, bundle in MonetizationConfig.ShardBundles do
+		row(40 + i, Color3.fromRGB(196, 140, 255), bundle.Icon, string.upper(bundle.Name), {
+			{ Text = `💎{Kit.commas(bundle.Shards)} Shards (spend them on potions and Shard upgrades)`, Random = true },
+		}, bundle.Price, false, function()
+			request("BuyShards", bundle.Key)
+		end, store.Restricted)
 	end
 	local totem = MonetizationConfig.Totem
 	local now = workspace:GetServerTimeNow()
 	local running = store.TotemEnds and store.TotemEnds > now
 	local packs = Packs.Describe(totem.Packs)
-	row(#MonetizationConfig.Passes + 1, Color3.fromRGB(110, 255, 160), totem.Icon, string.upper(totem.Name), {
+	row(60, Color3.fromRGB(110, 255, 160), totem.Icon, string.upper(totem.Name), {
 		{ Text = `The whole server: x{totem.Luck} luck for {totem.Seconds // 60} min (buy again to add time)`, Random = true },
 		{ Text = `You: {packs} and 🧬{totem.TraitShards} Trait Shards`, Random = true },
 		{ Text = if running then `Running now: {math.floor((store.TotemEnds - now) / 60)} min left` else "A totem rises by the town spawn while it runs" },
@@ -159,7 +210,7 @@ function draw()
 	end, store.Restricted)
 
 	local footer = Kit.new("Frame", {
-		LayoutOrder = 99,
+		LayoutOrder = 70,
 		Size = UDim2.new(1, 0, 0, 48),
 		BackgroundTransparency = 1,
 		Parent = list,
@@ -167,7 +218,7 @@ function draw()
 	Kit.label({
 		Text = if store.Mock
 			then "Studio / test mode: BUY grants without Robux while a pass id is 0 (MonetizationConfig)."
-			else "🎲 perks change odds or give random rewards: every outcome and its live chance is in ODDS.",
+			else "🎲 items change odds or give random rewards: every outcome and its live chance is in ODDS.",
 		Font = Theme.Font.Bold,
 		TextColor3 = Theme.Color.Muted,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -189,7 +240,7 @@ end
 
 function Store.Init(playerGui: Instance, oddsFn: (() -> ())?)
 	openOdds = oddsFn
-	modal = Modal.new(playerGui, "StoreGui", "STORE", Vector2.new(0.8, 0.86), Vector2.new(900, 680))
+	modal = Modal.new(playerGui, "StoreGui", "STORE", Vector2.new(0.96, 0.94), Vector2.new(1120, 880))
 	hintLabel = Kit.label({
 		Text = "",
 		Font = Theme.Font.Heavy,
@@ -214,7 +265,18 @@ function Store.Init(playerGui: Instance, oddsFn: (() -> ())?)
 		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10) }),
 		Kit.new("UIPadding", { PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 2) }),
 	})
-	modal.OnOpen = draw
+	-- REDEEM CODES at the bottom (built once; it stays through redraws).
+	section(90, "REDEEM CODES", "Codes from updates and socials: each works once")
+	Codes.Build(list, 91)
+	for _, child in list:GetChildren() do
+		if child:IsA("GuiObject") and (child.LayoutOrder == 90 or child.LayoutOrder == 91) then
+			child:SetAttribute("Keep", true)
+		end
+	end
+	modal.OnOpen = function()
+		Codes.Reset()
+		draw()
+	end
 	State.Changed:Connect(function(kind)
 		if kind == "store" then
 			draw()

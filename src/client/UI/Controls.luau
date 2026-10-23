@@ -8,9 +8,9 @@ local Skin = require(script.Parent.Skin)
 
 local Controls = {}
 
-Controls.Purple = Color3.fromRGB(130, 90, 255)
-Controls.PurpleDeep = Color3.fromRGB(80, 40, 210)
-Controls.Outline = Color3.fromRGB(30, 10, 70)
+Controls.Purple = Color3.fromRGB(60, 200, 255)
+Controls.PurpleDeep = Color3.fromRGB(14, 70, 110)
+Controls.Outline = Color3.fromRGB(13, 17, 27)
 
 local function outlined(label: TextLabel, thickness: number?)
 	Kit.textStroke(Controls.Outline, thickness or 2, 0).Parent = label
@@ -32,7 +32,7 @@ function Controls.Option(parent: Instance, caption: string, options: { string },
 	}, {
 		Kit.corner(UDim.new(0.3, 0)),
 		Kit.gradient(ColorSequence.new(Controls.Purple, Controls.PurpleDeep), 90),
-		Kit.stroke(Color3.fromRGB(210, 190, 255), 2, 0.2),
+		Kit.stroke(Color3.fromRGB(190, 235, 255), 2, 0.2),
 	})
 	Skin.Apply(button, "ButtonPurple")
 	outlined(Kit.label({
@@ -87,11 +87,11 @@ function Controls.Tab(parent: Instance, text: string, color: Color3, order: numb
 	Kit.pressable(button)
 	local function set(on: boolean)
 		if skin then
-			skin.ImageColor3 = if on then Color3.new(1, 1, 1) else Color3.fromRGB(120, 116, 140) -- greyed when off
+			skin.ImageColor3 = if on then Color3.new(1, 1, 1) else Color3.fromRGB(27, 34, 53) -- greyed when off
 		else
 			gradient.Color = if on
 				then ColorSequence.new(color, color:Lerp(Color3.new(0, 0, 0), 0.35))
-				else ColorSequence.new(Color3.fromRGB(150, 146, 170), Color3.fromRGB(96, 92, 118))
+				else ColorSequence.new(Color3.fromRGB(150, 146, 170), Color3.fromRGB(22, 29, 45))
 			stroke.Transparency = if on then 0 else 0.6
 		end
 		label.TextTransparency = if on then 0 else 0.25
@@ -103,10 +103,10 @@ end
 function Controls.Search(parent: Instance, props: { [string]: any }, onChange: (string) -> ()): TextBox
 	local frame = Kit.new("Frame", {
 		Name = "Search",
-		BackgroundColor3 = Color3.fromRGB(16, 10, 34),
+		BackgroundColor3 = Color3.fromRGB(6, 8, 13),
 		BackgroundTransparency = 0.1,
 		Parent = parent,
-	}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(Color3.fromRGB(150, 120, 230), 2, 0.3) })
+	}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(Color3.fromRGB(90, 170, 220), 2, 0.3) })
 	for key, value in props do
 		frame[key] = value
 	end
@@ -117,7 +117,7 @@ function Controls.Search(parent: Instance, props: { [string]: any }, onChange: (
 		BackgroundTransparency = 1,
 		Text = "",
 		PlaceholderText = "Search...",
-		PlaceholderColor3 = Color3.fromRGB(170, 160, 210),
+		PlaceholderColor3 = Color3.fromRGB(150, 175, 200),
 		TextColor3 = Color3.new(1, 1, 1),
 		Font = Theme.Font.Display,
 		TextSize = 20,

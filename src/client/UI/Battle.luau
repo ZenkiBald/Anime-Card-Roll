@@ -175,7 +175,7 @@ local function float(parent: GuiObject?, text: string, color: Color3, big: boole
 		ZIndex = 40,
 		Parent = parent,
 	}, if big then 58 else 34)
-	Kit.textStroke(Color3.fromRGB(20, 8, 30), if big then 3.5 else 2.5, 0).Parent = label
+	Kit.textStroke(Color3.fromRGB(6, 7, 11), if big then 3.5 else 2.5, 0).Parent = label
 	if big then
 		-- Crits: bright top fading into their colour, popping in from oversized.
 		Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 252, 220), color), 90).Parent = label
@@ -225,7 +225,7 @@ local function castTag(tile, name: string, slot: string)
 		ZIndex = 31,
 		Parent = tag,
 	}, 20)
-	Kit.textStroke(Color3.fromRGB(16, 8, 30), 2, 0).Parent = label
+	Kit.textStroke(Color3.fromRGB(6, 7, 11), 2, 0).Parent = label
 	local scale = Kit.new("UIScale", { Scale = 0.4, Parent = tag })
 	Kit.tween(scale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
 	task.delay(1.4, function()
@@ -290,7 +290,7 @@ local function showCardInfo(cardId: string)
 		ZIndex = 62,
 		Parent = panel,
 	})
-	Kit.textStroke(Color3.fromRGB(16, 8, 30), 2.5, 0).Parent = title
+	Kit.textStroke(Color3.fromRGB(6, 7, 11), 2.5, 0).Parent = title
 	Abilities.List(card, panel, 0, "small")
 	for _, d in panel:GetDescendants() do
 		if d:IsA("GuiObject") then
@@ -728,7 +728,7 @@ local function makeTile(unit, order: number)
 		}, 13)
 		Kit.textStroke(Color3.new(0, 0, 0), 1, 0.25).Parent = tile.HpText
 	end
-	local _, gauge = bar(info, "Action", if isAttack then 0.76 else 0.62, if isAttack then 0.09 else 0.12, Color3.fromRGB(232, 228, 255))
+	local _, gauge = bar(info, "Action", if isAttack then 0.76 else 0.62, if isAttack then 0.09 else 0.12, Color3.fromRGB(222, 234, 255))
 	tile.Gauge = gauge
 	if unit.Ultimate then
 		local _, energy = bar(info, "Energy", if isAttack then 0.89 else 0.8, if isAttack then 0.09 else 0.12, Theme.Color.Gold)
@@ -1466,7 +1466,7 @@ local function playEvent(event)
 			end
 		end
 	elseif kind == "Signature" then
-		callout(event.N .. "!", Color3.fromRGB(240, 236, 255), 1.2)
+		callout(event.N .. "!", Color3.fromRGB(227, 239, 255), 1.2)
 		if event.T then
 			float(targetFrame(event.T), "SAVED", Theme.Color.Gold, true)
 		end
@@ -1544,7 +1544,7 @@ local function spawnParticles(kind: string, color: Color3)
 			-- Long thin streaks, slanted, falling fast.
 			mote.Size = UDim2.fromOffset(2, math.random(18, 34))
 			mote.Rotation = 15
-			mote.BackgroundColor3 = if math.random() < 0.15 then color else Color3.fromRGB(190, 205, 240)
+			mote.BackgroundColor3 = if math.random() < 0.15 then color else Color3.fromRGB(197, 207, 229)
 		end
 		local duration = 5 + math.random() * 6
 		local from, to
@@ -1702,7 +1702,7 @@ local function showResults(summary)
 		Parent = results,
 	}, {
 		Kit.corner(UDim.new(0, 22)),
-		Kit.gradient(ColorSequence.new(Color3.fromRGB(62, 32, 128), Color3.fromRGB(22, 13, 50)), 90),
+		Kit.gradient(ColorSequence.new(Color3.fromRGB(24, 31, 49), Color3.fromRGB(10, 12, 19)), 90),
 		Kit.stroke(title[2], 3, 0),
 		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(if hasRewards then 1100 else 560, 620), MinSize = Vector2.new(300, 280) }),
 	})
@@ -1788,7 +1788,7 @@ local function showResults(summary)
 		Kit.label({
 			Text = caption,
 			Font = Theme.Font.Heavy,
-			TextColor3 = Color3.fromRGB(214, 200, 255),
+			TextColor3 = Color3.fromRGB(207, 219, 241),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Position = UDim2.new(0, 12, 0, 7),
 			Size = UDim2.new(1, -24, 0, 15),
@@ -1802,7 +1802,7 @@ local function showResults(summary)
 			Size = UDim2.new(1, if hasIcon then -58 else -24, 0, if sub then 32 else 42),
 			Parent = chip,
 		}, 34)
-		Kit.textStroke(Color3.fromRGB(30, 12, 70), 2, 0).Parent = valueLabel
+		Kit.textStroke(Color3.fromRGB(13, 17, 27), 2, 0).Parent = valueLabel
 		if sub then
 			Kit.label({
 				Text = sub,
@@ -1935,7 +1935,7 @@ local function showResults(summary)
 			end
 			return a.Healed > b.Healed
 		end)
-		local damageHeading = line("YOUR CARDS", Color3.fromRGB(214, 200, 255), 18)
+		local damageHeading = line("YOUR CARDS", Color3.fromRGB(207, 219, 241), 18)
 		damageHeading.TextXAlignment = Enum.TextXAlignment.Left
 		for i, row in rows do
 			local card = Cards.Get(current.CardOf[row.Id])
@@ -1997,7 +1997,7 @@ local function showResults(summary)
 			Name = "Rewards",
 			Position = UDim2.fromScale(0.4, 0),
 			Size = UDim2.fromScale(0.6, 1),
-			BackgroundColor3 = Color3.fromRGB(16, 9, 38),
+			BackgroundColor3 = Color3.fromRGB(7, 9, 14),
 			BackgroundTransparency = 0.2,
 			Parent = content,
 		}, { Kit.corner(UDim.new(0, 18)), Kit.stroke(Theme.Color.TileEdge, 2, 0.5) })

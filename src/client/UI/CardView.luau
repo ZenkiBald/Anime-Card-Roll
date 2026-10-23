@@ -309,7 +309,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			Name = "CardTitle",
 			Text = if owned then card.Title else "Not found yet",
 			Font = Theme.Font.Bold,
-			TextColor3 = Color3.fromRGB(220, 214, 245),
+			TextColor3 = Color3.fromRGB(210, 222, 244),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Position = UDim2.fromScale(0.05, 0.19),
 			Size = UDim2.fromScale(0.78, 0.045),
@@ -324,7 +324,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 				Name = "AbilityBar",
 				Position = UDim2.fromScale(0.04, 0.655),
 				Size = UDim2.fromScale(0.92, 0.085),
-				BackgroundColor3 = Color3.fromRGB(30, 26, 60),
+				BackgroundColor3 = Color3.fromRGB(11, 15, 23),
 				BackgroundTransparency = 0.25,
 				ZIndex = 5,
 				Parent = frame,
@@ -363,14 +363,14 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			if element then
 				table.insert(tagList, { `{element.Icon} {element.Name}`, element.Color })
 			end
-			table.insert(tagList, { if card.Type == "Attack" then "⚔️ Attack" else "✨ Support", Color3.fromRGB(230, 228, 245) })
+			table.insert(tagList, { if card.Type == "Attack" then "⚔️ Attack" else "✨ Support", Color3.fromRGB(218, 230, 253) })
 			for _, a in card.Abilities do
 				if (a.Slot == "Passive" or a.Slot == "Aura" or a.Slot == "Signature") and #tagList < 4 then
-					table.insert(tagList, { `{SLOT_ICON[a.Slot]} {a.Name}`, Color3.fromRGB(230, 228, 245) })
+					table.insert(tagList, { `{SLOT_ICON[a.Slot]} {a.Name}`, Color3.fromRGB(218, 230, 253) })
 				end
 			end
 			for i, tagInfo in tagList do
-				local tag = chip(tags, i, tagInfo[1], tagInfo[2], 0.45, Color3.fromRGB(26, 20, 50))
+				local tag = chip(tags, i, tagInfo[1], tagInfo[2], 0.45, Color3.fromRGB(10, 12, 19))
 				tag.Size = UDim2.new(0.45, 0, 0.44, 0)
 			end
 		end
@@ -453,9 +453,9 @@ function CardView.back(): Frame
 	}, {
 		Kit.corner(UDim.new(0.07, 0)),
 		Kit.aspect(0.72, Enum.DominantAxis.Height),
-		Kit.gradient(ColorSequence.new(Color3.fromRGB(60, 40, 110), Color3.fromRGB(16, 12, 34)), 135),
+		Kit.gradient(ColorSequence.new(Color3.fromRGB(21, 27, 42), Color3.fromRGB(6, 8, 13)), 135),
 	})
-	local stroke = Kit.stroke(Color3.fromRGB(200, 180, 255), 4, 0.2)
+	local stroke = Kit.stroke(Color3.fromRGB(197, 207, 229), 4, 0.2)
 	stroke.Name = "BackStroke"
 	stroke.Parent = frame
 	Kit.new("Frame", {
@@ -465,7 +465,7 @@ function CardView.back(): Frame
 		Size = UDim2.fromScale(0.88, 0.91),
 		BackgroundTransparency = 1,
 		Parent = frame,
-	}, { Kit.corner(UDim.new(0.06, 0)), Kit.stroke(Color3.fromRGB(200, 180, 255), 1.5, 0.5) })
+	}, { Kit.corner(UDim.new(0.06, 0)), Kit.stroke(Color3.fromRGB(197, 207, 229), 1.5, 0.5) })
 	Kit.new("Frame", {
 		Name = "Emblem",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -478,7 +478,7 @@ function CardView.back(): Frame
 	}, {
 		Kit.corner(UDim.new(0.12, 0)),
 		Kit.aspect(1, Enum.DominantAxis.Width),
-		Kit.stroke(Color3.fromRGB(230, 220, 255), 2, 0.3),
+		Kit.stroke(Color3.fromRGB(219, 230, 254), 2, 0.3),
 	})
 	Kit.label({
 		Name = "Mark",

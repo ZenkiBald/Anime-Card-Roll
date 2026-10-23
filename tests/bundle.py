@@ -23,6 +23,7 @@ modules = [
     ("Tower", root / "src" / "shared"),
     ("Raid", root / "src" / "shared"),
     ("Tutorial", root / "src" / "shared"),
+    ("MonetizationConfig", root / "src" / "shared"),
     ("BattleEngine", root / "src" / "server"),
 ]
 test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau", "phase2_test.luau", "ftue_test.luau"]

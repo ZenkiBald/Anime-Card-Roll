@@ -31,6 +31,7 @@ local FIRE_DEEP = Color3.fromRGB(190, 60, 20)
 
 local REASONS = {
 	NotEnough = "Not enough copies yet",
+	TooFar = "Stand beside Hoshi to fuse",
 	MaxRarity = "Already Secret: it can't fuse further",
 	NotOwned = "You don't own that card",
 	TooFast = "One fusion at a time",
@@ -174,7 +175,7 @@ local function playFusion(cardId: string, before, after, token: number)
 		ZIndex = 43,
 		Parent = stage,
 	}, 40)
-	Kit.textStroke(Color3.fromRGB(20, 8, 40), 3, 0).Parent = title
+	Kit.textStroke(Color3.fromRGB(8, 10, 15), 3, 0).Parent = title
 	local tap = Kit.label({
 		Text = "Tap to continue",
 		Font = Theme.Font.Bold,
@@ -314,7 +315,7 @@ local function drawDetail()
 	local track = Kit.new("Frame", {
 		Position = UDim2.fromScale(0.04, 0.77),
 		Size = UDim2.fromScale(0.92, 0.055),
-		BackgroundColor3 = Color3.fromRGB(14, 8, 30),
+		BackgroundColor3 = Color3.fromRGB(6, 7, 11),
 		Parent = detail,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Theme.Color.TileEdge, 1.5, 0.5) })
 	Kit.new("Frame", {
@@ -331,7 +332,7 @@ local function drawDetail()
 		ZIndex = 2,
 		Parent = track,
 	}, 20)
-	Kit.textStroke(Color3.fromRGB(20, 8, 40), 2, 0).Parent = barText
+	Kit.textStroke(Color3.fromRGB(8, 10, 15), 2, 0).Parent = barText
 
 	-- FUSE.
 	local ready = canFuse(card, entry)
@@ -383,7 +384,7 @@ function drawGrid()
 			AnchorPoint = Vector2.new(0, 1),
 			Position = UDim2.fromScale(0, 1),
 			Size = UDim2.new(1, 0, 0, 16),
-			BackgroundColor3 = Color3.fromRGB(14, 8, 30),
+			BackgroundColor3 = Color3.fromRGB(6, 7, 11),
 			Parent = cell,
 		}, { Kit.corner(UDim.new(1, 0)) })
 		Kit.new("Frame", {
@@ -398,7 +399,7 @@ function drawGrid()
 			ZIndex = 2,
 			Parent = track,
 		}, 14)
-		Kit.textStroke(Color3.fromRGB(20, 8, 40), 1.5, 0).Parent = text
+		Kit.textStroke(Color3.fromRGB(8, 10, 15), 1.5, 0).Parent = text
 		tile.Activated:Connect(function()
 			selectedId = card.Id
 			drawGrid()
@@ -407,8 +408,9 @@ function drawGrid()
 	drawDetail()
 end
 
-function Fusion.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "FusionGui", "FUSION", Vector2.new(0.88, 0.86), Vector2.new(1040, 680))
+-- `host`: Hoshi's panel (Modal.Tabbed); fusing is its FUSION tab (PACK ALCHEMY is UI/Alchemy).
+function Fusion.Init(playerGui: Instance, host: any?)
+	modal = if host then host:Page("FUSION") else Modal.new(playerGui, "FusionGui", "FUSION", Vector2.new(0.88, 0.86), Vector2.new(1040, 680))
 	hintLabel = Kit.label({
 		Text = "",
 		Font = Theme.Font.Heavy,
@@ -443,7 +445,7 @@ function Fusion.Init(playerGui: Instance)
 		Name = "Detail",
 		Position = UDim2.fromScale(0.52, 0),
 		Size = UDim2.fromScale(0.48, 1),
-		BackgroundColor3 = Color3.fromRGB(16, 9, 38),
+		BackgroundColor3 = Color3.fromRGB(7, 9, 14),
 		BackgroundTransparency = 0.25,
 		Parent = modal.Body,
 	}, { Kit.corner(UDim.new(0, 18)), Kit.stroke(FIRE, 2, 0.4), Kit.padding(10) })

@@ -94,7 +94,7 @@ local function pill(parent: Instance, text: string, order: number, width: number
 	if on then
 		Skin.Apply(button, Skin.ButtonFor(color)) -- the picked one gets the glossy kit art
 	else
-		Kit.stroke(Color3.fromRGB(150, 120, 230), 2, 0.4).Parent = button
+		Kit.stroke(Color3.fromRGB(90, 170, 220), 2, 0.4).Parent = button
 	end
 	local label = Kit.label({
 		Text = text,
@@ -106,7 +106,7 @@ local function pill(parent: Instance, text: string, order: number, width: number
 		Parent = button,
 	}, 17)
 	if on then
-		Kit.textStroke(Color3.fromRGB(30, 10, 70), 1.5, 0.1).Parent = label
+		Kit.textStroke(Color3.fromRGB(13, 17, 27), 1.5, 0.1).Parent = label
 	end
 	Kit.pressable(button)
 	return button
@@ -197,7 +197,7 @@ local function setShowcase(boss, floor, raidName: string?)
 		return
 	end
 	local locked = not Bosses.IsUnlocked(cleared(), boss.Id, "Normal")
-	view:SetTint(if locked then Color3.fromRGB(60, 56, 80) else Color3.new(1, 1, 1))
+	view:SetTint(if locked then Color3.fromRGB(15, 19, 30) else Color3.new(1, 1, 1))
 end
 
 -- "GUARDS  🗡️ Ash Ashigaru · Striker   🔥 Ember Monk · Mender ..." for a squad's guard ids.
@@ -856,7 +856,7 @@ function BossScreen.Init(playerGui: Instance, bossActions: Actions)
 		Name = "World",
 		Text = "",
 		Font = Theme.Font.Heavy,
-		TextColor3 = Color3.fromRGB(230, 226, 255),
+		TextColor3 = Color3.fromRGB(220, 232, 255),
 		Position = UDim2.new(0, 12, 0, 10),
 		Size = UDim2.new(1, -24, 0, 18),
 		ZIndex = 3,
@@ -878,7 +878,7 @@ function BossScreen.Init(playerGui: Instance, bossActions: Actions)
 		Name = "Title",
 		Text = "",
 		Font = Theme.Font.Heavy,
-		TextColor3 = Color3.fromRGB(216, 210, 240),
+		TextColor3 = Color3.fromRGB(206, 218, 240),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -10),
 		Size = UDim2.new(1, -20, 0, 18),
@@ -910,7 +910,7 @@ function BossScreen.Init(playerGui: Instance, bossActions: Actions)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Size = UDim2.new(1, 0, 0, 24),
 	}, 20)
-	Kit.textStroke(Color3.fromRGB(30, 10, 70), 1.5, 0).Parent = hintLabel
+	Kit.textStroke(Color3.fromRGB(13, 17, 27), 1.5, 0).Parent = hintLabel
 
 	modal.OnOpen = build
 	State.Changed:Connect(function(kind)

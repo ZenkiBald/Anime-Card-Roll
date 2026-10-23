@@ -76,3 +76,19 @@ local function counterStaggers(attackId)
 end
 check(counterStaggers("mirai") == 1, "a Stagger finished by a counter element is counted (Q6)")
 check(counterStaggers("rook") == 0, "a neutral element's Stagger is not")
+
+-- 5. Shard bundles (STORE middle section) ---------------------------------------------------------
+local MonetizationConfig = MODULES.MonetizationConfig
+local keys, rising = 0, true
+for i, bundle in MonetizationConfig.ShardBundles do
+	keys += if MonetizationConfig.BundleByKey[bundle.Key] == bundle then 1 else 0
+	local before = MonetizationConfig.ShardBundles[i - 1]
+	if before and (bundle.Shards <= before.Shards or bundle.Price <= before.Price) then
+		rising = false
+	end
+end
+check(keys == #MonetizationConfig.ShardBundles and keys >= 1, "every Shard bundle is found by its key")
+check(rising, "bigger Shard bundles cost more and give more")
+for _, quest in Tutorial.Steps do
+	check(not quest.Hint:find("HUB") and not quest.Hint:find("BAG >"), `quest hint "{quest.Hint}" points at the new layout`)
+end

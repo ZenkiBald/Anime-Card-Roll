@@ -91,7 +91,7 @@ function Abilities.Row(ability, parent: Instance, order: number, size: string?):
 		Text = slot.Label,
 		Font = Theme.Font.Heavy,
 		TextSize = if big then 15 else 14,
-		TextColor3 = Color3.fromRGB(20, 12, 40),
+		TextColor3 = Color3.fromRGB(8, 10, 15),
 		BackgroundTransparency = 1,
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromScale(0, 1),
@@ -122,14 +122,14 @@ function Abilities.Row(ability, parent: Instance, order: number, size: string?):
 		ZIndex = 24,
 		Parent = row,
 	})
-	Kit.textStroke(Color3.fromRGB(20, 8, 40), 2, 0).Parent = name
+	Kit.textStroke(Color3.fromRGB(8, 10, 15), 2, 0).Parent = name
 	Kit.new("TextLabel", {
 		LayoutOrder = 3,
 		Text = Abilities.Describe(ability),
 		RichText = true,
 		Font = Theme.Font.Bold,
 		TextSize = if big then 18 else 17,
-		TextColor3 = Color3.fromRGB(232, 226, 255),
+		TextColor3 = Color3.fromRGB(221, 233, 255),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextWrapped = true,
 		BackgroundTransparency = 1,

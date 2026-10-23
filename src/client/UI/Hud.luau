@@ -1,7 +1,8 @@
 --!nonstrict
 -- Main screen: the three roll buttons bottom-middle, three currency chips top centre (Shards, Trait
--- Shards, Rolls with the luck / ODDS line), the menu on the left as four categories (BATTLE / SQUAD / HUB /
--- STORE, each opening a small popover of its screens; red badges add up), Kenji's quest tracker above it,
+-- Shards, Rolls with the luck / ODDS line), the menu on the left: six direct buttons (BATTLE, BAG, SQUAD,
+-- QUESTS, TRAVEL, STORE; red badges when something waits) under Kenji's quest tracker. Fusion, alchemy,
+-- the Lucky Wheel and trait rolls have no button: they live with their NPCs in town.
 -- the SETTINGS gear top right (the server list, UI/PlayerList, sits beside it), the Auto Roll feed on the
 -- right, running potions as tiles in the bottom-right corner, the server announcement banner and reward
 -- toasts. The left column scales with the screen so it fits a phone held sideways.
@@ -54,11 +55,6 @@ local raidWanted = false
 local momentumLabel: TextLabel -- above ROLL: the Momentum chain and the next Overcharge Surge
 local surgeToken = 0
 local menuButtons = {} -- [name] = button (children read by name): categories and their items
-local popover: any -- a category's items, beside the menu
-local catcher: TextButton -- full-screen, behind the popover: a tap outside closes it
-local openCategory: string? = nil
-local categoryOf = {} -- [item name] = category name
-local badgeCounts = {} -- [item name] = count
 local questSlot: Frame -- Kenji's tracker (UI/Tutorial puts its banner in here)
 local questActive = false
 local fitScale = 1 -- the left column's scale (layoutLeft)
@@ -70,32 +66,56 @@ local hintToken = 0
 local toastToken = 0
 
 local function rollButtonFace(button: TextButton, title: string, sub: string, color: Color3, deep: Color3, skin: string)
+	-- Dark metal plate (bevelled: a light top edge, a darker base) with a double neon trim in the
+	-- button's colour and a glowing line along the bottom; the title in that neon.
 	button.AutoButtonColor = false
 	button.BackgroundColor3 = Color3.new(1, 1, 1)
 	button.Text = ""
-	Kit.corner(UDim.new(0.28, 0)).Parent = button
-	Kit.gradient(ColorSequence.new(color, deep), 90).Parent = button
-	Kit.stroke(Color3.new(1, 1, 1), 2, 0.55).Parent = button
-	-- Glossy top half.
+	Kit.corner().Parent = button
+	Kit.gradient(ColorSequence.new(Color3.fromRGB(38, 44, 62):Lerp(deep, 0.25), Color3.fromRGB(10, 12, 19)), 90).Parent = button
+	Kit.stroke(color, 1.2, 0).Parent = button
+	Kit.new("Frame", {
+		Name = "Rim",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -6, 1, -6),
+		BackgroundTransparency = 1,
+		Parent = button,
+	}, { Kit.corner(), Kit.stroke(color, 1, 0.65) })
 	Kit.new("Frame", {
 		Name = "Gloss",
-		Position = UDim2.fromScale(0.06, 0.06),
-		Size = UDim2.fromScale(0.88, 0.42),
+		Position = UDim2.new(0, 4, 0, 1),
+		Size = UDim2.new(1, -8, 0, 1),
+		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.82,
+		BackgroundTransparency = 0.75,
 		Parent = button,
-	}, { Kit.corner(UDim.new(0.4, 0)) })
+	})
+	Kit.new("Frame", {
+		Name = "Glow",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -2),
+		Size = UDim2.new(0.84, 0, 0, 3),
+		BorderSizePixel = 0,
+		BackgroundColor3 = color,
+		Parent = button,
+	}, {
+		Kit.new("UIGradient", {
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0), NumberSequenceKeypoint.new(1, 1) }),
+		}),
+	})
 	Skin.Apply(button, skin) -- uploaded button art replaces the gradient, outline and gloss
 	local titleLabel = Kit.label({
 		Name = "Title",
 		Text = title,
 		Font = Theme.Font.Display,
+		TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.35),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.12),
-		Size = UDim2.fromScale(0.86, 0.5),
+		Position = UDim2.fromScale(0.5, 0.14),
+		Size = UDim2.fromScale(0.86, 0.44),
 		Parent = button,
-	}, 44)
-	Kit.textStroke(deep:Lerp(Color3.new(0, 0, 0), 0.4), 2, 0.2).Parent = titleLabel
+	}, 40)
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.3).Parent = titleLabel
 	Kit.label({
 		Name = "Sub",
 		Text = sub,
@@ -144,8 +164,8 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 		Parent = parent or menu,
 	}, {
 		Kit.corner(UDim.new(0.26, 0)),
-		Kit.gradient(ColorSequence.new(color:Lerp(Theme.Color.Panel, 0.55), Theme.Color.Panel), 90),
-		Kit.stroke(color, 1.5, 0.35),
+		Kit.gradient(ColorSequence.new(Theme.Color.TileTop, Theme.Color.Panel), 90),
+		Kit.stroke(color, 1.2, 0.25),
 	})
 	Skin.Apply(button, "MenuButton")
 	local iconLabel = Kit.label({
@@ -198,8 +218,8 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 	return button
 end
 
--- Currency chip for the top bar: a dark pill with a big icon hanging off its left edge and a big
--- outlined number. `iconKey` is a Skin.Icons key; `emoji` is used when there's no icon art.
+-- Currency chip for the top bar: a dark glass plate with a thin neon edge, a big icon hanging off its
+-- left edge and a big number. `iconKey` is a Skin.Icons key; `emoji` is used when there's no icon art.
 local function currencyChip(key: string, order: number, iconKey: string?, emoji: string, edge: Color3, width: number)
 	local chip = Kit.new("TextButton", {
 		Name = key,
@@ -211,18 +231,20 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 		Parent = topBar,
 	}, {
 		Kit.corner(UDim.new(0.5, 0)),
-		Kit.gradient(ColorSequence.new(Color3.fromRGB(58, 34, 118), Color3.fromRGB(26, 14, 58)), 90),
-		Kit.stroke(edge, 3, 0),
+		Kit.gradient(ColorSequence.new(Color3.fromRGB(22, 27, 40), Color3.fromRGB(9, 11, 18)), 90),
+		Kit.stroke(edge, 1.2, 0.1),
 	})
+	chip.BackgroundTransparency = Theme.Glass.Frame
 	-- Gloss line along the top.
 	Kit.new("Frame", {
 		Name = "Gloss",
-		Position = UDim2.new(0, 24, 0, 4),
-		Size = UDim2.new(1, -40, 0.3, 0),
+		Position = UDim2.new(0, 24, 0, 1),
+		Size = UDim2.new(1, -30, 0, 1),
+		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.88,
+		BackgroundTransparency = 0.8,
 		Parent = chip,
-	}, { Kit.corner(UDim.new(1, 0)) })
+	})
 	local iconLabel = Kit.label({
 		Name = "Icon",
 		Text = emoji,
@@ -250,7 +272,7 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 		ZIndex = 2,
 		Parent = chip,
 	}, 30)
-	Kit.textStroke(Color3.fromRGB(20, 8, 50), 2.5, 0).Parent = value
+	Kit.textStroke(Color3.fromRGB(10, 12, 19), 2.5, 0).Parent = value
 	Kit.new("UIScale", { Name = "Pop", Scale = 1, Parent = chip })
 	currency[key] = chip
 	return chip
@@ -268,9 +290,6 @@ local function setCurrency(key: string, text: string, number: number)
 	end
 end
 
-local CATEGORY_NAMES = { BATTLE = true, SQUAD = true, HUB = true, STORE = true }
-local POP_CELL = 74
-local POP_PAD = 8
 local layoutLeftFn: (() -> ())? = nil
 
 local function applyHidden()
@@ -278,11 +297,6 @@ local function applyHidden()
 	dock.Visible = not hidden
 	menu.Visible = not hidden
 	questSlot.Visible = questActive and not hidden
-	if hidden then
-		popover.Visible = false
-		catcher.Visible = false
-		openCategory = nil
-	end
 	topBar.Visible = not hidden
 	settingsButton.Visible = not hidden
 	petsButton.Visible = not hidden
@@ -298,26 +312,15 @@ export type Handlers = {
 	OnAuto: () -> (),
 	OnAutoStop: () -> (),
 	OnBattle: () -> (),
-	OnDeck: () -> (),
-	OnIndex: () -> (),
 	OnBag: () -> (),
-	OnStats: () -> (),
-	OnShop: () -> (),
-	OnGifts: () -> (),
-	OnOdds: () -> (),
+	OnSquad: () -> (),
+	OnQuests: () -> (),
 	OnTravel: () -> (),
+	OnStore: () -> (),
+	OnOdds: () -> (),
 	OnSettings: () -> (),
 	OnPets: () -> (),
-	OnCodes: () -> (),
 	OnRaid: () -> (),
-	OnStore: () -> (),
-	OnTower: () -> (),
-	OnCost: () -> (),
-	OnTraits: () -> (),
-	OnKenji: () -> (),
-	OnFusion: () -> (),
-	OnWheel: () -> (),
-	OnTotem: () -> (),
 	OnDev: (() -> ())?,
 }
 
@@ -504,7 +507,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	}, 22)
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.3).Parent = hintLabel
 
-	-- Left column: Kenji's tracker, then the menu (2 x 2 categories + DEV), both scaled to the screen ------
+	-- Left column: Kenji's tracker, then the menu (six buttons in 2 columns, + DEV), scaled to the screen --
 	questSlot = Kit.new("Frame", {
 		Name = "Quest",
 		Position = UDim2.fromOffset(12, 64),
@@ -526,166 +529,16 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = menu,
 	})
-
-	-- The popover: a category's screens as a small grid beside the menu.
-	catcher = Kit.new("TextButton", {
-		Name = "Catcher",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-		Text = "",
-		Visible = false,
-		ZIndex = 8,
-		Parent = gui,
-	})
-	popover = Kit.new("Frame", {
-		Name = "Popover",
-		BackgroundColor3 = Color3.fromRGB(24, 14, 52),
-		BackgroundTransparency = 0.08,
-		Visible = false,
-		ZIndex = 9,
-		Parent = gui,
-	}, {
-		Kit.corner(UDim.new(0, 16)),
-		Kit.stroke(Theme.Color.Gold, 2, 0.2),
-		Kit.new("UIScale", { Name = "Fit", Scale = 1 }),
-	})
-	Kit.label({
-		Name = "Title",
-		Text = "",
-		Font = Theme.Font.Display,
-		TextColor3 = Theme.Color.Gold,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(12, 6),
-		Size = UDim2.new(1, -24, 0, 24),
-		Parent = popover,
-	}, 20)
-	local items = Kit.new("Frame", {
-		Name = "Items",
-		Position = UDim2.fromOffset(10, 36),
-		Size = UDim2.new(1, -20, 1, -46),
-		BackgroundTransparency = 1,
-		Parent = popover,
-	}, {
-		Kit.new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(POP_CELL, POP_CELL),
-			CellPadding = UDim2.fromOffset(POP_PAD, POP_PAD),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	})
-
-	local function closePopover()
-		openCategory = nil
-		popover.Visible = false
-		catcher.Visible = false
-		for name in CATEGORY_NAMES do
-			local button = menuButtons[name]
-			if button then
-				button.UIStroke.Thickness = 1.5
-			end
-		end
-	end
-	catcher.Activated:Connect(closePopover)
-
-	local function openPopover(category: string)
-		if openCategory == category then
-			closePopover()
-			return
-		end
-		closePopover()
-		openCategory = category
-		local count = 0
-		for _, item in items:GetChildren() do
-			if item:IsA("GuiButton") then
-				local show = categoryOf[item.Name] == category and (item.Name ~= "KENJI" or questActive)
-				item.Visible = show
-				if show then
-					count += 1
-				end
-			end
-		end
-		local cols = math.min(count, 3)
-		local rows = math.ceil(count / 3)
-		popover.Title.Text = category
-		popover.Size = UDim2.fromOffset(
-			math.max(cols * POP_CELL + (cols - 1) * POP_PAD + 20, 140),
-			36 + rows * POP_CELL + (rows - 1) * POP_PAD + 10
-		)
-		popover.Fit.Scale = fitScale
-		-- Beside the menu, level with the category's button, kept on screen.
-		local button = menuButtons[category]
-		local origin = gui.AbsolutePosition
-		local x = menu.AbsolutePosition.X - origin.X + menu.AbsoluteSize.X + 10
-		local y = button.AbsolutePosition.Y - origin.Y
-		local height = popover.Size.Y.Offset * fitScale
-		y = math.max(4, math.min(y, gui.AbsoluteSize.Y - height - 8))
-		popover.Position = UDim2.fromOffset(x, y)
-		popover.Visible = true
-		catcher.Visible = true
-		button.UIStroke.Thickness = 3
-		popover.Fit.Scale = fitScale * 0.85
-		Kit.tween(popover.Fit, 0.18, { Scale = fitScale }, Enum.EasingStyle.Back)
-	end
-
-	local categories = {
-		{
-			Name = "BATTLE", Icon = "⚔️", Color = Theme.Color.Roll, IconKey = "BATTLE",
-			Items = {
-				{ "BOSSES", "👹", handlers.OnBattle, "BATTLE" },
-				{ "TOWER", "🗼", handlers.OnTower },
-				{ "RAID", "☄️", handlers.OnRaid },
-				{ "COST", "⚖️", handlers.OnCost },
-			},
-		},
-		{
-			Name = "SQUAD", Icon = "🃏", Color = Theme.Color.Accent, IconKey = "DECK",
-			Items = {
-				{ "DECK", "🃏", handlers.OnDeck },
-				{ "INDEX", "📖", handlers.OnIndex },
-				{ "TRAITS", "🧬", handlers.OnTraits },
-				{ "STATS", "📈", handlers.OnStats },
-			},
-		},
-		{
-			Name = "HUB", Icon = "🏯", Color = Theme.Color.Quick,
-			Items = {
-				{ "KENJI", "📜", handlers.OnKenji },
-				{ "QUESTS", "🎁", handlers.OnGifts, "GIFTS" },
-				{ "FUSION", "✨", handlers.OnFusion },
-				{ "BAG", "🎒", handlers.OnBag },
-				{ "WHEEL", "🎡", handlers.OnWheel },
-				{ "TRAVEL", "🧭", handlers.OnTravel },
-			},
-		},
-		{
-			Name = "STORE", Icon = "👑", Color = Color3.fromRGB(255, 196, 46), IconKey = "STORE",
-			Items = {
-				{ "PASSES", "👑", handlers.OnStore, "STORE" },
-				{ "SHARDS", "💎", handlers.OnShop, "SHOP" },
-				{ "TOTEM", "🗿", handlers.OnTotem },
-				{ "CODES", "🎟️", handlers.OnCodes },
-			},
-		},
-	}
-	local order = 0
-	for i, category in categories do
-		menuButton(category.Name, category.Icon, i, category.Color, function()
-			openPopover(category.Name)
-		end, category.IconKey)
-		for _, item in category.Items do
-			order += 1
-			local name, icon, onClick, iconKey = item[1], item[2], item[3], item[4]
-			categoryOf[name] = category.Name
-			local button = menuButton(name, icon, order, category.Color, function()
-				closePopover()
-				onClick()
-			end, iconKey, items)
-			button.Visible = false
-		end
-	end
+	menuButton("BATTLE", "⚔️", 1, Theme.Color.Roll, handlers.OnBattle)
+	menuButton("BAG", "🎒", 2, Theme.Color.Quick, handlers.OnBag)
+	menuButton("SQUAD", "🃏", 3, Theme.Color.Neon, handlers.OnSquad, "DECK")
+	menuButton("QUESTS", "📜", 4, Theme.Color.Gold, handlers.OnQuests, "GIFTS")
+	menuButton("TRAVEL", "🧭", 5, Theme.Color.Support, handlers.OnTravel)
+	menuButton("STORE", "👑", 6, Color3.fromRGB(255, 196, 46), handlers.OnStore)
 	if handlers.OnDev then
-		menuButton("DEV", "🛠️", 5, Theme.Color.Danger, handlers.OnDev)
+		menuButton("DEV", "🛠️", 7, Theme.Color.Danger, handlers.OnDev)
 	end
-	local menuRows = if handlers.OnDev then 3 else 2
+	local menuRows = if handlers.OnDev then 4 else 3
 
 	-- Scale the left column with the screen (a phone held sideways is ~0.6).
 	local function layoutLeft()
@@ -701,9 +554,6 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		grid.CellPadding = UDim2.fromOffset(pad, pad)
 		menu.Size = UDim2.fromOffset(2 * cell + pad, menuRows * cell + (menuRows - 1) * pad)
 		menu.Position = UDim2.fromOffset(12, menuTop)
-		if openCategory then
-			closePopover()
-		end
 	end
 	layoutLeftFn = layoutLeft
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutLeft)
@@ -756,7 +606,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(0.3, 0.3),
-		BackgroundColor3 = Color3.fromRGB(70, 36, 150),
+		BackgroundColor3 = Color3.fromRGB(20, 40, 70),
 		Parent = gear,
 	}, { Kit.corner(UDim.new(1, 0)) })
 	Kit.pressable(settingsButton)
@@ -877,7 +727,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 80),
 		Size = UDim2.fromOffset(400, 24),
-		BackgroundColor3 = Color3.fromRGB(20, 10, 44),
+		BackgroundColor3 = Color3.fromRGB(8, 11, 17),
 		BackgroundTransparency = 0.15,
 		Parent = gui,
 	}, {
@@ -946,7 +796,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 112),
 		Size = UDim2.fromOffset(300, 26),
-		BackgroundColor3 = Color3.fromRGB(20, 10, 44),
+		BackgroundColor3 = Color3.fromRGB(8, 11, 17),
 		BackgroundTransparency = 0.2,
 		Parent = gui,
 	}, {
@@ -1051,7 +901,7 @@ function Hud.RefreshEvent()
 		text.Text = `Next: {nextEvent.Icon} <b>{nextEvent.Name}</b> in {string.format("%d:%02d", untilNext // 60, math.floor(untilNext % 60))}`
 		eventPill.UIStroke.Color = Color3.new(1, 1, 1)
 		eventPill.UIStroke.Transparency = 0.5
-		eventPill.BackgroundColor3 = Color3.fromRGB(20, 10, 44)
+		eventPill.BackgroundColor3 = Color3.fromRGB(8, 11, 17)
 		eventPill.Size = UDim2.fromOffset(320, 26)
 	end
 	-- An event just started: pop the pill and say so.
@@ -1145,7 +995,7 @@ function Hud.LevelUp(ups)
 		ZIndex = 32,
 		Parent = holder,
 	}, 44)
-	Kit.textStroke(Color3.fromRGB(40, 12, 80), 3, 0).Parent = level
+	Kit.textStroke(Color3.fromRGB(15, 19, 30), 3, 0).Parent = level
 	-- Everything those levels paid, added up into one line.
 	local total = { Shards = 0, Potions = {} }
 	local luckUps = 0
@@ -1276,28 +1126,15 @@ local function showBadge(button, count: number)
 	button.Badge.Count.Text = if count > 9 then "9+" else tostring(count)
 end
 
--- An item's badge; its category's badge shows the sum of its items.
+-- A menu button's red badge (BAG, SQUAD, QUESTS).
 function Hud.SetBadge(name: string, count: number)
 	local button = menuButtons[name]
-	if button == nil then
-		return
-	end
-	badgeCounts[name] = count
-	showBadge(button, count)
-	local category = categoryOf[name]
-	if category and menuButtons[category] then
-		local total = 0
-		for item, itemCount in badgeCounts do
-			if categoryOf[item] == category and (item ~= "KENJI" or questActive) then
-				total += itemCount
-			end
-		end
-		showBadge(menuButtons[category], total)
+	if button then
+		showBadge(button, count)
 	end
 end
 
--- Kenji's questline running: the tracker slot shows above the menu (UI/Tutorial fills it), and HUB
--- lists KENJI.
+-- Kenji's questline running: the tracker slot shows above the menu (UI/Tutorial fills it).
 function Hud.QuestSlot(): Frame
 	return questSlot
 end
@@ -1356,8 +1193,8 @@ end
 
 function Hud.SetAuto(on: boolean)
 	autoButton.Sub.Text = if on then "ON" else "OFF"
-	autoButton.UIStroke.Transparency = if on then 0 else 0.55
-	autoButton.UIStroke.Thickness = if on then 3 else 2
+	autoButton.UIStroke.Transparency = if on then 0 else 0.4
+	autoButton.UIStroke.Thickness = if on then 2 else 1.2
 	local dimmed = on
 	rollButton.Title.TextTransparency = if dimmed then 0.6 else 0
 	quickButton.Title.TextTransparency = if dimmed then 0.6 else 0
@@ -1531,7 +1368,7 @@ function Hud.Announce(playerName: string, cardId: string, borderId: string?, foi
 		what = `{string.upper(Foils.Get(foilId).Name)} {what}`
 	end
 	bannerLabel.Text = `{playerName} pulled <b>{what}</b> {card.Name}, {card.Title}!`
-	bannerLabel.TextColor3 = if tier.Name == "Secret" and not special then Color3.fromRGB(20, 16, 40) else Color3.new(1, 1, 1)
+	bannerLabel.TextColor3 = if tier.Name == "Secret" and not special then Color3.fromRGB(8, 10, 15) else Color3.new(1, 1, 1)
 	banner.Visible = true
 	Kit.tween(banner, 0.35, { Position = UDim2.new(0.5, 0, 0, 72) }, Enum.EasingStyle.Back)
 	task.delay(4.5, function()

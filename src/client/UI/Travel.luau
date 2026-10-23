@@ -119,7 +119,7 @@ function Travel.Init(playerGui: Instance, showHint: (string) -> ())
 			Size = UDim2.new(0.66, 0, 0.3, 0),
 			Parent = tile,
 		}, 32)
-		Kit.textStroke(Color3.fromRGB(30, 12, 70), 2.5, 0).Parent = name
+		Kit.textStroke(Color3.fromRGB(13, 17, 27), 2.5, 0).Parent = name
 		Kit.label({
 			Text = stop.Sub,
 			Font = Theme.Font.Heavy,

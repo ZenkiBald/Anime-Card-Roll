@@ -1,6 +1,9 @@
 --!nonstrict
--- A centred panel over a blurred game world: purple gradient panel, a slanted title banner with a
--- sparkle, and a red close pill. Tap outside or press the close pill to close.
+-- A centred panel over a blurred game world: dark obsidian glass with a thin edge, a sharp title tab
+-- with a neon underline, and a close button. Tap outside or press close to close.
+-- Modal.Tabbed is one panel with a tab strip: each tab holds pages that screens build into exactly
+-- as if they were their own Modal (page.Body / page.Header / page:Open() / page.IsOpen / OnOpen), and a
+-- tab can hold two pages side by side (Region "Left" / "Right").
 
 local Lighting = game:GetService("Lighting")
 
@@ -14,11 +17,10 @@ Modal.__index = Modal
 local openModal = nil -- only one panel open at a time
 local blur: BlurEffect? = nil
 
-local PANEL_TOP = Color3.fromRGB(62, 32, 128)
-local PANEL_BOTTOM = Color3.fromRGB(22, 13, 50)
-local PANEL_EDGE = Color3.fromRGB(150, 110, 255)
-local BANNER_LEFT = Color3.fromRGB(150, 100, 255)
-local BANNER_RIGHT = Color3.fromRGB(80, 40, 210)
+local PANEL_TOP = Color3.fromRGB(16, 20, 31)
+local PANEL_BOTTOM = Color3.fromRGB(9, 11, 18)
+local BANNER_LEFT = Color3.fromRGB(24, 30, 46)
+local BANNER_RIGHT = Color3.fromRGB(12, 15, 24)
 
 export type Modal = {
 	Gui: ScreenGui,
@@ -45,70 +47,83 @@ local function setBlur(on: boolean)
 	Kit.tween(effect, 0.25, { Size = goal })
 end
 
--- Slanted title banner with a sparkle, used by every panel (and the deck screen).
+-- Title tab used by every panel (and the deck screen): a dark slate plate, a neon slash on its left
+-- and a neon underline, the title in heavy caps.
 function Modal.Banner(parent: Instance, title: string, textSize: number?): any -- children read by name
 	local banner = Kit.new("Frame", {
 		Name = "Banner",
-		Position = UDim2.fromOffset(-14, -16),
-		Size = UDim2.fromOffset(0, 58),
+		Position = UDim2.fromOffset(-6, -10),
+		Size = UDim2.fromOffset(0, 50),
 		AutomaticSize = Enum.AutomaticSize.X,
-		Rotation = -3,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		ZIndex = 5,
 		Parent = parent,
 	}, {
-		Kit.corner(UDim.new(0, 12)),
+		Kit.corner(),
 		Kit.gradient(ColorSequence.new(BANNER_LEFT, BANNER_RIGHT), 0),
-		Kit.stroke(Color3.fromRGB(230, 220, 255), 2.5, 0),
-		Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 52), PaddingRight = UDim.new(0, 26) }),
+		Kit.stroke(Theme.Color.Line, 1.2, 0),
+		Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 30), PaddingRight = UDim.new(0, 22) }),
 	})
-	local sparkle = Kit.label({
+	local sparkle = Kit.new("Frame", {
 		Name = "Sparkle",
-		Text = "✦",
-		Font = Theme.Font.Heavy,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, -24, 0.5, 0),
-		Size = UDim2.fromOffset(56, 56),
-		Rotation = 12,
+		Position = UDim2.new(0, -15, 0.5, 0),
+		Size = UDim2.new(0, 5, 0.62, 0),
+		Rotation = 14,
+		BorderSizePixel = 0,
+		BackgroundColor3 = Theme.Color.Neon,
 		ZIndex = 7,
 		Parent = banner,
-	}, 52)
-	Kit.textStroke(Color3.fromRGB(70, 30, 160), 2, 0).Parent = sparkle
+	})
+	Kit.new("Frame", {
+		Name = "Underline",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, -30, 1, 0),
+		Size = UDim2.new(1, 52, 0, 2),
+		BorderSizePixel = 0,
+		BackgroundColor3 = Theme.Color.Neon,
+		ZIndex = 7,
+		Parent = banner,
+	}, {
+		Kit.new("UIGradient", {
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.7, 0.3), NumberSequenceKeypoint.new(1, 1) }),
+		}),
+	})
 	local label = Kit.new("TextLabel", {
 		Name = "Title",
-		Text = title,
+		Text = string.upper(title),
 		Font = Theme.Font.Display,
-		TextSize = textSize or 36,
-		TextColor3 = Color3.new(1, 1, 1),
+		TextSize = math.floor((textSize or 36) * 0.8),
+		TextColor3 = Theme.Color.Text,
 		BackgroundTransparency = 1,
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromScale(0, 1),
 		ZIndex = 6,
 		Parent = banner,
 	})
-	Kit.textStroke(Color3.fromRGB(40, 14, 90), 3, 0).Parent = label
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.4).Parent = label
 	if Skin.Apply(banner, "Banner") then
 		sparkle.Visible = false -- the banner art has its own
 	end
 	return banner
 end
 
--- Red pill with a cross.
+-- Dark square with a cross and a red neon edge.
 function Modal.CloseButton(parent: Instance): TextButton
 	local close = Kit.new("TextButton", {
 		Name = "Close",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 8, 0, -14),
-		Size = UDim2.fromOffset(64, 42),
+		Position = UDim2.new(1, 4, 0, -8),
+		Size = UDim2.fromOffset(46, 42),
 		AutoButtonColor = false,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
 		ZIndex = 6,
 		Parent = parent,
 	}, {
-		Kit.corner(UDim.new(0.5, 0)),
-		Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 110, 110), Color3.fromRGB(215, 40, 70)), 90),
-		Kit.stroke(Color3.new(1, 1, 1), 2, 0.2),
+		Kit.corner(),
+		Kit.gradient(ColorSequence.new(Color3.fromRGB(46, 22, 30), Color3.fromRGB(18, 10, 14)), 90),
+		Kit.stroke(Theme.Color.Danger, 1.2, 0),
 	})
 	local cross = Kit.label({
 		Text = "✕",
@@ -119,7 +134,7 @@ function Modal.CloseButton(parent: Instance): TextButton
 		ZIndex = 7,
 		Parent = close,
 	}, 28)
-	Kit.textStroke(Color3.fromRGB(110, 10, 30), 2, 0).Parent = cross
+	cross.TextColor3 = Color3.fromRGB(255, 150, 160)
 	if Skin.Apply(close, "Close") then
 		cross.Visible = false -- the button art has its own X
 		close.Size = UDim2.fromOffset(46, 46)
@@ -139,7 +154,7 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		Name = "Backdrop",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Theme.Color.Backdrop,
-		BackgroundTransparency = 0.45,
+		BackgroundTransparency = 0.35,
 		AutoButtonColor = false,
 		Text = "",
 		Parent = self.Gui,
@@ -154,13 +169,14 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		Position = UDim2.fromScale(0.5, 0.52),
 		Size = UDim2.fromScale(size.X, size.Y),
 		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = Theme.Glass.Panel,
 		ZIndex = 2,
 		Active = true, -- taps on the panel don't fall through to the backdrop
 		Parent = self.Gui,
 	}, {
-		Kit.corner(UDim.new(0, 22)),
+		Kit.corner(),
 		Kit.gradient(ColorSequence.new(PANEL_TOP, PANEL_BOTTOM), 90),
-		Kit.stroke(PANEL_EDGE, 3, 0),
+		Kit.stroke(Theme.Color.Line, 1.2, 0),
 		Kit.new("UISizeConstraint", { MaxSize = maxSize, MinSize = Vector2.new(280, 220) }),
 	})
 	self.Scale = Kit.new("UIScale", { Scale = 1, Parent = self.Panel })
@@ -206,7 +222,7 @@ function Modal:Open()
 	local backdrop = self.Gui:FindFirstChild("Backdrop")
 	if backdrop then
 		backdrop.BackgroundTransparency = 1
-		Kit.tween(backdrop, 0.2, { BackgroundTransparency = 0.45 })
+		Kit.tween(backdrop, 0.2, { BackgroundTransparency = 0.35 })
 	end
 	setBlur(true)
 	if self.OnOpen then
@@ -234,6 +250,228 @@ function Modal:Toggle()
 		self:Close()
 	else
 		self:Open()
+	end
+end
+
+-- Tabbed panels ------------------------------------------------------------------------------------
+
+local Page = {}
+Page.__index = Page
+
+local function styleTab(button: TextButton, on: boolean)
+	button.TextColor3 = if on then Theme.Color.Text else Theme.Color.Muted
+	button.BackgroundTransparency = if on then 0.05 else 0.4
+	local stroke = button:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = if on then Theme.Color.Neon else Theme.Color.Line
+	end
+	local bar = button:FindFirstChild("Bar")
+	if bar then
+		bar.Visible = on
+	end
+end
+
+-- One panel, `tabs` along the top of its body (in order). Build pages into it with host:Page(tab).
+function Modal.Tabbed(playerGui: Instance, name: string, title: string, size: Vector2, maxSize: Vector2, tabs: { string })
+	local host = Modal.new(playerGui, name, title, size, maxSize)
+	host.TabOrder = tabs
+	host.TabButtons = {}
+	host.Pages = {} -- [tab] = { page }
+	host.Current = tabs[1]
+	local strip = Kit.new("Frame", {
+		Name = "Tabs",
+		Size = UDim2.new(1, 0, 0, 38),
+		BackgroundTransparency = 1,
+		Parent = host.Body,
+	}, {
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 6),
+		}),
+	})
+	host.Content = Kit.new("Frame", {
+		Name = "Content",
+		Position = UDim2.new(0, 0, 0, 46),
+		Size = UDim2.new(1, 0, 1, -46),
+		BackgroundTransparency = 1,
+		Parent = host.Body,
+	})
+	for i, tab in tabs do
+		local button = Kit.new("TextButton", {
+			Name = tab,
+			LayoutOrder = i,
+			AutoButtonColor = false,
+			Size = UDim2.new(0, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundColor3 = Theme.Color.PanelLight,
+			Font = Theme.Font.Heavy,
+			Text = tab,
+			TextSize = 17,
+			Parent = strip,
+		}, {
+			Kit.corner(),
+			Kit.stroke(Theme.Color.Line, 1.2, 0),
+			Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 18) }),
+		})
+		Kit.new("Frame", {
+			Name = "Bar",
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, 0),
+			Size = UDim2.new(1, 36, 0, 2),
+			BorderSizePixel = 0,
+			BackgroundColor3 = Theme.Color.Neon,
+			Visible = false,
+			Parent = button,
+		})
+		styleTab(button, false)
+		button.Activated:Connect(function()
+			host:Show(tab)
+		end)
+		Kit.pressable(button)
+		host.TabButtons[tab] = button
+		host.Pages[tab] = {}
+	end
+	host.OnOpen = function()
+		host:ApplyTab()
+	end
+	host.OnClose = function()
+		for _, pages in host.Pages do
+			for _, page in pages do
+				if page.IsOpen then
+					page.IsOpen = false
+					if page.OnClose then
+						page.OnClose()
+					end
+				end
+			end
+		end
+	end
+	return host
+end
+
+-- Opens the panel on `tab` (or switches to it).
+function Modal:Show(tab: string)
+	self.Current = tab
+	if self.IsOpen then
+		self:ApplyTab()
+	else
+		self:Open() -- OnOpen applies the tab
+	end
+end
+
+function Modal:ApplyTab()
+	for _, tab in self.TabOrder do
+		local on = tab == self.Current
+		styleTab(self.TabButtons[tab], on)
+		for _, page in self.Pages[tab] do
+			page.Frame.Visible = on
+			page.Header.Visible = on
+			local was = page.IsOpen
+			page.IsOpen = on
+			if on and not was and page.OnOpen then
+				page.OnOpen()
+			elseif was and not on and page.OnClose then
+				page.OnClose()
+			end
+		end
+	end
+end
+
+-- Relabels a tab (e.g. a ✓ once Kenji's path is done).
+function Modal:SetTabText(tab: string, text: string)
+	local button = self.TabButtons[tab]
+	if button then
+		button.Text = text
+	end
+end
+
+-- A page on `tab`. Without `region` it fills the tab and its Header overlays the panel's header;
+-- with region "Left" / "Right" it takes that half, under its own small header titled `heading`.
+function Modal:Page(tab: string, region: string?, heading: string?)
+	local frame = Kit.new("Frame", {
+		Name = tab .. (region or ""),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = self.Content,
+	})
+	local header, body
+	if region then
+		frame.Size = UDim2.new(0.5, -8, 1, 0)
+		frame.Position = if region == "Right" then UDim2.new(0.5, 8, 0, 0) else UDim2.new()
+		header = Kit.new("Frame", {
+			Name = "Header",
+			Size = UDim2.new(1, 0, 0, 56),
+			BackgroundTransparency = 1,
+			Parent = frame,
+		})
+		Kit.label({
+			Name = "Heading",
+			Text = string.upper(heading or tab),
+			Font = Theme.Font.Display,
+			TextColor3 = Theme.Color.Neon,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Size = UDim2.new(0.5, 0, 0, 22),
+			Parent = header,
+		}, 18)
+		body = Kit.new("Frame", {
+			Name = "Body",
+			Position = UDim2.new(0, 0, 0, 56),
+			Size = UDim2.new(1, 0, 1, -56),
+			BackgroundTransparency = 1,
+			Parent = frame,
+		})
+		-- A thin rule between the two halves.
+		if region == "Right" then
+			Kit.new("Frame", {
+				Name = "Rule",
+				Position = UDim2.new(0, -8, 0, 0),
+				Size = UDim2.new(0, 1, 1, 0),
+				BorderSizePixel = 0,
+				BackgroundColor3 = Theme.Color.Line,
+				Parent = frame,
+			})
+		end
+	else
+		header = Kit.new("Frame", {
+			Name = tab,
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Visible = false,
+			Parent = self.Header,
+		})
+		body = frame
+	end
+	local page = setmetatable({
+		Host = self,
+		Tab = tab,
+		Gui = self.Gui,
+		Panel = self.Panel,
+		Frame = frame,
+		Header = header,
+		Body = body,
+		IsOpen = false,
+	}, Page)
+	table.insert(self.Pages[tab], page)
+	return page
+end
+
+function Page:Open()
+	self.Host:Show(self.Tab)
+end
+
+function Page:Close()
+	if self.IsOpen then
+		self.Host:Close()
+	end
+end
+
+function Page:Toggle()
+	if self.IsOpen then
+		self.Host:Close()
+	else
+		self.Host:Show(self.Tab)
 	end
 end
 

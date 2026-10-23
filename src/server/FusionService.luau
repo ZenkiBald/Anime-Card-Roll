@@ -17,6 +17,7 @@ local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
 local MetaService = require(script.Parent.MetaService)
 local RateLimit = require(script.Parent.RateLimit)
+local NpcRange = require(script.Parent.NpcRange)
 
 local FusionService = {}
 
@@ -32,6 +33,9 @@ local function fuse(player: Player, cardId: unknown): { [string]: any }
 	end
 	if not limiter:Allow(player) then
 		return { Ok = false, Reason = "TooFast" }
+	end
+	if not NpcRange.Near(player, "fuser") then
+		return { Ok = false, Reason = "TooFar" } -- fusing happens beside Hoshi
 	end
 	local card = Cards.Get(cardId)
 	local entry = profile.Data.Cards[cardId]

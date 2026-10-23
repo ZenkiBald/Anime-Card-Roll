@@ -93,7 +93,7 @@ function DevPanel.Init(playerGui: Instance)
 	previewRow.Size = UDim2.new(1, 0, 0, 80)
 	for i, name in Rarity.Order do
 		local tier = Rarity.Get(name)
-		local top = if name == "Secret" then Color3.fromRGB(150, 110, 255) else tier.Color
+		local top = if name == "Secret" then Color3.fromRGB(60, 200, 255) else tier.Color
 		local button = Kit.button(string.upper(name), top, tier.Dark, {
 			LayoutOrder = i,
 			Size = UDim2.fromOffset(110, 36),

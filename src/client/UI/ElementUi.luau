@@ -25,7 +25,7 @@ function ElementUi.Badge(id: string?, props: { [string]: any }): Frame?
 	end
 	local defaults = {
 		Name = "Element",
-		BackgroundColor3 = Color3.fromRGB(18, 12, 36),
+		BackgroundColor3 = Color3.fromRGB(7, 9, 14),
 		BackgroundTransparency = 0.1,
 		ZIndex = 6,
 	}

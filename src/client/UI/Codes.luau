@@ -1,6 +1,7 @@
 --!nonstrict
--- CODES: type a code, REDEEM, and its reward lands at once (a toast shows what). Each code works once
--- per player; the server checks everything (CodeService, codes kept server-side in Codes.luau).
+-- REDEEM CODES (the bottom of the STORE): type a code, REDEEM, and its reward lands at once (a toast
+-- shows what). Each code works once per player; the server checks everything (CodeService, codes kept
+-- server-side in Codes.luau).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,7 +11,6 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
-local Modal = require(script.Parent.Modal)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
@@ -26,7 +26,7 @@ local REASONS = {
 	Loading = "Still loading",
 }
 
-local modal
+local holder: Frame
 local box: TextBox
 local result: TextLabel
 local busy = false
@@ -55,7 +55,7 @@ local function redeem()
 		result.TextColor3 = Theme.Color.Gold
 		box.Text = ""
 		Sfx.Play("Reward", 1.1)
-		Effects.Sparks(modal.Panel, Theme.Color.Gold, 24, 1)
+		Effects.Sparks(holder, Theme.Color.Gold, 24, 1)
 		if MetaClient.OnGranted and answer.Granted then
 			MetaClient.OnGranted(answer.Granted)
 		end
@@ -66,45 +66,52 @@ local function redeem()
 	end
 end
 
-function Codes.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "CodesGui", "CODES", Vector2.new(0.5, 0.5), Vector2.new(560, 340))
+-- Builds the codes box into `parent` (a list) at LayoutOrder `order`.
+function Codes.Build(parent: Instance, order: number)
+	holder = Kit.tile({ LayoutOrder = order, Size = UDim2.new(1, 0, 0, 150), Parent = parent }, Theme.Color.Gold)
 	Kit.label({
 		Text = "Got a code? Type it here for free packs, potions and Shards!",
 		Font = Theme.Font.Heavy,
 		TextColor3 = Theme.Color.Text,
-		Position = UDim2.new(0, 0, 0, 6),
-		Size = UDim2.new(1, 0, 0, 24),
-		Parent = modal.Body,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 16, 0, 12),
+		Size = UDim2.new(1, -32, 0, 22),
+		Parent = holder,
 	}, 18)
 	local field = Kit.new("Frame", {
-		Position = UDim2.new(0.05, 0, 0, 44),
-		Size = UDim2.new(0.9, 0, 0, 54),
-		BackgroundColor3 = Color3.fromRGB(16, 10, 34),
-		Parent = modal.Body,
-	}, { Kit.corner(UDim.new(0.3, 0)), Kit.stroke(Theme.Color.Gold, 2, 0.2) })
+		Position = UDim2.new(0, 16, 0, 44),
+		Size = UDim2.new(1, -230, 0, 50),
+		BackgroundColor3 = Theme.Color.Panel,
+		Parent = holder,
+	}, { Kit.corner(), Kit.stroke(Theme.Color.Line, 1.2, 0) })
 	box = Kit.new("TextBox", {
-		Position = UDim2.new(0, 16, 0, 0),
-		Size = UDim2.new(1, -32, 1, 0),
+		Position = UDim2.new(0, 14, 0, 0),
+		Size = UDim2.new(1, -28, 1, 0),
 		BackgroundTransparency = 1,
 		Text = "",
 		PlaceholderText = "ENTER CODE",
-		PlaceholderColor3 = Color3.fromRGB(150, 140, 190),
-		TextColor3 = Color3.new(1, 1, 1),
+		PlaceholderColor3 = Theme.Color.Muted,
+		TextColor3 = Theme.Color.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		Font = Theme.Font.Display,
-		TextSize = 28,
+		TextSize = 24,
 		ClearTextOnFocus = false,
 		Parent = field,
 	})
+	box.Focused:Connect(function()
+		field.UIStroke.Color = Theme.Color.Neon
+	end)
 	box.FocusLost:Connect(function(enter)
+		field.UIStroke.Color = Theme.Color.Line
 		if enter then
 			redeem()
 		end
 	end)
 	local button = Kit.button("REDEEM", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 112),
-		Size = UDim2.new(0.5, 0, 0, 52),
-		Parent = modal.Body,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -16, 0, 44),
+		Size = UDim2.fromOffset(190, 50),
+		Parent = holder,
 	})
 	button.Activated:Connect(redeem)
 	result = Kit.label({
@@ -112,17 +119,18 @@ function Codes.Init(playerGui: Instance)
 		Font = Theme.Font.Heavy,
 		TextColor3 = Theme.Color.Gold,
 		TextWrapped = true,
-		Position = UDim2.new(0, 0, 0, 176),
-		Size = UDim2.new(1, 0, 0, 44),
-		Parent = modal.Body,
-	}, 20)
-	modal.OnOpen = function()
-		result.Text = ""
-	end
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 16, 0, 104),
+		Size = UDim2.new(1, -32, 0, 34),
+		Parent = holder,
+	}, 18)
 end
 
-function Codes.Toggle()
-	modal:Toggle()
+-- Clears the last result (the STORE calls this when it opens).
+function Codes.Reset()
+	if result then
+		result.Text = ""
+	end
 end
 
 return Codes

@@ -7,8 +7,10 @@
 --     (PolicyService ArePaidRandomItemsRestricted, fetched once per player; unknown counts as restricted).
 --   * The totem: ProcessReceipt grants it once per purchase id (saved in Purchases), stands a totem model
 --     in town and runs server luck x2 (attribute TotemLuckEnds, read by MetaService.Luck and the HUD).
--- STORE remote (RemoteFunction "Store"): "State" | "Buy" (pass key) | "BuyTotem". StoreState (event)
--- pushes the new state after a real purchase lands.
+--   * Shard bundles: ProcessReceipt grants their Shards once per purchase id, like the totem; sold only
+--     where paid random items are allowed (Shards buy luck potions and upgrades).
+-- STORE remote (RemoteFunction "Store"): "State" | "Buy" (pass key) | "BuyTotem" | "BuyShards" (bundle
+-- key). StoreState (event) pushes the new state after a real purchase lands.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -178,8 +180,27 @@ local function payTotem(player: Player)
 	startTotem(player)
 end
 
+-- The bundle a product id sells (nil = not a Shard bundle).
+local function bundleFor(productId: number)
+	for _, bundle in MonetizationConfig.ShardBundles do
+		if bundle.ProductId ~= 0 and bundle.ProductId == productId then
+			return bundle
+		end
+	end
+	return nil
+end
+
+local function payShards(player: Player, bundle)
+	local profile = DataService.Get(player)
+	if profile and granter then
+		granter(profile.Data, { Shards = bundle.Shards }, player)
+	end
+end
+
 local function processReceipt(receipt)
-	if receipt.ProductId ~= MonetizationConfig.SERVER_TOTEM_PRODUCT_ID or MonetizationConfig.SERVER_TOTEM_PRODUCT_ID == 0 then
+	local bundle = bundleFor(receipt.ProductId)
+	local totem = MonetizationConfig.SERVER_TOTEM_PRODUCT_ID ~= 0 and receipt.ProductId == MonetizationConfig.SERVER_TOTEM_PRODUCT_ID
+	if not totem and bundle == nil then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	local player = Players:GetPlayerByUserId(receipt.PlayerId)
@@ -192,7 +213,11 @@ local function processReceipt(receipt)
 		return Enum.ProductPurchaseDecision.PurchaseGranted -- already paid out
 	end
 	purchases[receipt.PurchaseId] = os.time()
-	payTotem(player)
+	if bundle then
+		payShards(player, bundle)
+	else
+		payTotem(player)
+	end
 	refreshPlayer(player)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
@@ -240,6 +265,25 @@ local function buyTotem(player: Player)
 	return { Ok = true, Prompted = true }
 end
 
+local function buyShards(player: Player, key: unknown)
+	local bundle = if type(key) == "string" then MonetizationConfig.BundleByKey[key] else nil
+	if bundle == nil then
+		return { Ok = false, Reason = "BadRequest" }
+	end
+	if MonetizationService.Restricted(player) then
+		return { Ok = false, Reason = "Restricted" } -- Shards buy luck: not sold for Robux here
+	end
+	if mockAllowed(bundle.ProductId) then
+		payShards(player, bundle)
+		return { Ok = true, Mock = true, State = MonetizationService.State(player) }
+	end
+	if bundle.ProductId == 0 then
+		return { Ok = false, Reason = "NotForSale" }
+	end
+	MarketplaceService:PromptProductPurchase(player, bundle.ProductId)
+	return { Ok = true, Prompted = true }
+end
+
 local function loadPlayer(player: Player)
 	task.spawn(function()
 		local ok, info = pcall(function()
@@ -278,6 +322,8 @@ function MonetizationService.Start()
 			return buy(player, key)
 		elseif action == "BuyTotem" then
 			return buyTotem(player)
+		elseif action == "BuyShards" then
+			return buyShards(player, key)
 		end
 		return { Ok = false, Reason = "BadRequest" }
 	end

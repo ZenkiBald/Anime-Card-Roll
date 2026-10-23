@@ -171,20 +171,21 @@ local function upgradeRow(parent: Instance, upgrade, order: number)
 	rows[upgrade.Id] = { Level = level, Effect = effect, Pips = pips, Buy = buy }
 end
 
-function Shop.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "ShopGui", "SHARD SHOP", Vector2.new(0.66, 0.78), Vector2.new(760, 540))
+-- `host`: the SQUAD panel (Modal.Tabbed); the Shard upgrades are the right half of its UPGRADES tab.
+function Shop.Init(playerGui: Instance, host: any?)
+	modal = if host then host:Page("UPGRADES", "Right", "Shard upgrades") else Modal.new(playerGui, "ShopGui", "SHARD SHOP", Vector2.new(0.66, 0.78), Vector2.new(760, 540))
 
 	balance = Kit.label({
 		Text = "",
 		Font = Theme.Font.Display,
-		TextColor3 = Color3.fromRGB(230, 200, 255),
+		TextColor3 = Color3.fromRGB(212, 224, 247),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -70, 0, 4),
 		Size = UDim2.new(0.34, 0, 0, 26),
 		Parent = modal.Header,
 	}, 24)
-	Kit.textStroke(Color3.fromRGB(40, 14, 90), 2, 0).Parent = balance
+	Kit.textStroke(Color3.fromRGB(17, 22, 34), 2, 0).Parent = balance
 	hintLabel = Kit.label({
 		Text = "",
 		Font = Theme.Font.Heavy,

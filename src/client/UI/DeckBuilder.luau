@@ -366,8 +366,9 @@ local function loadWorking()
 	working = if preset then Deck.Copy(preset) else Deck.Empty()
 end
 
-function DeckBuilder.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "DeckGui", "Deck", Vector2.new(0.96, 0.9), Vector2.new(1300, 780))
+-- `host`: the SQUAD panel (Modal.Tabbed); the deck screen is its DECK tab.
+function DeckBuilder.Init(playerGui: Instance, host: any?)
+	modal = if host then host:Page("DECK") else Modal.new(playerGui, "DeckGui", "Deck", Vector2.new(0.96, 0.9), Vector2.new(1300, 780))
 
 	Controls.Search(modal.Header, {
 		AnchorPoint = Vector2.new(1, 0),
@@ -554,10 +555,10 @@ function DeckBuilder.Init(playerGui: Instance)
 		Name = "Collection",
 		Position = UDim2.new(0.33, 8, 0, 0),
 		Size = UDim2.new(0.67, -8, 1, 0),
-		BackgroundColor3 = Color3.fromRGB(14, 8, 32),
+		BackgroundColor3 = Color3.fromRGB(6, 8, 12),
 		BackgroundTransparency = 0.3,
 		Parent = modal.Body,
-	}, { Kit.corner(UDim.new(0, 18)), Kit.stroke(Color3.fromRGB(150, 110, 255), 2, 0.4) })
+	}, { Kit.corner(UDim.new(0, 18)), Kit.stroke(Color3.fromRGB(60, 200, 255), 2, 0.4) })
 
 	local bar = Kit.new("Frame", {
 		Name = "Bar",
@@ -625,7 +626,7 @@ function DeckBuilder.Init(playerGui: Instance)
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = Color3.fromRGB(170, 130, 255),
+		ScrollBarImageColor3 = Color3.fromRGB(90, 210, 255),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		Parent = right,

@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Bosses = require(ReplicatedStorage.Shared.Bosses)
 local BossModels = require(ReplicatedStorage.Shared.BossModels)
 local Meta = require(ReplicatedStorage.Shared.Meta)
+local NpcRange = require(script.Parent.NpcRange)
 
 local World = {}
 
@@ -56,7 +57,7 @@ local function sign(parent: BasePart, offset: number, title: string, sub: string
 	top.Name = "Title"
 	top.BackgroundTransparency = 1
 	top.Size = UDim2.fromScale(1, 0.58)
-	top.Font = Enum.Font.FredokaOne
+	top.Font = Enum.Font.GothamBlack
 	top.TextScaled = true
 	top.TextColor3 = Color3.new(1, 1, 1)
 	top.TextStrokeTransparency = 0.3
@@ -67,7 +68,7 @@ local function sign(parent: BasePart, offset: number, title: string, sub: string
 	bottom.BackgroundTransparency = 1
 	bottom.Position = UDim2.fromScale(0, 0.6)
 	bottom.Size = UDim2.fromScale(1, 0.4)
-	bottom.Font = Enum.Font.BuilderSansBold
+	bottom.Font = Enum.Font.GothamMedium
 	bottom.TextScaled = true
 	bottom.TextColor3 = color
 	bottom.TextStrokeTransparency = 0.4
@@ -91,6 +92,7 @@ local function npc(id: string, pivot: CFrame, parent: Instance, action: string, 
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = root
 	model.Parent = parent
+	NpcRange.Set(id, pivot.Position) -- its services only work beside it
 	return model
 end
 
@@ -558,6 +560,82 @@ local function towerAt(hub: Instance, ground: CFrame)
 	})
 end
 
+-- Rising sparks and embers from `source` (its whole volume): small, bright, slow, few.
+local function embers(source: BasePart, color: Color3, rate: number): ParticleEmitter
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "Embers"
+	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	emitter.Color = ColorSequence.new(color, Color3.fromRGB(255, 90, 40))
+	emitter.LightEmission = 1
+	emitter.LightInfluence = 0
+	emitter.Rate = rate
+	emitter.Lifetime = NumberRange.new(2.5, 4)
+	emitter.Speed = NumberRange.new(1.5, 3)
+	emitter.SpreadAngle = Vector2.new(35, 35)
+	emitter.Acceleration = Vector3.new(0, 1.2, 0)
+	emitter.Drag = 0.4
+	emitter.Shape = Enum.ParticleEmitterShape.Box
+	emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.22), NumberSequenceKeypoint.new(1, 0) })
+	emitter.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(0.7, 0.4), NumberSequenceKeypoint.new(1, 1) })
+	emitter.Parent = source
+	return emitter
+end
+
+-- Town at night: a warm light inside the street lanterns (the nearest MAX_LANTERN_LIGHTS to the plaza,
+-- no shadows, so phones stay smooth) and embers rising from the fountain.
+local MAX_LANTERN_LIGHTS = 24
+local LANTERN_COLOR = Color3.fromRGB(255, 150, 60)
+
+local function townLights(town: Instance)
+	local fountain = town:FindFirstChild("Fountain")
+	local center = if fountain and fountain:IsA("Model") then fountain:GetPivot().Position else Vector3.zero
+	local lanterns = {}
+	for _, child in town:GetChildren() do
+		if child:IsA("Model") and child.Name:match("^Lantern") then
+			table.insert(lanterns, { Model = child, Distance = (child:GetPivot().Position - center).Magnitude })
+		end
+	end
+	table.sort(lanterns, function(a, b)
+		return a.Distance < b.Distance
+	end)
+	for i = 1, math.min(#lanterns, MAX_LANTERN_LIGHTS) do
+		local model = lanterns[i].Model
+		local cf, size = model:GetBoundingBox()
+		local glow = part({
+			Name = "LanternGlow",
+			Size = Vector3.new(0.4, 0.4, 0.4),
+			CFrame = CFrame.new(cf.Position + Vector3.new(0, size.Y * 0.2, 0)),
+			Transparency = 1,
+			CanCollide = false,
+			Parent = model,
+		})
+		glow.CanQuery = false
+		glow.CanTouch = false
+		glow.CastShadow = false
+		local light = Instance.new("PointLight")
+		light.Brightness = 2
+		light.Range = 14
+		light.Color = LANTERN_COLOR
+		light.Shadows = false
+		light.Parent = glow
+	end
+	if fountain and fountain:IsA("Model") then
+		local cf, size = fountain:GetBoundingBox()
+		local source = part({
+			Name = "FountainEmbers",
+			Size = Vector3.new(size.X * 0.7, 0.4, size.Z * 0.7),
+			CFrame = CFrame.new(cf.Position + Vector3.new(0, size.Y * 0.3, 0)),
+			Transparency = 1,
+			CanCollide = false,
+			Parent = fountain,
+		})
+		source.CanQuery = false
+		source.CanTouch = false
+		embers(source, LANTERN_COLOR, 7)
+	end
+end
+
 -- The live parts of one world at the map's markers: a glowing portal filling the gate's opening,
 -- the world sign above it, and the boss standing guard.
 local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart, bossMarker: BasePart)
@@ -585,6 +663,7 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 	swirl.Speed = NumberRange.new(1, 3)
 	swirl.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
 	swirl.Parent = portal
+	embers(portal, theme.Glow, 5)
 	-- HubFx finds the sign on the part named GateGlow. A SignLift attribute on the marker raises it
 	-- (for gates with a tall lintel over the opening).
 	local lift = portalMarker:GetAttribute("SignLift")
@@ -609,6 +688,10 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 end
 
 local function buildFromMap(map: Instance, markers: Instance)
+	local town = map:FindFirstChild("Town")
+	if town then
+		townLights(town)
+	end
 	local hub = Instance.new("Folder")
 	hub.Name = "Hub"
 	for _, boss in Bosses.List do

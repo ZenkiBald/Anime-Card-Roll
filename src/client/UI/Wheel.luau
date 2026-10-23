@@ -156,7 +156,7 @@ function Wheel.Init(playerGui: Instance)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(0.98, 0.98),
-		BackgroundColor3 = Color3.fromRGB(30, 14, 66),
+		BackgroundColor3 = Color3.fromRGB(13, 16, 25),
 		BackgroundTransparency = 0.2,
 		Parent = square,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Theme.Color.Gold, 4, 0.1) })
@@ -191,7 +191,7 @@ function Wheel.Init(playerGui: Instance)
 			ZIndex = 6,
 			Parent = tile,
 		}, 30)
-		Kit.textStroke(Color3.fromRGB(20, 8, 40), 2.5, 0).Parent = label
+		Kit.textStroke(Color3.fromRGB(8, 10, 15), 2.5, 0).Parent = label
 		tiles[i] = tile
 	end
 	spinButton = Kit.button("SPIN!", Theme.Color.Roll, Theme.Color.RollDeep, {
@@ -225,7 +225,7 @@ function Wheel.Init(playerGui: Instance)
 	local track = Kit.new("Frame", {
 		LayoutOrder = 2,
 		Size = UDim2.new(1, 0, 0, 22),
-		BackgroundColor3 = Color3.fromRGB(14, 8, 30),
+		BackgroundColor3 = Color3.fromRGB(6, 7, 11),
 		Parent = side,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Theme.Color.Gold, 1.5, 0.4) })
 	nextFill = Kit.new("Frame", {
@@ -240,12 +240,12 @@ function Wheel.Init(playerGui: Instance)
 		ZIndex = 2,
 		Parent = track,
 	}, 15)
-	Kit.textStroke(Color3.fromRGB(20, 8, 40), 1.5, 0).Parent = nextLabel
+	Kit.textStroke(Color3.fromRGB(8, 10, 15), 1.5, 0).Parent = nextLabel
 	Kit.label({
 		LayoutOrder = 3,
 		Text = `A free spin every {Meta.Wheel.SpinEvery // 60} minutes you play. Every prize and its chance:`,
 		Font = Theme.Font.Bold,
-		TextColor3 = Color3.fromRGB(214, 200, 255),
+		TextColor3 = Color3.fromRGB(207, 219, 241),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Size = UDim2.new(1, 0, 0, 36),
 		Parent = side,

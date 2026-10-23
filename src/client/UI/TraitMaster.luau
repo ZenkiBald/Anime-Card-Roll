@@ -31,6 +31,7 @@ local TEAL_DEEP = Color3.fromRGB(20, 110, 96)
 local BIG_PAUSE = 1.5 -- seconds the buttons wait after a Legendary / Mythic roll
 
 local REASONS = {
+	TooFar = "Stand beside Kenshin to roll traits",
 	NoTraitShards = "Not enough Trait Shards (bosses, the tower, raids, quests and gifts pay them)",
 	SlotLocked = `Trait slot 2 opens at Awakening node {Traits.Slot2Node} ({Awaken.Nodes[Traits.Slot2Node].Copies} copies)`,
 	Pending = "Choose KEEP or APPLY first",

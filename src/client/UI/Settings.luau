@@ -53,7 +53,7 @@ local function row(order: number, key: string, caption: string, color: Color3, o
 		Size = UDim2.new(1, -8, 0, 32),
 		Parent = frame,
 	}, 28)
-	Kit.textStroke(Color3.fromRGB(30, 12, 70), 2, 0).Parent = title
+	Kit.textStroke(Color3.fromRGB(13, 17, 27), 2, 0).Parent = title
 	local pills = Kit.new("Frame", {
 		Position = UDim2.new(0, 0, 0, 40),
 		Size = UDim2.new(1, 0, 0, 50),

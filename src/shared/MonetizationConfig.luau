@@ -17,6 +17,7 @@ MonetizationConfig.AUTO_ROLL_PASS_ID = 0
 MonetizationConfig.TRIPLE_ROLL_PASS_ID = 0
 MonetizationConfig.VIP_PASS_ID = 0
 MonetizationConfig.SERVER_TOTEM_PRODUCT_ID = 0
+-- Shard bundle product ids: ProductId in MonetizationConfig.ShardBundles below.
 
 -- Studio / test mode: BUY grants without Robux when the id is still 0, or always when this is on.
 MonetizationConfig.MockPurchases = true
@@ -119,5 +120,20 @@ MonetizationConfig.Totem = {
 	Packs = { ["100"] = 2 },
 	TraitShards = 50,
 }
+
+-- Shard bundles (repeatable developer products). Shards buy luck potions and luck upgrades, so Robux
+-- -> Shards is an odds boost bought with Robux: the bundles follow the paid random items rule (sold only
+-- where ArePaidRandomItemsRestricted is false, greyed out elsewhere), like the totem.
+export type ShardBundle = { Key: string, Name: string, Icon: string, Shards: number, Price: number, ProductId: number }
+MonetizationConfig.ShardBundles = {
+	{ Key = "pouch", Name = "Shard Pouch", Icon = "💎", Shards = 500, Price = 49, ProductId = 0 },
+	{ Key = "chest", Name = "Shard Chest", Icon = "💠", Shards = 3000, Price = 249, ProductId = 0 },
+	{ Key = "vault", Name = "Shard Vault", Icon = "🏦", Shards = 15000, Price = 999, ProductId = 0 },
+} :: { ShardBundle }
+
+MonetizationConfig.BundleByKey = {} :: { [string]: ShardBundle }
+for _, bundle in MonetizationConfig.ShardBundles do
+	MonetizationConfig.BundleByKey[bundle.Key] = bundle
+end
 
 return MonetizationConfig

@@ -36,6 +36,7 @@ local RaidService = require(script.Parent.RaidService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local Momentum = require(script.Parent.Momentum)
 local TutorialService = require(script.Parent.TutorialService)
+local NpcRange = require(script.Parent.NpcRange)
 
 local RollService = {}
 
@@ -544,6 +545,9 @@ function RollService.Start()
 		end
 		if not alchemyLimiter:Allow(player) then
 			return { Ok = false, Reason = "TooFast" }
+		end
+		if not NpcRange.Near(player, "fuser") then
+			return { Ok = false, Reason = "TooFar" } -- pack alchemy happens beside Hoshi
 		end
 		local data = profile.Data
 		local held = data.Packs

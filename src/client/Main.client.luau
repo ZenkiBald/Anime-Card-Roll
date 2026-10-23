@@ -29,8 +29,9 @@ local Pets = require(UI.Pets)
 local Wheel = require(UI.Wheel)
 local PlayerList = require(UI.PlayerList)
 local Profile = require(UI.Profile)
-local Codes = require(UI.Codes)
 local TutorialUi = require(UI.Tutorial)
+local Alchemy = require(UI.Alchemy)
+local Modal = require(UI.Modal)
 local Dash = require(script.Parent.Dash)
 local Followers = require(script.Parent.Followers)
 local OddsPanel = require(UI.OddsPanel)
@@ -44,6 +45,7 @@ local Battle = require(UI.Battle)
 local State = require(script.Parent.State)
 local HubFx = require(script.Parent.HubFx)
 local ZoneFx = require(script.Parent.ZoneFx)
+local LightingSetup = require(script.Parent.LightingSetup)
 local Sfx = require(UI.Sfx)
 local MetaClient = require(script.Parent.MetaClient)
 local Meta = require(Shared.Meta)
@@ -59,6 +61,9 @@ end)
 
 -- Phones and tablets start on lighter effects; SETTINGS switches.
 Theme.FxLow = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+-- Twilight lighting, bloom, grade and haze (ZoneFx shifts it per zone from here).
+LightingSetup.Apply()
 
 -- The title screen covers the loading; PLAY unlocks at the end of this script.
 Title.Show(playerGui)
@@ -244,32 +249,37 @@ task.spawn(function()
 end)
 
 -- Build screens -------------------------------------------------------------------
+-- Tabbed panels: SQUAD (deck, Index, upgrades = stat points + Shard upgrades), QUESTS (Kenji's path,
+-- daily quests and gifts) and Hoshi's (fusion, pack alchemy: only from Hoshi in town).
+local squadPanel = Modal.Tabbed(playerGui, "SquadGui", "SQUAD", Vector2.new(0.96, 0.92), Vector2.new(1300, 820), { "DECK", "INDEX", "UPGRADES" })
+local questsPanel = Modal.Tabbed(playerGui, "QuestsGui", "QUESTS", Vector2.new(0.86, 0.88), Vector2.new(980, 740), { "KENJI'S PATH", "DAILY & GIFTS" })
+local hoshiPanel = Modal.Tabbed(playerGui, "HoshiGui", "HOSHI · FUSION MASTER", Vector2.new(0.88, 0.88), Vector2.new(1040, 720), { "FUSION", "PACK ALCHEMY" })
 Reveal.Init(playerGui)
 OddsPanel.Init(playerGui)
-Index.Init(playerGui, OddsPanel.Toggle)
+Index.Init(playerGui, OddsPanel.Toggle, squadPanel)
 Bag.Init(playerGui)
-StatsPanel.Init(playerGui)
-Shop.Init(playerGui)
-Gifts.Init(playerGui)
+StatsPanel.Init(playerGui, squadPanel)
+Shop.Init(playerGui, squadPanel)
+Gifts.Init(playerGui, questsPanel)
 Travel.Init(playerGui, function(text)
 	Hud.Hint(text)
 end)
 Settings.Init(playerGui)
-Fusion.Init(playerGui)
+Fusion.Init(playerGui, hoshiPanel)
+Alchemy.Init(hoshiPanel)
 Pets.Init(playerGui, function(text)
 	Hud.Hint(text)
 end)
 Wheel.Init(playerGui)
 PlayerList.SetHidden("Title", Title.IsOpen())
 Profile.Init(playerGui, Index.Toggle)
-Codes.Init(playerGui)
 PlayerList.Init(playerGui, Profile.Open)
 Dash.Start(Title.IsOpen)
 Followers.Start()
 ElementGuide.Init(playerGui)
 TraitMaster.Init(playerGui)
 Store.Init(playerGui, OddsPanel.Toggle)
-DeckBuilder.Init(playerGui)
+DeckBuilder.Init(playerGui, squadPanel)
 BossScreen.Init(playerGui, {
 	EditDeck = function(target)
 		DeckBuilder.Open(function()
@@ -351,31 +361,30 @@ Hud.Init(playerGui, {
 	end,
 	OnAuto = toggleAuto,
 	OnAutoStop = cycleAutoStop,
-	OnDeck = DeckBuilder.Toggle,
+	-- Six direct buttons. Fusion, alchemy, the wheel and traits are only at their NPCs in town.
 	OnBattle = BossScreen.Toggle,
-	OnIndex = Index.Toggle,
 	OnBag = Bag.Toggle,
-	OnStats = StatsPanel.Toggle,
-	OnShop = Shop.Toggle,
-	OnGifts = Gifts.Toggle,
-	OnOdds = OddsPanel.Toggle,
+	OnSquad = function()
+		if squadPanel.IsOpen then
+			squadPanel:Close()
+		else
+			squadPanel:Show(squadPanel.Current)
+		end
+	end,
+	OnQuests = function()
+		if questsPanel.IsOpen then
+			questsPanel:Close()
+		else
+			-- Kenji's path first while it runs, else the daily quests and gifts.
+			questsPanel:Show(if TutorialUi.Active() then "KENJI'S PATH" else "DAILY & GIFTS")
+		end
+	end,
 	OnTravel = Travel.Toggle,
+	OnStore = Store.Toggle,
+	OnOdds = OddsPanel.Toggle,
 	OnSettings = Settings.Toggle,
 	OnPets = Pets.Toggle,
-	OnCodes = Codes.Toggle,
 	OnRaid = BossScreen.OpenRaid,
-	OnStore = Store.Toggle,
-	OnTower = BossScreen.OpenTower,
-	OnCost = BossScreen.OpenCost,
-	OnTraits = function()
-		TraitMaster.Open()
-	end,
-	OnKenji = function()
-		TutorialUi.Open()
-	end,
-	OnFusion = Fusion.Open,
-	OnWheel = Wheel.Open,
-	OnTotem = Store.OpenTotem,
 	OnDev = if State.TestMode then DevPanel.Toggle else nil,
 })
 
@@ -439,16 +448,13 @@ Reveal.OnBusy = function(on: boolean)
 	PlayerList.SetHidden("Reveal", on)
 end
 
--- Red badges: rewards ready in QUESTS (gifts) and INDEX, potions and packs in the BAG, stat points to
--- spend, cards ready to fuse, Kenji's quest to claim. Each category's badge adds up its items.
+-- Red badges: gifts and Kenji's quest ready in QUESTS, Index rewards and stat points in SQUAD, potions
+-- and packs in the BAG.
 Hud.SetBadgeSource(function()
 	return {
-		QUESTS = MetaClient.GiftsClaimable(),
-		INDEX = MetaClient.IndexClaimable(),
+		QUESTS = MetaClient.GiftsClaimable() + (if TutorialUi.Ready() then 1 else 0),
+		SQUAD = MetaClient.IndexClaimable() + (State.Meta.StatPoints or 0),
 		BAG = MetaClient.PotionCount() + MetaClient.PackCount(),
-		STATS = State.Meta.StatPoints or 0,
-		FUSION = Fusion.ReadyCount(),
-		KENJI = if TutorialUi.Ready() then 1 else 0,
 	}
 end)
 Hud.RefreshBadges()
@@ -464,7 +470,8 @@ TutorialUi.Init(playerGui, Hud.QuestSlot(), function(text, hint)
 end, function(active)
 	Hud.SetQuestActive(active)
 	Hud.RefreshBadges()
-end)
+	questsPanel:SetTabText("KENJI'S PATH", if active then "KENJI'S PATH" else "KENJI'S PATH ✓")
+end, questsPanel)
 
 
 -- XP and level-ups from the server: the bar moves, and a level-up gets its celebration.
@@ -505,7 +512,7 @@ Title.Ready(function()
 	PlayerList.SetHidden("Title", false)
 	if State.Meta.Daily and State.Meta.Daily.CanClaim then
 		task.delay(0.8, function()
-			Hud.Hint(`Daily reward ready: day {State.Meta.Daily.Day} of 7. HUB > QUESTS!`)
+			Hud.Hint(`Daily reward ready: day {State.Meta.Daily.Day} of 7. Open QUESTS!`)
 		end)
 	end
 end)

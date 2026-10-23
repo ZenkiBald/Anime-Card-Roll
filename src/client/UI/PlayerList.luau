@@ -89,8 +89,8 @@ local function makeRow(player: Player)
 		Kit.corner(UDim.new(0, 12)),
 		Kit.gradient(
 			ColorSequence.new(
-				if me then Color3.fromRGB(90, 60, 170) else Color3.fromRGB(52, 36, 104),
-				if me then Color3.fromRGB(40, 24, 90) else Color3.fromRGB(22, 14, 50)
+				if me then Color3.fromRGB(30, 60, 100) else Color3.fromRGB(20, 25, 40),
+				if me then Color3.fromRGB(17, 22, 34) else Color3.fromRGB(10, 12, 19)
 			),
 			0
 		),
@@ -211,7 +211,7 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -80, 0, 6),
 		Size = UDim2.fromOffset(250, 32),
-		BackgroundColor3 = Color3.fromRGB(20, 12, 44),
+		BackgroundColor3 = Color3.fromRGB(8, 11, 17),
 		BackgroundTransparency = 0.25,
 		Parent = gui,
 	}, {

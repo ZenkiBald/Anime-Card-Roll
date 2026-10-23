@@ -27,7 +27,6 @@ local Controls = require(script.Parent.Controls)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local ElementUi = require(script.Parent.ElementUi)
-local TraitMaster = require(script.Parent.TraitMaster)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
 
@@ -245,16 +244,16 @@ local function showDetail(card)
 			16
 		)
 		order += 1
-		local master = Kit.button(if entry.Pending then "TRAIT MASTER · CHOOSE!" else `TRAIT MASTER · 🧬{Traits.RollCost}`, Color3.fromRGB(80, 230, 200), Color3.fromRGB(20, 110, 96), {
-			LayoutOrder = order,
-			Size = UDim2.new(0, 260, 0, 40),
-			ZIndex = 22,
-			Parent = right,
-		})
-		master.Activated:Connect(function()
-			modal:Close()
-			TraitMaster.Open(card.Id)
-		end)
+		-- Traits are rolled in town only: walk to Kenshin the Trait Master, beside Hoshi.
+		line(
+			if entry.Pending
+				then "🧬 A trait roll waits for your choice: visit Kenshin the Trait Master in town"
+				else `🧬 New traits: visit Kenshin the Trait Master in town (🧬{Traits.RollCost} a roll)`,
+			Theme.Font.Bold,
+			Color3.fromRGB(80, 230, 200),
+			16,
+			14
+		)
 
 		-- FAVOURITE: this card becomes your picture in the server list and on your name tag.
 		order += 1
@@ -367,7 +366,7 @@ local function section(rarity: string, order: number)
 	Controls.Outlined(Kit.label({
 		Text = `{Odds.FormatPercent(chance)}  ·  {Odds.FormatOneIn(chance)}  ·  {found}/{#pool} found`,
 		Font = Theme.Font.Heavy,
-		TextColor3 = Color3.fromRGB(235, 230, 255),
+		TextColor3 = Color3.fromRGB(223, 235, 255),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromOffset(56, 30),
 		Size = UDim2.new(0.45, 0, 0, 16),
@@ -409,7 +408,7 @@ local function section(rarity: string, order: number)
 		Controls.Outlined(Kit.label({
 			Text = `Find all {#pool}:  {rewardText}`,
 			Font = Theme.Font.Heavy,
-			TextColor3 = Color3.fromRGB(235, 230, 255),
+			TextColor3 = Color3.fromRGB(223, 235, 255),
 			TextXAlignment = Enum.TextXAlignment.Right,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -12, 0.5, 0),
@@ -491,9 +490,10 @@ local function redraw()
 	Index.Refresh()
 end
 
-function Index.Init(playerGui: Instance, openOdds: () -> ())
+-- `host`: the SQUAD panel (Modal.Tabbed); the Index is its INDEX tab.
+function Index.Init(playerGui: Instance, openOdds: () -> (), host: any?)
 	onOdds = openOdds
-	modal = Modal.new(playerGui, "IndexGui", "Index", Vector2.new(0.94, 0.9), Vector2.new(1200, 760))
+	modal = if host then host:Page("INDEX") else Modal.new(playerGui, "IndexGui", "Index", Vector2.new(0.94, 0.9), Vector2.new(1200, 760))
 
 	Controls.Search(modal.Header, {
 		AnchorPoint = Vector2.new(1, 0),
@@ -550,7 +550,7 @@ function Index.Init(playerGui: Instance, openOdds: () -> ())
 		Name = "Progress",
 		LayoutOrder = 1,
 		Size = UDim2.new(0, 220, 0, 30),
-		BackgroundColor3 = Color3.fromRGB(14, 8, 32),
+		BackgroundColor3 = Color3.fromRGB(6, 8, 12),
 		Parent = right,
 	}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(Theme.Color.Gold, 2, 0.3) })
 	progressFill = Kit.new("Frame", {
@@ -592,7 +592,7 @@ function Index.Init(playerGui: Instance, openOdds: () -> ())
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = Color3.fromRGB(170, 130, 255),
+		ScrollBarImageColor3 = Color3.fromRGB(90, 210, 255),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		Parent = modal.Body,

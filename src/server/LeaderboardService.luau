@@ -190,7 +190,7 @@ local function label(parent: Instance, props: { [string]: any }): TextLabel
 	l.BackgroundTransparency = 1
 	l.TextScaled = true
 	l.TextColor3 = Color3.new(1, 1, 1)
-	l.Font = Enum.Font.BuilderSansExtraBold
+	l.Font = Enum.Font.GothamBold
 	for key, value in props do
 		(l :: any)[key] = value
 	end
@@ -236,7 +236,7 @@ local function buildBoard(parent: Instance, frame: CFrame, board: Board)
 	gui.Parent = panel
 	local title = label(gui, {
 		Text = board.Title,
-		Font = Enum.Font.FredokaOne,
+		Font = Enum.Font.GothamBlack,
 		TextColor3 = board.Color,
 		Position = UDim2.fromScale(0.05, 0.025),
 		Size = UDim2.fromScale(0.9, 0.1),
@@ -266,7 +266,7 @@ local function buildBoard(parent: Instance, frame: CFrame, board: Board)
 		corner.Parent = strip
 		local rank = label(gui, {
 			Text = `{i}`,
-			Font = Enum.Font.FredokaOne,
+			Font = Enum.Font.GothamBlack,
 			TextColor3 = MEDALS[i] or Color3.fromRGB(190, 180, 220),
 			Position = UDim2.fromScale(0.05, y),
 			Size = UDim2.fromScale(0.08, 0.075),
@@ -279,7 +279,7 @@ local function buildBoard(parent: Instance, frame: CFrame, board: Board)
 		})
 		local value = label(gui, {
 			Text = "",
-			Font = Enum.Font.FredokaOne,
+			Font = Enum.Font.GothamBlack,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			Position = UDim2.fromScale(0.54, y),
 			Size = UDim2.fromScale(0.41, 0.076),

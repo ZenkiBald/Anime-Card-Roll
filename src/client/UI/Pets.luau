@@ -93,7 +93,7 @@ local function preview(parent: Instance, mount)
 		Position = UDim2.fromScale(0.5, 0.04),
 		Size = UDim2.fromScale(0.92, 0.5),
 		BackgroundTransparency = 1,
-		Ambient = Color3.fromRGB(190, 180, 210),
+		Ambient = Color3.fromRGB(180, 189, 209),
 		LightColor = Color3.fromRGB(255, 248, 236),
 		LightDirection = Vector3.new(-0.4, -1, -0.6),
 		Parent = parent,
@@ -137,7 +137,7 @@ local function tile(mount, order: number)
 		Size = UDim2.fromScale(0.9, 0.1),
 		Parent = frame,
 	}, 24)
-	Kit.textStroke(Color3.fromRGB(30, 12, 70), 2, 0).Parent = name
+	Kit.textStroke(Color3.fromRGB(13, 17, 27), 2, 0).Parent = name
 	Kit.label({
 		Text = `⚡ Speed {mount.Speed}`,
 		Font = Theme.Font.Heavy,
@@ -149,7 +149,7 @@ local function tile(mount, order: number)
 	Kit.label({
 		Text = mount.Text,
 		Font = Theme.Font.Bold,
-		TextColor3 = Color3.fromRGB(214, 200, 255),
+		TextColor3 = Color3.fromRGB(207, 219, 241),
 		Position = UDim2.fromScale(0.06, 0.725),
 		Size = UDim2.fromScale(0.88, 0.09),
 		Parent = frame,
@@ -217,7 +217,7 @@ function Pets.Init(playerGui: Instance, showHint: (string) -> ())
 	Kit.label({
 		Text = "Ride to get around faster  ·  G rides / gets off  ·  each world's boss unlocks a new mount",
 		Font = Theme.Font.Heavy,
-		TextColor3 = Color3.fromRGB(214, 200, 255),
+		TextColor3 = Color3.fromRGB(207, 219, 241),
 		Size = UDim2.new(1, 0, 0, 20),
 		Parent = modal.Body,
 	}, 16)
