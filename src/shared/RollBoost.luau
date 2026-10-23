@@ -5,11 +5,13 @@
 --     10 in the chain gives +1% roll speed and +0.01x base luck, up to +50% and +0.5x at 500. The chain
 --     breaks after BreakSeconds without a roll, but that clock stops while the player is in a fight
 --     (boss, tower or raid), so fighting never costs a streak. Session only (not saved).
---   * Overcharge Surge: every 25th roll (by lifetime rolls) is a surge.
---       - On Auto Roll (or a late tap): 3x border odds and 1.5x foil odds.
+--   * Overcharge Surge: every 25th roll (TotalRolls % 25 == 0, by lifetime rolls) is a surge. No pity: a
+--     surge only multiplies the special border odds (Gold / Rainbow / Secret; Base takes the rest).
+--       - Standard (Auto Roll, a late tap): 10x border odds (Gold ~15%, Rainbow ~1%, Secret 1 in 10,000 at
+--         1x luck) and 1.5x foil odds.
 --       - By hand, a clean tap inside the Surge window (the PerfectWindow seconds after the cooldown is
 --         ready and the surge ring lights up), or on Auto with the Auto Roll pass: a PERFECT surge rolls
---         3 cards at once, all with 6x border odds and 2x foil odds. A late tap, or one
+--         3 cards at once, all with 12x border odds and 2x foil odds. A late tap, or one
 --         made while the cooldown was still running (an Early input, queued by the client), gets the
 --         plain surge.
 
@@ -26,9 +28,9 @@ RollBoost.Momentum = {
 RollBoost.Surge = {
 	Every = 25,
 	PerfectWindow = 1.5,
-	BorderMult = 3, -- plain surge: x border odds
+	BorderMult = 10, -- standard surge: x border odds
 	FoilMult = 1.5,
-	PerfectBorderMult = 6, -- perfect surge: every card
+	PerfectBorderMult = 12, -- perfect surge: every card
 	PerfectFoilMult = 2,
 	PerfectCards = 3,
 }
@@ -50,6 +52,16 @@ end
 -- the network slack the server forgives.
 function RollBoost.IsPerfect(early: boolean, left: number, tolerance: number): boolean
 	return not early and left <= tolerance and left > -(RollBoost.Surge.PerfectWindow + tolerance)
+end
+
+-- The surge meter: rolls made in the current cycle, 0-24 (0 right after a surge). The HUD binds to it.
+function RollBoost.SurgeProgress(totalRolls: number): number
+	return totalRolls % RollBoost.Surge.Every
+end
+
+-- Whether the roll that brought lifetime rolls to `totalRolls` was a surge.
+function RollBoost.IsSurgeRoll(totalRolls: number): boolean
+	return RollBoost.IsSurge(totalRolls)
 end
 
 -- Rolls until the next surge, counting the next roll as 1.

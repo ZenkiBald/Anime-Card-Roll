@@ -82,6 +82,8 @@ local function summary(player: Player, data)
 		TraitShards = data.TraitShards or 0,
 		Momentum = Momentum.State(player),
 		UntilSurge = RollBoost.UntilSurge(data.TotalRolls),
+		SurgeProgress = RollBoost.SurgeProgress(data.TotalRolls), -- 0-24: the surge meter (TotalRolls % 25)
+		IsSurgeRoll = RollBoost.IsSurgeRoll(data.TotalRolls), -- the last roll was a surge
 		AutoStop = data.Settings.AutoStop,
 		AutoActive = autoActive[player] == true,
 		Playtime = DataService.Playtime(player),

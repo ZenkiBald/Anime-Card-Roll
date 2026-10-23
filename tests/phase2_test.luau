@@ -43,6 +43,19 @@ local s2, l2 = RollBoost.MomentumBonus(5000)
 check(near(s2, 0.5) and near(l2, 0.5) and near((RollBoost.MomentumBonus(19)), 0.01), "the chain caps at 500 and steps every 10")
 check(RollBoost.IsSurge(25) and RollBoost.IsSurge(50) and not RollBoost.IsSurge(24), "every 25th roll is an Overcharge Surge")
 check(RollBoost.UntilSurge(24) == 1 and RollBoost.UntilSurge(25) == 25, "the HUD counts down to the next surge")
+check(RollBoost.SurgeProgress(0) == 0 and RollBoost.SurgeProgress(24) == 24 and RollBoost.SurgeProgress(25) == 0 and RollBoost.SurgeProgress(57) == 7, "SurgeProgress = TotalRolls % 25")
+check(RollBoost.IsSurgeRoll(25) and RollBoost.IsSurgeRoll(50) and not RollBoost.IsSurgeRoll(0) and not RollBoost.IsSurgeRoll(24), "IsSurgeRoll: TotalRolls % 25 == 0 and TotalRolls > 0")
+-- Surge odds: a multiplier on the special borders (no pity). Standard 10x, perfect 12x, at 1x luck.
+do
+	local Borders = MODULES.Borders
+	local cfg = RollBoost.Surge
+	check(cfg.BorderMult == 10 and cfg.PerfectBorderMult == 12 and cfg.PerfectCards == 3, "surge tuning: standard 10x, perfect 3 cards at 12x")
+	local std = Borders.Chances(cfg.BorderMult - 1, 1)
+	check(near(std.Gold, 0.15, 1e-9) and near(std.Rainbow, 0.0099, 1e-9) and near(std.Secret, 0.0001, 1e-12), "a standard surge: Gold 15%, Rainbow 0.99%, Secret 1 in 10,000")
+	local perfect = Borders.Chances(cfg.PerfectBorderMult - 1, 1)
+	check(near(perfect.Gold, 0.18, 1e-9) and near(perfect.Secret, 0.00012, 1e-12), "a perfect surge: 12x (Gold 18%, Secret 0.012%)")
+	check(std.Normal > 0.8 and perfect.Normal > 0.75, "a surge is no pity: Base is still the most likely border")
+end
 local plain = Meta.Cooldown({}, {})
 check(Meta.Cooldown({}, {}, nil, nil, nil, { Momentum = 0.5 }) < plain and Meta.Cooldown({}, {}, nil, nil, nil, { Pass = 0.3 }) < plain, "Momentum and the Fast Roll pass shorten the cooldown")
 check(Meta.Cooldown({ RollSpeed = 10 }, { speed = 60 }, 0.4, nil, nil, { Momentum = 0.5, Pass = 0.3 }) >= 0.4, "the cooldown never drops under 0.4 s")

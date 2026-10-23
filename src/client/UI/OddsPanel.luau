@@ -13,6 +13,7 @@ local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
 local Foils = require(Shared.Foils)
+local RollBoost = require(Shared.RollBoost)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -24,6 +25,8 @@ local OddsPanel = {}
 local modal
 local borderRows = {} -- [border id] = { Chance, OneIn }
 local cardRows = {} -- [card id] = { Chance, OneIn }
+local surgeRows = {} -- [border id] = { Chance = standard surge, OneIn = perfect surge }
+local surgeTitle: TextLabel
 local borderTitle: TextLabel
 local luckLabel: TextLabel
 local function refresh()
@@ -38,6 +41,17 @@ local function refresh()
 	borderTitle.Text = if boost > 0
 		then `BORDERS (the tiers)  <font color="#FF78DC">(+{math.floor(boost * 100 + 0.5)}% Border Chance)</font>`
 		else "BORDERS (the tiers)"
+	-- Overcharge Surge: the same table with the surge's border multiplier (it multiplies the Border Chance
+	-- boost exactly as RollService does).
+	local cfg = RollBoost.Surge
+	local standard = Odds.Chances(luck, (1 + boost) * cfg.BorderMult - 1)
+	local perfect = Odds.Chances(luck, (1 + boost) * cfg.PerfectBorderMult - 1)
+	for id, row in surgeRows do
+		row.Chance.Text = `{Odds.FormatPercent(standard[id])}`
+		row.OneIn.Text = `{Odds.FormatPercent(perfect[id])}`
+	end
+	local untilSurge = RollBoost.UntilSurge(State.Summary.TotalRolls or 0)
+	surgeTitle.Text = `OVERCHARGE SURGE  <font color="#FFC42E">(every {cfg.Every}th roll · next in {untilSurge})</font>`
 	-- Which card a pull gives (any border): its pull weight among the cards unlocked so far.
 	local pull = Cards.PullChances(Cards.Pool(State.Progress.Cleared))
 	for id, row in cardRows do
@@ -144,10 +158,47 @@ function OddsPanel.Init(playerGui: Instance)
 		borderRows[border.Id] = labels
 	end
 
+	-- Overcharge Surge: every 25th roll multiplies the special border odds (no pity, still pure luck).
+	surgeTitle = heading(scroll, "OVERCHARGE SURGE", 6)
+	local cfg = RollBoost.Surge
+	local columns, header = oddsRow(scroll, "SurgeColumns", 7, 26)
+	columns.BackgroundTransparency = 1
+	header.Chance.Text = `STANDARD {cfg.BorderMult}x`
+	header.OneIn.Text = `PERFECT {cfg.PerfectBorderMult}x · {cfg.PerfectCards} cards`
+	for i = #Borders.List, 1, -1 do
+		local border = Borders.List[i]
+		local row, labels = oddsRow(scroll, "Surge" .. border.Id, 8 + (#Borders.List - i), 32)
+		Kit.label({
+			Text = string.upper(border.Name),
+			Font = Theme.Font.Heavy,
+			TextColor3 = border.Color,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.new(0, 12, 0.2, 0),
+			Size = UDim2.new(0.5, -12, 0.6, 0),
+			Parent = row,
+		}, 16)
+		labels.OneIn.TextColor3 = Color3.fromRGB(255, 196, 46)
+		surgeRows[border.Id] = labels
+	end
+	Kit.label({
+		LayoutOrder = 12,
+		Size = UDim2.new(1, 0, 0, 34),
+		Font = Theme.Font.Medium,
+		TextColor3 = Theme.Color.Muted,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextWrapped = true,
+		TextScaled = false,
+		TextSize = 13,
+		Text = `A standard surge (Auto Roll, or a late tap) rolls 1 card at {cfg.BorderMult}x border odds. A perfect tap inside the `
+			.. `{cfg.PerfectWindow}s window after the cooldown rolls {cfg.PerfectCards} cards, each at {cfg.PerfectBorderMult}x. Base takes the rest.`,
+		Parent = scroll,
+	}, 13)
+
 	-- Cards: which card a pull gives, by pull weight (boss cards join after their boss's first Normal clear).
-	heading(scroll, "CARDS (per pull, any border)", 10)
+	heading(scroll, "CARDS (per pull, any border)", 20)
 	for i, card in Cards.List do
-		local row, labels = oddsRow(scroll, "Card" .. card.Id, 10 + i, 30)
+		local row, labels = oddsRow(scroll, "Card" .. card.Id, 20 + i, 30)
 		Kit.label({
 			Text = `{card.Name}  <font color="#A8A2C8">{card.Type}{if card.Boss then " · boss card" else ""}</font>`,
 			RichText = true,
@@ -256,7 +307,7 @@ function OddsPanel.Init(playerGui: Instance)
 		Text = "Rolls are free and pure luck (no pity). Every pull picks a card by its pull weight, then rolls its border (the tier: "
 			.. `Base 1x / Gold 4x / Rainbow 16x / Secret 64x stats). Luck raises the rarer borders most, up to {Config.Roll.LuckCap}x; Base `
 			.. "always keeps at least half. An infused Mega Pack weighs its element x1.5. Every pull also rolls a foil on its own; a card "
-			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (better border odds, 3 cards when hit perfectly). 100 copies "
+			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (10x border odds; 3 cards at 12x when hit perfectly). 100 copies "
 			.. "at one border fuse into 1 at the next (Hoshi). Traits are rolled at the Trait Master. Probabilities are rounded, so the "
 			.. "displayed values may not add up to exactly 100%.",
 		Parent = scroll,

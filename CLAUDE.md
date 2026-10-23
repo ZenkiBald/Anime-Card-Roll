@@ -147,8 +147,10 @@ DBZ x Naruto roster / boss mapping (#6) was NOT done: original characters only (
   Choose (0 keep, 1-2 apply); the roll waits as `Cards[id].Pending` until chosen; slot 2 at Awakening node 4.
 - Rolling: `RollBoost.luau` + server `Momentum.luau`: Momentum chain (+1% speed / +0.01x luck per 10 rolls, max
   500; breaks after 30 s idle, paused in fights; HUD meter over ROLL). Every 25th lifetime roll is an Overcharge
-  Surge (`RollService` rollClick): Auto = Rare+ with 1.5x border / foil odds; a click inside the 1.5 s window after
-  the cooldown (or the Auto Roll pass) = PERFECT: 3 cards, the first Epic+, 2x border / foil odds (`result.Extra`).
+  Surge (`RollService` rollClick; cycle = `TotalRolls % 25`, no pity): standard = 10x border odds (Gold ~15%,
+  Rainbow ~1%, Secret 1 in 10,000 at 1x luck), 1.5x foils; a click inside the 1.5 s window after the cooldown (or
+  the Auto Roll pass) = PERFECT: 3 cards at 12x border / 2x foil odds (`result.Extra`). The summary sends
+  `SurgeProgress` (0-24), `IsSurgeRoll` and `UntilSurge`; the ODDS panel has an OVERCHARGE SURGE table.
   Tiered luck (`Odds`: weight = base x luck ^ `Rarity.LuckExponent`, renormalised), cap 25x (Commons ~28% there).
   Foils (`Foils.luau`, every pull, kept like borders in `Cards[id].Foils`, best worn, battle-only): Aura 10% (+8%
   Skill DMG), Golden Ki 1.9% (+15 energy), Demon Seal 0.1% (+35% ATK, 5% HP per action, never below 1 HP).

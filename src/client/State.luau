@@ -14,12 +14,14 @@ local State = {
 		TotalRolls = 0,
 		Shards = 0,
 		Luck = 1,
-		AutoStop = "Legendary",
+		AutoStop = "Rainbow",
 		AutoActive = false,
 		Playtime = 0,
 		Unlocked = { QuickRoll = true, AutoRoll = true },
 		Momentum = nil :: any, -- { Count, Speed, Luck, Paused } (RollService)
 		UntilSurge = 25,
+		SurgeProgress = 0, -- 0-24: rolls into the current Overcharge Surge cycle (TotalRolls % 25)
+		IsSurgeRoll = false, -- the last roll was a surge
 	},
 	Decks = { Active = 1, Presets = {} }, -- presets: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} },
