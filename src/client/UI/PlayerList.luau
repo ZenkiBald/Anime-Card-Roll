@@ -2,6 +2,7 @@
 -- The server list, top right (replaces Roblox's player list): everyone in the server, strongest deck
 -- first, each with their favourite card as their picture (favourite one in the INDEX; until then it's
 -- their rarest card), their Deck Power and total rolls. The ">" button folds it to just the header.
+-- Tap a row (yourself too) to open that player's PROFILE.
 -- The numbers come from player attributes the server sets every 2 s (LeaderboardService).
 
 local Players = game:GetService("Players")
@@ -30,6 +31,7 @@ local foldButton: TextButton
 local rows = {} -- [Player] = { Frame, Portrait, Fav, Name, Power, Rolls }
 local folded = false
 local hiddenBy = {}
+local onPick: ((Player) -> ())? = nil
 
 local function short(n: number): string
 	if n >= 1e9 then
@@ -76,10 +78,12 @@ end
 
 local function makeRow(player: Player)
 	local me = player == Players.LocalPlayer
-	local frame = Kit.new("Frame", {
+	local frame = Kit.new("TextButton", {
 		Name = player.Name,
 		Size = UDim2.new(1, -6, 0, ROW_HEIGHT - 6),
 		BackgroundColor3 = Color3.new(1, 1, 1),
+		AutoButtonColor = false,
+		Text = "",
 		Parent = list,
 	}, {
 		Kit.corner(UDim.new(0, 12)),
@@ -134,6 +138,12 @@ local function makeRow(player: Player)
 		Parent = frame,
 	}, 13)
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.3).Parent = rolls
+	Kit.pressable(frame)
+	frame.Activated:Connect(function()
+		if onPick then
+			onPick(player)
+		end
+	end)
 	local row = { Frame = frame, Portrait = portrait, Stroke = stroke, Fav = nil, Power = power, Rolls = rolls }
 	rows[player] = row
 	return row
@@ -188,7 +198,8 @@ function PlayerList.SetHidden(reason: string, on: boolean)
 	end
 end
 
-function PlayerList.Init(playerGui: Instance)
+function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?)
+	onPick = pick
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false) -- this list replaces it
 	end)

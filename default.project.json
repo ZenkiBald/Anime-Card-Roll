@@ -24,7 +24,8 @@
         "Fuse": { "$className": "RemoteFunction" },
         "Mount": { "$className": "RemoteEvent" },
         "Progress": { "$className": "RemoteEvent" },
-        "OpenPack": { "$className": "RemoteFunction" }
+        "OpenPack": { "$className": "RemoteFunction" },
+        "Profile": { "$className": "RemoteFunction" }
       }
     },
     "ServerScriptService": {

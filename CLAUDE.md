@@ -96,6 +96,12 @@ favourite. New card look (`CardView`, user's reference): full-art, chips (rarity
 headline ability bar (Ultimate > Skill > Basic), tag chips (type + passives), DMG / HP (PWR / SPD) footer.
 HUD: running potions are tiles bottom right (above the jump button on touch), legendary pity counter over ROLL,
 Auto Roll feed lower right. Test tools: GIVE PACKS.
+BAG (2026-10-23, user's reference): one grid of small square tiles (rarity badge, xN, coloured edge, timer / level /
+WORN tag) with tabs ALL / PACKS / POTIONS / ARTIFACTS / ACCESSORIES, search, and a detail panel on the right
+(OPEN / USE / BUY / WEAR / REMOVE, accessory card picker) in `UI/Bag` (BagGear / BagPacks are gone).
+Profiles: tap anyone in the server list for PROFILE (`UI/Profile`, `ProfileService` + `Profile` remote, players in
+this server only): favourite card big, level, Deck Power, rolls, tower floor, bosses, Index, playtime, strongest
+cards and their deck; CHANGE FAVOURITE on your own.
 Planned next: traits rolled onto cards; AI card illustrations (user) to replace the chibi figures. Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
@@ -158,7 +164,7 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   area in, then pivots beside the zone's Boss_ marker / Spawn), `FusionService` (Fuse remote: checks ownership,
   copies and max rarity, then fuses), `LeaderboardService` (leaderstats + the town boards; test scores go to
   `LB_*_Test_1` stores),
-  `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
+  `ProfileService` (Profile remote: public profiles of players in the server), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient` (progression calls, badge counts),
   `HubFx` (NPC idle animation, sage tips, portal lock labels), `ZoneFx` (zone music + lighting mood),
   `UI/*` (Kit helpers incl. `Kit.tile` / `Kit.dimTile`, Theme, Skin (UI kit image ids), BorderFx (card border frames), Title, Travel, Settings, Fusion, Modal (blurred-world

@@ -1,36 +1,56 @@
 --!nonstrict
--- BAG: everything you carry, in tabs. PACKS: Roll Packs to open (BagPacks.luau). POTIONS: what
--- you own, what's running (with timers), and USE / BUY buttons. ARTIFACTS and ACCESSORIES (boss drops)
--- live in BagGear.luau.
--- The server checks every use and purchase (MetaService).
+-- BAG: everything you carry as one grid of small square tiles (like a backpack): a rarity badge
+-- top-left, the count top-right, the item's colour round the edge, and a timer / level / WORN tag along
+-- the bottom. Tabs filter it (ALL / PACKS / POTIONS / ARTIFACTS / ACCESSORIES) and SEARCH finds by name.
+-- Tapping a tile shows it on the right with what you can do with it:
+--   Roll Packs: OPEN (rolls at your luck now; the pulls play over the bag, PackOpen)
+--   Potions: USE / BUY      Artifacts: WEAR / REMOVE (3 slots)      Accessories: WEAR on a card / REMOVE
+-- The server checks every action (MetaService, RollService "OpenPack").
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Meta = require(Shared.Meta)
+local Items = require(Shared.Items)
+local Packs = require(Shared.Packs)
+local Rarity = require(Shared.Rarity)
+local Cards = require(Shared.Cards)
+local Borders = require(Shared.Borders)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
 local Controls = require(script.Parent.Controls)
-local BagGear = require(script.Parent.BagGear)
-local BagPacks = require(script.Parent.BagPacks)
-local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
+local CardTile = require(script.Parent.CardTile)
+local PackOpen = require(script.Parent.PackOpen)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
 
 local Bag = {}
-local Potions = Bag -- the POTIONS tab's code below refreshes through this
+
+local TABS = {
+	{ Name = "ALL", Color = Color3.fromRGB(255, 196, 46) },
+	{ Name = "PACKS", Color = Color3.fromRGB(255, 160, 60) },
+	{ Name = "POTIONS", Color = Color3.fromRGB(86, 214, 138) },
+	{ Name = "ARTIFACTS", Color = Color3.fromRGB(255, 120, 220) },
+	{ Name = "ACCESSORIES", Color = Color3.fromRGB(176, 92, 255) },
+}
+local KIND_ORDER = { Pack = 1, Potion = 2, Artifact = 3, Accessory = 4 }
+local KIND_TAB = { Pack = "PACKS", Potion = "POTIONS", Artifact = "ARTIFACTS", Accessory = "ACCESSORIES" }
+local GOLD_DEEP = Color3.fromRGB(150, 100, 10)
 
 local modal
-local pages = {} -- [tab] = Frame
-local tabSetters = {} -- [tab] = function(on)
-local currentTab = "POTIONS"
+local grid: ScrollingFrame
+local detail: ScrollingFrame
 local summaryLabel: TextLabel
 local hintLabel: TextLabel
-local cards = {} -- [potionId] = { Owned, Timer, Use, Buy }
+local tabSetters = {}
+local currentTab = "ALL"
+local search = ""
+local selectedKey: string? = nil
+local tiles = {} -- [key] = { Button, Sub, Entry } so timers tick without a rebuild
+local busy = false -- a pack reveal or the card picker is over the bag
 local hintToken = 0
 
 local function hint(text: string)
@@ -45,266 +65,316 @@ local function hint(text: string)
 	end)
 end
 
-local function clockText(seconds: number): string
+local function clear(frame: Instance)
+	for _, child in frame:GetChildren() do
+		if child:IsA("GuiObject") or child:IsA("UIListLayout") or child:IsA("UIPadding") then
+			child:Destroy()
+		end
+	end
+end
+
+local function clock(seconds: number): string
 	seconds = math.ceil(seconds)
+	if seconds >= 3600 then
+		return string.format("%dh %02dm", seconds // 3600, (seconds % 3600) // 60)
+	end
 	return string.format("%d:%02d", seconds // 60, seconds % 60)
 end
 
-function Potions.Refresh()
-	if not modal or not modal.IsOpen then
-		return
-	end
-	summaryLabel.Text = string.format(
-		'Luck now <font color="#56D68A"><b>%.2fx</b></font>   ·   Roll cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   💎 <b>%s</b> Shards',
-		State.Luck(),
-		State.Cooldown(),
-		Kit.commas(State.Summary.Shards or 0)
-	)
-	for id, refs in cards do
-		local potion = Meta.PotionById[id]
-		local owned = State.Meta.Inventory[id] or 0
-		local left = State.PotionLeft(id)
-		refs.Owned.Text = `OWNED x{owned}`
-		refs.Timer.Text = if left > 0 then `RUNNING  {clockText(left)}` else ""
-		Kit.dim(refs.Use, owned == 0)
-		refs.Buy.Label.Text = `BUY 💎{potion.Price}`
-		Kit.dim(refs.Buy, (State.Summary.Shards or 0) < potion.Price)
-		refs.Glow.Visible = left > 0
-	end
+local function gear()
+	return State.Meta.Gear or Items.Empty()
 end
 
-local function potionCard(parent: Instance, potion, order: number)
-	local card = Kit.tile({ Name = potion.Id, LayoutOrder = order, Parent = parent }, potion.Color)
-	-- A soft glow of the potion's colour behind the bottle.
-	local halo = Kit.new("Frame", {
-		Name = "Halo",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.22),
-		Size = UDim2.fromScale(0.7, 0.4),
-		BackgroundColor3 = potion.Color,
-		BackgroundTransparency = 0.78,
-		Parent = card,
-	}, { Kit.corner(UDim.new(1, 0)), Kit.aspect(1, Enum.DominantAxis.Height) })
-	TweenService:Create(halo, TweenInfo.new(1.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-		BackgroundTransparency = 0.88,
-	}):Play()
-	local glow = Kit.new("Frame", {
-		Name = "Glow",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-		Visible = false,
-		Parent = card,
-	}, { Kit.corner(UDim.new(0, 16)) })
-	local glowStroke = Kit.stroke(potion.Color, 4, 0)
-	glowStroke.Parent = glow
-	TweenService:Create(glowStroke, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-		Transparency = 0.7,
-	}):Play()
-	-- Bottle: a round flask with a neck, filled with the potion's colour.
-	local bottle = Kit.new("Frame", {
-		Name = "Bottle",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.05),
-		Size = UDim2.fromScale(0.44, 0.34),
-		BackgroundTransparency = 1,
-		Parent = card,
-	}, { Kit.aspect(0.8, Enum.DominantAxis.Height) })
-	Kit.new("Frame", {
-		Name = "Flask",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 1),
-		Size = UDim2.fromScale(1, 0.78),
-		BackgroundColor3 = potion.Color,
-		Parent = bottle,
+-- Every item the bag shows for the current tab and search: what you hold, and on a tab of its own
+-- kind also the packs and potions you could get (greyed out).
+local function entries()
+	local list = {}
+	local function add(entry)
+		local tabOk = currentTab == "ALL" or KIND_TAB[entry.Kind] == currentTab
+		local held = entry.Count > 0 or entry.Worn == true or entry.Running == true
+		if tabOk and (held or currentTab ~= "ALL") and (search == "" or string.find(string.lower(entry.Name), search, 1, true)) then
+			table.insert(list, entry)
+		end
+	end
+	for i, pack in Packs.List do
+		add({ Key = `Pack:{pack.Id}`, Kind = "Pack", Id = pack.Id, Item = pack, Name = pack.Name, Icon = pack.Icon, Color = pack.Color, Count = State.Packs[pack.Id] or 0, Order = i })
+	end
+	for i, potion in Meta.Potions do
+		add({
+			Key = `Potion:{potion.Id}`,
+			Kind = "Potion",
+			Id = potion.Id,
+			Item = potion,
+			Name = potion.Name,
+			Icon = potion.Icon,
+			Color = potion.Color,
+			Count = State.Meta.Inventory[potion.Id] or 0,
+			Running = State.PotionLeft(potion.Id) > 0,
+			Order = i,
+		})
+	end
+	local data = gear()
+	local worn = {}
+	for _, id in data.Worn or {} do
+		worn[id] = true
+	end
+	for i, artifact in Items.Artifacts do
+		local level = (data.Artifacts or {})[artifact.Id]
+		if level then
+			add({
+				Key = `Artifact:{artifact.Id}`,
+				Kind = "Artifact",
+				Id = artifact.Id,
+				Item = artifact,
+				Name = artifact.Name,
+				Icon = artifact.Icon,
+				Color = Rarity.Get(artifact.Rarity).Color,
+				Rarity = artifact.Rarity,
+				Count = 1,
+				Level = level,
+				Worn = worn[artifact.Id] == true,
+				Order = i,
+			})
+		end
+	end
+	local wearers = {} -- [accessory id] = { card ids }
+	for cardId, id in data.Cards or {} do
+		wearers[id] = wearers[id] or {}
+		table.insert(wearers[id], cardId)
+	end
+	for i, accessory in Items.Accessories do
+		local count = (data.Accessories or {})[accessory.Id] or 0
+		local on = wearers[accessory.Id] or {}
+		if count > 0 or #on > 0 then
+			add({
+				Key = `Accessory:{accessory.Id}`,
+				Kind = "Accessory",
+				Id = accessory.Id,
+				Item = accessory,
+				Name = accessory.Name,
+				Icon = accessory.Icon,
+				Color = Rarity.Get(accessory.Rarity).Color,
+				Rarity = accessory.Rarity,
+				Count = count,
+				Wearers = on,
+				Worn = #on > 0,
+				Order = i,
+			})
+		end
+	end
+	table.sort(list, function(a, b)
+		if a.Kind ~= b.Kind then
+			return KIND_ORDER[a.Kind] < KIND_ORDER[b.Kind]
+		end
+		local ra = if a.Rarity then Rarity.Index(a.Rarity) else 0
+		local rb = if b.Rarity then Rarity.Index(b.Rarity) else 0
+		if ra ~= rb then
+			return ra > rb
+		end
+		return a.Order < b.Order
+	end)
+	return list
+end
+
+-- The tag along a tile's bottom: a potion's time left, an artifact's level, WORN, a pack's size.
+local function subText(entry): (string, Color3)
+	if entry.Kind == "Potion" and entry.Running then
+		return clock(State.PotionLeft(entry.Id)), Theme.Color.Quick
+	elseif entry.Kind == "Artifact" then
+		return if entry.Worn then `WORN · Lv{entry.Level}` else `Lv{entry.Level}`, if entry.Worn then Theme.Color.Gold else Theme.Color.Text
+	elseif entry.Kind == "Accessory" and entry.Worn then
+		return `ON {#entry.Wearers}`, Theme.Color.Gold
+	elseif entry.Kind == "Pack" then
+		return `{Kit.commas(entry.Item.Rolls)} rolls`, Theme.Color.Text
+	end
+	return "", Theme.Color.Text
+end
+
+-- One square tile: dark glass tinted by the item's colour, the icon in the middle, rarity badge, count.
+local function tile(entry, order: number)
+	local held = entry.Count > 0 or entry.Worn == true or entry.Running == true
+	local button = Kit.new("TextButton", {
+		Name = entry.Key,
+		LayoutOrder = order,
+		AutoButtonColor = false,
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		Parent = grid,
 	}, {
-		Kit.corner(UDim.new(1, 0)),
-		Kit.gradient(ColorSequence.new(potion.Color:Lerp(Color3.new(1, 1, 1), 0.35), potion.Color:Lerp(Color3.new(0, 0, 0), 0.25)), 90),
-		Kit.stroke(Color3.new(1, 1, 1), 2, 0.4),
+		Kit.corner(UDim.new(0.14, 0)),
+		Kit.gradient(ColorSequence.new(entry.Color:Lerp(Color3.fromRGB(20, 12, 36), 0.62), Color3.fromRGB(16, 10, 30)), 90),
 	})
-	Kit.new("Frame", {
-		Name = "Neck",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0),
-		Size = UDim2.fromScale(0.36, 0.3),
-		BackgroundColor3 = Color3.fromRGB(220, 230, 240),
-		BackgroundTransparency = 0.3,
-		Parent = bottle,
-	}, { Kit.corner(UDim.new(0.3, 0)) })
+	local stroke = Kit.stroke(entry.Color, if entry.Key == selectedKey then 4 else 2.5, if held then 0 else 0.5)
+	stroke.Parent = button
+	if entry.Rarity == "Mythic" or entry.Rarity == "Secret" then
+		Kit.gradient(Rarity.Gradient(entry.Rarity), 45).Parent = stroke
+	end
 	Kit.label({
 		Name = "Icon",
-		Text = potion.Icon,
+		Text = entry.Icon,
 		Font = Theme.Font.Heavy,
+		TextTransparency = if held then 0 else 0.55,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.62),
-		Size = UDim2.fromScale(0.6, 0.45),
-		Parent = bottle,
-	}, 40)
-	local name = Kit.label({
-		Text = potion.Name,
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.62, 0.56),
+		Parent = button,
+	}, 60)
+	if entry.Rarity then
+		local badge = Kit.new("Frame", {
+			Name = "Badge",
+			Position = UDim2.fromScale(0.07, 0.07),
+			Size = UDim2.fromScale(0.24, 0.24),
+			BackgroundColor3 = entry.Color,
+			ZIndex = 3,
+			Parent = button,
+		}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Color3.new(1, 1, 1), 1.5, 0.2) })
+		local letter = Kit.label({
+			Text = string.sub(entry.Rarity, 1, 1),
+			Font = Theme.Font.Display,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 4,
+			Parent = badge,
+		}, 18)
+		Kit.textStroke(Color3.new(0, 0, 0), 1.2, 0.2).Parent = letter
+	end
+	local count = Kit.label({
+		Name = "Count",
+		Text = `x{Kit.commas(entry.Count)}`,
 		Font = Theme.Font.Display,
-		Position = UDim2.fromScale(0.05, 0.41),
-		Size = UDim2.fromScale(0.9, 0.11),
-		Parent = card,
-	}, 22)
-	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.3).Parent = name
-	Kit.label({
-		Text = potion.Text,
-		Font = Theme.Font.Bold,
-		TextColor3 = Theme.Color.Muted,
-		Position = UDim2.fromScale(0.05, 0.52),
-		Size = UDim2.fromScale(0.9, 0.08),
-		Parent = card,
-	}, 15)
-	local owned = Kit.label({
-		Text = "",
-		Font = Theme.Font.Display,
-		TextColor3 = Theme.Color.Gold,
-		Position = UDim2.fromScale(0.05, 0.6),
-		Size = UDim2.fromScale(0.9, 0.085),
-		Parent = card,
-	}, 22)
-	Kit.textStroke(Color3.fromRGB(70, 40, 0), 2, 0).Parent = owned
-	local timer = Kit.label({
-		Text = "",
+		TextColor3 = if entry.Count > 0 then Color3.new(1, 1, 1) else Theme.Color.Muted,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(0.94, 0.06),
+		Size = UDim2.fromScale(0.6, 0.2),
+		ZIndex = 3,
+		Parent = button,
+	}, 18)
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.1).Parent = count
+	local text, color = subText(entry)
+	local sub = Kit.label({
+		Name = "Sub",
+		Text = text,
 		Font = Theme.Font.Heavy,
-		TextColor3 = potion.Color,
-		Position = UDim2.fromScale(0.05, 0.68),
-		Size = UDim2.fromScale(0.9, 0.07),
-		Parent = card,
+		TextColor3 = color,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, 0.95),
+		Size = UDim2.fromScale(0.9, 0.2),
+		ZIndex = 3,
+		Parent = button,
 	}, 14)
-	local use = Kit.button("USE", potion.Color, potion.Color:Lerp(Color3.new(0, 0, 0), 0.45), {
-		Position = UDim2.fromScale(0.06, 0.78),
-		Size = UDim2.fromScale(0.42, 0.16),
-		Parent = card,
-	})
-	use.Activated:Connect(function()
-		local result = MetaClient.Call("UsePotion", potion.Id)
-		if result.Ok then
-			Sfx.Play("Potion")
-			Effects.Sparks(card, potion.Color, 16, 0.8)
-			hint(`{potion.Name} running!`)
-		else
-			hint(MetaClient.Message(result))
-		end
-		Potions.Refresh()
+	Kit.textStroke(Color3.new(0, 0, 0), 1.2, 0.1).Parent = sub
+	Kit.pressable(button)
+	button.Activated:Connect(function()
+		selectedKey = entry.Key
+		Bag.Refresh()
 	end)
-	local buy = Kit.button("BUY", Theme.Color.Accent, Theme.Color.AccentDeep, {
-		Position = UDim2.fromScale(0.52, 0.78),
-		Size = UDim2.fromScale(0.42, 0.16),
-		Parent = card,
-	})
-	buy.Activated:Connect(function()
-		local result = MetaClient.Call("BuyPotion", potion.Id)
-		if result.Ok then
-			Sfx.Play("Reward", 1.2)
-			hint(`Bought a {potion.Name}`)
-		else
-			hint(MetaClient.Message(result))
-		end
-		Potions.Refresh()
-	end)
-	cards[potion.Id] = { Owned = owned, Timer = timer, Use = use, Buy = buy, Glow = glow }
-	return card
+	tiles[entry.Key] = { Button = button, Sub = sub, Entry = entry }
 end
 
-local TABS = {
-	{ Name = "PACKS", Color = Color3.fromRGB(255, 160, 60) },
-	{ Name = "POTIONS", Color = Color3.fromRGB(86, 214, 138) },
-	{ Name = "ARTIFACTS", Color = Color3.fromRGB(255, 196, 46) },
-	{ Name = "ACCESSORIES", Color = Color3.fromRGB(176, 92, 255) },
-}
+-- Detail panel ------------------------------------------------------------------------------------
 
-local function showTab(name: string)
-	currentTab = name
-	for tab, page in pages do
-		page.Visible = tab == name
-	end
-	for tab, set in tabSetters do
-		set(tab == name)
-	end
-	Potions.Refresh()
-	BagGear.Refresh()
-	BagPacks.Refresh()
+local function detailText(order: number, value: string, color: Color3, size: number, font: Enum.Font?): TextLabel
+	return Kit.label({
+		LayoutOrder = order,
+		Text = value,
+		RichText = true,
+		Font = font or Theme.Font.Bold,
+		TextColor3 = color,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextWrapped = true,
+		TextScaled = false,
+		TextSize = size,
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Size = UDim2.new(1, 0, 0, size + 4),
+		Parent = detail,
+	}, size)
 end
 
-local function gearPage(name: string): Frame
+local function actionRow(order: number): Frame
 	return Kit.new("Frame", {
-		Name = name,
-		Position = UDim2.new(0, 0, 0, 52),
-		Size = UDim2.new(1, 0, 1, -52),
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, 46),
 		BackgroundTransparency = 1,
-		Visible = false,
-		Parent = modal.Body,
-	})
-end
-
-function Bag.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "BagGui", "BAG", Vector2.new(0.8, 0.84), Vector2.new(900, 600))
-
-	local tabRow = Kit.new("Frame", {
-		Name = "Tabs",
-		Size = UDim2.new(0.75, 0, 0, 44),
-		BackgroundTransparency = 1,
-		Parent = modal.Body,
+		Parent = detail,
 	}, {
 		Kit.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
 			SortOrder = Enum.SortOrder.LayoutOrder,
-			Padding = UDim.new(0, 10),
+			Padding = UDim.new(0, 8),
 		}),
 	})
-	for i, tab in TABS do
-		local button, set = Controls.Tab(tabRow, tab.Name, tab.Color, i, 150)
-		tabSetters[tab.Name] = set
-		button.Activated:Connect(function()
-			showTab(tab.Name)
-		end)
-	end
+end
 
-	local potionPage = Kit.new("Frame", {
-		Name = "POTIONS",
-		Position = UDim2.new(0, 0, 0, 52),
-		Size = UDim2.new(1, 0, 1, -52),
-		BackgroundTransparency = 1,
-		Parent = modal.Body,
+local function action(row: Frame, text: string, color: Color3, deep: Color3, order: number, enabled: boolean, onClick: () -> ())
+	local button = Kit.button(text, color, deep, {
+		LayoutOrder = order,
+		Size = UDim2.new(0.5, -4, 1, 0),
+		Parent = row,
 	})
-	pages.POTIONS = potionPage
-	pages.ARTIFACTS = gearPage("ARTIFACTS")
-	pages.ACCESSORIES = gearPage("ACCESSORIES")
-	pages.PACKS = gearPage("PACKS")
-	BagPacks.Init(pages.PACKS, function(text)
-		hint(text)
-	end)
-	BagGear.Init(pages.ARTIFACTS, pages.ACCESSORIES, function(text)
-		hint(text)
-	end)
+	Kit.dim(button, not enabled)
+	button.Activated:Connect(onClick)
+	return button
+end
 
-	summaryLabel = Kit.label({
-		Text = "",
-		RichText = true,
-		Font = Theme.Font.Heavy,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Size = UDim2.new(1, 0, 0, 22),
-		Parent = potionPage,
-	}, 17)
-	hintLabel = Kit.label({
-		Text = "",
-		Font = Theme.Font.Heavy,
-		TextColor3 = Theme.Color.Gold,
-		TextTransparency = 1,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -58, 0, 16),
-		Size = UDim2.new(0.4, 0, 0, 20),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		Parent = modal.Header,
-	}, 16)
+local function call(name: string, arg: any, okText: string?): boolean
+	local result = MetaClient.Call(name, arg)
+	if result.Ok then
+		Sfx.Play("Upgrade", 1.2)
+		if okText then
+			hint(okText)
+		end
+	else
+		hint(MetaClient.Message(result))
+	end
+	return result.Ok
+end
 
-	local grid = Kit.new("Frame", {
-		Name = "Grid",
-		Position = UDim2.new(0, 0, 0, 30),
-		Size = UDim2.new(1, 0, 1, -48),
+-- A cover over the whole bag (pack reveals, the card picker); close() takes it away.
+local function cover(): (Frame, () -> ())
+	busy = true
+	local frame = Kit.new("Frame", {
+		Name = "Cover",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(12, 7, 30),
+		BackgroundTransparency = 0.04,
+		Active = true,
+		ZIndex = 30,
+		Parent = modal.Body,
+	}, { Kit.corner(UDim.new(0, 18)) })
+	local function close()
+		frame:Destroy()
+		busy = false
+		Bag.Refresh()
+	end
+	return frame, close
+end
+
+local function openPack(pack)
+	if busy then
+		return
+	end
+	local result, message = PackOpen.Open(pack.Id)
+	if result == nil then
+		hint(message or "Couldn't open it")
+		return
+	end
+	Sfx.Play("Whoosh", 0.9)
+	local frame, close = cover()
+	local area = Kit.new("Frame", {
+		Position = UDim2.new(0, 12, 0, 10),
+		Size = UDim2.new(1, -24, 1, -80),
 		BackgroundTransparency = 1,
-		Parent = potionPage,
+		ZIndex = 31,
+		Parent = frame,
+	})
+	local buttons = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -10),
+		Size = UDim2.fromOffset(400, 48),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 32,
+		Parent = frame,
 	}, {
 		Kit.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
@@ -313,34 +383,398 @@ function Bag.Init(playerGui: Instance)
 			Padding = UDim.new(0, 10),
 		}),
 	})
-	for i, potion in Meta.Potions do
-		local card = potionCard(grid, potion, i)
-		card.Size = UDim2.new(1 / #Meta.Potions, -10, 1, 0)
+	local done = Kit.button("DONE", Theme.Color.Quick, Theme.Color.QuickDeep, { LayoutOrder = 1, Size = UDim2.fromOffset(170, 48), Parent = buttons })
+	done.Activated:Connect(close)
+	if (State.Packs[pack.Id] or 0) > 0 then
+		local again = Kit.button("OPEN ANOTHER", Theme.Color.Gold, GOLD_DEEP, { LayoutOrder = 2, Size = UDim2.fromOffset(200, 48), Parent = buttons })
+		again.Activated:Connect(function()
+			close()
+			openPack(pack)
+		end)
 	end
-	Kit.label({
-		Text = "Potions of the same kind add time (up to 1 hour). Luck potions don't stack with each other: the strongest one counts. Timers only run while you're in the game.",
-		Font = Theme.Font.Medium,
-		TextColor3 = Theme.Color.Muted,
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, 0, 0, 16),
-		Parent = potionPage,
-	}, 13)
+	PackOpen.Play(area, result, function()
+		if buttons.Parent then
+			buttons.Visible = true
+		end
+	end)
+end
+
+-- Which card wears an accessory: every owned card as a tile, with what it wears now.
+local function pickCard(accessory)
+	if busy then
+		return
+	end
+	local frame, close = cover()
+	local title = Kit.label({
+		Text = `Who wears the {accessory.Icon} {accessory.Name}?  <font color="#96FFBE">{Items.AccessoryText(accessory)}</font>`,
+		RichText = true,
+		Font = Theme.Font.Display,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 14, 0, 8),
+		Size = UDim2.new(1, -150, 0, 30),
+		ZIndex = 31,
+		Parent = frame,
+	}, 22)
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = title
+	local back = Kit.button("BACK", Theme.Color.PanelLight, Theme.Color.Panel, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 6),
+		Size = UDim2.fromOffset(120, 40),
+		ZIndex = 31,
+		Parent = frame,
+	})
+	back.Activated:Connect(close)
+	local list = Kit.new("ScrollingFrame", {
+		Position = UDim2.new(0, 10, 0, 52),
+		Size = UDim2.new(1, -20, 1, -62),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 4,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ZIndex = 31,
+		Parent = frame,
+	}, {
+		Kit.new("UIGridLayout", { CellSize = UDim2.fromOffset(104, 128), CellPadding = UDim2.fromOffset(10, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	local owned = {}
+	for _, card in Cards.List do
+		if State.Cards[card.Id] then
+			table.insert(owned, card)
+		end
+	end
+	table.sort(owned, function(a, b)
+		return Rarity.Index(a.Rarity) > Rarity.Index(b.Rarity)
+	end)
+	local wearing = gear().Cards or {}
+	for i, card in owned do
+		local entry = State.Cards[card.Id]
+		local cell = Kit.new("Frame", { LayoutOrder = i, BackgroundTransparency = 1, ZIndex = 31, Parent = list })
+		local cardTile = CardTile.new(card.Id, { Owned = true, Stars = entry.Stars, Fusion = entry.Fusion, Border = Borders.Best(entry.Borders) })
+		cardTile.Size = UDim2.new(1, 0, 1, -20)
+		cardTile.Parent = cell
+		local on = wearing[card.Id] and Items.AccessoryById[wearing[card.Id]]
+		Kit.label({
+			Text = if on then `{on.Icon} {on.Name}` else card.Name,
+			Font = Theme.Font.Heavy,
+			TextColor3 = if on then Theme.Color.Gold else Theme.Color.Text,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.fromScale(0.5, 1),
+			Size = UDim2.new(1, 0, 0, 18),
+			ZIndex = 32,
+			Parent = cell,
+		}, 14)
+		cardTile.Activated:Connect(function()
+			if call("WearAccessory", { Card = card.Id, Item = accessory.Id }, `{card.Name} now wears the {accessory.Name}`) then
+				close()
+			end
+		end)
+	end
+end
+
+local function showDetail(entry)
+	clear(detail)
+	detail:SetAttribute("Timer", nil)
+	Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6), Parent = detail })
+	Kit.new("UIPadding", {
+		PaddingTop = UDim.new(0, 10),
+		PaddingBottom = UDim.new(0, 10),
+		PaddingLeft = UDim.new(0, 12),
+		PaddingRight = UDim.new(0, 12),
+		Parent = detail,
+	})
+	if entry == nil then
+		detailText(1, "Tap an item to see what it does.", Theme.Color.Muted, 18, Theme.Font.Heavy)
+		return
+	end
+	local item = entry.Item
+	-- The big icon and the name.
+	local big = Kit.new("Frame", {
+		LayoutOrder = 1,
+		Size = UDim2.new(1, 0, 0, 110),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		Parent = detail,
+	}, {
+		Kit.corner(UDim.new(0, 16)),
+		Kit.gradient(ColorSequence.new(entry.Color:Lerp(Color3.fromRGB(20, 12, 36), 0.5), Color3.fromRGB(16, 10, 30)), 90),
+		Kit.stroke(entry.Color, 3, 0),
+	})
+	Kit.label({ Text = entry.Icon, Font = Theme.Font.Heavy, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.5, 0.8), Parent = big }, 80)
+	local name = detailText(2, string.upper(entry.Name), entry.Color, 24, Theme.Font.Display)
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = name
+	local kindText = if entry.Rarity then `{entry.Rarity} {entry.Kind}` else entry.Kind
+	detailText(3, `{kindText}  ·  You have <b>{Kit.commas(entry.Count)}</b>`, Theme.Color.Muted, 15, Theme.Font.Heavy)
+
+	if entry.Kind == "Pack" then
+		detailText(
+			4,
+			`<b>{Kit.commas(item.Rolls)} rolls</b> at your luck when you open it: <font color="#56D68A"><b>{string.format("%.2f", State.Luck())}x</b></font> right now. Open it during a luck potion or LUCKY STORM for better cards!`,
+			Theme.Color.Text,
+			16
+		)
+		local row = actionRow(5)
+		action(row, "OPEN", Theme.Color.Gold, GOLD_DEEP, 1, entry.Count > 0, function()
+			if (State.Packs[item.Id] or 0) > 0 then
+				openPack(item)
+			else
+				hint("Beat bosses and every 5th tower floor for packs")
+			end
+		end)
+	elseif entry.Kind == "Potion" then
+		detailText(4, item.Text, Theme.Color.Text, 17, Theme.Font.Heavy)
+		local left = State.PotionLeft(item.Id)
+		detail:SetAttribute("Timer", item.Id)
+		local timer = detailText(5, if left > 0 then `RUNNING · {clock(left)} left` else "Not running", if left > 0 then Theme.Color.Quick else Theme.Color.Muted, 16, Theme.Font.Heavy)
+		timer.Name = "Timer"
+		detailText(6, "The same kind adds time (up to 1 hour). Luck potions don't stack: the strongest counts. Timers only run while you play.", Theme.Color.Muted, 13)
+		local row = actionRow(7)
+		action(row, "USE", item.Color, item.Color:Lerp(Color3.new(0, 0, 0), 0.45), 1, entry.Count > 0, function()
+			if call("UsePotion", item.Id, `{item.Name} running!`) then
+				Sfx.Play("Potion") -- the bag redraws with the new timer (State.Changed)
+			end
+		end)
+		action(row, `BUY 💎{item.Price}`, Theme.Color.Accent, Theme.Color.AccentDeep, 2, (State.Summary.Shards or 0) >= item.Price, function()
+			call("BuyPotion", item.Id, `Bought a {item.Name}`)
+		end)
+	elseif entry.Kind == "Artifact" then
+		detailText(4, `Lv {entry.Level}/{Items.MaxLevel}: <b>{Items.ArtifactText(item, entry.Level)}</b>`, Theme.Color.Gold, 17, Theme.Font.Heavy)
+		if entry.Level < Items.MaxLevel then
+			detailText(5, `A duplicate raises it to Lv {entry.Level + 1}: {Items.ArtifactText(item, entry.Level + 1)}`, Theme.Color.Muted, 14)
+		else
+			detailText(5, `Max level: duplicates melt into 💎{Items.MeltShards[item.Rarity] or 100} Shards.`, Theme.Color.Muted, 14)
+		end
+		local worn = gear().Worn or {}
+		detailText(6, `Artifacts worn: <b>{#worn}/{Items.ArtifactSlots}</b>`, Theme.Color.Text, 15, Theme.Font.Heavy)
+		local row = actionRow(7)
+		if entry.Worn then
+			action(row, "REMOVE", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), 1, true, function()
+				call("RemoveArtifact", item.Id, `{item.Name} put back in the bag`)
+			end)
+		else
+			action(row, "WEAR", Theme.Color.Gold, GOLD_DEEP, 1, #worn < Items.ArtifactSlots, function()
+				if #worn >= Items.ArtifactSlots then
+					hint("All 3 artifact slots are full: remove one first")
+					return
+				end
+				call("WearArtifact", item.Id, `{item.Name} worn: {Items.ArtifactText(item, entry.Level)}`)
+			end)
+		end
+	elseif entry.Kind == "Accessory" then
+		detailText(4, `<b>{Items.AccessoryText(item)}</b> for the card wearing it (battle only)`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+		local row = actionRow(5)
+		local wear = action(row, "WEAR ON A CARD", Theme.Color.Gold, GOLD_DEEP, 1, entry.Count > 0, function()
+			if entry.Count > 0 then
+				pickCard(item)
+			else
+				hint("They're all being worn")
+			end
+		end)
+		wear.Size = UDim2.new(1, 0, 1, 0)
+		-- Who wears one, each with REMOVE.
+		for i, cardId in entry.Wearers or {} do
+			local card = Cards.Get(cardId)
+			if card then
+				local wornRow = actionRow(5 + i)
+				wornRow.Size = UDim2.new(1, 0, 0, 36)
+				Kit.label({
+					LayoutOrder = 1,
+					Text = `On {card.Name}`,
+					Font = Theme.Font.Heavy,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					Size = UDim2.new(0.58, 0, 1, 0),
+					Parent = wornRow,
+				}, 16)
+				local remove = Kit.button("REMOVE", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), {
+					LayoutOrder = 2,
+					Size = UDim2.new(0.4, 0, 1, 0),
+					Parent = wornRow,
+				})
+				remove.Activated:Connect(function()
+					call("RemoveAccessory", cardId, `{item.Name} back in the bag`)
+				end)
+			end
+		end
+	end
+end
+
+-- Drawing ---------------------------------------------------------------------------------------
+
+function Bag.Refresh()
+	if not modal or not modal.IsOpen or busy then
+		return
+	end
+	summaryLabel.Text = string.format(
+		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Roll cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   💎 <b>%s</b>   ·   Packs <b>%s</b>   ·   Artifacts worn <b>%d/%d</b>',
+		State.Luck(),
+		State.Cooldown(),
+		Kit.commas(State.Summary.Shards or 0),
+		Kit.commas(Packs.Count(State.Packs)),
+		#(gear().Worn or {}),
+		Items.ArtifactSlots
+	)
+	for _, child in grid:GetChildren() do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
+	table.clear(tiles)
+	local list = entries()
+	local selected = nil
+	for _, entry in list do
+		if entry.Key == selectedKey then
+			selected = entry
+		end
+	end
+	if selected == nil then
+		selected = list[1]
+		selectedKey = selected and selected.Key
+	end
+	for i, entry in list do
+		tile(entry, i)
+	end
+	if #list == 0 then
+		Kit.label({
+			Text = if search ~= "" then "Nothing matches that search." else "Nothing here yet: beat bosses, climb the tower and claim GIFTS.",
+			Font = Theme.Font.Heavy,
+			TextColor3 = Theme.Color.Muted,
+			TextWrapped = true,
+			Size = UDim2.fromOffset(400, 60),
+			Parent = grid,
+		}, 18)
+	end
+	showDetail(selected)
+end
+
+-- Timers tick once a second without rebuilding the grid.
+local function tickTimers()
+	if not modal.IsOpen or busy then
+		return
+	end
+	for _, refs in tiles do
+		if refs.Entry.Kind == "Potion" and refs.Entry.Running then
+			local text, color = subText(refs.Entry)
+			refs.Sub.Text = text
+			refs.Sub.TextColor3 = color
+		end
+	end
+	local timer = detail:FindFirstChild("Timer")
+	local id = detail:GetAttribute("Timer")
+	if timer and type(id) == "string" then
+		local left = State.PotionLeft(id)
+		timer.Text = if left > 0 then `RUNNING · {clock(left)} left` else "Not running"
+	end
+end
+
+local function showTab(name: string)
+	currentTab = name
+	for tab, set in tabSetters do
+		set(tab == name)
+	end
+	selectedKey = nil
+	Bag.Refresh()
+end
+
+function Bag.Init(playerGui: Instance)
+	modal = Modal.new(playerGui, "BagGui", "BAG", Vector2.new(0.84, 0.84), Vector2.new(1000, 640))
+
+	Controls.Search(modal.Header, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -66, 0, 10),
+		Size = UDim2.new(0.24, 0, 0, 38),
+	}, function(text)
+		search = text
+		Bag.Refresh()
+	end)
+	hintLabel = Kit.label({
+		Text = "",
+		Font = Theme.Font.Heavy,
+		TextColor3 = Theme.Color.Gold,
+		TextTransparency = 1,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(0.76, -76, 0, 18),
+		Size = UDim2.new(0.34, 0, 0, 20),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Parent = modal.Header,
+	}, 16)
+
+	local tabRow = Kit.new("ScrollingFrame", {
+		Name = "Tabs",
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 0,
+		ScrollingDirection = Enum.ScrollingDirection.X,
+		AutomaticCanvasSize = Enum.AutomaticSize.X,
+		CanvasSize = UDim2.new(),
+		Parent = modal.Body,
+	}, {
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 8),
+		}),
+	})
+	for i, tab in TABS do
+		local button, set = Controls.Tab(tabRow, tab.Name, tab.Color, i, if tab.Name == "ALL" then 90 else 150)
+		tabSetters[tab.Name] = set
+		button.Activated:Connect(function()
+			showTab(tab.Name)
+		end)
+	end
+	summaryLabel = Kit.label({
+		Text = "",
+		RichText = true,
+		Font = Theme.Font.Heavy,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 2, 0, 46),
+		Size = UDim2.new(1, 0, 0, 20),
+		Parent = modal.Body,
+	}, 15)
+
+	grid = Kit.new("ScrollingFrame", {
+		Name = "Items",
+		Position = UDim2.new(0, 0, 0, 72),
+		Size = UDim2.new(0.66, 0, 1, -72),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 5,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		Parent = modal.Body,
+	}, {
+		Kit.new("UIGridLayout", {
+			CellSize = UDim2.fromOffset(96, 96),
+			CellPadding = UDim2.fromOffset(10, 10),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		Kit.new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 8) }),
+	})
+	detail = Kit.new("ScrollingFrame", {
+		Name = "Detail",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 72),
+		Size = UDim2.new(0.33, 0, 1, -72),
+		BackgroundColor3 = Color3.fromRGB(16, 9, 38),
+		BackgroundTransparency = 0.2,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 4,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		Parent = modal.Body,
+	}, { Kit.corner(UDim.new(0, 16)), Kit.stroke(Theme.Color.TileEdge, 1.5, 0.5) })
 
 	modal.OnOpen = function()
 		showTab(currentTab)
 	end
-	State.Changed:Connect(Potions.Refresh)
-	-- Gear pages redraw when progression data changes (a boss drop, a test-tool grant) while open.
 	State.Changed:Connect(function(kind)
-		if modal.IsOpen and (kind == "meta" or kind == "all") then
-			BagGear.Refresh()
+		if kind ~= "roll" then
+			Bag.Refresh()
 		end
 	end)
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			Potions.Refresh()
+			tickTimers()
 		end
 	end)
 end
