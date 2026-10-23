@@ -12,6 +12,7 @@ local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
 local Elements = require(Shared.Elements)
+local Foils = require(Shared.Foils)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -30,6 +31,7 @@ export type Options = {
 	Animate: boolean?, -- the figure sways (big reveals and detail views only)
 	Border: string?, -- Borders.luau id: Gold / Rainbow / Secret frame (and its small stat bonus)
 	Trait: string?, -- Traits.luau id: shown as the first tag chip, in its tier colour
+	Foil: string?, -- Foils.luau id: shown as a tag chip when it isn't Standard
 }
 
 local SILHOUETTE = Color3.fromRGB(14, 10, 24)
@@ -352,6 +354,10 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			local trait = Traits.Get(options.Trait)
 			if trait then
 				table.insert(tagList, { `{trait.Icon} {trait.Name}`, Rarity.Get(trait.Tier).Color })
+			end
+			local foil = Foils.Get(options.Foil)
+			if options.Foil and options.Foil ~= "standard" then
+				table.insert(tagList, { `{foil.Icon} {foil.Name}`, foil.Color })
 			end
 			local element = Elements.Get(card.Element)
 			if element then

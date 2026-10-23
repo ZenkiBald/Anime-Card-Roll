@@ -14,6 +14,8 @@ local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
+local Foils = require(Shared.Foils)
+local RollBoost = require(Shared.RollBoost)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -47,6 +49,8 @@ local levelBar: any -- children read by name
 local eventPill: any
 local raidPill: any -- under the event pill while a raid is live (tap to join) or Raid Luck runs
 local raidWanted = false
+local momentumLabel: TextLabel -- above ROLL: the Momentum chain and the next Overcharge Surge
+local surgeToken = 0
 local menuButtons = {} -- [name] = button (children read by name)
 local locks = {} -- [feature] = overlay frame
 local feedOrder = 0
@@ -285,6 +289,7 @@ export type Handlers = {
 	OnPets: () -> (),
 	OnCodes: () -> (),
 	OnRaid: () -> (),
+	OnStore: () -> (),
 	OnDev: (() -> ())?,
 }
 
@@ -378,13 +383,24 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Parent = row,
 	})
 	autoStopButton.Activated:Connect(handlers.OnAutoStop)
+	momentumLabel = Kit.label({
+		Name = "Momentum",
+		Text = "",
+		RichText = true,
+		Font = Theme.Font.Heavy,
+		TextColor3 = Theme.Color.Text,
+		Position = UDim2.fromScale(0.31, 0.1),
+		Size = UDim2.fromScale(0.69, 0.8),
+		Parent = row,
+	}, 18)
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = momentumLabel
 
 	-- Top bar: Shards, luck (tap for the odds) and total rolls in big numbers ------------------
 	topBar = Kit.new("Frame", {
 		Name = "TopBar",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.new(0, 560, 0, 52),
+		Size = UDim2.new(0, 740, 0, 52),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
@@ -398,8 +414,9 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Kit.new("UIScale", { Name = "Fit", Scale = 1 }),
 	})
 	currencyChip("Shards", 1, "Shard", "💎", Color3.fromRGB(196, 140, 255), 170)
-	local luckChip = currencyChip("Luck", 2, "Luck", "🍀", Color3.fromRGB(110, 230, 150), 150)
-	currencyChip("Rolls", 3, nil, "🎲", Theme.Color.Gold, 150)
+	currencyChip("TraitShards", 2, nil, "🧬", Color3.fromRGB(80, 230, 200), 140)
+	local luckChip = currencyChip("Luck", 3, "Luck", "🍀", Color3.fromRGB(110, 230, 150), 150)
+	currencyChip("Rolls", 4, nil, "🎲", Theme.Color.Gold, 150)
 	Kit.label({
 		Name = "Odds",
 		Text = "ODDS ›",
@@ -417,7 +434,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	-- Narrow phone screens: shrink the bar to fit between Roblox's top-left buttons and the edge.
 	local function fitTopBar()
 		local width = gui.AbsoluteSize.X
-		topBar.Fit.Scale = math.clamp((width - 150) / 600, 0.55, 1)
+		topBar.Fit.Scale = math.clamp((width - 150) / 780, 0.45, 1)
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTopBar)
 	fitTopBar()
@@ -469,7 +486,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Kit.new("UISizeConstraint", { MinSize = Vector2.new(112, 220), MaxSize = Vector2.new(176, 600) }),
 	})
 	local grid = Kit.new("UIGridLayout", {
-		CellSize = UDim2.new(0.5, -4, 0.2, -6),
+		CellSize = UDim2.new(0.5, -4, 1 / 6, -6),
 		CellPadding = UDim2.fromOffset(8, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -485,8 +502,9 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	menuButton("TRAVEL", "🧭", 7, Theme.Color.Support, handlers.OnTravel)
 	menuButton("STATS", "📈", 8, Color3.fromRGB(255, 120, 220), handlers.OnStats)
 	menuButton("CODES", "🎟️", 9, Color3.fromRGB(86, 180, 255), handlers.OnCodes)
+	menuButton("STORE", "👑", 10, Color3.fromRGB(255, 196, 46), handlers.OnStore)
 	if handlers.OnDev then
-		menuButton("DEV", "🛠️", 10, Theme.Color.Danger, handlers.OnDev)
+		menuButton("DEV", "🛠️", 11, Theme.Color.Danger, handlers.OnDev)
 	end
 
 	-- SETTINGS gear, top right (volume and effects quality) ------------------------------------
@@ -870,7 +888,17 @@ function Hud.RefreshRaid()
 		raidPill.BackgroundColor3 = Color3.fromRGB(20, 80, 50)
 		raidPill.UIStroke.Color = Color3.fromRGB(120, 255, 170)
 	end
-	raidWanted = open or luck
+	-- A Server Luck Totem shows here too when nothing else does.
+	local totemEnds = ReplicatedStorage:GetAttribute("TotemLuckEnds")
+	local totem = type(totemEnds) == "number" and totemEnds > now
+	if totem and not open and not luck then
+		local seconds = math.floor(totemEnds - now)
+		local buyer = ReplicatedStorage:GetAttribute("TotemBuyer")
+		text.Text = `🗿 <b>LUCK TOTEM x2</b> from {if type(buyer) == "string" then buyer else "a player"} · {string.format("%d:%02d", seconds // 60, seconds % 60)}`
+		raidPill.BackgroundColor3 = Color3.fromRGB(30, 70, 60)
+		raidPill.UIStroke.Color = Color3.fromRGB(110, 255, 160)
+	end
+	raidWanted = open or luck or totem
 	if open and not lastRaidOpen then
 		raidPill.Pop.Scale = 1.4
 		Kit.tween(raidPill.Pop, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
@@ -957,6 +985,9 @@ end
 function Hud.Refresh()
 	local s = State.Summary
 	setCurrency("Shards", Kit.commas(s.Shards or 0), s.Shards or 0)
+	local traitShards = s.TraitShards or State.Meta.TraitShards or 0
+	setCurrency("TraitShards", Kit.commas(traitShards), traitShards)
+	Hud.RefreshMomentum()
 	setCurrency("Luck", string.format("%.2fx", State.Luck()), State.Luck())
 	setCurrency("Rolls", Kit.commas(s.TotalRolls), s.TotalRolls)
 	autoStopButton.Label.Text = if s.AutoStop == "Never" then "STOP: NEVER" else `STOP: {string.upper(s.AutoStop)}+`
@@ -1101,6 +1132,45 @@ function Hud.StartCooldown(seconds: number)
 	local fill = cooldownBar.Fill
 	fill.Size = UDim2.fromScale(0, 1)
 	Kit.tween(fill, seconds, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Linear)
+	-- The next roll is an Overcharge Surge: once the cooldown is back, the perfect window opens.
+	surgeToken += 1
+	local token = surgeToken
+	if (State.Summary.UntilSurge or 0) == 1 and not State.Summary.AutoActive then
+		task.delay(seconds, function()
+			if token ~= surgeToken then
+				return
+			end
+			local window = RollBoost.Surge.PerfectWindow
+			fill.BackgroundColor3 = Theme.Color.Gold
+			Hud.Hint(`⚡ SURGE READY: TAP ROLL NOW! ({window}s)`)
+			Effects.Sparks(rollButton, Theme.Color.Gold, 14, 0.8)
+			Kit.tween(fill, window, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear)
+			task.delay(window, function()
+				if token == surgeToken then
+					fill.BackgroundColor3 = Color3.new(1, 1, 1)
+					fill.Size = UDim2.fromScale(1, 1)
+				end
+			end)
+		end)
+	else
+		fill.BackgroundColor3 = Color3.new(1, 1, 1)
+	end
+end
+
+-- Momentum and the next surge, over the roll buttons.
+function Hud.RefreshMomentum()
+	local s = State.Summary
+	local m = s.Momentum or { Count = 0, Speed = 0, Luck = 0 }
+	local untilSurge = s.UntilSurge or RollBoost.Surge.Every
+	local surgeText = if untilSurge == 1
+		then '<font color="#FFC42E"><b>⚡ NEXT ROLL: SURGE</b></font>'
+		else `⚡ surge in <b>{untilSurge}</b>`
+	if m.Count > 0 then
+		local paused = if m.Paused then " (paused)" else ""
+		momentumLabel.Text = `🔥 MOMENTUM <b>{m.Count}</b>{paused}  +{math.floor(m.Speed * 100 + 0.5)}% speed  +{string.format("%.2f", m.Luck)}x luck   {surgeText}`
+	else
+		momentumLabel.Text = `🔥 Keep rolling to build Momentum   {surgeText}`
+	end
 end
 
 function Hud.Hint(text: string)
@@ -1202,7 +1272,7 @@ function Hud.FeedAdd(result)
 	end)
 end
 
-function Hud.Announce(playerName: string, cardId: string, borderId: string?)
+function Hud.Announce(playerName: string, cardId: string, borderId: string?, foilId: string?)
 	local card = Cards.Get(cardId)
 	if card == nil then
 		return
@@ -1214,6 +1284,9 @@ function Hud.Announce(playerName: string, cardId: string, borderId: string?)
 	banner.Gradient.Color = if special then Borders.Get(borderId).Gradient else Rarity.Gradient(card.Rarity)
 	banner.BackgroundColor3 = Color3.new(1, 1, 1)
 	local what = if special then `{string.upper(borderId :: string)} {string.upper(tier.Name)}` else string.upper(tier.Name)
+	if foilId == "demon" then
+		what = `{string.upper(Foils.Get(foilId).Name)} {what}`
+	end
 	bannerLabel.Text = `{playerName} pulled <b>{what}</b> {card.Name}, {card.Title}!`
 	bannerLabel.TextColor3 = if tier.Name == "Secret" and not special then Color3.fromRGB(20, 16, 40) else Color3.new(1, 1, 1)
 	banner.Visible = true

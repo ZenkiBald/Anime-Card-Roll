@@ -36,6 +36,8 @@ local OddsPanel = require(UI.OddsPanel)
 local DevPanel = require(UI.DevPanel)
 local DeckBuilder = require(UI.DeckBuilder)
 local ElementGuide = require(UI.ElementGuide)
+local TraitMaster = require(UI.TraitMaster)
+local Store = require(UI.Store)
 local BossScreen = require(UI.BossScreen)
 local Battle = require(UI.Battle)
 local State = require(script.Parent.State)
@@ -90,6 +92,8 @@ local REASONS = {
 	Loading = "Still loading your cards",
 }
 
+local showExtras -- below
+
 local function requestRoll(mode: string)
 	if State.InBattle or Title.IsOpen() then
 		return
@@ -120,6 +124,7 @@ local function requestRoll(mode: string)
 	lastRollAt = os.clock()
 	State.ApplyRoll(result)
 	Hud.StartCooldown(State.Cooldown())
+	showExtras(result)
 
 	if mode == "Full" then
 		Reveal.Full(result, function()
@@ -131,6 +136,21 @@ local function requestRoll(mode: string)
 		task.delay(State.Cooldown(), function()
 			busy = false
 		end)
+	end
+end
+
+-- Surge and Triple Roll cards: the extras go to the feed, and a surge gets its callout.
+function showExtras(result)
+	for _, extra in result.Extra or {} do
+		Hud.FeedAdd(extra)
+	end
+	if result.Surge == "Perfect" then
+		Sfx.Sting("Epic", true)
+		Hud.Hint(`⚡ PERFECT OVERCHARGE SURGE! {1 + #(result.Extra or {})} cards, Epic or better first`)
+	elseif result.Surge == "Plain" then
+		Hud.Hint("⚡ OVERCHARGE SURGE! Rare or better (tap inside the surge window for a perfect one)")
+	elseif result.Extra then
+		Hud.Hint(`🎴 TRIPLE ROLL: +{#result.Extra} cards`)
 	end
 end
 
@@ -155,6 +175,14 @@ local function cycleAutoStop()
 end
 
 Remotes.AutoResult.OnClientEvent:Connect(function(result)
+	if result.SummaryOnly then
+		-- e.g. the Momentum chain broke
+		local active = State.Summary.AutoActive
+		State.Summary = result.Summary
+		State.Summary.AutoActive = active
+		Hud.Refresh()
+		return
+	end
 	if result.Ok == false then
 		autoWanted = false
 		State.Summary.AutoActive = false
@@ -171,6 +199,7 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 	State.ApplyRoll(result)
 	Hud.StartCooldown(State.Cooldown())
 	Hud.FeedAdd(result)
+	showExtras(result)
 	if State.InBattle then
 		return -- during a fight Auto Roll results only go to the feed
 	end
@@ -182,8 +211,32 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 	end
 end)
 
-Remotes.Announce.OnClientEvent:Connect(function(playerName: string, cardId: string, borderId: string?)
-	Hud.Announce(playerName, cardId, borderId)
+Remotes.Announce.OnClientEvent:Connect(function(playerName: string, cardId: string, borderId: string?, foilId: string?)
+	Hud.Announce(playerName, cardId, borderId, foilId)
+end)
+
+-- STORE: pass ownership and the Luck Totem (MonetizationService).
+Remotes.StoreState.OnClientEvent:Connect(function(message)
+	if type(message) ~= "table" then
+		return
+	end
+	if message.Totem then
+		Sfx.Sting("Mythic", true)
+		Hud.Hint(`🗿 {message.Totem.Buyer} raised a Server Luck Totem: x2 luck for everyone!`)
+		Hud.RefreshRaid()
+		Hud.Refresh()
+		return
+	end
+	State.ApplyStore(message)
+	Hud.Refresh()
+end)
+task.spawn(function()
+	local ok, store = pcall(function()
+		return Remotes.Store:InvokeServer("State")
+	end)
+	if ok and type(store) == "table" and store.Ok then
+		State.ApplyStore(store)
+	end
 end)
 
 -- Build screens -------------------------------------------------------------------
@@ -210,6 +263,8 @@ PlayerList.Init(playerGui, Profile.Open)
 Dash.Start(Title.IsOpen)
 Followers.Start()
 ElementGuide.Init(playerGui)
+TraitMaster.Init(playerGui)
+Store.Init(playerGui, OddsPanel.Toggle)
 DeckBuilder.Init(playerGui)
 BossScreen.Init(playerGui, {
 	EditDeck = function(target)
@@ -271,6 +326,8 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		HubFx.SageTalk(prompt)
 	elseif prompt:GetAttribute("Npc") == "fuser" then
 		Fusion.Open()
+	elseif prompt:GetAttribute("Npc") == "traitmaster" then
+		TraitMaster.Open()
 	elseif prompt:GetAttribute("Npc") == "wheel" then
 		Wheel.Open()
 	elseif prompt:GetAttribute("Npc") == "tower" then
@@ -300,6 +357,7 @@ Hud.Init(playerGui, {
 	OnPets = Pets.Toggle,
 	OnCodes = Codes.Toggle,
 	OnRaid = BossScreen.OpenRaid,
+	OnStore = Store.Toggle,
 	OnDev = if State.TestMode then DevPanel.Toggle else nil,
 })
 

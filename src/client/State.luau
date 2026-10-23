@@ -6,9 +6,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Meta = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Meta"))
 local Raid = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Raid"))
 local Tower = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Tower"))
+local MonetizationConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MonetizationConfig"))
 
 local State = {
-	Cards = {}, -- [cardId] = { Copies, Stars, Fusion, Borders, Trait }
+	Cards = {}, -- [cardId] = DataService.CardState: Copies, Stars, Fusion, Borders, Foils, Awaken, Trait, Trait2, Pending
 	Summary = {
 		TotalRolls = 0,
 		Shards = 0,
@@ -23,6 +24,7 @@ local State = {
 	Tower = 0, -- highest Infinite Tower floor cleared
 	Packs = {}, -- Roll Packs held: Packs.luau id -> count
 	Battle = { AutoUlt = false, Speed = 1 },
+	Store = { Passes = {}, Restricted = true, Mock = false }, -- MonetizationService.State
 	Raid = nil, -- the server's raid (RaidService.Public): window, pool, top hitters; nil until it arrives
 	-- Long-term progression (MetaService.State): potions, upgrades, Index claims, daily, gifts, milestones,
 	-- daily quests ({ Day, ResetIn, List = { { Id, Progress, Claimed } } }), level and stat points.
@@ -94,6 +96,9 @@ function State.ApplyMeta(meta)
 	State.Summary.Shards = meta.Shards
 	State.Summary.Luck = meta.Luck
 	State.Summary.Cooldown = meta.Cooldown
+	if meta.TraitShards then
+		State.Summary.TraitShards = meta.TraitShards
+	end
 	if meta.Packs then
 		State.Packs = meta.Packs
 	end
@@ -132,10 +137,23 @@ function State.RaidLuck(): number
 	return Raid.LuckAt(workspace:GetServerTimeNow(), if type(ends) == "number" then ends else nil)
 end
 
--- Luck right now (base x the strongest running potion x the event x Raid Luck), matching the server.
+-- A Server Luck Totem's luck right now.
+function State.TotemLuck(): number
+	local ends = ReplicatedStorage:GetAttribute("TotemLuckEnds")
+	return if type(ends) == "number" and ends > workspace:GetServerTimeNow() then MonetizationConfig.Totem.Luck else 1
+end
+
+-- Whether a pass perk is on for this player (random perks only where paid random items are allowed).
+function State.Perk(key: string, random: boolean?): boolean
+	return State.Store.Passes[key] == true and (not random or not State.Store.Restricted)
+end
+
+-- Luck right now (base x the strongest running potion x the event x Raid Luck x Totem x VIP), matching
+-- the server.
 function State.Luck(): number
 	local event = State.Event()
-	local eventLuck = (event and event.Luck or 1) * State.RaidLuck()
+	local vip = if State.Perk("VIP", true) then MonetizationConfig.VipLuck else 1
+	local eventLuck = (event and event.Luck or 1) * State.RaidLuck() * State.TotemLuck() * vip
 	return Meta.TotalLuck(State.Meta.BaseLuck or 1, Meta.PotionLuck(liveActive()), eventLuck)
 end
 
@@ -147,7 +165,13 @@ end
 
 function State.Cooldown(): number
 	local event = State.Event()
-	return Meta.Cooldown(State.Meta.Upgrades or {}, liveActive(), event and event.Speed, State.Meta.Stats, State.Meta.Gear)
+	-- The Momentum chain and the Fast Roll pass, the same as the server.
+	local momentum = State.Summary.Momentum
+	local boost = {
+		Momentum = if momentum then momentum.Speed else 0,
+		Pass = if State.Perk("FastRoll") then MonetizationConfig.FastRollCut else 0,
+	}
+	return Meta.Cooldown(State.Meta.Upgrades or {}, liveActive(), event and event.Speed, State.Meta.Stats, State.Meta.Gear, boost)
 end
 
 -- Level progress from the Progress remote or the latest Meta.
@@ -167,7 +191,21 @@ end
 
 function State.ApplyRoll(result)
 	if result.CardId then
-		State.Cards[result.CardId] = { Copies = result.Copies, Stars = result.Stars, Fusion = result.Fusion, Borders = result.Borders, Trait = result.CardTrait }
+		local old = State.Cards[result.CardId] or {}
+		State.Cards[result.CardId] = {
+			Copies = result.Copies,
+			Stars = result.Stars,
+			Fusion = result.Fusion,
+			Borders = result.Borders,
+			Foils = result.Foils,
+			Awaken = result.Awaken,
+			Trait = result.CardTrait,
+			Trait2 = old.Trait2,
+			Pending = old.Pending,
+		}
+	end
+	for _, extra in result.Extra or {} do
+		State.ApplyRoll(extra) -- surge / Triple Roll cards
 	end
 	if result.Quests then
 		State.Meta.Quests = result.Quests
@@ -180,8 +218,13 @@ end
 
 -- A card's entry after a fusion (from FusionService).
 function State.ApplyCard(cardId: string, entry)
-	State.Cards[cardId] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders, Trait = entry.Trait }
+	State.Cards[cardId] = entry
 	changed:Fire("cards")
+end
+
+function State.ApplyStore(store)
+	State.Store = store
+	changed:Fire("store")
 end
 
 function State.ApplyDecks(decks)

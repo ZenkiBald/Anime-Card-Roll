@@ -1,6 +1,6 @@
 --!nonstrict
 -- FUSION (talk to Hoshi the Fusion Master in town): Config.FusionCopies copies of one card fuse it one
--- rarity up, again and again up to Secret. Left: your cards with their copy progress, ready ones
+-- rarity up, again and again up to Secret (Awakening node 5: +25 Trait Shards and +0.05x luck each). Left: your cards with their copy progress, ready ones
 -- first. Right: the picked card now and after fusing, and the FUSE button. The server does the fusing
 -- (FusionService); this screen asks and plays the fusion.
 
@@ -12,6 +12,7 @@ local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
 local Rarity = require(Shared.Rarity)
 local Config = require(Shared.Config)
+local Awaken = require(Shared.Awaken)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -216,6 +217,9 @@ local function fuse(cardId: string)
 	if result.Meta then
 		State.ApplyMeta(result.Meta)
 	end
+	-- Awakening node 5: Trait Shards now, and permanent base luck.
+	local granted = result.Granted and result.Granted.TraitShards or Awaken.FusionTraitShards
+	hint(`✴️ AWAKENING 5: +🧬{granted} Trait Shards · +{Awaken.FusionLuck}x permanent luck`)
 	fusionToken += 1
 	local token = fusionToken
 	local played, err = pcall(playFusion, cardId, before, result.Card, token)

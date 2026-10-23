@@ -11,6 +11,8 @@ local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
 local Elements = require(Shared.Elements)
+local Foils = require(Shared.Foils)
+local Awaken = require(Shared.Awaken)
 local Config = require(Shared.Config)
 local Odds = require(Shared.Odds)
 local Meta = require(Shared.Meta)
@@ -25,6 +27,7 @@ local Controls = require(script.Parent.Controls)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local ElementUi = require(script.Parent.ElementUi)
+local TraitMaster = require(script.Parent.TraitMaster)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
 
@@ -82,7 +85,15 @@ local function showDetail(card)
 		Parent = panel,
 	}, { Kit.padding(10) })
 	local best = if entry then Borders.Best(entry.Borders) else "Normal"
-	local view = CardView.new(card.Id, { Owned = owned, Stars = stars, Fusion = fusion, Animate = owned, Border = best, Trait = entry and entry.Trait })
+	local view = CardView.new(card.Id, {
+		Owned = owned,
+		Stars = stars,
+		Fusion = fusion,
+		Animate = owned,
+		Border = best,
+		Trait = entry and entry.Trait,
+		Foil = entry and Foils.Best(entry.Foils),
+	})
 	view.AnchorPoint = Vector2.new(0.5, 0.5)
 	view.Position = UDim2.fromScale(0.5, 0.5)
 	view.Parent = left
@@ -143,10 +154,10 @@ local function showDetail(card)
 			20,
 			16
 		)
-		local hpText = if card.HP then `   ❤️ HP <b>{Kit.commas(Cards.Stat(card, card.HP, stars, fusion, best))}</b>` else ""
+		local hpText = if card.HP then `   ❤️ HP <b>{Kit.commas(Cards.Stat(card, card.HP, stars, fusion, best, Awaken.Level(entry)))}</b>` else ""
 		line(
-			`{if card.Type == "Attack" then "⚔️ ATK" else "✨ PWR"} <b>{Kit.commas(Cards.Stat(card, card.Main, stars, fusion, best))}</b>{hpText}   ⚡ SPD <b>{card.SPD}</b>   Power <b>{Kit.commas(
-				Cards.Power(card, stars, fusion, best)
+			`{if card.Type == "Attack" then "⚔️ ATK" else "✨ PWR"} <b>{Kit.commas(Cards.Stat(card, card.Main, stars, fusion, best, Awaken.Level(entry)))}</b>{hpText}   ⚡ SPD <b>{card.SPD}</b>   Power <b>{Kit.commas(
+				Cards.Power(card, stars, fusion, best, Awaken.Level(entry))
 			)}</b>`,
 			Theme.Font.Medium,
 			Theme.Color.Text,
@@ -197,37 +208,52 @@ local function showDetail(card)
 		if best ~= "Normal" then
 			line(`Wearing {best}: +{math.floor(Borders.Get(best).Bonus * 100 + 0.5)}% stats`, Theme.Font.Bold, Borders.Get(best).Color, 18, 15)
 		end
-		-- Trait: the best one this card has rolled, and REROLL (Shards, replaces it).
-		local trait = Traits.Get(entry.Trait)
-		local traitLine = line(
-			if trait
-				then `Trait  <font color="#{Rarity.Get(trait.Tier).Color:ToHex()}"><b>{trait.Icon} {string.upper(trait.Name)}</b></font>  ({trait.Tier}): {Traits.Text(trait.Id)}`
-				else "Trait  none yet: every pull of this card rolls one",
+		-- Foils found, Awakening nodes, and the trait slots (rolled at the Trait Master).
+		local foundFoils = entry.Foils or {}
+		local foilParts = {}
+		for i, foil in Foils.List do
+			if i > 1 then
+				local has = foundFoils[foil.Id] == true
+				local color = if has then foil.Color:ToHex() else "6E6A88"
+				table.insert(foilParts, `<font color="#{color}">{if has then foil.Icon else "◇"} <b>{string.upper(foil.Name)}</b></font>`)
+			end
+		end
+		line(`Foils  {table.concat(foilParts, "   ")}`, Theme.Font.Heavy, Theme.Color.Text, 20, 17)
+		local bestFoil = Foils.Best(entry.Foils)
+		if bestFoil ~= "standard" then
+			line(`Wearing {Foils.Get(bestFoil).Name}: {Foils.Get(bestFoil).Text} (in battle)`, Theme.Font.Bold, Foils.Get(bestFoil).Color, 18, 15)
+		end
+		local node = Awaken.Level(entry)
+		local nodeParts = {}
+		for _, n in Awaken.Nodes do
+			local open = node >= n.Node
+			table.insert(nodeParts, `<font color="#{if open then "FFC42E" else "6E6A88"}">{if open then "●" else "○"} {n.Copies}: {n.Text}</font>`)
+		end
+		line(`✴️ Awakening  ({entry.Copies} copies)\n{table.concat(nodeParts, "\n")}`, Theme.Font.Bold, Theme.Color.Text, 20, 15)
+		local function traitLineText(id: string?): string
+			local trait = Traits.Get(id)
+			return if trait
+				then `<font color="#{Rarity.Get(trait.Tier).Color:ToHex()}"><b>{trait.Icon} {string.upper(trait.Name)}</b></font> ({trait.Tier}): {Traits.Text(trait.Id)}`
+				else "none yet"
+		end
+		line(`Trait 1  {traitLineText(entry.Trait)}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)
+		line(
+			if node >= Traits.Slot2Node then `Trait 2  {traitLineText(entry.Trait2)}` else `Trait 2  🔒 opens at Awakening node {Traits.Slot2Node}`,
 			Theme.Font.Heavy,
 			Theme.Color.Text,
 			20,
 			16
 		)
 		order += 1
-		local reroll = Kit.button(`REROLL TRAIT 💎{Traits.RerollCost}`, Color3.fromRGB(176, 92, 255), Theme.Color.AccentDeep, {
+		local master = Kit.button(if entry.Pending then "TRAIT MASTER · CHOOSE!" else `TRAIT MASTER · 🧬{Traits.RollCost}`, Color3.fromRGB(80, 230, 200), Color3.fromRGB(20, 110, 96), {
 			LayoutOrder = order,
-			Size = UDim2.new(0, 230, 0, 40),
+			Size = UDim2.new(0, 260, 0, 40),
 			ZIndex = 22,
 			Parent = right,
 		})
-		reroll.Activated:Connect(function()
-			local result = MetaClient.Call("RerollTrait", card.Id)
-			if not result.Ok then
-				reroll.Label.Text = if result.Reason == "NoShards" then "NOT ENOUGH SHARDS" else "TRY AGAIN"
-				return
-			end
-			-- The server rolled it and says which trait came out.
-			local new = result.Extra and Traits.Get(result.Extra.Trait)
-			if new and State.Cards[card.Id] then
-				State.Cards[card.Id].Trait = new.Id
-				Sfx.Sting(new.Tier, true)
-				traitLine.Text = `Trait  <font color="#{Rarity.Get(new.Tier).Color:ToHex()}"><b>{new.Icon} {string.upper(new.Name)}</b></font>  ({new.Tier}): {Traits.Text(new.Id)}`
-			end
+		master.Activated:Connect(function()
+			modal:Close()
+			TraitMaster.Open(card.Id)
 		end)
 
 		-- FAVOURITE: this card becomes your picture in the server list and on your name tag.

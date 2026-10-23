@@ -329,7 +329,20 @@ function refresh()
 	for _, bond in Elements.ActiveBonds(ids) do
 		table.insert(parts, `<font color="#FFBE78">🤝 <b>{string.upper(bond.Name)}</b></font>`)
 	end
-	synergyLabel.Text = if #parts > 0 then table.concat(parts, "  ·  ") else "2 cards of one element = a synergy · bonded pairs = a Dual Ultimate"
+	-- Slot Links: each Support card's passive reaches the Attack card in its slot.
+	local links = 0
+	for i = 1, Config.Deck.Slots do
+		local support = Cards.Get(working.Support[i] or "")
+		if support and support.Link and (working.Attack[i] or "") ~= "" then
+			links += 1
+		end
+	end
+	if links > 0 then
+		table.insert(parts, `<font color="#9BE8FF">🔗 <b>{links} LINK{if links == 1 then "" else "S"}</b></font>`)
+	end
+	local cost = Deck.Cost(working)
+	table.insert(parts, `<font color="{if cost <= Config.Deck.CostCap then "#56D68A" else "#FF7846"}">COST <b>{cost}/{Config.Deck.CostCap}</b></font>`)
+	synergyLabel.Text = if #parts > 1 then table.concat(parts, "  ·  ") else `2 cards of one element = a synergy · bonded pairs = a Dual Ultimate  ·  {parts[1]}`
 	autoButton.Label.Text = if target then "COUNTER-BUILD" else "AUTO-BUILD"
 	presetLabel.Text = `DECK {State.Decks.Active}`
 	backButton.Visible = returnTo ~= nil
@@ -470,11 +483,11 @@ function DeckBuilder.Init(playerGui: Instance)
 		Parent = bottom,
 	})
 	Controls.Icon(presetRow, "◀", Controls.Purple, 1, function()
-		local nextPreset = (State.Decks.Active - 2) % Config.Deck.Presets + 1
+		local nextPreset = (State.Decks.Active - 2) % math.max(Config.Deck.Presets, #State.Decks.Presets) + 1
 		call("Select", nextPreset)
 	end).Position = UDim2.fromScale(0, 0)
 	local rightArrow = Controls.Icon(presetRow, "▶", Controls.Purple, 2, function()
-		local nextPreset = State.Decks.Active % Config.Deck.Presets + 1
+		local nextPreset = State.Decks.Active % math.max(Config.Deck.Presets, #State.Decks.Presets) + 1
 		call("Select", nextPreset)
 	end)
 	rightArrow.AnchorPoint = Vector2.new(1, 0)

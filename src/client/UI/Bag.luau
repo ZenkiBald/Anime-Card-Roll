@@ -23,6 +23,7 @@ local Sfx = require(script.Parent.Sfx)
 local PackOpen = require(script.Parent.PackOpen)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Bag = {}
 
@@ -93,7 +94,10 @@ local function entries()
 		end
 	end
 	for i, pack in Packs.List do
-		add({ Key = `Pack:{pack.Id}`, Kind = "Pack", Id = pack.Id, Item = pack, Name = pack.Name, Icon = pack.Icon, Color = pack.Color, Count = State.Packs[pack.Id] or 0, Order = i })
+		local count = State.Packs[pack.Id] or 0
+		if pack.Element == nil or count > 0 then -- infused packs show only once you have one
+			add({ Key = `Pack:{pack.Id}`, Kind = "Pack", Id = pack.Id, Item = pack, Name = pack.Name, Icon = pack.Icon, Color = pack.Color, Count = count, Order = i })
+		end
 	end
 	for i, potion in Meta.Potions do
 		add({
@@ -368,6 +372,25 @@ local function openPack(pack)
 	end)
 end
 
+-- Pack Alchemy (RollService): "Condense" or "Infuse".
+local function alchemy(action: string, packId: string, element: string?)
+	local ok, result = pcall(function()
+		return Remotes.PackAlchemy:InvokeServer(action, packId, element)
+	end)
+	if not ok or result == nil or not result.Ok then
+		local reason = if ok and result then result.Reason else nil
+		hint(if reason == "NotEnough" then "Not enough packs" elseif reason == "NoShards" then "Not enough Shards" else "Couldn't do that")
+		return
+	end
+	State.ApplyPacks(result.Packs)
+	if result.Meta then
+		State.ApplyMeta(result.Meta)
+	end
+	local made = Packs.ById[result.Made]
+	Sfx.Play("Upgrade", 1.15)
+	hint(if made then `Made a {made.Name}!` else "Done")
+end
+
 local function showDetail(entry)
 	clear(detail)
 	detail:SetAttribute("Timer", nil)
@@ -408,7 +431,15 @@ local function showDetail(entry)
 			Theme.Color.Text,
 			16
 		)
-		local row = actionRow(5)
+		if item.Element then
+			detailText(
+				5,
+				`Infused: <b>{item.Element}</b> cards weigh x{Packs.InfuseWeight} inside each rarity, and border odds double if you open it during LUCKY STORM, Raid Luck or a Luck Totem.`,
+				Theme.Color.Gold,
+				15
+			)
+		end
+		local row = actionRow(6)
 		action(row, "OPEN", Theme.Color.Gold, GOLD_DEEP, 1, entry.Count > 0, function()
 			if (State.Packs[item.Id] or 0) > 0 then
 				openPack(item)
@@ -416,6 +447,30 @@ local function showDetail(entry)
 				hint("Beat bosses and every 5th tower floor for packs")
 			end
 		end)
+		-- Pack Alchemy: 10 of a size condense into one of the next.
+		local rule = Packs.Condense[item.Id]
+		if rule then
+			local to = Packs.ById[rule.To]
+			action(row, `CONDENSE {rule.Need} → 1 {to.Icon}`, Theme.Color.Accent, Theme.Color.AccentDeep, 2, entry.Count >= rule.Need, function()
+				alchemy("Condense", item.Id)
+			end)
+		end
+		-- A Mega Pack can be infused with an element for Shards.
+		if item.Id == "1000" then
+			detailText(7, `INFUSE (💎{Kit.commas(Packs.InfuseCost)}): pick an element for this Mega Pack`, Theme.Color.Text, 15, Theme.Font.Heavy)
+			local elementRow = actionRow(8)
+			for i, element in Packs.InfuseElements do
+				local button = Kit.button(element.Icon, element.Color, element.Color:Lerp(Color3.new(0, 0, 0), 0.5), {
+					LayoutOrder = i,
+					Size = UDim2.new(0.2, -7, 1, 0),
+					Parent = elementRow,
+				})
+				Kit.dim(button, entry.Count < 1 or (State.Summary.Shards or 0) < Packs.InfuseCost)
+				button.Activated:Connect(function()
+					alchemy("Infuse", "1000", element.Id)
+				end)
+			end
+		end
 	elseif entry.Kind == "Potion" then
 		detailText(4, item.Text, Theme.Color.Text, 17, Theme.Font.Heavy)
 		local left = State.PotionLeft(item.Id)
@@ -465,10 +520,11 @@ function Bag.Refresh()
 		return
 	end
 	summaryLabel.Text = string.format(
-		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Roll cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   💎 <b>%s</b>   ·   Packs <b>%s</b>   ·   Artifacts worn <b>%d/%d</b>',
+		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Roll cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   💎 <b>%s</b>   ·   🧬 <b>%s</b>   ·   Packs <b>%s</b>   ·   Artifacts worn <b>%d/%d</b>',
 		State.Luck(),
 		State.Cooldown(),
 		Kit.commas(State.Summary.Shards or 0),
+		Kit.commas(State.Summary.TraitShards or 0),
 		Kit.commas(Packs.Count(State.Packs)),
 		#(gear().Worn or {}),
 		Items.ArtifactSlots

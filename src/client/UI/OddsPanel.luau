@@ -12,6 +12,7 @@ local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
+local Foils = require(Shared.Foils)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -184,15 +185,56 @@ function OddsPanel.Init(playerGui: Instance)
 		borderRows[border.Id] = { Chance = chance, OneIn = oneIn }
 	end
 
-	-- Traits: also rolled on every pull, on their own (Traits.luau); a card keeps its best one.
+	-- Foils: rolled on every pull, on their own (Foils.luau); a card wears its best.
 	Kit.label({
-		LayoutOrder = 20,
+		LayoutOrder = 30,
 		Size = UDim2.new(1, 0, 0, 28),
 		Font = Theme.Font.Display,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextScaled = false,
 		TextSize = 22,
-		Text = "TRAITS",
+		Text = "FOILS (every pull)",
+		Parent = scroll,
+	}, 22)
+	local foilChances = Foils.Chances()
+	for i, foil in Foils.List do
+		local row = Kit.new("Frame", {
+			Name = "Foil" .. foil.Id,
+			LayoutOrder = 31 + (#Foils.List - i),
+			Size = UDim2.new(1, 0, 0, 36),
+			BackgroundColor3 = Theme.Color.PanelLight,
+			Parent = scroll,
+		}, { Kit.corner(UDim.new(0, 10)) })
+		Kit.label({
+			Text = `{foil.Icon} {string.upper(foil.Name)}  <font color="#A8A2C8">{foil.Text}</font>`,
+			RichText = true,
+			Font = Theme.Font.Heavy,
+			TextColor3 = foil.Color,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.new(0, 10, 0.2, 0),
+			Size = UDim2.new(0.7, -10, 0.6, 0),
+			Parent = row,
+		}, 16)
+		Kit.label({
+			Text = `{Odds.FormatPercent(foilChances[foil.Id] * 100)}  ·  {Odds.FormatOneIn(foilChances[foil.Id] * 100)}`,
+			Font = Theme.Font.Heavy,
+			TextColor3 = Theme.Color.Muted,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			Position = UDim2.new(0.7, 0, 0.2, 0),
+			Size = UDim2.new(0.3, -8, 0.6, 0),
+			Parent = row,
+		}, 15)
+	end
+
+	-- Traits: rolled at the Trait Master for Trait Shards (Traits.luau), not on pulls.
+	Kit.label({
+		LayoutOrder = 40,
+		Size = UDim2.new(1, 0, 0, 28),
+		Font = Theme.Font.Display,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 22,
+		Text = "TRAITS (per Trait Master roll)",
 		Parent = scroll,
 	}, 22)
 	local traitChances = Traits.Chances()
@@ -201,7 +243,7 @@ function OddsPanel.Init(playerGui: Instance)
 		local tier = Rarity.Get(trait.Tier)
 		local row = Kit.new("Frame", {
 			Name = "Trait" .. trait.Id,
-			LayoutOrder = 21 + (#Traits.List - i),
+			LayoutOrder = 41 + (#Traits.List - i),
 			Size = UDim2.new(1, 0, 0, 36),
 			BackgroundColor3 = Theme.Color.PanelLight,
 			Parent = scroll,
@@ -229,15 +271,18 @@ function OddsPanel.Init(playerGui: Instance)
 
 	Kit.label({
 		LayoutOrder = 60,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 72),
 		Font = Theme.Font.Medium,
 		TextColor3 = Theme.Color.Muted,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextScaled = false,
 		TextSize = 14,
-		Text = "Rolls are free and pure luck (no pity). Each card within a rarity is equally likely. Every pull also rolls a border "
-			.. "and a trait on their own; a card keeps the best of each it has found. Probabilities are rounded, so the displayed values may not add up to exactly 100%.",
+		Text = "Rolls are free and pure luck (no pity). Luck is tiered: rarer tiers gain more from it, Commons never vanish, up to "
+			.. `{Config.Roll.LuckCap}x. Each card within a rarity is equally likely (an infused Mega Pack weighs its element x1.5). Every pull also `
+			.. "rolls a border and a foil on their own; a card keeps the best of each. Every 25th roll is an Overcharge Surge (Rare+, or Epic+ "
+			.. "and 3 cards with doubled border / foil odds when hit perfectly). Traits are rolled at the Trait Master. Probabilities are "
+			.. "rounded, so the displayed values may not add up to exactly 100%.",
 		Parent = scroll,
 	}, 14)
 

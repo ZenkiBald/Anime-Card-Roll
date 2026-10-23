@@ -296,6 +296,23 @@ function DevPanel.Init(playerGui: Instance)
 		devCall("NextMutator")
 	end)
 
+	-- Phase 2: Trait Shards, Awakening copies and foils, to try the Trait Master and nodes.
+	local phaseRow = section(list, 17, "TRAIT SHARDS · AWAKENING · FOILS")
+	for i, info in {
+		{ "+200 TRAIT SHARDS", "GiveTraitShards", Color3.fromRGB(80, 230, 200) },
+		{ "+20 COPIES ALL", "GiveCopies", Theme.Color.Gold },
+		{ "GIVE FOILS", "GiveFoils", Color3.fromRGB(230, 40, 80) },
+	} do
+		local button = Kit.button(info[1], info[3], info[3]:Lerp(Color3.new(0, 0, 0), 0.5), {
+			LayoutOrder = i,
+			Size = UDim2.fromOffset(180, 36),
+			Parent = phaseRow,
+		})
+		button.Activated:Connect(function()
+			devCall(info[2])
+		end)
+	end
+
 	local reset = Kit.button("RESET MY DATA", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), {
 		LayoutOrder = 3,
 		Size = UDim2.fromOffset(160, 36),

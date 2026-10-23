@@ -37,7 +37,7 @@ local BossScreen = {}
 
 export type Actions = {
 	EditDeck: (target: string) -> (), -- target: the boss id, Tower.Id or Raid.Id the deck is for
-	Fight: (bossId: string, difficulty: string?) -> (boolean, string?), -- bossId may be Tower.Id or Raid.Id
+	Fight: (bossId: string, difficulty: string?, options: { Cost: boolean? }?) -> (boolean, string?), -- bossId may be Tower.Id or Raid.Id
 }
 
 local actions: Actions
@@ -48,6 +48,7 @@ local mode = "boss" -- "boss" | "tower" | "raid"
 local TOWER_COLOR = Color3.fromRGB(90, 230, 220)
 local RAID_COLOR = Color3.fromRGB(255, 80, 120)
 local SCOUT_COLOR = Color3.fromRGB(150, 200, 255)
+local costChallenge = false -- boss fights: the 30-point Cost Challenge (2x Trait Shards)
 local raidLive = {} -- the RAID tab's live labels, updated every second without a rebuild
 local tabsLive = false -- whether the tabs were drawn with the raid live
 local raidShape = "" -- what the RAID tab was built for (window, open, cleared): a change rebuilds it
@@ -345,7 +346,7 @@ end
 -- returns what actions.Fight does, or nothing when it refused by itself.
 local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -> (boolean?, string?), label: string?, target: string)
 	local presetRow = row(order0, 36)
-	for i = 1, Config.Deck.Presets do
+	for i = 1, math.max(Config.Deck.Presets, #State.Decks.Presets) do
 		local preset = State.Decks.Presets[i] or Deck.Empty()
 		local button = pill(presetRow, `DECK {i} · {Kit.commas(Deck.Power(preset, State.Cards))}`, i, 136, Theme.Color.Accent, i == State.Decks.Active, false)
 		button.Activated:Connect(function()
@@ -494,7 +495,7 @@ local function buildTower()
 		end
 		text(rewardBox, 2, `No pack on this floor · next: <b>{Packs.Describe(Packs.ForFloor(nextFloor))}</b> on floor {nextFloor}`, Theme.Color.Text, 17)
 	end
-	local extras = `+💎{reward.Shards} Shards`
+	local extras = `+💎{reward.Shards} Shards  ·  +🧬{reward.TraitShards} Trait Shards`
 	if reward.Potion then
 		local potion = Meta.PotionById[reward.Potion]
 		extras ..= `  ·  {potion.Icon} {potion.Name}`
@@ -629,12 +630,12 @@ local function buildRaid()
 	text(
 		rewardBox,
 		2,
-		`Cleared: <b>+💎{Kit.commas(reward.Shards)}</b> (two good runs; more damage pays more) + <b>{Packs.Describe(reward.Packs)}</b> · 🔮 artifact odds x{Raid.ClearDropBoost}`,
+		`Cleared: <b>+💎{Kit.commas(reward.Shards)}</b> + <b>🧬{reward.TraitShards}</b> (two good runs; more damage pays more) + <b>{Packs.Describe(reward.Packs)}</b> · 🔮 artifact odds x{Raid.ClearDropBoost}`,
 		Theme.Color.Text,
 		17,
 		Theme.Font.Bold
 	)
-	text(rewardBox, 3, `Top hitter: <b>+{Packs.Describe(Raid.TopPacks)}</b>   ·   Not cleared: about half the Shards`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+	text(rewardBox, 3, `Top hitter: <b>+{Packs.Describe(Raid.TopPacks)} +🧬{Raid.TopTraitShards}</b>   ·   Not cleared: about half the Shards`, Theme.Color.Gold, 16, Theme.Font.Heavy)
 	text(rewardBox, 4, `Each run is {Raid.FightSeconds} s against a Colossus sized to your deck, so every player's hits count.`, Theme.Color.Muted, 15, Theme.Font.Bold)
 
 	deckAndFight(5, deck, open, function()
@@ -725,9 +726,28 @@ local function build()
 		text(powerBox, 3, "Below the recommended power: roll for more cards, or try anyway!", Theme.Color.Roll, 16, Theme.Font.Bold)
 	end
 
+	-- The Cost Challenge: a deck of at most Config.Deck.CostCap points (by base rarity) for 2x Trait Shards.
+	local cost = Deck.Cost(deck)
+	local fits = cost <= Config.Deck.CostCap
+	local costRow = row(5, 40)
+	local toggle = pill(costRow, if costChallenge then "COST CHALLENGE: ON" else "COST CHALLENGE: OFF", 1, 190, Theme.Color.Gold, costChallenge, false)
+	toggle.Activated:Connect(function()
+		costChallenge = not costChallenge
+		refresh()
+	end)
+	local costText = text(
+		costRow,
+		2,
+		`Deck Cost <font color="{if fits then "#56D68A" else "#FF7846"}"><b>{cost}/{Config.Deck.CostCap}</b></font> · win for <b>x{Config.Deck.CostTraitShards} 🧬</b> (Common/Uncommon 1 · Rare 2 · Epic 3 · Legendary 4 · Mythic 6 · Secret 8)`,
+		Theme.Color.Text,
+		15,
+		Theme.Font.Heavy
+	)
+	costText.Size = UDim2.new(1, -200, 0, 19)
+
 	-- Rewards preview.
 	local reward = Rewards.For(fight.D)
-	local rewardBox = box(5, Theme.Color.Gold)
+	local rewardBox = box(6, Theme.Color.Gold)
 	text(rewardBox, 1, "WIN REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
 	text(
 		rewardBox,
@@ -740,7 +760,7 @@ local function build()
 	text(
 		rewardBox,
 		3,
-		`+💎{reward.Shards} Shards  ·  {math.floor(Config.Rewards.PotionChance * 100)}% chance of a {dropPotion.Icon} {dropPotion.Name}`,
+		`+💎{reward.Shards} Shards  ·  +🧬{Rewards.TraitShards(fight.D, false) * (if costChallenge then Config.Deck.CostTraitShards else 1)} Trait Shards ({if cleared()[key] then "" else "x2 first clear · "}{if costChallenge then "Cost Challenge x2" else "x2 on a Cost Challenge"})  ·  {math.floor(Config.Rewards.PotionChance * 100)}% chance of a {dropPotion.Icon} {dropPotion.Name}`,
 		Theme.Color.Text,
 		17,
 		Theme.Font.Bold
@@ -774,13 +794,17 @@ local function build()
 		)
 	end
 
-	deckAndFight(6, deck, unlocked, function()
+	deckAndFight(7, deck, unlocked, function()
 		if not unlocked then
 			hint(`{Bosses.UnlockHint(boss.Id, difficulty)} first`)
 			return
 		end
-		return actions.Fight(bossId, difficulty)
-	end, nil, boss.Id)
+		if costChallenge and not fits then
+			hint(`Cost Challenge: your deck costs {cost}, the cap is {Config.Deck.CostCap}`)
+			return
+		end
+		return actions.Fight(bossId, difficulty, if costChallenge then { Cost = true } else nil)
+	end, if costChallenge then "FIGHT! · COST" else nil, boss.Id)
 	hintLabel.Parent = body -- its own row: inside the wrapping button row it pushed the buttons up
 end
 

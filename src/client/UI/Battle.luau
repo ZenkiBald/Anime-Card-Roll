@@ -48,6 +48,7 @@ local particles: Frame
 local stage: Frame -- everything inside the safe area
 local fxLayer: Frame -- bolts, slashes and cut-ins, positioned in screen pixels
 local bossName: TextLabel
+local bossStagger: Frame -- the Stagger bar along the bottom of the leader's HP bar
 local bossChip: any
 local bossHpFill: Frame
 local bossHpTrail: Frame
@@ -96,6 +97,7 @@ local REASONS = {
 	InBattle = "Already in a fight",
 	TooFast = "Slow down a little",
 	Loading = "Still loading your cards",
+	TooCostly = "Your deck costs too much for the Cost Challenge",
 	Closed = "The raid isn't open right now",
 	Cleared = "This raid is already cleared",
 }
@@ -112,6 +114,7 @@ local BOSS_STATUS = {
 	R = "BARRIER",
 	X = "RALLIED",
 	P = "PROTECTED",
+	Q = "STAGGERED",
 }
 local ROLE_TEXT = {
 	Striker = "STRIKER · hits hard",
@@ -1068,6 +1071,9 @@ local function applySnapshot(snap)
 			barrierRing.Visible = barrier > 0
 			Kit.tween(bossGauge, 0.15, { Size = UDim2.fromScale(s.G, 1) }, Enum.EasingStyle.Linear)
 			bossStatus.Text = flagWords(s.F, BOSS_STATUS)
+			local staggered = string.find(s.F, "Q") ~= nil
+			Kit.tween(bossStagger, 0.15, { Size = UDim2.fromScale(if staggered then 1 else (s.St or 0), 0.22) })
+			bossStagger.BackgroundColor3 = if staggered then Color3.new(1, 1, 1) else Theme.Color.Gold
 		elseif enemyTiles[id] then
 			local tile = enemyTiles[id]
 			setHp(tile.HpFill, tile.HpTrail, s.H / tile.MaxHP)
@@ -1423,6 +1429,26 @@ local function playEvent(event)
 		callout(`{string.upper(current.BossName)} STEALS YOUR BUFFS!`, Color3.fromRGB(230, 130, 255), 1.6)
 	elseif kind == "Opening" then
 		callout("SUPPORT OPENING!", Theme.Color.Support, 1.2)
+	elseif kind == "Stagger" then
+		callout(if event.N then `STAGGERED! {string.upper(event.N)} CANCELLED` else "STAGGERED! DEF 0 · ULTIMATES +50%", Theme.Color.Gold, 1.8)
+		Effects.Flash(gui, Theme.Color.Gold, 0.4, 0.6)
+		shakeStage(10, 0.4)
+		Sfx.Play("Boom", 1.2)
+		warnBanner.Visible = false
+		if bossView then
+			bossView:Flash(Color3.fromRGB(255, 230, 150), 0.5)
+		end
+	elseif kind == "Recover" then
+		if event.T == "Boss" then
+			hint(`{current.BossName} recovered from the Stagger`)
+		end
+	elseif kind == "PhaseCancel" then
+		callout(`{string.upper(event.N)} LOST TO THE STAGGER!`, Theme.Color.Gold, 1.6)
+	elseif kind == "HPCost" then
+		local tile = tiles[event.T]
+		if tile and event.A > 0 then
+			float(tile.Card, `-{Kit.commas(event.A)} 👹`, Color3.fromRGB(230, 40, 80))
+		end
 	elseif kind == "Bond" then
 		-- A Dual Ultimate: both bonded cards flare and strike the leader together.
 		callout(`🤝 {string.upper(event.N)}!`, Color3.fromRGB(255, 190, 120), 1.8)
@@ -1852,6 +1878,9 @@ local function showResults(summary)
 			line(table.concat(notes, "  ·  "), Theme.Color.Gold, 20)
 		end
 		stat("TIME", timeText, Theme.Color.Auto)
+		if (summary.Staggers or 0) > 0 then
+			stat("STAGGERS", tostring(summary.Staggers), Theme.Color.Gold)
+		end
 		if hasRewards then
 			local packCount = Packs.Count(rewards.NewPacks)
 			if packCount > 0 then
@@ -1863,6 +1892,9 @@ local function showResults(summary)
 				stat("SHARDS", `+{Kit.commas(bundle.Shards)}`, Theme.Color.Accent, "Shard", if potions ~= "" then `+ {potions}` else nil)
 			elseif bundle then
 				line(`Loot: {Meta.Describe(bundle)}`, Theme.Color.Gold, 20)
+			end
+			if bundle and (bundle.TraitShards or 0) > 0 then
+				stat("TRAIT SHARDS", `+{bundle.TraitShards}`, Color3.fromRGB(80, 230, 200), nil, if summary.CostChallenge then "Cost Challenge x2" else "for the Trait Master")
 			end
 			-- An artifact drop gets its own loud line (it goes in the BAG).
 			if bundle and bundle.Artifacts then
@@ -2074,7 +2106,7 @@ local function showResults(summary)
 	end
 	local bossId, difficulty = if current.Raid then Raid.Id elseif tower then Tower.Id else current.BossId, current.Difficulty
 	local function goAgain()
-		local ok, message = startFight(bossId, difficulty)
+		local ok, message = startFight(bossId, difficulty, current.Options)
 		if not ok and message then
 			hint(message)
 		end
@@ -2269,18 +2301,19 @@ local function begin(start, bossId: string, difficulty: string)
 	end)
 end
 
-function startFight(bossId: string, difficulty: string?)
+function startFight(bossId: string, difficulty: string?, options: { Cost: boolean? }?)
 	if current and not current.Ended then
 		return false, nil
 	end
 	local ok, result = pcall(function()
-		return Remotes.BattleStart:InvokeServer(bossId, difficulty)
+		return Remotes.BattleStart:InvokeServer(bossId, difficulty, options)
 	end)
 	if not ok or not result or not result.Ok then
 		local reason = if ok and result then result.Reason else nil
 		return false, REASONS[reason] or "Couldn't start the fight"
 	end
 	begin(result, bossId, difficulty)
+	current.Options = options -- FIGHT AGAIN keeps the Cost Challenge
 	return true, nil
 end
 
@@ -2448,6 +2481,17 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		BackgroundTransparency = 0.15,
 		BorderSizePixel = 0,
 		ZIndex = 3,
+		Parent = hpTrack,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	-- Stagger: hits fill it (counter elements 2.5x); full = the leader is Staggered.
+	bossStagger = Kit.new("Frame", {
+		Name = "Stagger",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.fromScale(0, 0.22),
+		BackgroundColor3 = Theme.Color.Gold,
+		BorderSizePixel = 0,
+		ZIndex = 4,
 		Parent = hpTrack,
 	}, { Kit.corner(UDim.new(1, 0)) })
 	for _, at in { Config.Battle.PhaseAt, Config.Battle.EnrageAt } do
@@ -2830,8 +2874,8 @@ end
 
 -- Starts a fight. Returns false and a message when the server refuses.
 -- bossId is a boss id, or Tower.Id for the next tower floor (then difficulty is ignored).
-function Battle.Start(bossId: string, difficulty: string?): (boolean, string?)
-	return startFight(bossId, difficulty)
+function Battle.Start(bossId: string, difficulty: string?, options: { Cost: boolean? }?): (boolean, string?)
+	return startFight(bossId, difficulty, options)
 end
 
 function Battle.IsActive(): boolean

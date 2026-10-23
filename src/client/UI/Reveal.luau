@@ -17,6 +17,8 @@ local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
+local Foils = require(Shared.Foils)
+local Awaken = require(Shared.Awaken)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -48,10 +50,14 @@ local function outcomeText(result): string
 	else
 		text = "Duplicate"
 	end
-	-- A better trait than the card had: the card took it.
-	local trait = result.NewTrait and Traits.Get(result.Trait)
-	if trait then
-		text ..= `   ·   New trait: {trait.Icon} {trait.Name}`
+	-- A foil found for the first time, and an Awakening node this pull opened.
+	if result.NewFoil and result.Foil and result.Foil ~= "standard" then
+		local foil = Foils.Get(result.Foil)
+		text ..= `   ·   {foil.Icon} {string.upper(foil.Name)}!`
+	end
+	if result.NewNode then
+		local node = Awaken.Nodes[result.NewNode]
+		text ..= `   ·   ✴️ AWAKENING {result.NewNode}: {if node then node.Text else ""}`
 	end
 	return text
 end
@@ -453,7 +459,14 @@ local function playFull(result)
 		closeBars()
 	end
 	back:Destroy()
-	local front = CardView.new(card.Id, { Owned = true, Stars = result.Stars, Animate = true, Border = borderId, Trait = result.CardTrait })
+	local front = CardView.new(card.Id, {
+		Owned = true,
+		Stars = result.Stars,
+		Animate = true,
+		Border = borderId,
+		Trait = result.CardTrait,
+		Foil = Foils.Best(result.Foils),
+	})
 	unlock(front)
 	front.Parent = flip
 	Kit.tween(flip, 0.16, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
