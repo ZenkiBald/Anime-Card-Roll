@@ -10,6 +10,7 @@
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
 
 local Bosses = require(ReplicatedStorage.Shared.Bosses)
 local BossModels = require(ReplicatedStorage.Shared.BossModels)
@@ -45,22 +46,69 @@ local THEMES = {
 	Rain = { Floor = Color3.fromRGB(44, 48, 66), Stone = Color3.fromRGB(56, 60, 82), Glow = Color3.fromRGB(255, 226, 90) },
 }
 
-local function sign(parent: BasePart, offset: number, title: string, sub: string, color: Color3)
+-- World signs: GothamBold with a subtle 1 px drop shadow (no heavy outlines). Portal and gate signs
+-- `fade`: they only show within SIGN_RANGE studs (clients fade them in as you walk up, HubFx), so the
+-- town skyline stays clear; NPC name signs stay readable from further away.
+local SIGN_RANGE = 45
+
+local function shadowed(label: TextLabel)
+	label.TextStrokeTransparency = 1
+	for _, child in label:GetChildren() do
+		if child:IsA("UIStroke") then
+			child:Destroy()
+		end
+	end
+	label.ZIndex = 2
+	if label:FindFirstChild("Shadow") == nil then
+		local shadow = label:Clone()
+		for _, child in shadow:GetChildren() do
+			child:Destroy()
+		end
+		shadow.Name = "Shadow"
+		shadow.Position = UDim2.fromOffset(1, 1)
+		shadow.Size = UDim2.fromScale(1, 1)
+		shadow.AnchorPoint = Vector2.zero
+		shadow.TextColor3 = Color3.new(0, 0, 0)
+		shadow.TextTransparency = 0.45
+		shadow.ZIndex = 1
+		shadow.Parent = label -- HubFx keeps its text in step with the label's
+	end
+end
+
+local function styleSign(gui: BillboardGui, fade: boolean)
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+	gui.LightInfluence = 0
+	if fade then
+		gui.MaxDistance = SIGN_RANGE
+		-- The size-by-distance limits aren't in every API version (and may not be scriptable): try them.
+		pcall(function()
+			(gui :: any).DistanceLowerLimit = 10;
+			(gui :: any).DistanceUpperLimit = SIGN_RANGE
+		end)
+		CollectionService:AddTag(gui, "FadeSign")
+	end
+	for _, label in gui:GetChildren() do
+		if label:IsA("TextLabel") then
+			-- The top line is the title, the rest is the subtitle.
+			label.Font = if label.Position.Y.Scale < 0.3 then Enum.Font.GothamBold else Enum.Font.GothamMedium
+			shadowed(label)
+		end
+	end
+end
+
+local function sign(parent: BasePart, offset: number, title: string, sub: string, color: Color3, fade: boolean?)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Sign"
 	gui.Size = UDim2.fromOffset(260, 70)
 	gui.StudsOffset = Vector3.new(0, offset, 0)
 	gui.MaxDistance = 160
-	gui.LightInfluence = 0
 	gui.Parent = parent
 	local top = Instance.new("TextLabel")
 	top.Name = "Title"
 	top.BackgroundTransparency = 1
 	top.Size = UDim2.fromScale(1, 0.58)
-	top.Font = Enum.Font.GothamBlack
 	top.TextScaled = true
 	top.TextColor3 = Color3.new(1, 1, 1)
-	top.TextStrokeTransparency = 0.3
 	top.Text = title
 	top.Parent = gui
 	local bottom = Instance.new("TextLabel")
@@ -68,12 +116,20 @@ local function sign(parent: BasePart, offset: number, title: string, sub: string
 	bottom.BackgroundTransparency = 1
 	bottom.Position = UDim2.fromScale(0, 0.6)
 	bottom.Size = UDim2.fromScale(1, 0.4)
-	bottom.Font = Enum.Font.GothamMedium
 	bottom.TextScaled = true
 	bottom.TextColor3 = color
-	bottom.TextStrokeTransparency = 0.4
 	bottom.Text = sub
 	bottom.Parent = gui
+	styleSign(gui, fade == true)
+end
+
+-- The gate signs saved in the place (tools/studio/map.luau) get the same look and fade.
+local function styleMapSigns(map: Instance)
+	for _, inst in map:GetDescendants() do
+		if inst:IsA("BillboardGui") then
+			styleSign(inst, true)
+		end
+	end
 end
 
 -- An NPC figure with a prompt. Clients animate figures marked with the Bob attribute.
@@ -159,7 +215,7 @@ local function buildWorld(hub: Instance, boss: Bosses.Boss, position: Vector3)
 		CanCollide = false,
 		Parent = area,
 	})
-	sign(beamGlow, 4.5, `WORLD {boss.World} · {string.upper(boss.WorldName)}`, `{boss.Name}, {boss.Title}`, boss.Accent)
+	sign(beamGlow, 4.5, `WORLD {boss.World} · {string.upper(boss.WorldName)}`, `{boss.Name}, {boss.Title}`, boss.Accent, true)
 
 	-- Themed props.
 	if boss.Particles == "Embers" then
@@ -548,7 +604,7 @@ local function towerAt(hub: Instance, ground: CFrame)
 		CanCollide = false,
 		Parent = gate,
 	})
-	sign(signAnchor, 2, "INFINITE TOWER", "Endless floors · rare artifacts", TOWER_TEAL)
+	sign(signAnchor, 2, "INFINITE TOWER", "Endless floors · rare artifacts", TOWER_TEAL, true)
 	part({
 		Name = "BoardSpot",
 		Size = Vector3.new(1, 1, 1),
@@ -675,7 +731,7 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 		CanCollide = false,
 		Parent = area,
 	})
-	sign(glow, 5, `WORLD {boss.World} · {string.upper(boss.WorldName)}`, `{boss.Name}, {boss.Title}`, boss.Accent)
+	sign(glow, 5, `WORLD {boss.World} · {string.upper(boss.WorldName)}`, `{boss.Name}, {boss.Title}`, boss.Accent, true)
 
 	local height = BossModels.Height(boss.Id)
 	local stand = bossMarker.CFrame
@@ -692,6 +748,7 @@ local function buildFromMap(map: Instance, markers: Instance)
 	if town then
 		townLights(town)
 	end
+	styleMapSigns(map)
 	local hub = Instance.new("Folder")
 	hub.Name = "Hub"
 	for _, boss in Bosses.List do

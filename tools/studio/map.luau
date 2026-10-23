@@ -131,37 +131,35 @@ local function marker(parent, name, cframe, size)
 	return p
 end
 
+-- Gate signs: GothamBold, shown within 45 studs (World restyles them at start too: 1 px shadow, fade).
 local function sign(parent, text, sub, color, offset)
 	local gui = Instance.new("BillboardGui")
 	gui.Size = UDim2.fromOffset(300, 80)
 	gui.StudsOffset = Vector3.new(0, offset or 6, 0)
-	gui.MaxDistance = 220
+	gui.MaxDistance = 45
+	pcall(function()
+		gui.DistanceLowerLimit = 10
+		gui.DistanceUpperLimit = 45
+	end)
 	gui.LightInfluence = 0
 	gui.Parent = parent
 	local t = Instance.new("TextLabel")
 	t.BackgroundTransparency = 1
 	t.Size = UDim2.fromScale(1, 0.6)
-	t.Font = Enum.Font.FredokaOne
+	t.Font = Enum.Font.GothamBold
 	t.TextScaled = true
 	t.TextColor3 = Color3.new(1, 1, 1)
 	t.Text = text
 	t.Parent = gui
-	local st = Instance.new("UIStroke")
-	st.Color = Color3.fromRGB(30, 10, 60)
-	st.Thickness = 3
-	st.Parent = t
 	local s = Instance.new("TextLabel")
 	s.BackgroundTransparency = 1
 	s.Position = UDim2.fromScale(0, 0.6)
 	s.Size = UDim2.fromScale(1, 0.4)
-	s.Font = Enum.Font.FredokaOne
+	s.Font = Enum.Font.GothamMedium
 	s.TextScaled = true
 	s.TextColor3 = color
 	s.Text = sub
 	s.Parent = gui
-	local st2 = st:Clone()
-	st2.Thickness = 2
-	st2.Parent = s
 end
 
 -- A spot on a ring around `center`, at `deg` degrees (0 = +X, 90 = +Z).

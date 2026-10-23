@@ -220,6 +220,25 @@ Shonen overhaul (2026-10-23, user's spec; cloud-built, headless tests + luau-lsp
   only be set in Studio: run `tools/studio/lighting.luau` once and save the place.
 - Town VFX (World `townLights`): a warm PointLight (2 / 14 / 255,150,60, no shadows) in the 24 town lanterns
   nearest the fountain, rising embers at the fountain and every portal (`embers`).
+Polish + deck rebuild (2026-10-23, user's spec; cloud-built, headless tests + luau-lsp only, not yet seen in Studio):
+- Portal / gate / tower signs: World `styleSign` (GothamBold title, GothamMedium sub, a 1 px drop "Shadow" child
+  label instead of outlines, MaxDistance 45, tag "FadeSign"; the place's own map signs are restyled at start);
+  HubFx `fadeSigns` fades them in from 45 to 28 studs and keeps each shadow's text in step. NPC name signs keep
+  their range. (DistanceLower/UpperLimit are set in a pcall: they aren't in the API defs.)
+- HUD: the SETTINGS gear is drawn in the server list's header (`PlayerList.Init(..., openSettings)`); PETS became a
+  44 px MOUNT·G tile beside the roll console (G is the ride key; R is Roll). Modal close = 32 px dark square, 4 px
+  corners, grey ✕ that glows white / red on hover. `UI/Controls` is obsidian: dropdown tiles (Option opens a list,
+  upward near the screen bottom), underline tabs, banners with a neon bar, square icons, toggle `Chip`s.
+- DECK tab rebuilt (`UI/DeckBuilder`): left FORMATION: 4v4 SQUAD, four paired rows (Attack slot N | 🔗 Slot Link /
+  pulsing BOND ACTIVE | Support slot N; plates show slot no., mini card, name, archetype, element, power), footer with
+  Deck Power, the cost pill (✓ COST n/30 VALID / ⚠️ EXCEEDS LIMIT), active synergies (roman tier) + bonds, AUTO-BUILD /
+  CLEAR / PRESET ▾ and ▲ ▼ ✕ for the picked slot. Right CARD VAULT: chips ★5 / GOLD / RAINBOW / SECRET (borders),
+  Type / Sort / Element dropdowns, the grid (tap = inspect, tap again = equip), inspector (traits, slot 2 lock at 80
+  dupes, Awakening pips, EQUIP TO SLOT, VISIT TRAIT MASTER = closes and draws `UI/Waypoint` to Kenshin; NpcRange
+  publishes NpcSpot_<id> attributes for it).
+- Pets / mounts: follower pets float over the right shoulder (bob sin(t x 4) x 0.4, bank into turns, lean with
+  speed; `Followers`). Mount parts weld to one MountRoot joined by Motor6D "MountJoint" (MountService); clients
+  sway it with the stride (pitch / roll / heave + turn bank) in PreSimulation.
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
@@ -291,10 +310,10 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   `MonetizationService` (passes, policy gating, Luck Totem, Shard bundles, receipts), `NpcRange` (town NPC
   services only beside their NPC), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient` (progression calls, badge counts),
-  `LightingSetup` (the twilight base light),
+  `LightingSetup` (the twilight base light), `Followers` (shoulder pets, mount stride sway),
   `HubFx` (NPC idle animation, sage tips, portal lock labels), `ZoneFx` (zone music + lighting mood),
   `UI/*` (Kit helpers incl. `Kit.tile` / `Kit.dimTile`, Theme, Skin (UI kit image ids), BorderFx (card border frames), Title, Travel, Settings, Fusion, Modal (blurred-world
-  obsidian panel with title tab; `Modal.Tabbed` pages), Alchemy (Hoshi's PACK ALCHEMY tab), Controls (option pills, tabs, search, headers), CardView (full card), CardTile (square
+  obsidian panel with title tab; `Modal.Tabbed` pages), Alchemy (Hoshi's PACK ALCHEMY tab), Waypoint (guide line to a town NPC), Controls (dropdown tiles, tabs, chips, search, banners), CardView (full card), CardTile (square
   grid tile), ElementUi (element badges / rich text), ElementGuide (ELEMENTS panel), TraitMaster, Store, Reveal, Effects, Hud, Index, OddsPanel, Bag + BagGear, Stats, Shop, Gifts, DevPanel, DeckBuilder, BossScreen,
   Battle, RewardReveal, ModelView (3D figure in a ViewportFrame), Sfx).
 - Remotes are declared in `default.project.json` under ReplicatedStorage.Remotes.

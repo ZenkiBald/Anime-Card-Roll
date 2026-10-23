@@ -108,37 +108,50 @@ function Modal.Banner(parent: Instance, title: string, textSize: number?): any -
 	return banner
 end
 
--- Dark square with a cross and a red neon edge.
+-- Close: a 32 px dark obsidian square, 4 px corners, a grey ✕ that glows red on hover.
+local CLOSE_GREY = Color3.fromRGB(150, 158, 178)
+local CLOSE_RED = Color3.fromRGB(255, 90, 105)
+
 function Modal.CloseButton(parent: Instance): TextButton
 	local close = Kit.new("TextButton", {
 		Name = "Close",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 4, 0, -8),
-		Size = UDim2.fromOffset(46, 42),
+		Position = UDim2.new(1, -2, 0, -2),
+		Size = UDim2.fromOffset(32, 32),
 		AutoButtonColor = false,
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundColor3 = Color3.fromRGB(14, 17, 26),
 		Text = "",
 		ZIndex = 6,
 		Parent = parent,
 	}, {
-		Kit.corner(),
-		Kit.gradient(ColorSequence.new(Color3.fromRGB(46, 22, 30), Color3.fromRGB(18, 10, 14)), 90),
-		Kit.stroke(Theme.Color.Danger, 1.2, 0),
+		Kit.corner(UDim.new(0, 4)),
+		Kit.stroke(Theme.Color.Line, 1.2, 0),
 	})
 	local cross = Kit.label({
+		Name = "Cross",
 		Text = "✕",
 		Font = Theme.Font.Heavy,
+		TextColor3 = CLOSE_GREY,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.6, 0.7),
+		Size = UDim2.fromScale(0.56, 0.56),
 		ZIndex = 7,
 		Parent = close,
-	}, 28)
-	cross.TextColor3 = Color3.fromRGB(255, 150, 160)
-	if Skin.Apply(close, "Close") then
-		cross.Visible = false -- the button art has its own X
-		close.Size = UDim2.fromOffset(46, 46)
+	}, 18)
+	local glow = Kit.textStroke(CLOSE_RED, 1, 1)
+	glow.Parent = cross
+	local stroke = close:FindFirstChildOfClass("UIStroke") :: UIStroke
+	local function hover(on: boolean)
+		Kit.tween(cross, 0.12, { TextColor3 = if on then Color3.new(1, 1, 1) else CLOSE_GREY })
+		Kit.tween(glow, 0.12, { Transparency = if on then 0.35 else 1 })
+		Kit.tween(stroke, 0.12, { Color = if on then CLOSE_RED else Theme.Color.Line })
 	end
+	close.MouseEnter:Connect(function()
+		hover(true)
+	end)
+	close.MouseLeave:Connect(function()
+		hover(false)
+	end)
 	Kit.pressable(close)
 	return close
 end

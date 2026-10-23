@@ -2,6 +2,9 @@
 -- Riding pets: the Mount remote asks to ride a mount (its id) or to get off (nil). The server checks
 -- the mount is unlocked for this save, clones its model from ReplicatedStorage.MountKit, welds it under
 -- the character (massless, no collision), lifts the rider into the seat and sets the mount's speed.
+-- Every part is welded to one invisible MountRoot, joined to the rider's root by a Motor6D
+-- ("MountJoint"), so clients can sway the mount with its stride (Followers.luau sets the joint's
+-- Transform each frame: pitch, roll and a little heave; it never moves the rider).
 -- The character's "Mount" attribute tells clients to play the sitting pose; "Pet" names the mount that
 -- follows it on foot.
 
@@ -67,6 +70,15 @@ local function ride(character: Model, mount: Mounts.Mount)
 		* CFrame.new(0, ground + (mount.Float or 0) + size.Y / 2, -(mount.Forward or 0))
 		* CFrame.Angles(0, math.rad(mount.Yaw or 0), 0)
 	local flat = CFrame.new(box.Position) * (box - box.Position)
+	local mountRoot = Instance.new("Part")
+	mountRoot.Name = "MountRoot"
+	mountRoot.Size = Vector3.new(0.2, 0.2, 0.2)
+	mountRoot.Transparency = 1
+	mountRoot.CFrame = target
+	mountRoot.CanCollide = false
+	mountRoot.CanQuery = false
+	mountRoot.CanTouch = false
+	mountRoot.Massless = true
 	for _, part in model:GetDescendants() do
 		if part:IsA("BasePart") then
 			part.CFrame = target * flat:ToObjectSpace(part.CFrame)
@@ -76,11 +88,19 @@ local function ride(character: Model, mount: Mounts.Mount)
 			part.CanTouch = false
 			part.Massless = true
 			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = root
+			weld.Part0 = mountRoot
 			weld.Part1 = part
 			weld.Parent = part
 		end
 	end
+	mountRoot.Parent = model
+	local joint = Instance.new("Motor6D")
+	joint.Name = "MountJoint"
+	joint.Part0 = root
+	joint.Part1 = mountRoot
+	joint.C0 = root.CFrame:ToObjectSpace(target)
+	joint.Parent = mountRoot
+	model.PrimaryPart = mountRoot
 	model.Parent = character
 	humanoid.HipHeight = hip
 	humanoid.WalkSpeed = mount.Speed

@@ -273,7 +273,7 @@ end)
 Wheel.Init(playerGui)
 PlayerList.SetHidden("Title", Title.IsOpen())
 Profile.Init(playerGui, Index.Toggle)
-PlayerList.Init(playerGui, Profile.Open)
+PlayerList.Init(playerGui, Profile.Open, Settings.Toggle)
 Dash.Start(Title.IsOpen)
 Followers.Start()
 ElementGuide.Init(playerGui)
@@ -382,7 +382,6 @@ Hud.Init(playerGui, {
 	OnTravel = Travel.Toggle,
 	OnStore = Store.Toggle,
 	OnOdds = OddsPanel.Toggle,
-	OnSettings = Settings.Toggle,
 	OnPets = Pets.Toggle,
 	OnRaid = BossScreen.OpenRaid,
 	OnDev = if State.TestMode then DevPanel.Toggle else nil,

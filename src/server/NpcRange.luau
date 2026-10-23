@@ -4,14 +4,19 @@
 -- ask Near before they act, so a client can't fuse or spin from across the map. An NPC that was never
 -- placed (no map, no marker) doesn't block anything.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local NpcRange = {}
 
 NpcRange.Range = 24 -- studs from the NPC's root (its prompt reaches 16; the rest is slack for lag)
 
 local positions: { [string]: Vector3 } = {}
 
+-- Also published as ReplicatedStorage attribute NpcSpot_<id> (streaming may not have the NPC on a
+-- client yet), so the client can draw a waypoint to it (UI/Waypoint).
 function NpcRange.Set(id: string, position: Vector3)
 	positions[id] = position
+	ReplicatedStorage:SetAttribute(`NpcSpot_{id}`, position)
 end
 
 function NpcRange.Near(player: Player, id: string): boolean

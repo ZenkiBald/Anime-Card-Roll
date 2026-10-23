@@ -5,6 +5,7 @@
 -- On spawn the camera turns to look the way the spawn faces (Roblox starts it facing -Z).
 
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -163,7 +164,50 @@ function HubFx.CameraBehind(character: Model)
 	Workspace.CurrentCamera.CFrame = CFrame.lookAt(focus - look * 12 + Vector3.new(0, 3.5, 0), focus)
 end
 
+-- Portal and gate signs (tagged FadeSign by World) fade in as you walk up: solid within FADE_NEAR studs,
+-- gone at the BillboardGui's MaxDistance. Each label's 1 px shadow keeps its text in step.
+local FADE_NEAR = 28
+
+local function fadeSigns()
+	local camera = Workspace.CurrentCamera
+	if camera == nil then
+		return
+	end
+	local eye = camera.CFrame.Position
+	for _, gui in CollectionService:GetTagged("FadeSign") do
+		if not gui:IsA("BillboardGui") then
+			continue
+		end
+		local anchor = gui.Adornee or gui.Parent
+		local position = if anchor and anchor:IsA("BasePart")
+			then anchor.Position
+			elseif anchor and anchor:IsA("Attachment") then anchor.WorldPosition
+			else nil
+		if position == nil then
+			continue
+		end
+		local far = math.max(gui.MaxDistance, FADE_NEAR + 1)
+		local fade = math.clamp(((position - eye).Magnitude - FADE_NEAR) / (far - FADE_NEAR), 0, 1)
+		for _, label in gui:GetChildren() do
+			if label:IsA("TextLabel") then
+				label.TextTransparency = fade
+				local shadow = label:FindFirstChild("Shadow")
+				if shadow and shadow:IsA("TextLabel") then
+					shadow.Text = label.Text
+					shadow.TextTransparency = 0.45 + 0.55 * fade
+				end
+			end
+		end
+	end
+end
+
 function HubFx.Start()
+	task.spawn(function()
+		while true do
+			task.wait(0.1)
+			fadeSigns()
+		end
+	end)
 	local player = Players.LocalPlayer
 	player.CharacterAdded:Connect(HubFx.CameraBehind)
 	if player.Character then

@@ -1,198 +1,309 @@
 --!nonstrict
--- Shared menu controls in the game's chunky purple style: two-line option pills (Sort / Filter),
--- coloured tab pills, a search box and slanted section headers.
+-- Shared menu controls in the obsidian style (4 px corners, 1.2 px slate edges, neon when active):
+-- dropdown tiles (Sort / Filter / Element), tabs with a neon underline, a search box, section banners
+-- with a neon bar, small square icon buttons and toggle chips.
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
-local Skin = require(script.Parent.Skin)
 
 local Controls = {}
 
-Controls.Purple = Color3.fromRGB(60, 200, 255)
+Controls.Purple = Color3.fromRGB(60, 200, 255) -- the neon accent (kept under its old name)
 Controls.PurpleDeep = Color3.fromRGB(14, 70, 110)
-Controls.Outline = Color3.fromRGB(13, 17, 27)
+Controls.Outline = Color3.fromRGB(8, 10, 16)
+
+local CORNER = UDim.new(0, 4)
+local TILE_TOP = Color3.fromRGB(26, 31, 46)
+local TILE_BOTTOM = Color3.fromRGB(13, 16, 25)
 
 local function outlined(label: TextLabel, thickness: number?)
-	Kit.textStroke(Controls.Outline, thickness or 2, 0).Parent = label
+	Kit.textStroke(Controls.Outline, math.min(thickness or 1, 1), 0.3).Parent = label
 	return label
 end
 Controls.Outlined = outlined
 
--- "Sort / Rarity": tap to cycle through `options`; onChange gets the new value.
+-- A dark tile: the base of every control here.
+local function tile(className: string, props: { [string]: any }, edge: Color3?): any
+	local base = { AutoButtonColor = false, BackgroundColor3 = Color3.new(1, 1, 1), Text = "" }
+	if className == "Frame" then
+		base.AutoButtonColor = nil
+		base.Text = nil
+	end
+	for key, value in props do
+		base[key] = value
+	end
+	return Kit.new(className, base, {
+		Kit.corner(CORNER),
+		Kit.gradient(ColorSequence.new(TILE_TOP, TILE_BOTTOM), 90),
+		Kit.stroke(edge or Theme.Color.Line, 1.2, 0),
+	})
+end
+Controls.Tile = tile
+
+-- "Sort  Power ▾": a dropdown tile. Tap it for the list of `options`; picking one calls onChange.
+local openList: Frame? = nil
+
+local function closeList()
+	if openList then
+		openList:Destroy()
+		openList = nil
+	end
+end
+
 function Controls.Option(parent: Instance, caption: string, options: { string }, order: number, onChange: (string) -> ())
-	local index = 1
-	local button = Kit.new("TextButton", {
+	local current = options[1]
+	local button = tile("TextButton", {
 		Name = caption,
 		LayoutOrder = order,
-		Size = UDim2.new(0, 112, 1, 0),
-		AutoButtonColor = false,
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Text = "",
+		Size = UDim2.new(0, 132, 1, 0),
+		ZIndex = 4,
 		Parent = parent,
-	}, {
-		Kit.corner(UDim.new(0.3, 0)),
-		Kit.gradient(ColorSequence.new(Controls.Purple, Controls.PurpleDeep), 90),
-		Kit.stroke(Color3.fromRGB(190, 235, 255), 2, 0.2),
 	})
-	Skin.Apply(button, "ButtonPurple")
-	outlined(Kit.label({
+	Kit.label({
 		Name = "Caption",
-		Text = caption,
+		Text = string.upper(caption),
 		Font = Theme.Font.Heavy,
-		Position = UDim2.fromScale(0.05, 0.06),
-		Size = UDim2.fromScale(0.9, 0.36),
+		TextColor3 = Theme.Color.Muted,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 10, 0.08, 0),
+		Size = UDim2.new(1, -30, 0.36, 0),
+		ZIndex = 5,
 		Parent = button,
-	}, 14), 1.5)
-	local value = outlined(Kit.label({
+	}, 11)
+	local value = Kit.label({
 		Name = "Value",
-		Text = options[1],
-		Font = Theme.Font.Display,
-		Position = UDim2.fromScale(0.05, 0.4),
-		Size = UDim2.fromScale(0.9, 0.52),
+		Text = current,
+		Font = Theme.Font.Heavy,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 10, 0.42, 0),
+		Size = UDim2.new(1, -30, 0.5, 0),
+		ZIndex = 5,
 		Parent = button,
-	}, 22), 2)
+	}, 16)
+	Kit.label({
+		Name = "Arrow",
+		Text = "▾",
+		Font = Theme.Font.Heavy,
+		TextColor3 = Theme.Color.Neon,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(14, 18),
+		ZIndex = 5,
+		Parent = button,
+	}, 16)
 	Kit.pressable(button)
 	button.Activated:Connect(function()
-		index = index % #options + 1
-		value.Text = options[index]
-		onChange(options[index])
+		local wasMine = openList and openList.Parent == button
+		closeList()
+		if wasMine then
+			return
+		end
+		button.UIStroke.Color = Theme.Color.Neon
+		local list = tile("Frame", {
+			Name = "List",
+			Position = UDim2.new(0, 0, 1, 4),
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			ZIndex = 40,
+			Parent = button,
+		}, Theme.Color.Neon)
+		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+		Kit.new("UIPadding", { PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 3), Parent = list })
+		for i, option in options do
+			local item = Kit.new("TextButton", {
+				LayoutOrder = i,
+				AutoButtonColor = false,
+				Size = UDim2.new(1, 0, 0, 28),
+				BackgroundColor3 = Theme.Color.Neon,
+				BackgroundTransparency = if option == current then 0.82 else 1,
+				Font = Theme.Font.Heavy,
+				Text = "  " .. option,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextColor3 = if option == current then Theme.Color.Neon else Theme.Color.Text,
+				TextSize = 15,
+				ZIndex = 41,
+				Parent = list,
+			})
+			item.Activated:Connect(function()
+				current = option
+				value.Text = option
+				closeList()
+				onChange(option)
+			end)
+		end
+		-- Near the bottom of the screen the list opens upward instead.
+		local screen = button:FindFirstAncestorWhichIsA("LayerCollector")
+		local height = #options * 28 + 6
+		if screen and button.AbsolutePosition.Y + button.AbsoluteSize.Y + height + 8 > screen.AbsoluteSize.Y then
+			list.AnchorPoint = Vector2.new(0, 1)
+			list.Position = UDim2.new(0, 0, 0, -4)
+		end
+		openList = list
+		list.Destroying:Connect(function()
+			if button.Parent then
+				button.UIStroke.Color = Theme.Color.Line
+			end
+		end)
 	end)
 	return button
 end
 
--- A big coloured tab pill; returns the button and a setter for its on/off look.
+-- A tab: dark tile, neon underline and bright text when on. Returns the button and its on / off setter.
 function Controls.Tab(parent: Instance, text: string, color: Color3, order: number, width: number?)
-	local button = Kit.new("TextButton", {
+	local button = tile("TextButton", {
 		Name = text,
 		LayoutOrder = order,
 		Size = UDim2.new(0, width or 140, 1, 0),
-		AutoButtonColor = false,
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Text = "",
 		Parent = parent,
-	}, { Kit.corner(UDim.new(0.5, 0)) })
-	local gradient = Kit.gradient(ColorSequence.new(color, color:Lerp(Color3.new(0, 0, 0), 0.35)), 90)
-	gradient.Parent = button
-	local stroke = Kit.stroke(Color3.new(1, 1, 1), 2, 0.2)
-	stroke.Parent = button
-	local skin = Skin.Apply(button, Skin.ButtonFor(color))
-	local label = outlined(Kit.label({
-		Text = text,
+	})
+	local label = Kit.label({
+		Text = string.upper(text),
 		Font = Theme.Font.Display,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.86, 0.62),
+		Position = UDim2.fromScale(0.5, 0.46),
+		Size = UDim2.fromScale(0.86, 0.5),
 		Parent = button,
-	}, 24), 2)
+	}, 18)
+	local bar = Kit.new("Frame", {
+		Name = "Bar",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -1),
+		Size = UDim2.new(1, -8, 0, 2),
+		BorderSizePixel = 0,
+		BackgroundColor3 = color,
+		Parent = button,
+	})
 	Kit.pressable(button)
 	local function set(on: boolean)
-		if skin then
-			skin.ImageColor3 = if on then Color3.new(1, 1, 1) else Color3.fromRGB(27, 34, 53) -- greyed when off
-		else
-			gradient.Color = if on
-				then ColorSequence.new(color, color:Lerp(Color3.new(0, 0, 0), 0.35))
-				else ColorSequence.new(Color3.fromRGB(150, 146, 170), Color3.fromRGB(22, 29, 45))
-			stroke.Transparency = if on then 0 else 0.6
-		end
-		label.TextTransparency = if on then 0 else 0.25
+		bar.Visible = on
+		button.UIStroke.Color = if on then color else Theme.Color.Line
+		label.TextColor3 = if on then Theme.Color.Text else Theme.Color.Muted
 	end
 	return button, set
 end
 
--- Rounded dark search box. onChange gets the lower-cased text.
+-- Dark search box with a neon edge while typing. onChange gets the lower-cased text.
 function Controls.Search(parent: Instance, props: { [string]: any }, onChange: (string) -> ()): TextBox
-	local frame = Kit.new("Frame", {
-		Name = "Search",
-		BackgroundColor3 = Color3.fromRGB(6, 8, 13),
-		BackgroundTransparency = 0.1,
-		Parent = parent,
-	}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(Color3.fromRGB(90, 170, 220), 2, 0.3) })
+	local frame = tile("Frame", { Name = "Search", Parent = parent })
 	for key, value in props do
 		frame[key] = value
 	end
 	local box = Kit.new("TextBox", {
 		Name = "Box",
-		Position = UDim2.new(0, 16, 0, 0),
-		Size = UDim2.new(1, -32, 1, 0),
+		Position = UDim2.new(0, 12, 0, 0),
+		Size = UDim2.new(1, -24, 1, 0),
 		BackgroundTransparency = 1,
 		Text = "",
 		PlaceholderText = "Search...",
-		PlaceholderColor3 = Color3.fromRGB(150, 175, 200),
-		TextColor3 = Color3.new(1, 1, 1),
-		Font = Theme.Font.Display,
-		TextSize = 20,
+		PlaceholderColor3 = Theme.Color.Muted,
+		TextColor3 = Theme.Color.Text,
+		Font = Theme.Font.Heavy,
+		TextSize = 17,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ClearTextOnFocus = false,
 		Parent = frame,
 	})
+	box.Focused:Connect(function()
+		frame.UIStroke.Color = Theme.Color.Neon
+	end)
+	box.FocusLost:Connect(function()
+		frame.UIStroke.Color = Theme.Color.Line
+	end)
 	box:GetPropertyChangedSignal("Text"):Connect(function()
 		onChange(string.lower(box.Text))
 	end)
 	return box
 end
 
--- Slanted coloured header strip for a column or section.
+-- A section banner: dark metal with the text in caps and a sharp neon bar in `color` under it.
 function Controls.Header(parent: Instance, text: string, color: Color3, props: { [string]: any }?): Frame
-	local header = Kit.new("Frame", {
-		Name = "Header",
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Parent = parent,
-	}, {
-		Kit.corner(UDim.new(0.3, 0)),
-		Kit.gradient(ColorSequence.new(color:Lerp(Color3.new(1, 1, 1), 0.15), color:Lerp(Color3.new(0, 0, 0), 0.3)), 90),
-		Kit.stroke(Color3.new(1, 1, 1), 2, 0.3),
-	})
+	local header = tile("Frame", { Name = "Header", Parent = parent })
 	if props then
 		for key, value in props do
 			header[key] = value
 		end
 	end
-	Skin.Apply(header, Skin.ButtonFor(color))
-	outlined(Kit.label({
-		Name = "Text",
-		Text = text,
-		Font = Theme.Font.Display,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.9, 0.7),
+	Kit.new("Frame", {
+		Name = "Bar",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 3),
+		BorderSizePixel = 0,
+		BackgroundColor3 = color,
 		Parent = header,
-	}, 26), 2)
+	}, {
+		Kit.new("UIGradient", {
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.8, 0.2), NumberSequenceKeypoint.new(1, 0.9) }),
+		}),
+	})
+	Kit.new("Frame", {
+		Name = "Tick",
+		Position = UDim2.new(0, 8, 0.2, 0),
+		Size = UDim2.new(0, 3, 0.5, 0),
+		BorderSizePixel = 0,
+		BackgroundColor3 = color,
+		Parent = header,
+	})
+	Kit.label({
+		Name = "Text",
+		Text = string.upper(text),
+		Font = Theme.Font.Display,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 18, 0.12, 0),
+		Size = UDim2.new(1, -26, 0.66, 0),
+		Parent = header,
+	}, 20)
 	return header
 end
 
--- Small square icon button (◀ ▶ ✕ ...).
+-- Small square icon button (◀ ▶ ✕ ...): dark tile, the glyph in `color`.
 function Controls.Icon(parent: Instance, text: string, color: Color3, order: number, onClick: () -> ())
-	local button = Kit.new("TextButton", {
+	local button = tile("TextButton", {
 		Name = text,
 		LayoutOrder = order,
-		Size = UDim2.new(0, 44, 1, 0),
-		AutoButtonColor = false,
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Text = "",
+		Size = UDim2.new(0, 40, 1, 0),
 		Parent = parent,
-	}, {
-		Kit.corner(UDim.new(1, 0)),
-		Kit.gradient(ColorSequence.new(color, color:Lerp(Color3.new(0, 0, 0), 0.4)), 90),
-		Kit.stroke(Color3.new(1, 1, 1), 2, 0.3),
-	})
-	-- The fonts have no ✕ glyph: a remove button uses the kit's round close art instead.
-	local closeArt = text == "✕" and Skin.Apply(button, "Close")
-	if closeArt then
-		Kit.aspect(1, Enum.DominantAxis.Height).Parent = button
-	else
-		Skin.Apply(button, Skin.ButtonFor(color))
-		outlined(Kit.label({
-			Text = text,
-			Font = Theme.Font.Heavy,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.62, 0.62),
-			Parent = button,
-		}, 24), 1.5)
-	end
+	}, color:Lerp(Theme.Color.Line, 0.5))
+	Kit.label({
+		Text = text,
+		Font = Theme.Font.Heavy,
+		TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.3),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.6, 0.6),
+		Parent = button,
+	}, 20)
 	Kit.pressable(button)
 	button.Activated:Connect(onClick)
 	return button
+end
+
+-- A toggle chip ("★5", "GOLD"): returns the button and its on / off setter; onToggle gets the new state.
+function Controls.Chip(parent: Instance, text: string, color: Color3, order: number, onToggle: (boolean) -> ())
+	local on = false
+	local button = tile("TextButton", {
+		Name = text,
+		LayoutOrder = order,
+		Size = UDim2.new(0, 0, 1, 0),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Font = Theme.Font.Heavy,
+		Text = text,
+		TextSize = 14,
+		TextColor3 = Theme.Color.Muted,
+		Parent = parent,
+	})
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = button })
+	local function set(value: boolean)
+		on = value
+		button.UIStroke.Color = if on then color else Theme.Color.Line
+		button.TextColor3 = if on then color:Lerp(Color3.new(1, 1, 1), 0.25) else Theme.Color.Muted
+	end
+	Kit.pressable(button)
+	button.Activated:Connect(function()
+		set(not on)
+		onToggle(on)
+	end)
+	return button, set
 end
 
 return Controls

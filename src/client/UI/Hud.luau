@@ -46,8 +46,7 @@ local feed: Frame
 local banner: any
 local bannerLabel: TextLabel
 local toast: any
-local settingsButton: TextButton
-local petsButton: TextButton
+local petsButton: any -- the MOUNT tile beside the roll console
 local levelBar: any -- children read by name
 local eventPill: any
 local raidPill: any -- under the event pill while a raid is live (tap to join) or Raid Luck runs
@@ -298,8 +297,6 @@ local function applyHidden()
 	menu.Visible = not hidden
 	questSlot.Visible = questActive and not hidden
 	topBar.Visible = not hidden
-	settingsButton.Visible = not hidden
-	petsButton.Visible = not hidden
 	boostRow.Visible = not hidden
 	levelBar.Visible = not hidden
 	eventPill.Visible = not hidden
@@ -318,7 +315,6 @@ export type Handlers = {
 	OnTravel: () -> (),
 	OnStore: () -> (),
 	OnOdds: () -> (),
-	OnSettings: () -> (),
 	OnPets: () -> (),
 	OnRaid: () -> (),
 	OnDev: (() -> ())?,
@@ -559,92 +555,46 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutLeft)
 	layoutLeft()
 
-	-- SETTINGS gear, top right (volume and effects quality) ------------------------------------
-	settingsButton = Kit.new("TextButton", {
-		Name = "Settings",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 6),
-		Size = UDim2.fromOffset(56, 56),
-		AutoButtonColor = false,
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Text = "",
-		Parent = gui,
-	}, {
-		Kit.corner(UDim.new(0.26, 0)),
-		Kit.gradient(ColorSequence.new(Theme.Color.Accent:Lerp(Theme.Color.Panel, 0.55), Theme.Color.Panel), 90),
-		Kit.stroke(Theme.Color.Accent, 1.5, 0.35),
-	})
-	Skin.Apply(settingsButton, "MenuButton")
-	-- A white gear drawn from frames (the gear emoji is grey on purple, and fonts lack the glyph).
-	local gear = Kit.new("Frame", {
-		Name = "Gear",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.56, 0.56),
-		BackgroundTransparency = 1,
-		Parent = settingsButton,
-	})
-	for i = 0, 7 do
-		local angle = math.rad(i * 45)
-		Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5 + 0.38 * math.cos(angle), 0.5 + 0.38 * math.sin(angle)),
-			Size = UDim2.fromScale(0.24, 0.24),
-			Rotation = i * 45,
-			BackgroundColor3 = Color3.new(1, 1, 1),
-			Parent = gear,
-		}, { Kit.corner(UDim.new(0.2, 0)) })
-	end
-	Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.74, 0.74),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Parent = gear,
-	}, { Kit.corner(UDim.new(1, 0)) })
-	Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.3, 0.3),
-		BackgroundColor3 = Color3.fromRGB(20, 40, 70),
-		Parent = gear,
-	}, { Kit.corner(UDim.new(1, 0)) })
-	Kit.pressable(settingsButton)
-	settingsButton.Activated:Connect(handlers.OnSettings)
-
-	-- PETS under the gear: a paw button with its key hint.
+	-- MOUNT, beside the roll console: a small dark tile (G rides / gets off). The SETTINGS gear sits in
+	-- the server list's header (UI/PlayerList).
+	local touchOnly = game:GetService("UserInputService").TouchEnabled and not game:GetService("UserInputService").KeyboardEnabled
 	petsButton = Kit.new("TextButton", {
-		Name = "Pets",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 68),
-		Size = UDim2.fromOffset(56, 56),
+		Name = "Mount",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(1, 10, 1, 0),
+		Size = UDim2.fromOffset(44, 44),
 		AutoButtonColor = false,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
-		Parent = gui,
+		Parent = dock,
 	}, {
-		Kit.corner(UDim.new(0.26, 0)),
-		Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 160, 200):Lerp(Theme.Color.Panel, 0.55), Theme.Color.Panel), 90),
-		Kit.stroke(Color3.fromRGB(255, 160, 200), 1.5, 0.35),
+		Kit.corner(UDim.new(0, 4)),
+		Kit.gradient(ColorSequence.new(Color3.fromRGB(28, 33, 48), Color3.fromRGB(11, 13, 21)), 90),
+		Kit.stroke(Theme.Color.Line, 1.2, 0),
 	})
-	Skin.Apply(petsButton, "MenuButton")
 	Kit.label({
 		Text = "🐾",
 		Font = Theme.Font.Heavy,
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.1),
-		Size = UDim2.fromScale(0.6, 0.55),
+		Position = UDim2.fromScale(0.5, 0.06),
+		Size = UDim2.fromScale(0.6, 0.56),
 		Parent = petsButton,
-	}, 30)
-	local petsCaption = Kit.label({
-		Text = "PETS · G",
+	}, 22)
+	Kit.label({
+		Text = if touchOnly then "MOUNT" else "MOUNT·G",
 		Font = Theme.Font.Heavy,
+		TextColor3 = Theme.Color.Muted,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 0.94),
-		Size = UDim2.fromScale(0.9, 0.24),
+		Position = UDim2.fromScale(0.5, 0.96),
+		Size = UDim2.fromScale(0.94, 0.3),
 		Parent = petsButton,
-	}, 12)
-	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.4).Parent = petsCaption
+	}, 9)
+	petsButton.MouseEnter:Connect(function()
+		petsButton.UIStroke.Color = Theme.Color.Neon
+	end)
+	petsButton.MouseLeave:Connect(function()
+		petsButton.UIStroke.Color = Theme.Color.Line
+	end)
 	Kit.pressable(petsButton)
 	petsButton.Activated:Connect(handlers.OnPets)
 

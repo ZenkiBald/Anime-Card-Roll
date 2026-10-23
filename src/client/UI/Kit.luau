@@ -33,10 +33,12 @@ function Kit.new(className: string, props: { [string]: any }?, children: { Insta
 	return inst
 end
 
--- Sharp 5 px corners everywhere (Theme.Corner). A full-round radius (scale 1) stays round only on
--- square-ish things (dots, badges, round icons); on a long bar or pill it turns sharp too.
+-- Sharp 5 px corners everywhere (Theme.Corner), or a smaller offset when one is asked for. A full-round
+-- radius (scale 1) stays round only on square-ish things (dots, badges, round icons); on a long bar or
+-- pill it turns sharp too.
 function Kit.corner(radius: UDim?): UICorner
-	local corner = Kit.new("UICorner", { CornerRadius = Theme.Corner })
+	local small = radius ~= nil and radius.Scale == 0 and radius.Offset <= 6 -- a sharper corner asked for
+	local corner = Kit.new("UICorner", { CornerRadius = if small then radius else Theme.Corner })
 	if radius ~= nil and radius.Scale >= 1 then
 		local sizeConnection: RBXScriptConnection? = nil
 		local function fit()

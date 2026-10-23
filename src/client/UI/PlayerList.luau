@@ -199,7 +199,8 @@ function PlayerList.SetHidden(reason: string, on: boolean)
 	end
 end
 
-function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?)
+-- `openSettings`: the SETTINGS gear in the list's header (the HUD has no gear of its own).
+function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSettings: (() -> ())?)
 	onPick = pick
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false) -- this list replaces it
@@ -209,14 +210,14 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?)
 	panel = Kit.new("Frame", {
 		Name = "ServerList",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -80, 0, 6),
-		Size = UDim2.fromOffset(250, 32),
-		BackgroundColor3 = Color3.fromRGB(8, 11, 17),
-		BackgroundTransparency = 0.25,
+		Position = UDim2.new(1, -12, 0, 6),
+		Size = UDim2.fromOffset(280, 32),
+		BackgroundColor3 = Theme.Color.Panel,
+		BackgroundTransparency = Theme.Glass.Panel,
 		Parent = gui,
 	}, {
-		Kit.corner(UDim.new(0, 14)),
-		Kit.stroke(Theme.Color.TileEdge, 1.5, 0.4),
+		Kit.corner(UDim.new(0, 4)),
+		Kit.stroke(Theme.Color.Line, 1.2, 0),
 		Kit.new("UIScale", { Name = "Fit", Scale = 1 }),
 	})
 	countLabel = Kit.label({
@@ -225,9 +226,71 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?)
 		Font = Theme.Font.Display,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.new(0, 12, 0, 4),
-		Size = UDim2.new(1, -56, 0, 24),
+		Size = UDim2.new(1, -92, 0, 24),
 		Parent = panel,
 	}, 18)
+	-- SETTINGS: a dark square with a gear glyph, left of the fold arrow.
+	if openSettings then
+		local gear = Kit.new("TextButton", {
+			Name = "Settings",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -46, 0, 3),
+			Size = UDim2.fromOffset(28, 26),
+			AutoButtonColor = false,
+			BackgroundColor3 = Color3.fromRGB(16, 20, 30),
+			Text = "",
+			Parent = panel,
+		}, { Kit.corner(UDim.new(0, 4)), Kit.stroke(Theme.Color.Line, 1.2, 0) })
+		-- The gear is drawn from frames (fonts have no clean gear glyph): 8 teeth, a ring, a hole.
+		local cog = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(14, 14),
+			BackgroundTransparency = 1,
+			Parent = gear,
+		})
+		local parts = {}
+		for i = 0, 7 do
+			local angle = math.rad(i * 45)
+			table.insert(parts, Kit.new("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5 + 0.4 * math.cos(angle), 0.5 + 0.4 * math.sin(angle)),
+				Size = UDim2.fromScale(0.26, 0.26),
+				Rotation = i * 45,
+				BorderSizePixel = 0,
+				BackgroundColor3 = Theme.Color.Muted,
+				Parent = cog,
+			}))
+		end
+		table.insert(parts, Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.72, 0.72),
+			BackgroundColor3 = Theme.Color.Muted,
+			Parent = cog,
+		}, { Kit.corner(UDim.new(1, 0)) }))
+		Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.3, 0.3),
+			BackgroundColor3 = Color3.fromRGB(16, 20, 30),
+			ZIndex = 2,
+			Parent = cog,
+		}, { Kit.corner(UDim.new(1, 0)) })
+		local function tint(color: Color3)
+			for _, part in parts do
+				part.BackgroundColor3 = color
+			end
+		end
+		gear.MouseEnter:Connect(function()
+			tint(Theme.Color.Neon)
+		end)
+		gear.MouseLeave:Connect(function()
+			tint(Theme.Color.Muted)
+		end)
+		Kit.pressable(gear)
+		gear.Activated:Connect(openSettings)
+	end
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = countLabel
 	foldButton = Kit.button("›", Theme.Color.PanelLight, Theme.Color.Panel, {
 		Name = "Fold",
