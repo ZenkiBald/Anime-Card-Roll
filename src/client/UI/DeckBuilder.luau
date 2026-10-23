@@ -34,6 +34,7 @@ local Sfx = require(script.Parent.Sfx)
 local ElementGuide = require(script.Parent.ElementGuide)
 local Waypoint = require(script.Parent.Waypoint)
 local CardTooltip = require(script.Parent.CardTooltip)
+local ElementUi = require(script.Parent.ElementUi)
 local MetaClient = require(script.Parent.Parent.MetaClient)
 local Avatars = require(script.Parent.Parent.Avatars)
 local State = require(script.Parent.Parent.State)
@@ -279,7 +280,6 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 		plate:SetAttribute("Tap", ((plate:GetAttribute("Tap") or 0) :: number) + 1)
 	end)
 	local border = Borders.Get(if own then Borders.Best(own.Borders) else nil)
-	local element = Elements.Get(card.Element)
 	local info = Kit.new("Frame", {
 		Name = "Info",
 		Position = UDim2.new(0.28, 32, 0, 0),
@@ -289,12 +289,39 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	})
 	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, 0.3), Parent = info }, 17)
 	text({ Text = card.Title or "", Font = Theme.Font.Bold, TextColor3 = Theme.Color.Muted, Position = UDim2.fromScale(0, 0.39), Size = UDim2.fromScale(1, 0.22), Parent = info }, 12)
-	text({
-		Text = `{if element then `<font color="#{element.Color:ToHex()}">{element.Icon}</font>  ` else ""}<font color="#FFC42E">⚡ {Kit.commas(Deck.CardPower(id, State.Cards))}</font>`,
+	-- Element and role badges, then the card's power.
+	ElementUi.Badge(card.Element, {
+		Position = UDim2.fromScale(0, 0.62),
+		Size = UDim2.fromScale(0.34, 0.34),
+		DominantAxis = Enum.DominantAxis.Height,
+		ZIndex = 4,
+		Parent = info,
+	})
+	ElementUi.RoleBadge(card.Role, {
+		Position = UDim2.fromScale(0, 0.62),
+		Size = UDim2.fromScale(0.34, 0.34),
+		DominantAxis = Enum.DominantAxis.Height,
+		ZIndex = 4,
+		Parent = info,
+	})
+	local powerText = text({
+		Text = `<font color="#FFC42E">⚡ {Kit.commas(Deck.CardPower(id, State.Cards))}</font>`,
 		Position = UDim2.fromScale(0, 0.66),
 		Size = UDim2.fromScale(1, 0.26),
 		Parent = info,
 	}, 14)
+	-- Keep the role badge and the power clear of the element badge, at any plate size.
+	local function placeBadges()
+		local h = info.AbsoluteSize.Y * 0.34
+		local role = info:FindFirstChild("Role")
+		if role then
+			role.Position = UDim2.new(0, h + 4, 0.62, 0)
+		end
+		powerText.Position = UDim2.new(0, 2 * h + 10, 0.66, 0)
+		powerText.Size = UDim2.new(1, -(2 * h + 10), 0.26, 0)
+	end
+	info:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeBadges)
+	placeBadges()
 end
 
 -- The link between slot N's two cards: the Support card's Slot Link, and BOND ACTIVE when they're a bond.
@@ -504,9 +531,12 @@ local function drawInspector()
 	local border = Borders.Get(best)
 	local element = Elements.Get(card.Element)
 	local left = Kit.new("Frame", { Size = UDim2.new(0.58, -8, 1, 0), BackgroundTransparency = 1, Parent = inspector })
-	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Size = UDim2.new(1, 0, 0, 22), Parent = left }, 20)
+	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Size = UDim2.new(1, -56, 0, 22), Parent = left }, 20)
+	-- Element and role badges beside the name.
+	ElementUi.Badge(card.Element, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -26, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
+	ElementUi.RoleBadge(card.Role, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
 	text({
-		Text = `{card.Title or ""}  ·  {Borders.Label(best)} {card.Type}{if element then `  ·  <font color="#{element.Color:ToHex()}">{element.Icon} {element.Name}</font>` else ""}`,
+		Text = `{card.Title or ""}  ·  {Borders.Label(best)} {card.Role or card.Type}{if element then `  ·  <font color="#{element.Color:ToHex()}">{element.Name}</font>` else ""}`,
 		Font = Theme.Font.Bold,
 		TextColor3 = Theme.Color.Muted,
 		Position = UDim2.fromOffset(0, 24),

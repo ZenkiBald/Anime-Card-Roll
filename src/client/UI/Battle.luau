@@ -33,6 +33,8 @@ local Abilities = require(script.Parent.Abilities)
 local ElementUi = require(script.Parent.ElementUi)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
+local JuicyButton = require(script.Parent.Components.JuicyButton)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local Battle = {}
 
@@ -253,7 +255,7 @@ local function showCardInfo(cardId: string)
 	local cover = Kit.new("TextButton", {
 		Name = "CardInfo",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundColor3 = UITheme.Colors.UrushiBlack,
 		BackgroundTransparency = 0.45,
 		AutoButtonColor = false,
 		Text = "",
@@ -332,12 +334,14 @@ end
 
 -- Bars --------------------------------------------------------------------------------------
 
+-- A bar on a unit pod. The HP bar (`trail`) is a CanvasGroup track: the fill and its damage trail are
+-- plain rectangles clipped by the track's rounded ends, so a draining bar never bleeds past the corners.
 local function bar(parent: Instance, name: string, y: number, height: number, color: Color3, trail: boolean?)
-	local track = Kit.new("Frame", {
+	local track = Kit.new(if trail then "CanvasGroup" else "Frame", {
 		Name = name,
 		Position = UDim2.fromScale(0, y),
 		Size = UDim2.fromScale(1, height),
-		BackgroundColor3 = Color3.fromRGB(10, 8, 20),
+		BackgroundColor3 = UITheme.Colors.UrushiBlack,
 		BackgroundTransparency = 0.15,
 		ClipsDescendants = true,
 		Parent = parent,
@@ -350,7 +354,7 @@ local function bar(parent: Instance, name: string, y: number, height: number, co
 			BackgroundColor3 = Color3.fromRGB(255, 240, 220),
 			BorderSizePixel = 0,
 			Parent = track,
-		}, { Kit.corner(UDim.new(1, 0)) })
+		})
 	end
 	local fill = Kit.new("Frame", {
 		Name = "Fill",
@@ -359,7 +363,7 @@ local function bar(parent: Instance, name: string, y: number, height: number, co
 		BorderSizePixel = 0,
 		ZIndex = 2,
 		Parent = track,
-	}, { Kit.corner(UDim.new(1, 0)) })
+	}, if trail then nil else { Kit.corner(UDim.new(1, 0)) })
 	return track, fill, trailFrame
 end
 
@@ -672,6 +676,12 @@ local function makeTile(unit, order: number)
 		BackgroundTransparency = 1,
 		Parent = button,
 	})
+	-- The pod's contents (portrait, name, bars) render in one CanvasGroup with the pod's corner, so
+	-- sweeps and drains clip to its border; the flash / ready / KO overlays stay on the pod itself.
+	local content = JuicyButton.Content(button)
+	-- Hover lift, press squash and the spirit sheen in the card's tier colour. The scale goes on the
+	-- slot, so it stacks with the hit punches the pod's own UIScale plays.
+	JuicyButton.Apply(button, { ScaleTarget = slot, SheenColor = tier.Color:Lerp(Color3.new(1, 1, 1), 0.35) })
 	Kit.label({
 		Name = "CardName",
 		Text = card.Name,
@@ -695,6 +705,7 @@ local function makeTile(unit, order: number)
 		Slot = slot,
 		Card = button,
 		Scale = scale,
+		Content = content,
 		Status = status,
 		IsAttack = isAttack,
 		MaxHP = unit.MaxHP,
@@ -1117,6 +1128,7 @@ local function applySnapshot(snap)
 				if tile.Ko.Visible ~= not alive then
 					tile.Ko.Visible = not alive
 					tile.Card.BackgroundTransparency = if alive then 0 else 0.4
+					tile.Content.GroupTransparency = if alive then 0 else 0.35
 				end
 				tile.Frozen.Visible = alive and string.find(s.F, "Z") ~= nil
 				local tapped = ultTapped[id]
@@ -2835,7 +2847,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	intro = Kit.new("Frame", {
 		Name = "Intro",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundColor3 = UITheme.Colors.UrushiBlack,
 		BackgroundTransparency = 0.35,
 		Visible = false,
 		ZIndex = 45,

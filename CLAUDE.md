@@ -267,6 +267,27 @@ overrides the rarity / fusion / border notes above wherever they disagree:
   Warder),
   "Gold Border · 4x", Basic (target, formula), Skill (CD, stagger), Ultimate (energy), bonds.
 - Bosses / tower rescaled to the new power line (Kurogane Normal 45k ... Tenrai Nightmare 774k; fixtures use borders).
+Occult UI pass (2026-10-23, user's spec; cloud-built, headless tests + luau-lsp only, not yet seen in Studio). Overrides
+the obsidian / Gotham look above where they disagree:
+- Tokens: `src/configs/UITheme.luau` (ReplicatedStorage.Configs): Urushi black panels, Tamahagane steel edges, Washi
+  parchment text, Vermilion seal CTAs, Spirit Cyan -> Surge Gold, border glows, role glyphs (`UITheme.Roles`),
+  FredokaOne headers. `UI/Theme` reads Panel / PanelLight / Line / Text / Muted / Tile* and Font.Display from it, so every
+  screen follows. Element colours stay single-sourced in `Elements.luau` (retinted to the palette; UITheme reads them).
+- `UI/Components/JuicyButton`: sheen rim (stroke UIGradient Offset -1 -> 1, one looping tween; still on LOW effects),
+  spring scale (hover 1.05 Quad 0.15 s, press 0.95 Quad 0.08 s, release Back 0.25 s; `ScaleTarget` puts the UIScale on
+  a parent so it stacks with existing scale animations), Sfx SpiritHover / BladeClick, `JuicyButton.Content` moves a
+  button's contents into a CanvasGroup with its corner. Never pair it with Kit.pressable on the same button.
+  Used on the roll console (ROLL = Vermilion seal, 3 px steel border) and the battle unit pods (contents in a
+  CanvasGroup; the HP track is a CanvasGroup so drains clip, KO fades GroupTransparency).
+- `UI/Components/IconBadge`: diamond Urushi plate, 2 px steel bezel + inner glow rim, four 1 px notches, round glow
+  backlight (`IconBadge.GlowImage` = "" fakes the radial; set an uploaded radial id to use a texture), upright icon
+  (asset id or glyph). All layers are siblings in an unrotated square root, so nothing clips. `ElementUi.Badge` /
+  `ElementUi.RoleBadge` build on it (card tiles, card views, battle pods, tooltip, DECK plates + inspector); the top
+  bar's currency chips use it too.
+- HUD: Surge meter under the Momentum line (CanvasGroup track, fill Spirit Cyan -> Surge Gold by `SurgeProgress`,
+  full + gold edge when the next roll is the surge); currency chips are Urushi with a steel edge and a thin colour
+  line; flat white / black blocks in Hud / Battle went to Urushi / Washi. CardTooltip: Urushi, 2 px steel, an
+  element line on top, Washi title, element + role IconBadges.
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: the border still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
@@ -308,6 +329,7 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 
 ## Layout (Rojo project, `default.project.json`)
 
+- `src/configs` -> ReplicatedStorage.Configs: `UITheme` (design tokens, client UI only).
 - `src/shared` -> ReplicatedStorage.Shared: `Config` (tuning + `TestMode`, deck and battle rules), `Rarity` (7 tiers, artifacts / traits only),
   `Cards` (card data; each ability lists its battle effects from the effect library documented at the top),
   `Odds` (luck, floor, pity math, shared by server and client so the odds panel matches the server),
@@ -342,7 +364,7 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   `LightingSetup` (the twilight base light), `Followers` (shoulder pets, mount stride sway), `Avatars` (avatar auras / trails),
   `HubFx` (NPC idle animation, sage tips, portal lock labels), `ZoneFx` (zone music + lighting mood),
   `UI/*` (Kit helpers incl. `Kit.tile` / `Kit.dimTile`, Theme, Skin (UI kit image ids), BorderFx (card border frames), Title, Travel, Settings, Fusion, Modal (blurred-world
-  obsidian panel with title tab; `Modal.Tabbed` pages), Alchemy (Hoshi's PACK ALCHEMY tab), Waypoint (guide line to a town NPC), Controls (dropdown tiles, tabs, chips, search, banners), CardView (full card), CardTooltip (hover zoom + ability flyout), CardTile (square
+  obsidian panel with title tab; `Modal.Tabbed` pages), Alchemy (Hoshi's PACK ALCHEMY tab), Waypoint (guide line to a town NPC), Controls (dropdown tiles, tabs, chips, search, banners), Components/JuicyButton + Components/IconBadge (occult button feel, icon badges), CardView (full card), CardTooltip (hover zoom + ability flyout), CardTile (square
   grid tile), ElementUi (element badges / rich text), ElementGuide (ELEMENTS panel), TraitMaster, Store, Reveal, Effects, Hud, Index, OddsPanel, Bag + BagGear, Stats, Shop, Gifts, DevPanel, DeckBuilder, BossScreen,
   Battle, RewardReveal, ModelView (3D figure in a ViewportFrame), Sfx).
 - Remotes are declared in `default.project.json` under ReplicatedStorage.Remotes.

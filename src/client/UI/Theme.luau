@@ -1,23 +1,30 @@
 --!strict
--- Colours and fonts for every screen: dark obsidian glass, sharp 5 px corners, thin slate edges, and
--- neon (cyan, gold, red) only where something is rare, active or wants a tap. Heavy Gotham type.
+-- Colours and fonts for every screen, in the Dark Feudal Occult look (Configs/UITheme holds the tokens):
+-- Urushi black lacquer panels, Tamahagane steel edges, Washi parchment text, sharp 5 px corners, and
+-- colour (spirit cyan, gold, vermilion, element glows) only where something is rare, active or wants a
+-- tap. Chunky FredokaOne headings over Gotham body type.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
+local C = UITheme.Colors
 
 local Theme = {}
 
 Theme.Font = {
-	Display = Enum.Font.GothamBlack, -- big headings, rarity callouts
+	Display = UITheme.Fonts.Header, -- big headings, tier callouts
 	Heavy = Enum.Font.GothamBold,
 	Bold = Enum.Font.GothamMedium,
 	Medium = Enum.Font.Gotham,
 }
 
 Theme.Color = {
-	Backdrop = Color3.fromRGB(4, 6, 10),
-	Panel = Color3.fromRGB(11, 14, 22), -- main panel glass
-	PanelLight = Color3.fromRGB(18, 22, 34), -- cards, slots, items
-	Line = Color3.fromRGB(45, 55, 80), -- every thin edge
-	Text = Color3.fromRGB(236, 240, 250),
-	Muted = Color3.fromRGB(138, 148, 172),
+	Backdrop = Color3.fromRGB(5, 5, 7),
+	Panel = C.UrushiBlack, -- main panel lacquer
+	PanelLight = C.UrushiRaised, -- cards, slots, items
+	Line = C.Tamahagane, -- every thin steel edge
+	Text = C.WashiParchment,
+	Muted = C.TextMuted,
 	Neon = Color3.fromRGB(60, 220, 255), -- the active / selected trim
 	Accent = Color3.fromRGB(60, 200, 255),
 	AccentDeep = Color3.fromRGB(14, 70, 110),
@@ -33,9 +40,9 @@ Theme.Color = {
 	Danger = Color3.fromRGB(255, 70, 90),
 	-- Tiles inside panels: a slate step above the panel glass, with a thin edge (recoloured neon when
 	-- rare or active).
-	TileTop = Color3.fromRGB(24, 29, 44),
-	TileBottom = Color3.fromRGB(15, 18, 28),
-	TileEdge = Color3.fromRGB(45, 55, 80),
+	TileTop = Color3.fromRGB(24, 24, 30),
+	TileBottom = C.UrushiBlack,
+	TileEdge = C.Tamahagane,
 }
 
 -- Glass: how see-through panels and the frames inside them are.

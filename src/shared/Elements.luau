@@ -42,11 +42,11 @@ Elements.Weak = 0.85
 Elements.BondAt = 45 -- seconds: bonds fire by now even if the leader is still above half HP
 
 Elements.List = {
-	{ Id = "Flame", Name = "Flame", Icon = "🔥", Color = Color3.fromRGB(255, 120, 60), Beats = { "Frost" }, Text = "Melts Frost. Doused by Storm." },
-	{ Id = "Frost", Name = "Frost", Icon = "❄️", Color = Color3.fromRGB(120, 210, 255), Beats = { "Storm" }, Text = "Grounds Storm. Melted by Flame." },
-	{ Id = "Storm", Name = "Storm", Icon = "⚡", Color = Color3.fromRGB(255, 220, 70), Beats = { "Flame" }, Text = "Douses Flame. Grounded by Frost." },
+	{ Id = "Flame", Name = "Flame", Icon = "🔥", Color = Color3.fromRGB(255, 75, 45), Beats = { "Frost" }, Text = "Melts Frost. Doused by Storm." },
+	{ Id = "Frost", Name = "Frost", Icon = "❄️", Color = Color3.fromRGB(45, 200, 255), Beats = { "Storm" }, Text = "Grounds Storm. Melted by Flame." },
+	{ Id = "Storm", Name = "Storm", Icon = "⚡", Color = Color3.fromRGB(255, 215, 0), Beats = { "Flame" }, Text = "Douses Flame. Grounded by Frost." },
 	{ Id = "Light", Name = "Light", Icon = "☀️", Color = Color3.fromRGB(255, 240, 170), Beats = { "Void" }, Text = "Light and Void beat each other." },
-	{ Id = "Void", Name = "Void", Icon = "🌑", Color = Color3.fromRGB(180, 90, 255), Beats = { "Light" }, Text = "Void and Light beat each other." },
+	{ Id = "Void", Name = "Void", Icon = "🌑", Color = Color3.fromRGB(160, 45, 255), Beats = { "Light" }, Text = "Void and Light beat each other." },
 	{
 		Id = "Cosmic",
 		Name = "Cosmic",

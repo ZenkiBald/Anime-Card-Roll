@@ -24,6 +24,9 @@ local Theme = require(script.Parent.Theme)
 local Skin = require(script.Parent.Skin)
 local Effects = require(script.Parent.Effects)
 local State = require(script.Parent.Parent.State)
+local JuicyButton = require(script.Parent.Components.JuicyButton)
+local IconBadge = require(script.Parent.Components.IconBadge)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local Hud = {}
 
@@ -51,6 +54,9 @@ local eventPill: any
 local raidPill: any -- under the event pill while a raid is live (tap to join) or Raid Luck runs
 local raidWanted = false
 local momentumLabel: TextLabel -- above ROLL: the Momentum chain and the next Overcharge Surge
+local surgeMeter: any -- under it (children read by name): the Overcharge Surge cycle, SurgeProgress 0-24
+local surgeFill: any
+local surgeCount: TextLabel
 local surgeToken = 0
 local menuButtons = {} -- [name] = button (children read by name): categories and their items
 local questSlot: Frame -- Kenji's tracker (UI/Tutorial puts its banner in here)
@@ -63,15 +69,26 @@ local bannerToken = 0
 local hintToken = 0
 local toastToken = 0
 
-local function rollButtonFace(button: TextButton, title: string, sub: string, color: Color3, deep: Color3, skin: string)
-	-- Dark metal plate (bevelled: a light top edge, a darker base) with a double neon trim in the
-	-- button's colour and a glowing line along the bottom; the title in that neon.
+local function rollButtonFace(button: TextButton, title: string, sub: string, color: Color3, deep: Color3, skin: string, seal: boolean?)
+	-- Urushi lacquer plate (bevelled: a light top edge, a darker base) with a double trim in the button's
+	-- colour and a glowing line along the bottom; the title in that colour. `seal`: the ROLL button, a
+	-- Vermilion seal face with a thick Tamahagane steel border. JuicyButton gives the sheen and spring.
 	button.AutoButtonColor = false
 	button.BackgroundColor3 = Color3.new(1, 1, 1)
 	button.Text = ""
 	Kit.corner().Parent = button
-	Kit.gradient(ColorSequence.new(Color3.fromRGB(38, 44, 62):Lerp(deep, 0.25), Color3.fromRGB(10, 12, 19)), 90).Parent = button
-	Kit.stroke(color, 1.2, 0).Parent = button
+	if seal then
+		Kit.gradient(ColorSequence.new(UITheme.Colors.VermilionSeal, UITheme.Colors.VermilionDeep), 90).Parent = button
+		local steel = Instance.new("UIStroke")
+		steel.Name = "Steel"
+		steel.Thickness = 3
+		steel.Color = UITheme.Colors.TamahaganeLight
+		steel.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		steel.Parent = button
+	else
+		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiRaised:Lerp(deep, 0.25), UITheme.Colors.UrushiBlack), 90).Parent = button
+		Kit.stroke(color, 1.2, 0).Parent = button
+	end
 	Kit.new("Frame", {
 		Name = "Rim",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -107,7 +124,7 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 		Name = "Title",
 		Text = title,
 		Font = Theme.Font.Display,
-		TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.35),
+		TextColor3 = if seal then UITheme.Colors.WashiParchment else color:Lerp(UITheme.Colors.WashiParchment, 0.35),
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.14),
 		Size = UDim2.fromScale(0.86, 0.44),
@@ -118,21 +135,21 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 		Name = "Sub",
 		Text = sub,
 		Font = Theme.Font.Heavy,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = UITheme.Colors.WashiParchment,
 		TextTransparency = 0.15,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.6),
 		Size = UDim2.fromScale(0.8, 0.26),
 		Parent = button,
 	}, 20)
-	Kit.pressable(button)
+	JuicyButton.Apply(button, { SheenColor = color:Lerp(Color3.new(1, 1, 1), 0.45) })
 end
 
 local function lockOverlay(button: TextButton, feature: string)
 	local overlay = Kit.new("Frame", {
 		Name = "Lock",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(10, 8, 20),
+		BackgroundColor3 = UITheme.Colors.UrushiBlack,
 		BackgroundTransparency = 0.25,
 		Visible = false,
 		ZIndex = 5,
@@ -229,10 +246,21 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 		Parent = topBar,
 	}, {
 		Kit.corner(UDim.new(0.5, 0)),
-		Kit.gradient(ColorSequence.new(Color3.fromRGB(22, 27, 40), Color3.fromRGB(9, 11, 18)), 90),
-		Kit.stroke(edge, 1.2, 0.1),
+		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiRaised, UITheme.Colors.UrushiBlack), 90),
+		Kit.stroke(UITheme.Colors.Tamahagane, 2, 0),
 	})
 	chip.BackgroundTransparency = Theme.Glass.Frame
+	-- The chip's colour as a thin inner line, so the steel edge still says which currency it is.
+	Kit.new("Frame", {
+		Name = "Tint",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 8, 1, -2),
+		Size = UDim2.new(1, -40, 0, 1),
+		BorderSizePixel = 0,
+		BackgroundColor3 = edge,
+		BackgroundTransparency = 0.3,
+		Parent = chip,
+	})
 	-- Gloss line along the top.
 	Kit.new("Frame", {
 		Name = "Gloss",
@@ -243,30 +271,26 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 		BackgroundTransparency = 0.8,
 		Parent = chip,
 	})
-	local iconLabel = Kit.label({
+	-- The icon in an occult badge (diamond plate, steel bezel, glow in the chip's colour), hanging off
+	-- the chip's left edge.
+	IconBadge.new({
 		Name = "Icon",
-		Text = emoji,
-		Font = Theme.Font.Heavy,
+		IconAsset = if iconKey and Skin.Icons[iconKey] then Skin.Icons[iconKey] else emoji,
+		GlowColor = edge,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0, 6, 0.5, 0),
-		Size = UDim2.new(1.35, 0, 1.35, 0),
+		Size = UDim2.new(1.45, 0, 1.45, 0),
+		DominantAxis = Enum.DominantAxis.Height,
 		ZIndex = 3,
 		Parent = chip,
-	}, 34)
-	Kit.aspect(1, Enum.DominantAxis.Height).Parent = iconLabel
-	if iconKey then
-		local icon = Skin.Icon(iconLabel, iconKey)
-		if icon then
-			Kit.aspect(1, Enum.DominantAxis.Height).Parent = icon
-		end
-	end
+	})
 	local value = Kit.label({
 		Name = "Value",
 		Text = "0",
 		Font = Theme.Font.Display,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.new(0, 34, 0.08, 0),
-		Size = UDim2.new(1, -44, 0.84, 0),
+		Position = UDim2.new(0, 42, 0.08, 0),
+		Size = UDim2.new(1, -52, 0.84, 0),
 		ZIndex = 2,
 		Parent = chip,
 	}, 30)
@@ -364,22 +388,24 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Size = UDim2.fromScale(0.37, 1),
 		Parent = bar,
 	})
-	rollButtonFace(rollButton, "ROLL", `{Config.Roll.Cooldown}s`, Theme.Color.Roll, Theme.Color.RollDeep, "RollButton")
-	cooldownBar = Kit.new("Frame", {
+	rollButtonFace(rollButton, "ROLL", `{Config.Roll.Cooldown}s`, UITheme.Colors.VermilionSeal, UITheme.Colors.VermilionDeep, "RollButton", true)
+	-- The cooldown sweep: a CanvasGroup track, so the fill clips to its rounded ends with no bleed.
+	cooldownBar = Kit.new("CanvasGroup", {
 		Name = "Cooldown",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0.12, 0, 1, -6),
 		Size = UDim2.new(0.76, 0, 0, 5),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.6,
+		BackgroundColor3 = UITheme.Colors.UrushiBlack,
+		BackgroundTransparency = 0.3,
 		Parent = rollButton,
 	}, { Kit.corner(UDim.new(1, 0)) })
 	Kit.new("Frame", {
 		Name = "Fill",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		BackgroundColor3 = UITheme.Colors.WashiParchment,
 		Parent = cooldownBar,
-	}, { Kit.corner(UDim.new(1, 0)) })
+	})
 
 	quickButton = Kit.new("TextButton", {
 		Name = "QuickRoll",
@@ -415,10 +441,41 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		RichText = true,
 		Font = Theme.Font.Heavy,
 		TextColor3 = Theme.Color.Text,
-		Position = UDim2.fromScale(0.31, 0.1),
-		Size = UDim2.fromScale(0.69, 0.8),
+		Position = UDim2.fromScale(0.31, 0),
+		Size = UDim2.fromScale(0.69, 0.6),
 		Parent = row,
 	}, 18)
+	-- The Surge meter: fills from Spirit Cyan into Surge Gold over the 25-roll cycle (TotalRolls % 25).
+	surgeMeter = Kit.new("CanvasGroup", {
+		Name = "SurgeMeter",
+		Position = UDim2.fromScale(0.31, 0.66),
+		Size = UDim2.fromScale(0.69, 0.3),
+		BackgroundColor3 = UITheme.Colors.UrushiBlack,
+		BackgroundTransparency = 0.1,
+		Parent = row,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	local meterEdge = Instance.new("UIStroke")
+	meterEdge.Thickness = 1.5
+	meterEdge.Color = UITheme.Colors.Tamahagane
+	meterEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	meterEdge.Parent = surgeMeter
+	surgeFill = Kit.new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(0, 1),
+		BorderSizePixel = 0,
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		Parent = surgeMeter,
+	}, { Kit.gradient(ColorSequence.new(UITheme.Colors.SpiritCyan, UITheme.Colors.SpiritCyan), 0) })
+	surgeCount = Kit.label({
+		Name = "Count",
+		Text = "",
+		Font = Theme.Font.Heavy,
+		TextColor3 = UITheme.Colors.WashiParchment,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 2,
+		Parent = surgeMeter,
+	}, 12)
+	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.2).Parent = surgeCount
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = momentumLabel
 	momentumLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		Hud.RefreshMomentum()
@@ -1168,13 +1225,13 @@ function Hud.StartCooldown(seconds: number)
 			Kit.tween(fill, window, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear)
 			task.delay(window, function()
 				if token == surgeToken then
-					fill.BackgroundColor3 = Color3.new(1, 1, 1)
+					fill.BackgroundColor3 = UITheme.Colors.WashiParchment
 					fill.Size = UDim2.fromScale(1, 1)
 				end
 			end)
 		end)
 	else
-		fill.BackgroundColor3 = Color3.new(1, 1, 1)
+		fill.BackgroundColor3 = UITheme.Colors.WashiParchment
 	end
 end
 
@@ -1183,6 +1240,15 @@ function Hud.RefreshMomentum()
 	local s = State.Summary
 	local m = s.Momentum or { Count = 0, Speed = 0, Luck = 0 }
 	local untilSurge = s.UntilSurge or RollBoost.Surge.Every
+	-- The meter binds to SurgeProgress (0-24): 24 = the next roll is the surge.
+	local every = RollBoost.Surge.Every
+	local progress = s.SurgeProgress or RollBoost.SurgeProgress(s.TotalRolls or 0)
+	local ratio = progress / (every - 1)
+	local tip = UITheme.Colors.SpiritCyan:Lerp(UITheme.Colors.SurgeGold, ratio)
+	Kit.tween(surgeFill, 0.2, { Size = UDim2.fromScale(math.clamp(ratio, 0, 1), 1) }) -- full when the surge is next
+	surgeFill.UIGradient.Color = ColorSequence.new(UITheme.Colors.SpiritCyan, tip)
+	surgeCount.Text = if progress == every - 1 then "⚡ SURGE NEXT ROLL" else `SURGE {progress}/{every}`
+	surgeMeter.UIStroke.Color = if progress == every - 1 then UITheme.Colors.SurgeGold else UITheme.Colors.Tamahagane
 	local surgeText = if untilSurge == 1
 		then '<font color="#FFC42E"><b>⚡ NEXT ROLL: SURGE</b></font>'
 		else `⚡ surge in <b>{untilSurge}</b>`

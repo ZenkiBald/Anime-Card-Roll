@@ -3,8 +3,8 @@
 --   PC: the card scales to 1.15 (0.15 s quad) and rises to ZIndex 50 on MouseEnter; after 0.25 s of
 --   hovering, the flyout opens beside it. MouseLeave closes it and puts the card back.
 --   Touch: a long press (or a tap) opens the flyout; a tap anywhere else closes it.
--- Flyout (280 px obsidian, 1.2 px border in the element's colour): name, title, element badge, role badge
--- (the card's `Role`), border tier ("Gold Border · 4x"); then the Basic (name, target, formula), the Skill (name, cooldown,
+-- Flyout (280 px Urushi lacquer, 2 px Tamahagane frame, a line of the element's glow on top): name in Washi
+-- parchment, title, element and role IconBadges (the card's `Role`), border tier ("Gold Border · 4x"); then the Basic (name, target, formula), the Skill (name, cooldown,
 -- stagger, effect), the Ultimate (bold italic name, energy cost, text) and the card's bond links.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,7 +19,9 @@ local Config = require(Shared.Config)
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Abilities = require(script.Parent.Abilities)
+local ElementUi = require(script.Parent.ElementUi)
 local State = require(script.Parent.Parent.State)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local CardTooltip = {}
 
@@ -27,12 +29,6 @@ local WIDTH = 280
 local HOVER_SCALE = 1.15
 local HOVER_DELAY = 0.25
 local LONG_PRESS = 0.35
-local ROLE_COLORS = {
-	Striker = Color3.fromRGB(255, 90, 90),
-	Hexer = Color3.fromRGB(190, 110, 255),
-	Mender = Color3.fromRGB(90, 230, 150),
-	Warder = Color3.fromRGB(90, 170, 255),
-}
 local TARGETS = {
 	Enemies = "all enemies",
 	RandomEnemy = "random enemies",
@@ -86,23 +82,37 @@ local function build(cardId: string, border: string): Frame?
 		return nil
 	end
 	local element = Elements.Get(card.Element)
-	local edge = if element then element.Color else Theme.Color.Line
+	local edge = if element then element.Color else UITheme.Colors.TamahaganeLight
 	local tier = Borders.Get(border)
 	local role = card.Role -- Cards.luau: Striker | Hexer | Mender | Warder
 	local frame = Kit.new("Frame", {
 		Name = "CardTooltip",
 		Size = UDim2.fromOffset(WIDTH, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = Theme.Color.Panel,
-		BackgroundTransparency = 0.05,
+		BackgroundColor3 = UITheme.Colors.UrushiBlack,
+		BackgroundTransparency = 0.03,
 		ZIndex = 50,
 		Parent = gui,
 	}, {
 		Kit.corner(UDim.new(0, 5)),
-		Kit.stroke(edge, 1.2, 0),
 		Kit.padding(10),
 		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5) }),
 	})
+	-- A 2 px Tamahagane steel frame, and a thin line of the element's glow along the top.
+	local steel = Instance.new("UIStroke")
+	steel.Thickness = 2
+	steel.Color = UITheme.Colors.Tamahagane
+	steel.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	steel.Parent = frame
+	Kit.new("Frame", {
+		Name = "ElementLine",
+		Size = UDim2.new(1, 0, 0, 2),
+		LayoutOrder = 0, -- first in the list
+		BorderSizePixel = 0,
+		BackgroundColor3 = edge,
+		ZIndex = 52,
+		Parent = frame,
+	}, { Kit.new("UIGradient", { Transparency = NumberSequence.new(0.6, 0) }) })
 	local order = 0
 	local function line(text: string, font: Enum.Font, color: Color3, size: number)
 		order += 1
@@ -129,7 +139,7 @@ local function build(cardId: string, border: string): Frame?
 		order += 1
 		Kit.new("Frame", {
 			Size = UDim2.new(1, 0, 0, 1),
-			BackgroundColor3 = Theme.Color.Line,
+			BackgroundColor3 = UITheme.Colors.Tamahagane,
 			BorderSizePixel = 0,
 			LayoutOrder = order,
 			ZIndex = 51,
@@ -137,18 +147,50 @@ local function build(cardId: string, border: string): Frame?
 		})
 	end
 
-	-- Header.
-	line(string.upper(card.Name), Theme.Font.Display, Theme.Color.Text, 20)
-	line(card.Title or "", Theme.Font.Bold, Theme.Color.Muted, 13)
-	line(
-		`{if element then badge(`{element.Icon} {string.upper(element.Name)}`, element.Color) .. "   " else ""}{badge(
-			`◆ {string.upper(role)}`,
-			ROLE_COLORS[role] or Theme.Color.Muted
-		)}   {badge(Borders.Label(border), tier.Color)}`,
-		Theme.Font.Heavy,
-		Theme.Color.Text,
-		13
-	)
+	-- Header: the name in Washi parchment, the title, then the element and role badges with their names
+	-- and the border tier.
+	line(string.upper(card.Name), Theme.Font.Display, UITheme.Colors.WashiParchment, 20)
+	line(card.Title or "", Theme.Font.Bold, UITheme.Colors.TextMuted, 13)
+	order += 1
+	local chips = Kit.new("Frame", {
+		Name = "Badges",
+		Size = UDim2.new(1, 0, 0, 30),
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+		ZIndex = 51,
+		Parent = frame,
+	}, {
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 4),
+		}),
+	})
+	local function chip(badgeFrame: Frame?, text: string, color: Color3, chipOrder: number)
+		if badgeFrame then
+			badgeFrame.LayoutOrder = chipOrder
+			badgeFrame.Parent = chips
+		end
+		Kit.new("TextLabel", {
+			Text = text,
+			Font = Theme.Font.Heavy,
+			TextColor3 = color,
+			TextSize = 12,
+			BackgroundTransparency = 1,
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.new(0, 0, 1, 0),
+			LayoutOrder = chipOrder + 1,
+			ZIndex = 52,
+			Parent = chips,
+		})
+	end
+	if element then
+		chip(ElementUi.Badge(element.Id, { Size = UDim2.fromOffset(28, 28), ZIndex = 52 }), string.upper(element.Name), element.Color, 1)
+	end
+	local roleInfo = UITheme.Roles[role]
+	chip(ElementUi.RoleBadge(role, { Size = UDim2.fromOffset(28, 28), ZIndex = 52 }), `  {string.upper(role or "")}`, if roleInfo then roleInfo.Color else UITheme.Colors.TextMuted, 3)
+	line(badge(Borders.Label(border), tier.Color), Theme.Font.Heavy, UITheme.Colors.WashiParchment, 13)
 
 	-- Abilities: Basic, Skill, Ultimate (passives / auras / signatures follow in plain rows).
 	local basic, skill, ult = Cards.Ability(card, "Basic"), Cards.Ability(card, "Skill"), Cards.Ability(card, "Ultimate")

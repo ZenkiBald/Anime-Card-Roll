@@ -28,6 +28,9 @@ local SOUNDS = {
 	Potion = { Layers = { { "Glug" }, { "Chime", Pitch = 1.3, Delay = 0.35 } } },
 	Glug = { Id = asset(9117641945), Volume = 0.6, Region = 1.1, Pitch = 1.25 }, -- PSE: liquid glugs
 	Upgrade = { Layers = { { "Riser", Pitch = 1.25 }, { "Chime", Pitch = 1.1, Delay = 0.3 } } },
+	-- JuicyButton (UI/Components): a thin high spirit shimmer on hover, a heavy wood / blade knock on press.
+	SpiritHover = { Id = asset(9116163448), Volume = 0.16, Pitch = 2.4, Gap = 0.08 }, -- PSE short dings, pitched up
+	BladeClick = { Layers = { { "Thud", Pitch = 0.7, Volume = 0.55 }, { "Hit", Pitch = 1.6, Volume = 0.22 } } },
 
 	-- Impacts
 	Hit = { Id = asset(9126229601), Volume = 0.5, Gap = 0.06 }, -- PSE: whoosh into a pounding thud

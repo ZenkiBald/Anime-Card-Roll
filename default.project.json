@@ -7,6 +7,9 @@
       "Shared": {
         "$path": "src/shared"
       },
+      "Configs": {
+        "$path": "src/configs"
+      },
       "Remotes": {
         "$className": "Folder",
         "GetState": { "$className": "RemoteFunction" },

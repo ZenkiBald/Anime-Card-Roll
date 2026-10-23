@@ -1,13 +1,15 @@
 --!nonstrict
--- Element badges and labels (Elements.luau) for cards, tiles, enemies and the scouting lines.
+-- Element and role badges (IconBadge) and element labels (Elements.luau) for cards, tiles, enemies,
+-- tooltips and the scouting lines.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Elements = require(Shared.Elements)
 
-local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local IconBadge = require(script.Parent.Components.IconBadge)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local ElementUi = {}
 
@@ -16,37 +18,46 @@ function ElementUi.Color(id: string?): Color3
 	return if element then element.Color else Theme.Color.Muted
 end
 
--- A round badge with the element's icon on a dark disc ringed in its colour. Size it with `props`
--- (it keeps itself square off its width).
+-- The element's occult badge (Components/IconBadge: diamond Urushi plate, steel bezel, a glow in the
+-- element's colour, the icon upright). Place it with `props` (Position, Size, AnchorPoint, ZIndex,
+-- Parent, Name); it keeps itself square off its width.
 function ElementUi.Badge(id: string?, props: { [string]: any }): Frame?
 	local element = Elements.Get(id)
 	if element == nil then
 		return nil
 	end
-	local defaults = {
-		Name = "Element",
-		BackgroundColor3 = Color3.fromRGB(7, 9, 14),
-		BackgroundTransparency = 0.1,
-		ZIndex = 6,
-	}
-	for key, value in props do
-		defaults[key] = value
-	end
-	local badge = Kit.new("Frame", defaults, {
-		Kit.corner(UDim.new(1, 0)),
-		Kit.aspect(1, Enum.DominantAxis.Width),
-		Kit.stroke(element.Color, 2, 0),
+	return IconBadge.new({
+		Name = props.Name or "Element",
+		IconAsset = element.Icon,
+		ElementColor = element.Color,
+		Size = props.Size,
+		Position = props.Position,
+		AnchorPoint = props.AnchorPoint,
+		ZIndex = props.ZIndex or 6,
+		LayoutOrder = props.LayoutOrder,
+		DominantAxis = props.DominantAxis,
+		Parent = props.Parent,
 	})
-	Kit.label({
-		Text = element.Icon,
-		Font = Theme.Font.Heavy,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromScale(0.72, 0.72),
-		ZIndex = (defaults.ZIndex :: number) + 1,
-		Parent = badge,
-	}, 40)
-	return badge
+end
+
+-- A role's badge (Cards.luau `Role`: Striker / Hexer / Mender / Warder), same plate as the element's.
+function ElementUi.RoleBadge(role: string?, props: { [string]: any }): Frame?
+	local info = role and UITheme.Roles[role]
+	if info == nil then
+		return nil
+	end
+	return IconBadge.new({
+		Name = props.Name or "Role",
+		IconAsset = info.Icon,
+		GlowColor = info.Color,
+		Size = props.Size,
+		Position = props.Position,
+		AnchorPoint = props.AnchorPoint,
+		ZIndex = props.ZIndex or 6,
+		LayoutOrder = props.LayoutOrder,
+		DominantAxis = props.DominantAxis,
+		Parent = props.Parent,
+	})
 end
 
 -- Rich text: "<font color=...>🔥 Flame</font>".
