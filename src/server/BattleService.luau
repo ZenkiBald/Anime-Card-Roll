@@ -3,7 +3,9 @@
 -- Ultimate, pick a target, toggle Auto, change speed, give up) and animates the events streamed back.
 -- BattleStart(Tower.Id) fights the player's next Infinite Tower floor (Tower.luau) instead of a boss,
 -- with the day's tower mutator on; BattleStart(Raid.Id) runs a raid run against the server's Colossus
--- (Raid.luau, RaidService): its damage goes into the shared pool as it lands.
+-- (Raid.luau, RaidService): its damage goes into the shared pool as it lands. A boss fight can be a
+-- Cost Challenge (BattleStart's 3rd argument { Cost = true }): the deck's cost must be at most
+-- Config.Deck.CostCap, and a win pays Config.Deck.CostTraitShards x the Trait Shards.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +21,8 @@ local Traits = require(Shared.Traits)
 local Tower = require(Shared.Tower)
 local Raid = require(Shared.Raid)
 local Cards = require(Shared.Cards)
+local Foils = require(Shared.Foils)
+local Awaken = require(Shared.Awaken)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -49,7 +53,7 @@ end
 
 -- Pays boss and tower rewards; set by Main.server to RollService.RewardRolls / TowerRewards
 -- (RollService needs this module).
-local rewardRolls: ((player: Player, d: number, firstClear: boolean) -> any)? = nil
+local rewardRolls: ((player: Player, d: number, firstClear: boolean, costChallenge: boolean?) -> any)? = nil
 local towerRewards: ((player: Player, floor: number) -> any)? = nil
 
 function BattleService.SetRewardHandler(handler, towerHandler)
@@ -177,7 +181,8 @@ local function run(player: Player, state)
 				summary.Rewards = towerRewards(player, state.Floor)
 			end
 		elseif battle.Result == "Win" and rewardRolls and boss then
-			summary.Rewards = rewardRolls(player, boss.Difficulties[battle.Difficulty].D, record.FirstClear)
+			summary.Rewards = rewardRolls(player, boss.Difficulties[battle.Difficulty].D, record.FirstClear, state.Cost)
+			summary.CostChallenge = state.Cost
 		end
 	end
 	if player.Parent == Players then
@@ -206,9 +211,14 @@ local function deckUnits(data, deck, mutator: Tower.Mutator?)
 			if id ~= "" then
 				local owned = data.Cards[id]
 				local card = Cards.Get(id)
-				local effects = table.clone(Traits.Effects(owned.Trait))
-				for _, effect in Tower.MutatorEffects(mutator, card and card.Element or "") do
-					table.insert(effects, effect)
+				local node = Awaken.Level(owned)
+				-- Unit effects: both trait slots (slot 2 once it's open), the best foil, Awakening, mutator.
+				local slot2 = if node >= Traits.Slot2Node then owned.Trait2 else nil
+				local effects = Traits.SlotEffects(owned.Trait, slot2)
+				for _, list in { Foils.Effects(Foils.Best(owned.Foils)), Awaken.Effects(node), Tower.MutatorEffects(mutator, card and card.Element or "") } do
+					for _, effect in list do
+						table.insert(effects, effect)
+					end
 				end
 				table.insert(units, {
 					Id = `{string.sub(row, 1, 1)}{i}`,
@@ -216,6 +226,7 @@ local function deckUnits(data, deck, mutator: Tower.Mutator?)
 					Stars = owned.Stars,
 					Fusion = owned.Fusion,
 					Border = Borders.Best(owned.Borders),
+					Awaken = node,
 					Trait = effects,
 				})
 			end
@@ -224,7 +235,7 @@ local function deckUnits(data, deck, mutator: Tower.Mutator?)
 	return units
 end
 
-local function start(player: Player, bossId: unknown, difficulty: unknown)
+local function start(player: Player, bossId: unknown, difficulty: unknown, options: unknown)
 	if type(bossId) ~= "string" then
 		return { Ok = false, Reason = "BadRequest" }
 	end
@@ -272,6 +283,12 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 	end
 	local deckPower = Deck.Power(deck, data.Cards)
 
+	-- The Cost Challenge: boss fights only, and the deck must fit the cap.
+	local cost = type(options) == "table" and (options :: any).Cost == true and boss ~= nil and not isTower and not isRaid
+	if cost and Deck.Cost(deck) > Config.Deck.CostCap then
+		return { Ok = false, Reason = "TooCostly" }
+	end
+
 	-- A raid run: the Colossus alone, sized to this deck, for Raid.FightSeconds.
 	local raid = nil
 	if isRaid then
@@ -297,6 +314,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 		Speed = speed,
 		Started = false,
 		Floor = floor and floor.Floor,
+		Cost = cost or nil,
 		Raid = if raid then { Index = raid.Index, Name = raid.Name, Reported = 0 } else nil,
 	}
 	active[player] = state
@@ -314,15 +332,16 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 		SpeedUnlocked = speedAllowed(data, 2),
 		Intro = B.IntroSeconds,
 		DeckPower = deckPower,
+		CostChallenge = cost or nil,
 	}
 end
 
 function BattleService.Start()
-	Remotes.BattleStart.OnServerInvoke = function(player: Player, bossId: unknown, difficulty: unknown)
+	Remotes.BattleStart.OnServerInvoke = function(player: Player, bossId: unknown, difficulty: unknown, options: unknown)
 		if not startLimiter:Allow(player) then
 			return { Ok = false, Reason = "TooFast" }
 		end
-		return start(player, bossId, difficulty)
+		return start(player, bossId, difficulty, options)
 	end
 
 	Remotes.BattleInput.OnServerEvent:Connect(function(player: Player, action: unknown, value: unknown)

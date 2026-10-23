@@ -87,7 +87,7 @@ check(Meta.StatResetCost({ Luck = 4 }) == 4 * Meta.StatResetPerPoint and Meta.St
 check(near(Meta.PotionLuck({}), 1), "no potion: x1")
 check(near(Meta.PotionLuck({ luck = 30, superluck = 10 }), 2), "luck potions don't multiply each other: the best applies")
 check(near(Meta.PotionLuck({ superluck = 0 }), 1), "an expired potion does nothing")
-check(near(Meta.TotalLuck(2, 3), Config.Roll.LuckCap), "total luck is capped at 5x")
+check(near(Meta.TotalLuck(5, 6), Config.Roll.LuckCap) and Config.Roll.LuckCap == 25, "total luck is capped at 25x")
 
 -- Cooldown.
 check(near(Meta.Cooldown({ RollSpeed = 0 }, {}), Config.Roll.Cooldown), "roll cooldown starts at 1.2 s")
@@ -178,7 +178,7 @@ check(event ~= nil and near(left, 30), "an event runs at the end of the cycle")
 local nextEvent = Meta.EventAt(Meta.EventEvery * 1001 + Meta.EventEvery - 30)
 check(nextEvent ~= event, "events take turns")
 check(Meta.EventAt(10, { Id = "xp", Ends = 20 }).Id == "xp", "a forced event overrides the schedule")
-check(near(Meta.TotalLuck(2, 2, 2), Config.Roll.LuckCap), "event luck stays under the cap")
+check(near(Meta.TotalLuck(4, 4, 2), Config.Roll.LuckCap), "event luck stays under the cap")
 check(Meta.Cooldown({ RollSpeed = 4 }, {}, 0.4) >= 0.4, "event speed never takes rolls under 0.4 s")
 
 -- Lucky Wheel: positive weights, real potions, and the pick covers every slice.

@@ -127,7 +127,10 @@ local function refresh(player: Player)
 	else
 		table.insert(parts, "New roller")
 	end
-	gui.PlayerName.Text = player.DisplayName
+	-- VIP (MonetizationService sets the attribute): a golden name with a crown.
+	local vip = player:GetAttribute("VIP") == true
+	gui.PlayerName.Text = if vip then `👑 {player.DisplayName}` else player.DisplayName
+	gui.PlayerName.TextColor3 = if vip then Color3.fromRGB(255, 205, 60) else Color3.new(1, 1, 1)
 	gui.Pill.Info.Text = table.concat(parts, "  ·  ")
 	gui.Pill.Edge.Color = if rarity then Rarity.Get(rarity).Color else Color3.fromRGB(150, 110, 255)
 end

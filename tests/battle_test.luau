@@ -262,7 +262,7 @@ for d, row in DESIGN do
 	end
 end
 check(rewardsOk, "reward rolls, boss luck, floor and first-clear bonus match the design table for D 1-9")
-check(near(Rewards.TotalLuck(4, 2), 5), "boss luck x player luck is capped at 5x")
+check(near(Rewards.TotalLuck(4, 8), Config.Roll.LuckCap), "boss luck x player luck is capped at the luck cap")
 
 local dOk = true
 for _, boss in Bosses.List do

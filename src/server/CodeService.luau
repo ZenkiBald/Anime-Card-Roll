@@ -43,7 +43,7 @@ local function redeem(player: Player, text: unknown)
 		return { Ok = false, Reason = "Used" }
 	end
 	data.Codes[code] = true
-	local granted = MetaService.Grant(data, entry.Reward)
+	local granted = MetaService.Grant(data, entry.Reward, player)
 	return { Ok = true, Granted = granted, Meta = MetaService.State(player, data) }
 end
 

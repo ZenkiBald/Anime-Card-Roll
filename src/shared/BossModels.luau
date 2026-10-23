@@ -71,6 +71,15 @@ local LOOKS: { [string]: Look } = {
 		Trim = Color3.fromRGB(255, 210, 70),
 		Eyes = Color3.fromRGB(60, 20, 60),
 	},
+	traitmaster = { -- Kenshin the Trait Master
+		Scale = 1.1,
+		Skin = Color3.fromRGB(230, 192, 160),
+		Body = Color3.fromRGB(30, 90, 96),
+		Arms = Color3.fromRGB(24, 74, 80),
+		Legs = Color3.fromRGB(20, 44, 52),
+		Trim = Color3.fromRGB(80, 230, 200),
+		Eyes = Color3.fromRGB(30, 30, 40),
+	},
 	fuser = {
 		Scale = 1.15,
 		Skin = Color3.fromRGB(236, 196, 164),
@@ -334,7 +343,27 @@ local function fortune(model: Model, look: Look)
 	add(model, "BallGlow", v(0.6, 0.6, 0.6), at(0, 2.5, -1.15), Color3.fromRGB(200, 120, 255), Enum.Material.Neon, Enum.PartType.Ball)
 end
 
+-- Kenshin the Trait Master: a long topknot, a glowing sash, and a floating trait sigil over an open
+-- scroll.
+local function traitmaster(model: Model, look: Look)
+	local s = look.Scale
+	local function v(x: number, y: number, z: number): Vector3
+		return Vector3.new(x * s, y * s, z * s)
+	end
+	local function at(x: number, y: number, z: number): CFrame
+		return CFrame.new(x * s, y * s, z * s)
+	end
+	body(model, look, true)
+	local hair = Color3.fromRGB(28, 24, 36)
+	add(model, "Hair", v(1.45, 0.55, 1.4), at(0, 5.15, 0.06), hair)
+	add(model, "Topknot", v(0.45, 0.9, 0.45), at(0, 5.75, 0.3), hair)
+	add(model, "Sash", v(1.7, 0.3, 1.1), at(0, 2.75, 0) * CFrame.Angles(0, 0, math.rad(-8)), look.Trim, Enum.Material.Neon)
+	add(model, "Scroll", v(1.5, 0.06, 0.9), at(0, 2.3, -1.2) * CFrame.Angles(math.rad(-30), 0, 0), Color3.fromRGB(240, 226, 190))
+	add(model, "Sigil", v(0.7, 0.7, 0.7), at(0, 3.4, -1.3) * CFrame.Angles(math.rad(45), 0, math.rad(45)), look.Trim, Enum.Material.Neon)
+end
+
 local BUILDERS: { [string]: (Model, Look) -> () } = {
+	traitmaster = traitmaster,
 	kurogane = kurogane,
 	rimeveil = rimeveil,
 	vex = vex,

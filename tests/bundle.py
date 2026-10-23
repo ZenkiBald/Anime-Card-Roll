@@ -8,6 +8,9 @@ modules = [
     ("Rarity", root / "src" / "shared"),
     ("Borders", root / "src" / "shared"),
     ("Elements", root / "src" / "shared"),
+    ("Awaken", root / "src" / "shared"),
+    ("Foils", root / "src" / "shared"),
+    ("RollBoost", root / "src" / "shared"),
     ("Cards", root / "src" / "shared"),
     ("Odds", root / "src" / "shared"),
     ("Deck", root / "src" / "shared"),
@@ -21,7 +24,7 @@ modules = [
     ("Raid", root / "src" / "shared"),
     ("BattleEngine", root / "src" / "server"),
 ]
-test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau"]
+test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau", "phase2_test.luau"]
 
 out = [(tests / "stubs.luau").read_text(encoding="utf-8"), (tests / "harness.luau").read_text(encoding="utf-8"), "MODULES = {}"]
 for name, folder in modules:

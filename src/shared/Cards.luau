@@ -59,11 +59,15 @@ export type Card = {
 	Accent: Color3, -- portrait background colour
 	Image: string?, -- the card's 2D illustration ("rbxassetid://..."); cards without one show their glyph
 	Abilities: { Ability },
+	-- Support cards: the Slot Link passive given to the Attack card in the matching front slot (Support
+	-- slot 1 links to Attack slot 1, ...). Stat is a trait stat (Traits.luau); BattleEngine applies it.
+	Link: { Name: string, Stat: string, Amount: number, Text: string }?,
 }
 
 local Config = require(script.Parent.Config)
 local Rarity = require(script.Parent.Rarity)
 local Borders = require(script.Parent.Borders)
+local Awaken = require(script.Parent.Awaken)
 
 local function ability(slot: string, name: string, text: string, effects: { Effect }, every: number?): Ability
 	return { Slot = slot, Name = name, Text = text, Effects = effects, Every = every }
@@ -260,6 +264,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Common",
 		Element = "Light",
+		Link = { Name = "Herbal Ward", Stat = "Guard", Amount = 0.06, Text = "The Attack card in front takes 6% less damage" },
 		Main = 60,
 		SPD = 100,
 		Glyph = "HN",
@@ -277,6 +282,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Common",
 		Element = "Light",
+		Link = { Name = "Stone Shoulder", Stat = "Guard", Amount = 0.08, Text = "The Attack card in front takes 8% less damage" },
 		Main = 55,
 		SPD = 90,
 		Glyph = "GR",
@@ -294,6 +300,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Uncommon",
 		Element = "Flame",
+		Link = { Name = "Battle Rhythm", Stat = "ATK", Amount = 0.06, Text = "The Attack card in front +6% ATK" },
 		Main = 100,
 		SPD = 105,
 		Glyph = "SZ",
@@ -314,6 +321,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Uncommon",
 		Element = "Frost",
+		Link = { Name = "Mist Cloak", Stat = "SPD", Amount = 0.06, Text = "The Attack card in front +6% SPD" },
 		Main = 92,
 		SPD = 100,
 		Glyph = "IB",
@@ -335,6 +343,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Rare",
 		Element = "Frost",
+		Link = { Name = "Moon Sight", Stat = "Crit", Amount = 0.06, Text = "The Attack card in front +6% crit chance" },
 		Main = 160,
 		SPD = 110,
 		Glyph = "YA",
@@ -356,6 +365,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Epic",
 		Element = "Void",
+		Link = { Name = "Iron Back", Stat = "Guard", Amount = 0.1, Text = "The Attack card in front takes 10% less damage" },
 		Main = 245,
 		SPD = 85,
 		Glyph = "TS",
@@ -380,6 +390,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Legendary",
 		Element = "Light",
+		Link = { Name = "Star Chart", Stat = "CritDamage", Amount = 0.2, Text = "The Attack card in front +20% crit damage" },
 		Main = 430,
 		SPD = 115,
 		Glyph = "LM",
@@ -406,6 +417,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Mythic",
 		Element = "Void",
+		Link = { Name = "Borrowed Time", Stat = "StartEnergy", Amount = 0.25, Text = "The Attack card in front starts with 25 Ultimate energy" },
 		Main = 740,
 		SPD = 100,
 		Glyph = "OR",
@@ -431,6 +443,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Secret",
 		Element = "Cosmic",
+		Link = { Name = "Dawn Mantle", Stat = "ATK", Amount = 0.12, Text = "The Attack card in front +12% ATK" },
 		Main = 1230,
 		SPD = 110,
 		Glyph = "AU",
@@ -482,6 +495,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Epic",
 		Element = "Storm",
+		Link = { Name = "Rain Step", Stat = "SPD", Amount = 0.08, Text = "The Attack card in front +8% SPD" },
 		Main = 250,
 		SPD = 105,
 		Glyph = "AM",
@@ -528,6 +542,7 @@ local list: { Card } = {
 		Type = "Support",
 		Rarity = "Mythic",
 		Element = "Storm",
+		Link = { Name = "Static Charge", Stat = "ATK", Amount = 0.1, Text = "The Attack card in front +10% ATK" },
 		Main = 760,
 		SPD = 105,
 		Glyph = "AY",
@@ -602,19 +617,27 @@ function Cards.MaxFusion(card: Card): number
 	return #Rarity.Order - Rarity.Index(card.Rarity)
 end
 
--- A stat with stars, fusion and the card's best border (Borders.luau: a small bonus) applied.
-function Cards.Stat(card: Card, base: number, stars: number, fusion: number?, border: string?): number
+-- A stat with stars, fusion, the card's best border (Borders.luau: a small bonus) and its Awakening
+-- node (Awaken.luau: node 1 adds +10%) applied.
+function Cards.Stat(card: Card, base: number, stars: number, fusion: number?, border: string?, awaken: number?): number
 	local scale = Rarity.Get(Cards.FusedRarity(card, fusion)).Multiplier / Rarity.Get(card.Rarity).Multiplier
-	return Cards.StatWithStars(base * scale * Borders.Multiplier(border), stars)
+	return Cards.StatWithStars(base * scale * Borders.Multiplier(border) * Awaken.StatMultiplier(awaken), stars)
 end
 
 -- Deck Power used for boss recommendations: Attack = ATK x 10 + HP, Support = PWR x 24.
-function Cards.Power(card: Card, stars: number, fusion: number?, border: string?): number
-	local main = Cards.Stat(card, card.Main, stars, fusion, border)
+function Cards.Power(card: Card, stars: number, fusion: number?, border: string?, awaken: number?): number
+	local main = Cards.Stat(card, card.Main, stars, fusion, border, awaken)
 	if card.Type == "Attack" then
-		return main * Config.Power.PerATK + Cards.Stat(card, card.HP or 0, stars, fusion, border)
+		return main * Config.Power.PerATK + Cards.Stat(card, card.HP or 0, stars, fusion, border, awaken)
 	end
 	return main * Config.Power.PerPWR
+end
+
+-- Deck Cost (the Cost Challenge): by the card's base rarity, so fusing never raises it.
+Cards.CostByRarity = { Common = 1, Uncommon = 1, Rare = 2, Epic = 3, Legendary = 4, Mythic = 6, Secret = 8 }
+
+function Cards.Cost(card: Card): number
+	return Cards.CostByRarity[card.Rarity] or 1
 end
 
 function Cards.MainLabel(card: Card): string

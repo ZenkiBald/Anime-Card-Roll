@@ -1,10 +1,14 @@
 --!strict
--- Card traits: every pull also rolls a trait for that card (pure luck: the odds below, the same for
--- everyone, shown in the ODDS panel). A card keeps the best trait it has rolled; REROLL TRAIT in the
--- Index trades Shards for a fresh roll (which replaces it, for better or worse).
+-- Card traits: rolled at Kenshin the Trait Master in town (or from the Index card detail), never on
+-- pulls: a fresh card has no trait. A roll costs Trait Shards (RollCost); the player sees the new trait
+-- and chooses KEEP OLD or APPLY NEW, so a bad roll never downgrades a card. Pure luck: the tier odds
+-- below, the same for everyone, shown in the ODDS panel. A card that reaches Awakening node 4
+-- (Awaken.luau) opens a second trait slot; LOCK & ROLL (LockCost) keeps one slot and rolls the other
+-- twice, so the player picks the better of two.
 -- Traits are battle-only buffs (speed, crits, guard, a head start on the Ultimate) applied as permanent
 -- unit buffs in BattleEngine: they never add ATK or HP, so Deck Power and "rarity always wins" stay put.
--- Saved as Cards[id].Trait. A new trait is one entry in Traits.List.
+-- Saved as Cards[id].Trait (slot 1), Cards[id].Trait2 (slot 2) and Cards[id].Pending (an unchosen roll).
+-- A new trait is one entry in Traits.List.
 
 local Traits = {}
 
@@ -65,7 +69,10 @@ Traits.List = {
 	},
 } :: { Trait }
 
-Traits.RerollCost = 200 -- Shards for REROLL TRAIT
+Traits.RollCost = 10 -- Trait Shards for one roll at the Trait Master
+Traits.LockCost = 25 -- LOCK & ROLL: keep one slot, roll the other twice and pick
+Traits.Slot2Node = 4 -- Awakening node that opens trait slot 2
+Traits.BigTier = 3 -- Legendary and up: the roll button pauses and the screen flashes
 
 Traits.ById = {} :: { [string]: Trait }
 local tierIndex: { [string]: number } = {}
@@ -124,6 +131,15 @@ end
 function Traits.Effects(id: string?): { Effect }
 	local trait = Traits.Get(id)
 	return if trait then trait.Effects else {}
+end
+
+-- Both slots' effects together (slot 2 only counts once it's open).
+function Traits.SlotEffects(slot1: string?, slot2: string?): { Effect }
+	local list = table.clone(Traits.Effects(slot1))
+	for _, effect in Traits.Effects(slot2) do
+		table.insert(list, effect)
+	end
+	return list
 end
 
 local STAT_TEXT = {

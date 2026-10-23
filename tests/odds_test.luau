@@ -17,10 +17,16 @@ local base = Odds.Chances(1)
 check(near(base.Common, 60) and near(base.Uncommon, 25) and near(base.Rare, 10) and near(base.Epic, 4)
 	and near(base.Legendary, 0.9) and near(base.Mythic, 0.09) and near(base.Secret, 0.01), "1x odds = 60/25/10/4/0.9/0.09/0.01")
 
--- 2. 2x luck example from the doc.
+-- 2. Tiered luck: each tier's weight is base x luck ^ its exponent, then scaled to 100%.
 local two = Odds.Chances(2)
-check(near(two.Rare, 20) and near(two.Epic, 8) and near(two.Legendary, 1.8) and near(two.Mythic, 0.18)
-	and near(two.Secret, 0.02) and near(two.Uncommon, 25) and near(two.Common, 45), "2x odds match the doc example")
+local tieredOk = true
+for _, name in Rarity.Order do
+	local tier = Rarity.Tiers[name]
+	local expected = tier.BaseChance * 2 ^ tier.LuckExponent * two.Common / Rarity.Tiers.Common.BaseChance
+	tieredOk = tieredOk and near(two[name], expected, 1e-6)
+end
+check(tieredOk, "2x luck weights every tier by luck ^ its exponent")
+check(two.Secret / two.Common > 2 * (0.01 / 60) - 1e-9 and two.Rare / two.Common < 2 * (10 / 60), "the rarest tiers gain the most from luck")
 
 -- 3. Every combination sums to 100 and never goes negative.
 local allSum, noneNegative = true, true
@@ -38,12 +44,15 @@ for _, luck in { 1, 1.35, 2, 3.45, 4, 5, 9 } do
 	end
 end
 check(allSum, "odds always sum to 100% (luck 1-9, every floor)")
-check(noneNegative, "no negative chances, luck capped at 5x")
-check(near(Odds.Chances(5).Common, 0), "Common reaches 0% at the 5x cap")
+check(noneNegative, "no negative chances at any luck")
+local cap = Odds.Chances(Config.Roll.LuckCap)
+check(cap.Common > 20 and cap.Uncommon > 8, `Commons don't vanish at the {Config.Roll.LuckCap}x cap (Common {math.floor(cap.Common)}%)`)
+check(cap.Secret >= 10 * base.Secret and near(Odds.Chances(100).Secret, cap.Secret), "the cap gives 10x+ Secret odds, and luck past it does nothing")
 
 -- 4. Floor upgrades low results instead of removing them: Legendary+ stays 1% x luck.
-local f = Odds.Chances(4, "Epic")
-check(near(f.Legendary + f.Mythic + f.Secret, 4, 1e-6) and near(f.Epic, 96, 1e-6), "Epic floor at 4x: Epic 96%, Legendary+ 4%")
+local f, open4 = Odds.Chances(4, "Epic"), Odds.Chances(4)
+local topOpen = open4.Legendary + open4.Mythic + open4.Secret
+check(near(f.Legendary + f.Mythic + f.Secret, topOpen, 1e-6) and near(f.Epic, 100 - topOpen, 1e-6), "an Epic floor upgrades the low results and leaves Legendary+ as it was")
 
 -- 5. Sampled frequencies match the table (1,000,000 rolls at 1x).
 local rng = Random.new(42)
@@ -116,8 +125,8 @@ for _, typ in { "Attack", "Support" } do
 		local lowBest, highWorst = 0, math.huge
 		for _, card in Cards.List do
 			if card.Type == typ and card.Rarity == Rarity.Order[i] then
-				-- 5 stars and the best border (Secret) still can't reach the next rarity.
-				lowBest = math.max(lowBest, Cards.Power(card, Config.MaxStars, 0, "Secret"))
+				-- 5 stars, the best border (Secret) and Awakening nodes 1-4 still can't reach the next rarity.
+				lowBest = math.max(lowBest, Cards.Power(card, Config.MaxStars, 0, "Secret", 4))
 			elseif card.Type == typ and card.Rarity == Rarity.Order[i + 1] then
 				highWorst = math.min(highWorst, Cards.Power(card, 0))
 			end

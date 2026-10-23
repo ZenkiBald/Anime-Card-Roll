@@ -23,7 +23,14 @@
 --     x Element (Elements.luau: x1.3 when the hitter's element beats the target's, x0.85 the other way;
 --     enemies hitting cards use the same rule).
 --   * Synergies (2 / 4 cards of one element in the deck) are on from the start; bonds (two named cards)
---     fire a Dual Ultimate once, when the leader first drops to half HP or at Elements.BondAt seconds.
+--     fire a Dual Ultimate once, when the leader first drops to half HP or at Elements.BondAt seconds
+--     (400% instead of 300% when either card has Awakening node 3).
+--   * Slot Links: each Support card's Link passive (Cards.luau) goes to the Attack card in the same slot.
+--   * Stagger: card hits fill the leader's Stagger bar (Config.Battle, faster from counter elements); a
+--     full bar Staggers it for a few seconds (no actions, its warned move cancelled, DEF 0, +50% from
+--     Ultimates). Staggered as it reaches half HP, it loses its first phase-2 move.
+--   * Unit effects (traits, foils, Awakening, tower mutators) arrive as UnitSpec.Trait: buffs for the
+--     whole fight, StartEnergy, SkillDMG (Skill / Ultimate damage) and HPCost (HP lost per action).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
@@ -31,6 +38,7 @@ local Config = require(Shared.Config)
 local Cards = require(Shared.Cards)
 local Bosses = require(Shared.Bosses)
 local Elements = require(Shared.Elements)
+local Awaken = require(Shared.Awaken)
 
 local B = Config.Battle
 
@@ -43,7 +51,8 @@ export type UnitSpec = {
 	Stars: number,
 	Fusion: number?,
 	Border: string?,
-	Trait: { { Stat: string, Amount: number } }?, -- the card's trait effects (Traits.Effects)
+	Awaken: number?, -- Awakening node (Awaken.luau): stats, and the 400% bond at node 3
+	Trait: { { Stat: string, Amount: number } }?, -- unit effects: traits, foil, Awakening, mutator
 }
 -- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the leader's DEF / SPD:
 -- the Infinite Tower (Tower.luau) fights a boss's moves at stats scaled to the floor. Difficulty still
@@ -93,8 +102,10 @@ local function newUnit(spec: UnitSpec)
 		HasHP = hasHP,
 		Card = card,
 		Element = card.Element,
-		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Fusion, spec.Border),
-		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Fusion, spec.Border) else 0,
+		Awaken = spec.Awaken or 0,
+		HPCost = 0,
+		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Fusion, spec.Border, spec.Awaken),
+		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Fusion, spec.Border, spec.Awaken) else 0,
 		SPD = card.SPD,
 		Gauge = 0,
 		Energy = 0,
@@ -124,6 +135,8 @@ local function newUnit(spec: UnitSpec)
 			if unit.Ultimate then
 				unit.Energy = math.min(B.UltimateCost, unit.Energy + effect.Amount * B.UltimateCost)
 			end
+		elseif effect.Stat == "HPCost" then
+			unit.HPCost += effect.Amount
 		else
 			unit.Buffs[`Trait:{i}`] = { Stat = effect.Stat, Amount = effect.Amount, Left = math.huge }
 		end
@@ -161,6 +174,9 @@ local function newEnemy(id: string, order: number, props)
 		Buffs = {}, -- [source key] = { Stat, Amount, Left }: from a Mender's Rally
 		Burns = {},
 		Dealt = 0,
+		Stagger = 0, -- leader: the Stagger bar, 0-1
+		Staggered = 0, -- leader: seconds of Stagger left
+		Staggers = 0,
 	}
 	enemy.HP = enemy.MaxHP
 	return enemy
@@ -250,6 +266,24 @@ function Engine.new(setup: Setup)
 	end)
 	for i, unit in self.Allies do
 		unit.Order = i
+	end
+
+	-- Slot Links: Support slot N gives its Link passive to Attack slot N.
+	self.Links = {}
+	for _, unit in self.Allies do
+		local link = unit.Card.Link
+		local slot = string.match(unit.Id, "^S(%d+)$")
+		local front = slot and self.ById[`A{slot}`]
+		if link and front then
+			if link.Stat == "StartEnergy" then
+				if front.Ultimate then
+					front.Energy = math.min(B.UltimateCost, front.Energy + link.Amount * B.UltimateCost)
+				end
+			else
+				front.Buffs[`Link:{unit.Id}`] = { Stat = link.Stat, Amount = link.Amount, Left = math.huge }
+			end
+			table.insert(self.Links, { From = unit.Id, To = front.Id, Name = link.Name })
+		end
 	end
 
 	-- Passives, auras and signatures that are on from the start.
@@ -373,6 +407,9 @@ function Engine:EnemyDebuff(enemy, stat: string): number
 end
 
 function Engine:EnemyDEF(enemy): number
+	if enemy.Staggered > 0 then
+		return 0
+	end
 	return math.clamp(enemy.DEF - self:EnemyDebuff(enemy, "DEF"), 0, B.MaxDEF)
 end
 
@@ -607,6 +644,7 @@ function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: 
 	if enemy.Phase == 1 and enemy.HP <= enemy.MaxHP * B.PhaseAt then
 		enemy.Phase = 2
 		enemy.PhaseActions = 0
+		enemy.SkipPhaseMove = enemy.Staggered > 0 -- staggered at half HP: its first phase-2 move is lost
 		local added = {}
 		for _, move in enemy.Moves do
 			if move.Phase == 2 then
@@ -634,10 +672,37 @@ function Engine:HitEnemy(unit, enemy, pct: number, ignoreDef: boolean?, kind: st
 	local def = if ignoreDef then 0 else self:EnemyDEF(enemy)
 	local protect = if ignoreDef then 0 else self:Protection(enemy)
 	local element = Elements.Multiplier(unit.Element, enemy.Element)
-	local amount = math.max(1, round(unit.Main * pct * (1 + buffs) * critMult * (1 - def) * (1 - protect) * element))
 	local burst = self.Slot == "Skill" or self.Slot == "Ultimate"
+	local skill = if burst then 1 + self:Buff(unit, "SkillDMG") else 1
+	local stagger = if enemy.Staggered > 0 and self.Slot == "Ultimate" then 1 + B.StaggerUltBonus else 1
+	local amount = math.max(1, round(unit.Main * pct * (1 + buffs) * critMult * (1 - def) * (1 - protect) * element * skill * stagger))
 	amount = if ignoreDef then amount else self:ThroughBarrier(enemy, amount, burst)
+	if enemy.Leader and enemy.Staggered <= 0 and not self.Over then
+		self:FillStagger(enemy, unit.Element)
+	end
 	self:DamageEnemy(enemy, unit, amount, crit, kind or "Hit", elementFlag(element))
+end
+
+-- One card hit's worth of Stagger on the leader; a full bar Staggers it.
+function Engine:FillStagger(enemy, element: string?)
+	local mult = 1
+	local matchup = Elements.Matchup(element, enemy.Element)
+	if matchup == "Strong" then
+		mult = if element == "Cosmic" then B.StaggerCosmic else B.StaggerCounter
+	elseif matchup == "Weak" then
+		mult = B.StaggerWeak
+	end
+	enemy.Stagger += B.StaggerPerHit * mult
+	if enemy.Stagger < 1 then
+		return
+	end
+	enemy.Stagger = 0
+	enemy.Staggered = B.StaggerSeconds
+	enemy.Staggers += 1
+	local cancelled = enemy.Pending and enemy.Pending.Move.Name
+	enemy.Pending = nil
+	enemy.Gauge = 0
+	self:Emit({ K = "Stagger", T = enemy.Id, S = B.StaggerSeconds, N = cancelled })
 end
 
 function Engine:DamageAlly(target, amount: number, kind: string, sourceId: string?, el: number?)
@@ -875,6 +940,12 @@ function Engine:CardAct(unit)
 		return
 	end
 	self:GainEnergy(unit, B.EnergyPerAction)
+	-- A Demon Seal pays for its ATK in HP (never below 1).
+	if unit.HPCost > 0 and unit.HasHP and unit.Alive and unit.HP > 1 then
+		local cost = math.min(unit.HP - 1, round(unit.MaxHP * unit.HPCost))
+		unit.HP -= cost
+		self:Emit({ K = "HPCost", T = unit.Id, A = cost })
+	end
 	for _, passive in unit.Passives do
 		if passive.When == "OnAct" then
 			self:RunEffect(unit, passive, true)
@@ -890,7 +961,9 @@ function Engine:ChooseMove(enemy)
 	local moves = enemy.Moves
 	for _, move in moves do
 		local phase = move.Phase or 1
-		if phase <= enemy.Phase then
+		if phase == 2 and enemy.SkipPhaseMove then
+			-- passed over once (see Stagger)
+		elseif phase <= enemy.Phase then
 			if move.Every == nil then
 				return move
 			end
@@ -898,6 +971,10 @@ function Engine:ChooseMove(enemy)
 			if count % move.Every == 0 then
 				return move
 			end
+		end
+		if phase == 2 and enemy.SkipPhaseMove and move.Every and enemy.PhaseActions % move.Every == 0 then
+			enemy.SkipPhaseMove = false
+			self:Emit({ K = "PhaseCancel", U = enemy.Id, N = move.Name })
 		end
 	end
 	return moves[#moves]
@@ -1105,6 +1182,12 @@ function Engine:Step(dt: number)
 	end
 	for _, enemy in self.Enemies do
 		if enemy.Alive then
+			if enemy.Staggered > 0 then
+				enemy.Staggered = math.max(0, enemy.Staggered - dt)
+				if enemy.Staggered <= 0 then
+					self:Emit({ K = "Recover", T = enemy.Id })
+				end
+			end
 			tickTimers(enemy.Debuffs, dt)
 			tickTimers(enemy.Buffs, dt)
 			tickBurns(enemy.Burns, dt, function(burn)
@@ -1143,7 +1226,7 @@ function Engine:Step(dt: number)
 		end
 	end
 	for _, enemy in self.Enemies do
-		if enemy.Alive and enemy.Pending == nil then
+		if enemy.Alive and enemy.Pending == nil and enemy.Staggered <= 0 then
 			enemy.Gauge += self:Speed(enemy) * dt / (100 * B.TurnSeconds)
 			if enemy.Gauge >= 1 then
 				table.insert(ready, enemy)
@@ -1202,7 +1285,8 @@ function Engine:FireBonds()
 			self:Emit({ K = "Bond", N = entry.Bond.Name, U = { a.Id, b.Id } })
 			local previous = self.Slot
 			self.Slot = "Ultimate" -- breaks barriers like an Ultimate
-			self:HitEnemy(a, self.Boss, entry.Bond.Pct * (a.Main + b.Main) / a.Main, false)
+			local pct = if a.Awaken >= 3 or b.Awaken >= 3 then Awaken.BondPct else entry.Bond.Pct
+			self:HitEnemy(a, self.Boss, pct * (a.Main + b.Main) / a.Main, false)
 			self.Slot = previous
 		end
 	end
@@ -1256,6 +1340,7 @@ function Engine:Info()
 		Allies = allies,
 		Synergies = synergies,
 		Bonds = bonds,
+		Links = self.Links,
 		TimeLimit = self.TimeLimit,
 		UltimateCost = B.UltimateCost,
 	}
@@ -1343,11 +1428,15 @@ function Engine:Snapshot()
 		if enemy.Alive and self:Protection(enemy) > 0 then
 			flags ..= "P"
 		end
+		if enemy.Staggered > 0 then
+			flags ..= "Q"
+		end
 		units[enemy.Id] = {
 			H = round(enemy.HP),
 			G = if not enemy.Alive then 0 elseif enemy.Pending then 1 else gauge(enemy.Gauge),
 			F = flags,
 			Bar = if enemy.Barrier > 0 then enemy.Barrier else nil,
+			St = if enemy.Leader then math.floor(enemy.Stagger * 100) / 100 else nil,
 		}
 	end
 	return { T = math.floor(self.Time * 10) / 10, U = units, Fo = self.Focus }
@@ -1371,6 +1460,7 @@ function Engine:Summary()
 		BossHP = round(self.Boss.HP),
 		BossMaxHP = self.Boss.MaxHP,
 		GuardsDown = guardsDown,
+		Staggers = self.Boss.Staggers,
 		Guards = #self.Enemies - 1,
 		Units = dealt,
 	}

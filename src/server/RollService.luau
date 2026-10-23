@@ -1,5 +1,9 @@
 --!nonstrict
 -- Every roll happens here, on the server. The client only asks and then animates.
+-- Every pull rolls a rarity (tiered luck, Odds.luau), a card, a border and a foil (Foils.luau); its
+-- copies open Awakening nodes (Awaken.luau). Traits are not rolled here any more (TraitService).
+-- Card rolls build the Momentum chain and every 25th is an Overcharge Surge (RollBoost.luau); the
+-- Triple Roll pass rolls 3 per click. Roll Packs open here too, and Pack Alchemy condenses / infuses them.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,8 +27,14 @@ local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
 local Items = require(Shared.Items)
 local Traits = require(Shared.Traits)
+local Foils = require(Shared.Foils)
+local Awaken = require(Shared.Awaken)
+local RollBoost = require(Shared.RollBoost)
+local MonetizationConfig = require(Shared.MonetizationConfig)
 local RateLimit = require(script.Parent.RateLimit)
 local RaidService = require(script.Parent.RaidService)
+local MonetizationService = require(script.Parent.MonetizationService)
+local Momentum = require(script.Parent.Momentum)
 
 local RollService = {}
 
@@ -32,6 +42,8 @@ local rng = Random.new()
 
 local lastRoll = {} -- [Player] = os.clock() of their last roll
 local openLimiter = RateLimit.new(1, 2) -- opening Roll Packs: one a second
+local fastOpenLimiter = RateLimit.new(MonetizationConfig.TriplePackSpeed, MonetizationConfig.TriplePackSpeed * 2) -- Triple Roll pass
+local alchemyLimiter = RateLimit.new(4, 8)
 local autoGeneration = {} -- [Player] = number; bumping it stops the running Auto Roll loop
 local autoActive = {} -- [Player] = true while Auto Roll is running
 
@@ -43,13 +55,16 @@ local function luckFor(player: Player, data): number
 	return MetaService.Luck(player, data)
 end
 
-local function cooldownFor(data): number
-	return MetaService.Cooldown(data)
+local function cooldownFor(data, player: Player?): number
+	return MetaService.Cooldown(data, player)
 end
 
 local function isUnlocked(player: Player, data, feature: string): boolean
 	if not Config.Unlocks.Enabled then
 		return true
+	end
+	if feature == "AutoRoll" and MonetizationService.Perk(player, "AutoRoll") then
+		return true -- the Auto Roll pass opens it from the start
 	end
 	local rule = Config.Unlocks[feature]
 	return data.TotalRolls >= rule.Rolls and DataService.Playtime(player) >= rule.Seconds
@@ -61,7 +76,10 @@ local function summary(player: Player, data)
 		TotalRolls = data.TotalRolls,
 		Shards = data.Shards,
 		Luck = luckFor(player, data),
-		Cooldown = cooldownFor(data),
+		Cooldown = cooldownFor(data, player),
+		TraitShards = data.TraitShards or 0,
+		Momentum = Momentum.State(player),
+		UntilSurge = RollBoost.UntilSurge(data.TotalRolls),
 		AutoStop = data.Settings.AutoStop,
 		AutoActive = autoActive[player] == true,
 		Playtime = DataService.Playtime(player),
@@ -75,13 +93,13 @@ end
 local function fullState(player: Player, data)
 	local cards = {}
 	for id, entry in data.Cards do
-		cards[id] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders, Trait = entry.Trait }
+		cards[id] = DataService.CardState(entry)
 	end
 	return {
 		Ok = true,
 		Cards = cards,
 		Summary = summary(player, data),
-		Decks = DeckService.State(data),
+		Decks = DeckService.State(data, player),
 		Progress = data.Progress,
 		Tower = data.Tower.Floor,
 		Packs = data.Packs,
@@ -92,19 +110,45 @@ local function fullState(player: Player, data)
 	}
 end
 
--- One roll: pick rarity (luck only, no pity: pure luck), pick card, apply duplicates, roll a border
--- and a trait.
--- Duplicates add stars up to the max, then pile up as copies for the Fusion Master (FusionService).
+export type RollOptions = {
+	BorderMult: number?, -- x border odds (surges, infused packs under a luck boost)
+	FoilMult: number?, -- x foil odds (perfect surges)
+	Element: string?, -- infused packs: this element's cards weigh Packs.InfuseWeight inside the rarity
+	Surge: string?, -- "Plain" | "Perfect": tagged on the result for the reveal
+}
+
+-- A card of the rolled rarity: even odds, or the infused element's cards weighted up.
+local function pickCard(pool, element: string?)
+	if element == nil then
+		return pool[rng:NextInteger(1, #pool)]
+	end
+	local total = 0
+	for _, card in pool do
+		total += if card.Element == element then Packs.InfuseWeight else 1
+	end
+	local target = rng:NextNumber() * total
+	for _, card in pool do
+		target -= if card.Element == element then Packs.InfuseWeight else 1
+		if target < 0 then
+			return card
+		end
+	end
+	return pool[#pool]
+end
+
+-- One roll: pick rarity (luck only, no pity: pure luck), pick card, apply duplicates, roll a border and
+-- a foil. Duplicates add stars up to the max, then pile up as copies for the Fusion Master
+-- (FusionService); every 20 copies open an Awakening node.
 -- luck / minFloor default to the player's own luck and no floor.
 -- `batch` (opening a Roll Pack): XP is added up in batch.XP for one AddXP at the end, nothing is
 -- announced (the pack announces its best pull), and the result skips the HUD summary and quests.
-local function doRoll(player: Player, profile, luck: number?, minFloor: string?, batch: { XP: number }?)
+local function doRoll(player: Player, profile, luck: number?, minFloor: string?, batch: { XP: number }?, opts: RollOptions?)
 	local data = profile.Data
+	local o = opts or {}
 
 	local chances = Odds.Chances(luck or luckFor(player, data), minFloor)
 	local tier = Odds.PickTier(chances, rng)
-	local pool = Cards.ByRarity[tier]
-	local card = pool[rng:NextInteger(1, #pool)]
+	local card = pickCard(Cards.ByRarity[tier], o.Element)
 
 	data.TotalRolls += 1
 	MetaService.Track(player, "Rolls")
@@ -132,9 +176,16 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?,
 		MetaService.AddXP(player, data, xp)
 	end
 
+	-- Awakening: every 20 copies open a node, for good.
+	local oldNode = entry.Awaken or 0
+	local node = math.max(oldNode, Awaken.FromCopies(entry.Copies))
+	entry.Awaken = if node > 0 then node else nil
+	local newNode = if node > oldNode then node else nil
+
 	-- Every pull also rolls a border (Border Chance stat makes the special ones likelier). The card
 	-- keeps each border it has found and wears the best.
-	local border = Borders.Pick(rng:NextNumber(), Meta.Bonus(data.Stats, data.Gear, "Border"))
+	local borderBoost = (1 + Meta.Bonus(data.Stats, data.Gear, "Border")) * (o.BorderMult or 1) - 1
+	local border = Borders.Pick(rng:NextNumber(), borderBoost)
 	local newBorder = false
 	if border ~= "Normal" then
 		entry.Borders = entry.Borders or {}
@@ -142,16 +193,18 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?,
 		entry.Borders[border] = true
 	end
 
-	-- And a trait (Traits.luau): the card keeps the best one it has rolled.
-	local trait = Traits.Pick(rng:NextNumber(), rng:NextNumber())
-	local newTrait = false
-	if Traits.Better(trait, entry.Trait) then
-		entry.Trait = trait
-		newTrait = true
+	-- And a foil (Foils.luau), kept the same way.
+	local foil = Foils.Pick(rng:NextNumber(), o.FoilMult)
+	local newFoil = false
+	if foil ~= "standard" then
+		entry.Foils = entry.Foils or {}
+		newFoil = entry.Foils[foil] ~= true
+		entry.Foils[foil] = true
 	end
 
-	if batch == nil and (Rarity.AtLeast(tier, Config.AnnounceFrom) or Borders.Index(border) >= Borders.Index("Rainbow")) then
-		Remotes.Announce:FireAllClients(player.DisplayName, card.Id, border)
+	local big = Rarity.AtLeast(tier, Config.AnnounceFrom) or Borders.Index(border) >= Borders.Index("Rainbow") or foil == "demon"
+	if batch == nil and big then
+		Remotes.Announce:FireAllClients(player.DisplayName, card.Id, border, foil)
 	end
 
 	return {
@@ -165,28 +218,69 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?,
 		Border = border, -- the border this pull rolled
 		NewBorder = newBorder, -- first time this card got it
 		Borders = entry.Borders, -- every border the card has found
-		Trait = trait, -- the trait this pull rolled
-		NewTrait = newTrait, -- better than the card's old one, so the card took it
-		CardTrait = entry.Trait, -- the card's trait now
+		Foil = foil, -- the foil this pull rolled
+		NewFoil = newFoil,
+		Foils = entry.Foils,
+		Awaken = entry.Awaken,
+		NewNode = newNode, -- an Awakening node this pull opened
+		CardTrait = entry.Trait, -- the card's trait (rolled at the Trait Master)
+		Surge = o.Surge,
 		Summary = if batch then nil else summary(player, data),
 		Quests = if batch then nil else MetaService.QuestState(player, data), -- roll quests tick with every roll
 	}
 end
 
+-- A click (or an Auto Roll step): the Momentum chain grows, and the 25th roll is an Overcharge Surge.
+-- `perfect`: hit inside the surge window (or Auto with the Auto Roll pass). The Triple Roll pass adds
+-- two cards to every click. Returns the main result, with the others in Extra.
+local function rollClick(player: Player, profile, perfect: boolean, click: boolean)
+	local data = profile.Data
+	local surge = RollBoost.IsSurge(data.TotalRolls + 1)
+	local cfg = RollBoost.Surge
+	local main, count, mult
+	if surge and perfect then
+		main = doRoll(player, profile, nil, cfg.PerfectFloor, nil, { BorderMult = cfg.PerfectBorderMult, FoilMult = cfg.PerfectBorderMult, Surge = "Perfect" })
+		count, mult = cfg.PerfectCards, cfg.PerfectBorderMult
+	elseif surge then
+		main = doRoll(player, profile, nil, cfg.Floor, nil, { BorderMult = cfg.BorderMult, FoilMult = cfg.BorderMult, Surge = "Plain" })
+		count, mult = 1, nil
+	else
+		main = doRoll(player, profile)
+		count = 1
+	end
+	if click and MonetizationService.Perk(player, "TripleRoll", true) then
+		count = math.max(count, MonetizationConfig.TripleRollCards)
+	end
+	local extra = {}
+	for _ = 2, count do
+		table.insert(extra, doRoll(player, profile, nil, nil, nil, { BorderMult = mult, FoilMult = mult }))
+	end
+	main.Extra = if #extra > 0 then extra else nil
+
+	local before = Momentum.Count(player)
+	local after = Momentum.Add(player, count)
+	if before < 100 and after >= 100 then
+		MetaService.Track(player, "Momentum100")
+	end
+	main.Summary = summary(player, data)
+	main.Quests = MetaService.QuestState(player, data)
+	return main
+end
+
 -- Pays a win: Roll Packs into the player's packs (opened later, at their luck then), Shards, a potion
 -- (sure, or by chance) and a roll for an artifact at `d` (Items.RollDrops, x `boost`).
-local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, d: number, boost: number)
+local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, d: number, boost: number, traitShards: number?)
 	local held = profile.Data.Packs
 	for id, count in packs or {} do
 		held[id] = (held[id] or 0) + count
 	end
-	local bundle = { Shards = shards, Potions = {} }
+	local bundle = { Shards = shards, Potions = {}, TraitShards = traitShards }
 	if potion and rng:NextNumber() < potionChance then
 		bundle.Potions[potion] = 1
 	end
 	local drops = Items.RollDrops(d, rng, boost)
 	bundle.Artifacts = drops.Artifacts
-	bundle = MetaService.Grant(profile.Data, bundle) -- the screen shows the Shard Gain bonus too
+	bundle = MetaService.Grant(profile.Data, bundle, player) -- the screen shows the Shard Gain bonus too
 	return {
 		NewPacks = packs, -- what this win dropped
 		Packs = held, -- everything held now
@@ -211,10 +305,17 @@ local function openPack(player: Player, profile, pack: Packs.Pack)
 	local data = profile.Data
 	local batch = { XP = 0 }
 	local luck = luckFor(player, data)
+	-- An infused pack leans toward its element, and doubles border odds under a luck boost.
+	local opts = nil
+	if pack.Element then
+		local event = MetaService.Event()
+		local boosted = (event ~= nil and event.Luck ~= nil) or MetaService.ServerLuck() > 1
+		opts = { Element = pack.Element, BorderMult = if boosted then Packs.InfuseBorderMult else nil }
+	end
 	local shown, counts, cards = {}, {}, {}
 	local newCards = 0
 	for _ = 1, pack.Rolls do
-		local result = doRoll(player, profile, luck, nil, batch)
+		local result = doRoll(player, profile, luck, nil, batch, opts)
 		counts[result.Rarity] = (counts[result.Rarity] or 0) + 1
 		if result.Outcome == "New" then
 			newCards += 1
@@ -236,21 +337,21 @@ local function openPack(player: Player, profile, pack: Packs.Pack)
 	end
 	local state = {}
 	for id in cards do
-		local entry = data.Cards[id]
-		state[id] = { Copies = entry.Copies, Stars = entry.Stars, Fusion = entry.Fusion, Borders = entry.Borders, Trait = entry.Trait }
+		state[id] = DataService.CardState(data.Cards[id])
 	end
 	return shown, counts, newCards, state, luck
 end
 
-function RollService.RewardRolls(player: Player, d: number, firstClear: boolean)
+function RollService.RewardRolls(player: Player, d: number, firstClear: boolean, costChallenge: boolean?)
 	local profile = DataService.Get(player)
 	if profile == nil then
 		return nil
 	end
-	-- Every win drops Roll Packs, pays Shards, may drop a potion, and rolls for an artifact (Items.luau:
-	-- better odds and rarer artifacts on harder fights).
+	-- Every win drops Roll Packs, pays Shards and Trait Shards (x2 on a Cost Challenge), may drop a
+	-- potion, and rolls for an artifact (Items.luau: better odds and rarer artifacts on harder fights).
 	local reward = Rewards.For(d)
-	return payWin(player, profile, Packs.ForBoss(d, firstClear), reward.Shards, reward.Potion, Config.Rewards.PotionChance, d, 1)
+	local traitShards = Rewards.TraitShards(d, firstClear) * (if costChallenge then Config.Deck.CostTraitShards else 1)
+	return payWin(player, profile, Packs.ForBoss(d, firstClear), reward.Shards, reward.Potion, Config.Rewards.PotionChance, d, 1, traitShards)
 end
 
 -- A cleared Infinite Tower floor (paid once per floor): Tower.Reward says what. Some floors drop Roll
@@ -261,7 +362,15 @@ function RollService.TowerRewards(player: Player, floor: number)
 		return nil
 	end
 	local reward = Tower.Reward(floor)
-	return payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.D, reward.DropBoost)
+	return payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.D, reward.DropBoost, reward.TraitShards)
+end
+
+-- Sends the HUD summary on its own (e.g. when the Momentum chain breaks).
+function RollService.PushSummary(player: Player)
+	local profile = DataService.Get(player)
+	if profile and player.Parent == Players then
+		Remotes.AutoResult:FireClient(player, { Ok = false, SummaryOnly = true, Summary = summary(player, profile.Data) })
+	end
 end
 
 -- A raid's payout to one hitter (RaidService calls this when the raid ends): Raid.Reward says what.
@@ -270,7 +379,7 @@ function RollService.RaidRewards(player: Player, reward)
 	if profile == nil then
 		return nil
 	end
-	return payWin(player, profile, reward.Packs, reward.Shards, nil, 0, reward.D, reward.DropBoost)
+	return payWin(player, profile, reward.Packs, reward.Shards, nil, 0, reward.D, reward.DropBoost, reward.TraitShards)
 end
 
 local function cooldownLeft(player: Player): number
@@ -279,7 +388,7 @@ local function cooldownLeft(player: Player): number
 	if last == nil or profile == nil then
 		return 0
 	end
-	return cooldownFor(profile.Data) - (os.clock() - last)
+	return cooldownFor(profile.Data, player) - (os.clock() - last)
 end
 
 local function stopAuto(player: Player)
@@ -308,12 +417,17 @@ local function startAuto(player: Player)
 			end
 
 			lastRoll[player] = os.clock()
-			local result = doRoll(player, profile)
+			-- Surges on Auto are plain, unless the Auto Roll pass hits them perfectly.
+			local result = rollClick(player, profile, MonetizationService.Perk(player, "AutoRoll", true), false)
 
 			local stopAt = profile.Data.Settings.AutoStop
-			-- A NEW Rainbow or Secret border always stops Auto Roll, so its reveal can play.
-			local bigBorder = result.NewBorder and Borders.Index(result.Border) >= Borders.Index("Rainbow")
-			local hitStop = (stopAt ~= "Never" and Rarity.AtLeast(result.Rarity, stopAt)) or bigBorder
+			-- A NEW Rainbow or Secret border (or Demon Seal) always stops Auto Roll, so its reveal can play.
+			local hitStop = false
+			for _, r in { result, table.unpack(result.Extra or {}) } do
+				local bigBorder = r.NewBorder and Borders.Index(r.Border) >= Borders.Index("Rainbow")
+				local bigFoil = r.NewFoil and r.Foil == "demon"
+				hitStop = hitStop or (stopAt ~= "Never" and Rarity.AtLeast(r.Rarity, stopAt)) or bigBorder or bigFoil
+			end
 			if hitStop then
 				stopAuto(player)
 				result.Summary.AutoActive = false
@@ -356,7 +470,8 @@ function RollService.Start()
 		if autoActive[player] then
 			return { Ok = false, Reason = "AutoActive" }
 		end
-		if not openLimiter:Allow(player) then
+		local limiter = if MonetizationService.Perk(player, "TripleRoll") then fastOpenLimiter else openLimiter
+		if not limiter:Allow(player) then
 			return { Ok = false, Reason = "TooFast" }
 		end
 		local held = profile.Data.Packs
@@ -402,8 +517,61 @@ function RollService.Start()
 		if left > COOLDOWN_TOLERANCE then
 			return { Ok = false, Reason = "Cooldown", Wait = left }
 		end
+		-- A surge is perfect when this click lands inside the window after the cooldown came back (or
+		-- with the Auto Roll pass's perfect hit).
+		local perfect = left > -(RollBoost.Surge.PerfectWindow + COOLDOWN_TOLERANCE) and lastRoll[player] ~= nil
+		perfect = perfect or MonetizationService.Perk(player, "AutoRoll", true)
 		lastRoll[player] = os.clock()
-		return doRoll(player, profile)
+		return rollClick(player, profile, perfect, true)
+	end
+
+	-- Pack Alchemy: "Condense" (10 packs -> 1 of the next size) or "Infuse" (a Mega Pack + Shards ->
+	-- an element-infused Mega Pack).
+	Remotes.PackAlchemy.OnServerInvoke = function(player: Player, action: unknown, packId: unknown, element: unknown)
+		local profile = DataService.Get(player)
+		if profile == nil then
+			return { Ok = false, Reason = "Loading" }
+		end
+		if not alchemyLimiter:Allow(player) then
+			return { Ok = false, Reason = "TooFast" }
+		end
+		local data = profile.Data
+		local held = data.Packs
+		local made = nil
+		if action == "Condense" then
+			local rule = if type(packId) == "string" then Packs.Condense[packId] else nil
+			if rule == nil then
+				return { Ok = false, Reason = "BadRequest" }
+			end
+			if (held[packId] or 0) < rule.Need then
+				return { Ok = false, Reason = "NotEnough" }
+			end
+			held[packId] -= rule.Need
+			made = rule.To
+		elseif action == "Infuse" then
+			local id = if type(element) == "string" then Packs.InfusedId(element) else nil
+			if packId ~= "1000" or id == nil then
+				return { Ok = false, Reason = "BadRequest" }
+			end
+			if (held["1000"] or 0) < 1 then
+				return { Ok = false, Reason = "NotEnough" }
+			end
+			if data.Shards < Packs.InfuseCost then
+				return { Ok = false, Reason = "NoShards" }
+			end
+			data.Shards -= Packs.InfuseCost
+			held["1000"] -= 1
+			made = id
+		else
+			return { Ok = false, Reason = "BadRequest" }
+		end
+		for id, count in held do
+			if count <= 0 then
+				held[id] = nil
+			end
+		end
+		held[made] = (held[made] or 0) + 1
+		return { Ok = true, Made = made, Packs = held, Meta = MetaService.State(player, data), Summary = summary(player, data) }
 	end
 
 	Remotes.SetAuto.OnServerEvent:Connect(function(player: Player, on: unknown, autoStop: unknown)
@@ -522,6 +690,25 @@ function RollService.Start()
 			profile.Data.Tower.Floor += 10
 		elseif action == "TowerReset" then
 			profile.Data.Tower.Floor = 0
+		elseif action == "GiveTraitShards" then
+			MetaService.Grant(profile.Data, { TraitShards = 200 })
+		elseif action == "GiveCopies" then
+			-- +20 copies on every owned card: an Awakening node each time.
+			for _, entry in profile.Data.Cards do
+				entry.Copies += Awaken.Every
+				entry.Stars = math.max(entry.Stars, math.min(Config.MaxStars, entry.Copies - 1))
+				entry.Awaken = math.max(entry.Awaken or 0, Awaken.FromCopies(entry.Copies))
+			end
+		elseif action == "GiveFoils" then
+			-- Every foil on every owned card, to see them on cards and in battle.
+			for _, entry in profile.Data.Cards do
+				entry.Foils = entry.Foils or {}
+				for i, foil in Foils.List do
+					if i > 1 then
+						entry.Foils[foil.Id] = true
+					end
+				end
+			end
 		elseif action == "StartRaid" then
 			-- Opens a raid now for its usual length (every server player can join).
 			RaidService.Force(true)

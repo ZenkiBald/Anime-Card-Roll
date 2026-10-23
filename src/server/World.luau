@@ -311,6 +311,19 @@ local function fuserAt(hub: Instance, ground: CFrame)
 	sign(fuser.PrimaryPart :: BasePart, 6, "HOSHI", "Fusion Master", FUSE_ORANGE)
 end
 
+-- Kenshin the Trait Master beside Hoshi: his prompt opens the TRAITS panel (Trait Shards buy traits).
+local TRAIT_TEAL = Color3.fromRGB(80, 230, 200)
+
+local function traitMasterAt(hub: Instance, ground: CFrame)
+	local height = BossModels.Height("traitmaster")
+	local master = npc("traitmaster", ground * CFrame.new(0, height / 2, 0), hub, "Roll traits", "Kenshin, Trait Master")
+	local prompt = (master.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")
+	if prompt then
+		prompt:SetAttribute("Npc", "traitmaster")
+	end
+	sign(master.PrimaryPart :: BasePart, 6, "KENSHIN", "Trait Master", TRAIT_TEAL)
+end
+
 -- Madame Fortuna's booth: a big Lucky Wheel on a stand (its spokes in the prize colours, turned slowly
 -- by HubFx through the Turn attribute), a gold pointer, and Fortuna beside it; her prompt opens the
 -- wheel. `ground` stands on the floor, facing -Z (towards the players).
@@ -615,6 +628,9 @@ local function buildFromMap(map: Instance, markers: Instance)
 	local fusion = markers:FindFirstChild("Fusion")
 	if fusion and fusion:IsA("BasePart") then
 		fuserAt(hub, fusion.CFrame)
+		-- Kenshin stands at a TraitMaster marker, else 12 studs to Hoshi's right.
+		local traitMarker = markers:FindFirstChild("TraitMaster")
+		traitMasterAt(hub, if traitMarker and traitMarker:IsA("BasePart") then traitMarker.CFrame else fusion.CFrame * CFrame.new(12, 0, 0))
 	else
 		warn("[World] Map has no Fusion marker (the Fusion Master stands there)")
 	end
@@ -737,6 +753,7 @@ function World.Build()
 	local sageHeight = BossModels.Height("sage")
 	sageAt(hub, CFrame.lookAt(Vector3.new(11, 1.2 + sageHeight / 2, 8), Vector3.new(0, 1.2 + sageHeight / 2, 0)))
 	fuserAt(hub, CFrame.lookAt(Vector3.new(-14, 1.2, 8), Vector3.new(0, 1.2, 0)))
+	traitMasterAt(hub, CFrame.lookAt(Vector3.new(-22, 1.2, 14), Vector3.new(0, 1.2, 0)))
 	fortuneAt(hub, CFrame.lookAt(Vector3.new(0, 1.2, 20), Vector3.new(0, 1.2, 0)))
 	towerAt(hub, CFrame.lookAt(Vector3.new(30, 1.2, 18), Vector3.new(0, 1.2, 0)))
 	spawnAt(hub, CFrame.new(0, 1.4, 0))

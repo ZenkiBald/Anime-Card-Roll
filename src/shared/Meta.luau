@@ -2,7 +2,8 @@
 -- Long-term progression, shared so the screens show exactly what the server pays:
 -- potions, Shard upgrades, Index completion rewards, daily streak, playtime gifts, roll milestones,
 -- daily quests, levels and stat points.
--- Everything here is earned in game; nothing is sold for Robux (see CLAUDE.md before changing that).
+-- Everything here is earned in game. Robux passes and the Luck Totem live in MonetizationConfig.luau
+-- (see CLAUDE.md's paid random items rule before adding anything sold that changes odds).
 
 local Config = require(script.Parent.Config)
 local Items = require(script.Parent.Items)
@@ -13,6 +14,7 @@ export type Bundle = {
 	Potions: { [string]: number }?,
 	Artifacts: { [string]: number }?, -- Items.luau ids
 	Packs: { [string]: number }?, -- Roll Packs (Packs.luau ids)
+	TraitShards: number?, -- the Trait Master's currency (Traits.RollCost per roll)
 }
 
 export type Potion = {
@@ -139,7 +141,7 @@ Meta.Daily = {
 	{ Potions = { luck = 1 } },
 	{ Shards = 50, Packs = { ["10"] = 1 } },
 	{ Potions = { speed = 2 } },
-	{ Shards = 100, Potions = { luck = 1 } },
+	{ Shards = 100, Potions = { luck = 1 }, TraitShards = 10 },
 	{ Potions = { superluck = 1 } },
 	{ Shards = 250, Potions = { mythic = 1 }, Packs = { ["10"] = 3 } },
 } :: { Bundle }
@@ -149,13 +151,13 @@ Meta.Playtime = {
 	{ Minutes = 3, Reward = { Shards = 10 } },
 	{ Minutes = 6, Reward = { Potions = { luck = 1 } } },
 	{ Minutes = 10, Reward = { Shards = 25 } },
-	{ Minutes = 15, Reward = { Potions = { speed = 1 } } },
+	{ Minutes = 15, Reward = { Potions = { speed = 1 }, TraitShards = 5 } },
 	{ Minutes = 25, Reward = { Shards = 60, Potions = { luck = 1 } } },
-	{ Minutes = 40, Reward = { Potions = { superluck = 1 } } },
+	{ Minutes = 40, Reward = { Potions = { superluck = 1 }, TraitShards = 10 } },
 	{ Minutes = 60, Reward = { Shards = 150, Potions = { superluck = 1 } } },
-	{ Minutes = 90, Reward = { Potions = { mythic = 1 } } },
+	{ Minutes = 90, Reward = { Potions = { mythic = 1 }, TraitShards = 15 } },
 	{ Minutes = 120, Reward = { Shards = 400, Potions = { superluck = 2 } } },
-	{ Minutes = 150, Reward = { Shards = 600, Potions = { mythic = 1 } } },
+	{ Minutes = 150, Reward = { Shards = 600, Potions = { mythic = 1 }, TraitShards = 25 } },
 	{ Minutes = 180, Reward = { Shards = 1200, Potions = { mythic = 2 } } },
 } :: { Gift }
 
@@ -181,13 +183,15 @@ Meta.Quests = {
 	{ Id = "roll200", Text = "Roll 200 times", Stat = "Rolls", Goal = 200, Reward = { Shards = 60, Potions = { luck = 1 } } },
 	{ Id = "epic", Text = "Pull an Epic or better", Stat = "EpicPulls", Goal = 1, Reward = { Shards = 50 } },
 	{ Id = "boss1", Text = "Beat any boss", Stat = "BossWins", Goal = 1, Reward = { Shards = 40 } },
-	{ Id = "boss3", Text = "Beat 3 bosses", Stat = "BossWins", Goal = 3, Reward = { Shards = 40, Potions = { speed = 1 } } },
+	{ Id = "boss3", Text = "Beat 3 bosses", Stat = "BossWins", Goal = 3, Reward = { Shards = 40, Potions = { speed = 1 }, TraitShards = 5 } },
 	{ Id = "hard", Text = "Beat a boss on Hard or Nightmare", Stat = "HardWins", Goal = 1, Reward = { Potions = { superluck = 1 } } },
 	{ Id = "fuse", Text = "Fuse a card", Stat = "Fusions", Goal = 1, Reward = { Shards = 80 } },
 	{ Id = "gifts", Text = "Claim 2 playtime gifts", Stat = "Gifts", Goal = 2, Reward = { Shards = 25 } },
 	{ Id = "potion", Text = "Use a potion", Stat = "Potions", Goal = 1, Reward = { Shards = 20 } },
-	{ Id = "tower", Text = "Climb 2 Infinite Tower floors", Stat = "TowerFloors", Goal = 2, Reward = { Shards = 50 } },
-	{ Id = "raid", Text = "Fight 2 raid runs", Stat = "RaidRuns", Goal = 2, Reward = { Shards = 60, Potions = { luck = 1 } } },
+	{ Id = "tower", Text = "Climb 2 Infinite Tower floors", Stat = "TowerFloors", Goal = 2, Reward = { Shards = 50, TraitShards = 5 } },
+	{ Id = "trait", Text = "Roll 3 traits at the Trait Master", Stat = "TraitRolls", Goal = 3, Reward = { TraitShards = 15 } },
+	{ Id = "streak", Text = "Reach a 100-roll Momentum chain", Stat = "Momentum100", Goal = 1, Reward = { Shards = 60, TraitShards = 5 } },
+	{ Id = "raid", Text = "Fight 2 raid runs", Stat = "RaidRuns", Goal = 2, Reward = { Shards = 60, Potions = { luck = 1 }, TraitShards = 10 } },
 } :: { Quest }
 
 Meta.QuestById = {} :: { [string]: Quest }
@@ -347,6 +351,7 @@ Meta.Wheel = {
 		{ Label = "🌟x1", Weight = 10, Reward = { Potions = { superluck = 1 } }, Color = Color3.fromRGB(255, 196, 46) },
 		{ Label = "💎500", Weight = 8, Reward = { Shards = 500 }, Color = Color3.fromRGB(220, 90, 255) },
 		{ Label = "🔮x1", Weight = 6, Reward = { Potions = { mythic = 1 } }, Color = Color3.fromRGB(255, 80, 110) },
+		{ Label = "🧬x20", Weight = 8, Reward = { TraitShards = 20 }, Color = Color3.fromRGB(80, 230, 200) },
 		{ Label = "JACKPOT", Weight = 3, Reward = { Shards = 2000, Potions = { mythic = 2 } }, Color = Color3.fromRGB(255, 220, 60) },
 	} :: { Prize },
 }
@@ -374,18 +379,20 @@ end
 -- Luck and speed -----------------------------------------------------------------------------
 
 -- 1x, plus Lucky Charm levels, plus every claimed Index reward, plus Luck stat points and worn luck
--- artifacts, plus every 10 levels.
+-- artifacts, plus every 10 levels, plus `extra` (Awakening fusion luck and the Momentum chain).
 function Meta.BaseLuck(
 	upgrades: { [string]: number },
 	indexClaimed: { [string]: boolean },
 	stats: { [string]: number }?,
 	level: number?,
-	gear: Items.Gear?
+	gear: Items.Gear?,
+	extra: number?
 ): number
 	local luck = 1
 		+ (upgrades.Luck or 0) * Meta.UpgradeById.Luck.Step
 		+ Meta.Bonus(stats, gear, "Luck")
 		+ math.floor((level or 1) / 10) * Meta.LevelLuck
+		+ (extra or 0)
 	for rarity, claimed in indexClaimed do
 		local reward = Meta.IndexRewards[rarity]
 		if claimed and reward then
@@ -407,17 +414,20 @@ function Meta.PotionLuck(active: { [string]: number }): number
 	return best
 end
 
--- Base x potion x the running event's luck (if any), under the cap.
+-- Base x potion x the running event's luck (if any; server luck like Raid Luck and Totems multiplies
+-- in here too), under the cap.
 function Meta.TotalLuck(base: number, potionLuck: number, eventLuck: number?): number
 	return math.min(Config.Roll.LuckCap, base * potionLuck * (eventLuck or 1))
 end
 
+-- `boost`: extra speed from the Momentum chain (0.5 = 50% faster) and the Fast Roll pass's cut.
 function Meta.Cooldown(
 	upgrades: { [string]: number },
 	active: { [string]: number },
 	eventSpeed: number?,
 	stats: { [string]: number }?,
-	gear: Items.Gear?
+	gear: Items.Gear?,
+	boost: { Momentum: number?, Pass: number? }?
 ): number
 	local cooldown = Config.Roll.Cooldown - (upgrades.RollSpeed or 0) * Meta.UpgradeById.RollSpeed.Step
 	cooldown *= 1 - math.min(0.6, Meta.Bonus(stats, gear, "RollSpeed"))
@@ -428,6 +438,10 @@ function Meta.Cooldown(
 		end
 	end
 	cooldown *= 1 - (eventSpeed or 0)
+	if boost then
+		cooldown /= 1 + (boost.Momentum or 0)
+		cooldown *= 1 - (boost.Pass or 0)
+	end
 	return math.max(0.4, math.floor(cooldown * 100 + 0.5) / 100)
 end
 
@@ -476,6 +490,9 @@ function Meta.Describe(bundle: Bundle): string
 		if artifact then
 			table.insert(parts, `{artifact.Icon} {artifact.Name}`)
 		end
+	end
+	if bundle.TraitShards and bundle.TraitShards > 0 then
+		table.insert(parts, `🧬{bundle.TraitShards}`)
 	end
 	local packs = Packs.Describe(bundle.Packs)
 	if packs ~= "" then

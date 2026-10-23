@@ -17,9 +17,12 @@ end
 
 local TEMPLATE = {
 	DataVersion = 1,
-	Cards = {}, -- [cardId] = { Copies = number, Stars = number }
+	-- [cardId] = { Copies, Stars, Fusion?, Borders?, Foils? (found foil ids), Awaken? (highest Awakening
+	-- node), Trait? (slot 1), Trait2? (slot 2), Pending? ({ Slot, Traits } an unchosen Trait Master roll) }
+	Cards = {},
 	TotalRolls = 0,
 	Shards = 0,
+	TraitShards = 0, -- the Trait Master's currency
 	Playtime = 0, -- seconds, saved when the player leaves
 	-- Favorite: the card shown as the player's picture in the server list and on their name tag ("" = none).
 	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "" },
@@ -50,6 +53,10 @@ local TEMPLATE = {
 	Packs = {},
 	-- Redeem codes already used (CODES, Codes.luau): CODE -> true.
 	Codes = {},
+	-- Passes bought in Studio / test mode while their id is still 0 (MonetizationService): key -> true.
+	MockPasses = {},
+	-- Developer product receipts already paid out (PurchaseId -> os.time()), so a retry never pays twice.
+	Purchases = {},
 }
 
 -- Test saves live in their own store so launch data starts clean.
@@ -71,6 +78,21 @@ local function deepCopy(value)
 		copy[k] = deepCopy(v)
 	end
 	return copy
+end
+
+-- What the client gets for one owned card.
+function DataService.CardState(entry)
+	return {
+		Copies = entry.Copies,
+		Stars = entry.Stars,
+		Fusion = entry.Fusion,
+		Borders = entry.Borders,
+		Foils = entry.Foils,
+		Awaken = entry.Awaken,
+		Trait = entry.Trait,
+		Trait2 = entry.Trait2,
+		Pending = entry.Pending,
+	}
 end
 
 function DataService.Template()

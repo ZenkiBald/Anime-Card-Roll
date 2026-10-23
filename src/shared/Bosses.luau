@@ -117,9 +117,9 @@ local list: { Boss } = {
 			{ Name = "Ash Cut", Target = "Single", Pct = 1, Burn = { Pct = 0.15, Turns = 2 } },
 		},
 		Difficulties = {
-			Normal = { D = 1, Recommended = 12000, HP = 17000, ATK = 102, WarnSeconds = 2 },
-			Hard = { D = 2, Recommended = 18000, HP = 23000, ATK = 123, WarnSeconds = 2 },
-			Nightmare = { D = 3, Recommended = 24000, HP = 52500, ATK = 243, WarnSeconds = 1 },
+			Normal = { D = 1, Recommended = 12000, HP = 19500, ATK = 102, WarnSeconds = 2 },
+			Hard = { D = 2, Recommended = 18000, HP = 24500, ATK = 123, WarnSeconds = 2 },
+			Nightmare = { D = 3, Recommended = 24000, HP = 54500, ATK = 243, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -144,9 +144,9 @@ local list: { Boss } = {
 			{ Name = "Ice Shard", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 4, Recommended = 28000, HP = 43500, ATK = 432, WarnSeconds = 2 },
-			Hard = { D = 5, Recommended = 42000, HP = 136000, ATK = 534, WarnSeconds = 2 },
-			Nightmare = { D = 6, Recommended = 56000, HP = 173500, ATK = 655, WarnSeconds = 1 },
+			Normal = { D = 4, Recommended = 28000, HP = 47500, ATK = 432, WarnSeconds = 2 },
+			Hard = { D = 5, Recommended = 42000, HP = 146500, ATK = 534, WarnSeconds = 2 },
+			Nightmare = { D = 6, Recommended = 56000, HP = 196500, ATK = 655, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -172,9 +172,9 @@ local list: { Boss } = {
 			{ Name = "Void Slash", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 7, Recommended = 50000, HP = 150000, ATK = 600, WarnSeconds = 2 },
-			Hard = { D = 8, Recommended = 75000, HP = 422500, ATK = 640, WarnSeconds = 2 },
-			Nightmare = { D = 9, Recommended = 100000, HP = 1355500, ATK = 950, WarnSeconds = 1 },
+			Normal = { D = 7, Recommended = 50000, HP = 163500, ATK = 600, WarnSeconds = 2 },
+			Hard = { D = 8, Recommended = 75000, HP = 458500, ATK = 640, WarnSeconds = 2 },
+			Nightmare = { D = 9, Recommended = 100000, HP = 1460500, ATK = 950, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -200,9 +200,9 @@ local list: { Boss } = {
 		},
 		Difficulties = {
 			-- Nightmare's recommended deck needs a few fusions (see tests/fixtures.luau).
-			Normal = { D = 10, Recommended = 140000, HP = 1955500, ATK = 3400, WarnSeconds = 2 },
-			Hard = { D = 11, Recommended = 172000, HP = 2418500, ATK = 3480, WarnSeconds = 2 },
-			Nightmare = { D = 12, Recommended = 205000, HP = 2733000, ATK = 4485, WarnSeconds = 1 },
+			Normal = { D = 10, Recommended = 140000, HP = 2352500, ATK = 3400, WarnSeconds = 2 },
+			Hard = { D = 11, Recommended = 172000, HP = 3008000, ATK = 3480, WarnSeconds = 2 },
+			Nightmare = { D = 12, Recommended = 205000, HP = 3280500, ATK = 4485, WarnSeconds = 1 },
 		},
 	},
 }

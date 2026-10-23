@@ -4,6 +4,11 @@
 -- they open it (potions, LUCKY STORM and pity all count then), so saving packs for a boost pays off.
 -- Saved as Packs[id] = count; opened from BAG > PACKS (RollService "OpenPack"). Shared so the BAG, the
 -- boss / tower screens and the server agree. A new pack size is one entry in Packs.List.
+--
+-- Pack Alchemy (BAG, RollService "Alchemy"): CONDENSE 10 Roll Packs into a Big Roll Pack and 10 Big Roll
+-- Packs into a Mega Roll Pack; INFUSE a Mega Roll Pack with an element for InfuseCost Shards. An infused
+-- pack ("1000:Flame") weights that element's cards x1.5 inside each rolled rarity, and doubles border
+-- odds when it's opened during LUCKY STORM, Raid Luck or a Luck Totem.
 
 local Packs = {}
 
@@ -13,6 +18,7 @@ export type Pack = {
 	Rolls: number,
 	Icon: string,
 	Color: Color3,
+	Element: string?, -- infused packs only
 }
 
 Packs.List = {
@@ -21,9 +27,44 @@ Packs.List = {
 	{ Id = "1000", Name = "Mega Roll Pack", Rolls = 1000, Icon = "🎁", Color = Color3.fromRGB(255, 196, 46) },
 } :: { Pack }
 
+-- Element-infused Mega Packs (Cosmic isn't offered: only Secret cards are Cosmic).
+Packs.InfuseElements = {
+	{ Id = "Flame", Icon = "🔥", Color = Color3.fromRGB(255, 120, 60) },
+	{ Id = "Frost", Icon = "❄️", Color = Color3.fromRGB(120, 210, 255) },
+	{ Id = "Storm", Icon = "⚡", Color = Color3.fromRGB(255, 220, 70) },
+	{ Id = "Light", Icon = "☀️", Color = Color3.fromRGB(255, 240, 170) },
+	{ Id = "Void", Icon = "🌑", Color = Color3.fromRGB(180, 90, 255) },
+}
+for _, element in Packs.InfuseElements do
+	table.insert(Packs.List, {
+		Id = `1000:{element.Id}`,
+		Name = `{element.Id} Mega Pack`,
+		Rolls = 1000,
+		Icon = element.Icon,
+		Color = element.Color,
+		Element = element.Id,
+	})
+end
+
 Packs.ById = {} :: { [string]: Pack }
 for _, pack in Packs.List do
 	Packs.ById[pack.Id] = pack
+end
+
+-- CONDENSE: Need of a pack become one of To.
+Packs.Condense = {
+	["10"] = { To = "100", Need = 10 },
+	["100"] = { To = "1000", Need = 10 },
+} :: { [string]: { To: string, Need: number } }
+
+Packs.InfuseCost = 2500 -- Shards to infuse one Mega Roll Pack
+Packs.InfuseWeight = 1.5 -- the element's cards weigh this much inside a rarity
+Packs.InfuseBorderMult = 2 -- border odds when opened under LUCKY STORM, Raid Luck or a Luck Totem
+
+-- The infused pack id for an element ("1000:Flame"), or nil for an element that can't be infused.
+function Packs.InfusedId(element: string): string?
+	local id = `1000:{element}`
+	return if Packs.ById[id] then id else nil
 end
 
 -- The reveal flips this many of a pack's pulls (the rarest) and sums up the rest.

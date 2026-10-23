@@ -7,9 +7,10 @@ local Config = require(script.Parent.Config)
 local Cards = require(script.Parent.Cards)
 local Borders = require(script.Parent.Borders)
 local Elements = require(script.Parent.Elements)
+local Awaken = require(script.Parent.Awaken)
 
 export type Deck = { Attack: { string }, Support: { string } }
-export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }? } }
+export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, Awaken: number? } }
 
 local Deck = {}
 
@@ -102,7 +103,9 @@ function Deck.CardPower(id: string, owned: Owned): number
 		return 0
 	end
 	local entry = owned[id]
-	return if entry then Cards.Power(card, entry.Stars, entry.Fusion, Borders.Best(entry.Borders)) else Cards.Power(card, 0)
+	return if entry
+		then Cards.Power(card, entry.Stars, entry.Fusion, Borders.Best(entry.Borders), Awaken.Level(entry :: any))
+		else Cards.Power(card, 0)
 end
 
 -- Deck Power: the sum of the cards in it.
@@ -112,6 +115,20 @@ function Deck.Power(deck: Deck, owned: Owned): number
 		for _, id in (deck :: any)[row] :: { string } do
 			if id ~= "" then
 				total += Deck.CardPower(id, owned)
+			end
+		end
+	end
+	return total
+end
+
+-- Deck Cost: each card's Cards.Cost (by base rarity), for the Cost Challenge (Config.Deck.CostCap).
+function Deck.Cost(deck: Deck): number
+	local total = 0
+	for _, row in Deck.Rows do
+		for _, id in (deck :: any)[row] :: { string } do
+			local card = Cards.Get(id)
+			if card then
+				total += Cards.Cost(card)
 			end
 		end
 	end

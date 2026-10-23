@@ -28,7 +28,11 @@
         "Profile": { "$className": "RemoteFunction" },
         "Redeem": { "$className": "RemoteFunction" },
         "RaidState": { "$className": "RemoteEvent" },
-        "RaidInfo": { "$className": "RemoteFunction" }
+        "RaidInfo": { "$className": "RemoteFunction" },
+        "Store": { "$className": "RemoteFunction" },
+        "StoreState": { "$className": "RemoteEvent" },
+        "TraitMaster": { "$className": "RemoteFunction" },
+        "PackAlchemy": { "$className": "RemoteFunction" }
       }
     },
     "ServerScriptService": {

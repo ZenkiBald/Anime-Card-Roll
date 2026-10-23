@@ -100,18 +100,18 @@ Tower.Curve = {
 	Power = 9000,
 	Growth = 1.068, -- about 2x every 10 floors; floor 48 is about Tenrai Nightmare
 	Points = {
-		{ Power = 9000, HP = 13000, ATK = 85 },
-		{ Power = 12000, HP = 17500, ATK = 105 },
-		{ Power = 18000, HP = 22000, ATK = 115 },
-		{ Power = 24000, HP = 43000, ATK = 240 },
-		{ Power = 28500, HP = 51500, ATK = 320 },
-		{ Power = 43000, HP = 162000, ATK = 440 },
-		{ Power = 55000, HP = 210000, ATK = 480 },
-		{ Power = 74500, HP = 540000, ATK = 700 },
-		{ Power = 99500, HP = 1260000, ATK = 1000 },
-		{ Power = 137000, HP = 1680000, ATK = 2600 },
-		{ Power = 171000, HP = 2160000, ATK = 3300 },
-		{ Power = 203000, HP = 2400000, ATK = 4000 },
+		{ Power = 9000, HP = 14500, ATK = 85 },
+		{ Power = 12000, HP = 19500, ATK = 105 },
+		{ Power = 18000, HP = 24500, ATK = 115 },
+		{ Power = 24000, HP = 48000, ATK = 240 },
+		{ Power = 28500, HP = 57500, ATK = 320 },
+		{ Power = 43000, HP = 181500, ATK = 440 },
+		{ Power = 55000, HP = 235000, ATK = 480 },
+		{ Power = 74500, HP = 605000, ATK = 700 },
+		{ Power = 99500, HP = 1411000, ATK = 1000 },
+		{ Power = 137000, HP = 1881500, ATK = 2600 },
+		{ Power = 171000, HP = 2419000, ATK = 3300 },
+		{ Power = 203000, HP = 2688000, ATK = 4000 },
 	},
 	Beyond = { HP = 1.3, ATK = 1.3 }, -- past the last point: HP x (power / last) ^ 1.3
 }
@@ -150,6 +150,7 @@ export type Reward = {
 	Shards: number,
 	Potion: string?, -- Guardians: a sure potion
 	DropBoost: number,
+	TraitShards: number, -- every floor; a big bundle on a Guardian
 }
 
 Tower.AffixById = {} :: { [string]: Affix }
@@ -290,6 +291,7 @@ function Tower.Reward(floor: number): Reward
 		Shards = if guardian then shards * Tower.GuardianShards else shards,
 		Potion = if guardian then base.Potion else nil,
 		DropBoost = if guardian then Tower.GuardianDropBoost else Tower.DropBoost,
+		TraitShards = if guardian then 10 + math.floor(floor / 5) else 1 + math.floor(floor / 20),
 	}
 end
 

@@ -12,7 +12,7 @@ Config.TestMode = true
 
 Config.Roll = {
 	Cooldown = 1.2, -- seconds between rolls, enforced on the server
-	LuckCap = 5, -- at 5x, Common reaches 0%
+	LuckCap = 25, -- tiered luck (Odds.Chances): Commons stay about 28% even at the cap
 }
 
 Config.Unlocks = {
@@ -43,6 +43,9 @@ Config.AnnounceFrom = "Mythic"
 Config.Deck = {
 	Slots = 4, -- per row: 4 Attack (front) + 4 Support (back)
 	Presets = 3,
+	VipPresets = 2, -- the VIP pass adds this many (MonetizationConfig)
+	CostCap = 30, -- the Cost Challenge: total Deck Cost (Cards.Cost) at most this
+	CostTraitShards = 2, -- and it pays this many times the Trait Shards
 }
 
 -- Deck Power per card. Support cards have no HP (they can't be hit), so their power is PWR only.
@@ -55,7 +58,7 @@ Config.Power = {
 Config.Rewards = {
 	BaseRolls = 3, -- rolls = 3 + 2D
 	RollsPerD = 2,
-	LuckPerD = 0.35, -- boss luck = 1 + 0.35D, capped at 4x; the player's own luck multiplies on top (total cap 5x)
+	LuckPerD = 0.35, -- boss luck = 1 + 0.35D, capped at 4x; the player's own luck multiplies on top (total cap 25x)
 	BossLuckCap = 4,
 	Floors = { -- any result below the floor is upgraded to it
 		{ MaxD = 2, Floor = "Uncommon" },
@@ -90,6 +93,15 @@ Config.Battle = {
 	PhaseAt = 0.5, -- boss adds its phase-2 move at 50% HP
 	EnrageAt = 0.2, -- and enrages at 20%
 	EnrageATK = 0.3,
+	-- Stagger bar (leaders and raid Colossi): each card hit on the leader fills StaggerPerHit, x2.5 from an
+	-- element that beats it (x1.5 for Cosmic), x0.5 from one it beats. Full = Staggered for StaggerSeconds:
+	-- its warned move is cancelled, it can't act, its DEF is 0 and Ultimates hit it for +50%.
+	StaggerPerHit = 0.012,
+	StaggerCounter = 2.5,
+	StaggerCosmic = 1.5,
+	StaggerWeak = 0.5,
+	StaggerSeconds = 5,
+	StaggerUltBonus = 0.5,
 	Speeds = { 1, 2 }, -- 2x unlocks after clearing World 1 Normal (always on while unlock rules are off)
 	SpeedUnlock = "kurogane:Normal",
 }

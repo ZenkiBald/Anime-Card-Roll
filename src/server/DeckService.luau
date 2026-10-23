@@ -14,15 +14,21 @@ local Raid = require(Shared.Raid)
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
 local RateLimit = require(script.Parent.RateLimit)
+local MonetizationService = require(script.Parent.MonetizationService)
 
 local DeckService = {}
 
 local limiter = RateLimit.new(8, 16)
 
+-- How many presets a player has (the VIP pass adds Config.Deck.VipPresets).
+function DeckService.PresetCount(player: Player?): number
+	return Config.Deck.Presets + (if player then MonetizationService.ExtraPresets(player) else 0)
+end
+
 -- What the client gets: all presets (cleaned of cards no longer owned) and the active one.
-function DeckService.State(data)
+function DeckService.State(data, player: Player?)
 	local presets = {}
-	for i = 1, Config.Deck.Presets do
+	for i = 1, DeckService.PresetCount(player) do
 		presets[i] = Deck.Clean(data.Decks.Presets[i] or Deck.Empty(), data.Cards)
 	end
 	return { Active = data.Decks.Active, Presets = presets }
@@ -33,8 +39,8 @@ function DeckService.Active(data)
 	return Deck.Clean(data.Decks.Presets[data.Decks.Active] or Deck.Empty(), data.Cards)
 end
 
-local function validPreset(preset: unknown): boolean
-	return type(preset) == "number" and preset == math.floor(preset) and preset >= 1 and preset <= Config.Deck.Presets
+local function validPreset(player: Player, preset: unknown): boolean
+	return type(preset) == "number" and preset == math.floor(preset) and preset >= 1 and preset <= DeckService.PresetCount(player)
 end
 
 function DeckService.Start()
@@ -46,14 +52,14 @@ function DeckService.Start()
 		if profile == nil then
 			return { Ok = false, Reason = "Loading" }
 		end
-		if not validPreset(preset) then
+		if not validPreset(player, preset) then
 			return { Ok = false, Reason = "BadRequest" }
 		end
 		local data = profile.Data
 		if action == "Save" then
 			local clean, reason = Deck.Validate(deck, data.Cards)
 			if clean == nil then
-				return { Ok = false, Reason = reason, Decks = DeckService.State(data) }
+				return { Ok = false, Reason = reason, Decks = DeckService.State(data, player) }
 			end
 			data.Decks.Presets[preset] = clean
 		elseif action == "Select" then
@@ -77,7 +83,7 @@ function DeckService.Start()
 		else
 			return { Ok = false, Reason = "BadRequest" }
 		end
-		return { Ok = true, Decks = DeckService.State(data) }
+		return { Ok = true, Decks = DeckService.State(data, player) }
 	end
 end
 

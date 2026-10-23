@@ -100,15 +100,25 @@ function Raid.Score(damage: number, power: number): number
 	return math.min(Raid.MaxScore, damage / Raid.StatsFor(power).Base)
 end
 
-export type Reward = { D: number, Shards: number, Packs: { [string]: number }?, DropBoost: number }
+export type Reward = { D: number, Shards: number, Packs: { [string]: number }?, DropBoost: number, TraitShards: number }
+
+Raid.ClearTraitShards = 5 -- every hitter of a cleared raid, + 2 per run's worth of damage
+Raid.FailTraitShards = 2 -- a failed raid, + 1 per run's worth
+Raid.TopTraitShards = 10 -- the top hitter, on top
 
 -- What a hitter is paid: scaled to their progress (the tower floor matching their power) and damage.
 function Raid.Reward(cleared: boolean, damage: number, power: number, top: boolean): Reward
 	local floor = Tower.FloorForPower(power)
 	local base = Tower.Reward(floor)
 	local score = Raid.Score(damage, power)
+	local topShards = if top then Raid.TopTraitShards else 0
 	if not cleared then
-		return { D = base.D, Shards = math.floor(base.Shards * 0.5 * (1 + score) + 0.5), DropBoost = 0 }
+		return {
+			D = base.D,
+			Shards = math.floor(base.Shards * 0.5 * (1 + score) + 0.5),
+			DropBoost = 0,
+			TraitShards = Raid.FailTraitShards + math.floor(score) + topShards,
+		}
 	end
 	local packs = table.clone(Raid.ClearPacks)
 	if top then
@@ -116,7 +126,13 @@ function Raid.Reward(cleared: boolean, damage: number, power: number, top: boole
 			packs[id] = (packs[id] or 0) + count
 		end
 	end
-	return { D = base.D, Shards = math.floor(base.Shards * (1 + score) + 0.5), Packs = packs, DropBoost = Raid.ClearDropBoost }
+	return {
+		D = base.D,
+		Shards = math.floor(base.Shards * (1 + score) + 0.5),
+		Packs = packs,
+		DropBoost = Raid.ClearDropBoost,
+		TraitShards = Raid.ClearTraitShards + 2 * math.floor(score) + topShards,
+	}
 end
 
 -- Raid Luck's multiplier at `t`, given when the last one ends (nil = none).
