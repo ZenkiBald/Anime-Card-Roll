@@ -1,0 +1,27 @@
+--!strict
+-- Server entry point.
+
+local World = require(script.Parent.World)
+local DataService = require(script.Parent.DataService)
+local RollService = require(script.Parent.RollService)
+local DeckService = require(script.Parent.DeckService)
+local BattleService = require(script.Parent.BattleService)
+local MetaService = require(script.Parent.MetaService)
+local TravelService = require(script.Parent.TravelService)
+local FusionService = require(script.Parent.FusionService)
+local LeaderboardService = require(script.Parent.LeaderboardService)
+local MountService = require(script.Parent.MountService)
+local NameTagService = require(script.Parent.NameTagService)
+
+World.Build()
+BattleService.SetRewardHandler(RollService.RewardRolls)
+RollService.Start()
+DeckService.Start()
+MetaService.Start()
+BattleService.Start()
+TravelService.Start()
+FusionService.Start()
+LeaderboardService.Start()
+MountService.Start()
+NameTagService.Start()
+DataService.Start()

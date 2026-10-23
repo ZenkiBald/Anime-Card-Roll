@@ -1,0 +1,45 @@
+{
+  "name": "AnimeCardRoll",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder",
+        "GetState": { "$className": "RemoteFunction" },
+        "Roll": { "$className": "RemoteFunction" },
+        "SetAuto": { "$className": "RemoteEvent" },
+        "AutoResult": { "$className": "RemoteEvent" },
+        "Announce": { "$className": "RemoteEvent" },
+        "Dev": { "$className": "RemoteFunction" },
+        "Deck": { "$className": "RemoteFunction" },
+        "BattleStart": { "$className": "RemoteFunction" },
+        "BattleInput": { "$className": "RemoteEvent" },
+        "BattleEvent": { "$className": "RemoteEvent" },
+        "Meta": { "$className": "RemoteFunction" },
+        "Travel": { "$className": "RemoteEvent" },
+        "Fuse": { "$className": "RemoteFunction" },
+        "Mount": { "$className": "RemoteEvent" },
+        "Progress": { "$className": "RemoteEvent" }
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
