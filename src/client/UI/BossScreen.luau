@@ -1,7 +1,10 @@
 --!nonstrict
 -- Boss screen: pick a world and difficulty, see the boss in 3D, compare Deck Power with the
 -- recommended power, preview the rewards, switch deck presets, then fight.
--- The TOWER tab shows the player's next Infinite Tower floor (Tower.luau) the same way.
+-- The TOWER tab shows the player's next Infinite Tower floor (Tower.luau) the same way, with the day's
+-- mutator; the RAID tab shows the server raid (Raid.luau): its countdown, the shared pool, the top hitters.
+-- Every tab has a SCOUT box: the squad's elements, how the active deck lines up, its synergies and
+-- bonds, and COUNTER-BUILD (Auto-build weighed against that squad, Deck.AutoBuild).
 -- Opened from the BATTLE button, by challenging a boss in the hub, or at the tower gate.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +20,8 @@ local Meta = require(Shared.Meta)
 local Items = require(Shared.Items)
 local Tower = require(Shared.Tower)
 local Packs = require(Shared.Packs)
+local Elements = require(Shared.Elements)
+local Raid = require(Shared.Raid)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -24,21 +29,28 @@ local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
 local Skin = require(script.Parent.Skin)
 local ModelView = require(script.Parent.ModelView)
+local ElementUi = require(script.Parent.ElementUi)
+local ElementGuide = require(script.Parent.ElementGuide)
 local State = require(script.Parent.Parent.State)
 
 local BossScreen = {}
 
 export type Actions = {
-	EditDeck: () -> (),
-	Fight: (bossId: string, difficulty: string?) -> (boolean, string?), -- bossId may be Tower.Id
+	EditDeck: (target: string) -> (), -- target: the boss id, Tower.Id or Raid.Id the deck is for
+	Fight: (bossId: string, difficulty: string?) -> (boolean, string?), -- bossId may be Tower.Id or Raid.Id
 }
 
 local actions: Actions
 local modal
 local bossId = Bosses.List[1].Id
 local difficulty = "Normal"
-local mode = "boss" -- "boss" | "tower"
+local mode = "boss" -- "boss" | "tower" | "raid"
 local TOWER_COLOR = Color3.fromRGB(90, 230, 220)
+local RAID_COLOR = Color3.fromRGB(255, 80, 120)
+local SCOUT_COLOR = Color3.fromRGB(150, 200, 255)
+local raidLive = {} -- the RAID tab's live labels, updated every second without a rebuild
+local tabsLive = false -- whether the tabs were drawn with the raid live
+local raidShape = "" -- what the RAID tab was built for (window, open, cleared): a change rebuilds it
 local showcase: Frame -- left: the boss in 3D
 local showcaseGradient: UIGradient
 local showcaseName: TextLabel
@@ -151,13 +163,16 @@ end
 
 local refresh
 
--- `floor` (Tower.FloorAt) shows the boss as that tower floor's echo.
-local function setShowcase(boss, floor)
+-- `floor` (Tower.FloorAt) shows the boss as that tower floor's echo; `raidName` as the raid's Colossus.
+local function setShowcase(boss, floor, raidName: string?)
 	showcaseGradient.Color = ColorSequence.new(boss.Accent:Lerp(Color3.new(0, 0, 0), 0.25), boss.Deep)
 	local affix = floor and floor.Affix and Tower.AffixById[floor.Affix]
-	showcaseName.Text = string.upper(if floor then floor.Name else boss.Name)
-	showcaseTitle.Text = if affix then `{affix.Icon} {affix.Name}: {affix.Text}` else boss.Title
-	showcaseWorld.Text = if floor then `INFINITE TOWER · FLOOR {floor.Floor}` else `WORLD {boss.World} · {string.upper(boss.WorldName)}`
+	showcaseName.Text = string.upper(if raidName then raidName elseif floor then floor.Name else boss.Name)
+	showcaseTitle.Text = if affix then `{affix.Icon} {affix.Name}: {affix.Text}` else `{Elements.Label(boss.Element)} · {boss.Title}`
+	showcaseWorld.Text = if raidName
+		then "SERVER RAID · EVERYONE TOGETHER"
+		elseif floor then `INFINITE TOWER · FLOOR {floor.Floor}`
+		else `WORLD {boss.World} · {string.upper(boss.WorldName)}`
 	if viewBoss ~= boss.Id then
 		if view then
 			view.Frame:Destroy()
@@ -171,6 +186,10 @@ local function setShowcase(boss, floor)
 			Parent = showcase,
 		}, 0, 5)
 		viewBoss = boss.Id
+	end
+	if raidName then
+		view:SetTint(Color3.fromRGB(255, 150, 170)) -- a Colossus
+		return
 	end
 	if floor then
 		view:SetTint(if floor.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
@@ -186,7 +205,8 @@ local function guardLine(ids: { string }): string
 	for _, id in ids do
 		local g = Bosses.GuardTypes[id]
 		if g then
-			table.insert(parts, `{g.Icon} <font color="#{g.Color:ToHex()}"><b>{g.Name}</b></font> · {g.Role}`)
+			local element = Elements.Get(g.Element)
+			table.insert(parts, `{g.Icon} <font color="#{g.Color:ToHex()}"><b>{g.Name}</b></font> · {g.Role} {if element then element.Icon else ""}`)
 		end
 	end
 	return "GUARDS   " .. table.concat(parts, "    ")
@@ -217,11 +237,113 @@ local function buildTabs()
 		mode = "tower"
 		refresh()
 	end)
+	local live = State.Raid ~= nil and State.Raid.Open
+	tabsLive = live
+	local raidButton = pill(tabs, if live then "RAID · LIVE" else "RAID", #Bosses.List + 2, if live then 120 else 92, RAID_COLOR, mode == "raid", false)
+	raidButton.Activated:Connect(function()
+		mode = "raid"
+		refresh()
+	end)
+end
+
+-- SCOUT: the squad's elements and what beats them, how the active deck lines up against the leader,
+-- the deck's synergies and bonds, and COUNTER-BUILD for this fight (`target`: boss id, Tower.Id, Raid.Id).
+local function scoutBox(order: number, leaderId: string, guards: { string }, deck, target: string)
+	local leader = Bosses.Get(leaderId)
+	local scout = box(order, SCOUT_COLOR)
+	text(scout, 1, "SCOUT", SCOUT_COLOR, 18, Theme.Font.Heavy)
+	text(
+		scout,
+		2,
+		`Leader {ElementUi.Rich(leader.Element)}   ·   beat it with <b>{ElementUi.RichList(Elements.Counters(leader.Element))}</b> (+30% damage)`,
+		Theme.Color.Text,
+		16,
+		Theme.Font.Heavy
+	)
+	if #guards > 0 then
+		local parts = {}
+		for _, id in guards do
+			local g = Bosses.GuardTypes[id]
+			if g then
+				table.insert(parts, `{g.Icon} {g.Role} {ElementUi.Rich(g.Element)}`)
+			end
+		end
+		text(scout, 3, "Guards   " .. table.concat(parts, "    "), Theme.Color.Text, 15, Theme.Font.Bold)
+	end
+
+	local strong, weak, hurt, ids = 0, 0, 0, {}
+	for _, deckRow in Deck.Rows do
+		for _, id in deck[deckRow] do
+			local card = Cards.Get(id)
+			if card then
+				table.insert(ids, id)
+				local matchup = Elements.Matchup(card.Element, leader.Element)
+				if matchup == "Strong" then
+					strong += 1
+				elseif matchup == "Weak" then
+					weak += 1
+				end
+				if card.Type == "Attack" and Elements.Matchup(leader.Element, card.Element) == "Strong" then
+					hurt += 1
+				end
+			end
+		end
+	end
+	local deckLine = `Your deck vs the leader:  <font color="#56D68A"><b>{strong} strong</b></font>  ·  <font color="#FF7846"><b>{weak} weak</b></font>`
+	if hurt > 0 then
+		deckLine ..= `  ·  {hurt} Attack card{if hurt == 1 then "" else "s"} take +30% from it`
+	end
+	text(scout, 4, deckLine, Theme.Color.Text, 16, Theme.Font.Heavy)
+
+	local synergies = Elements.ActiveSynergies(Deck.Elements(deck))
+	local lines = {}
+	for _, active in synergies do
+		local element = Elements.Get(active.Synergy.Element)
+		table.insert(lines, `{element and element.Icon or ""} <b>{string.upper(active.Synergy.Name)}</b> ({active.Count}): {active.Tier.Text}`)
+	end
+	for _, bond in Elements.ActiveBonds(ids) do
+		table.insert(lines, `🤝 <b>{string.upper(bond.Name)}</b>: Dual Ultimate when the leader drops to half`)
+	end
+	if #lines == 0 then
+		table.insert(lines, "No synergy yet: 2 cards of one element switch one on (4 for a bigger one)")
+	end
+	text(scout, 5, table.concat(lines, "\n"), Color3.fromRGB(255, 214, 150), 15, Theme.Font.Bold)
+
+	local buttons = Kit.new("Frame", {
+		LayoutOrder = 6,
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundTransparency = 1,
+		Parent = scout,
+	}, {
+		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
+	})
+	local counter = Kit.button("COUNTER-BUILD", Color3.fromRGB(90, 160, 255), Color3.fromRGB(30, 60, 140), {
+		LayoutOrder = 1,
+		Size = UDim2.new(0, 220, 1, 0),
+		Parent = buttons,
+	})
+	local guide = Kit.button("HOW ELEMENTS WORK", Theme.Color.PanelLight, Theme.Color.Panel, {
+		LayoutOrder = 2,
+		Size = UDim2.new(0, 220, 1, 0),
+		Parent = buttons,
+	})
+	guide.Activated:Connect(ElementGuide.Open)
+	counter.Activated:Connect(function()
+		local ok, result = pcall(function()
+			return Remotes.Deck:InvokeServer("AutoBuild", State.Decks.Active, target)
+		end)
+		if ok and result and result.Decks then
+			State.ApplyDecks(result.Decks)
+			hint("Deck rebuilt: your strongest cards, weighed by element against this squad")
+		else
+			hint("Couldn't rebuild the deck")
+		end
+	end)
 end
 
 -- Deck presets, a peek at the active deck, and EDIT DECK + FIGHT (rows from `order` on). `fight`
 -- returns what actions.Fight does, or nothing when it refused by itself.
-local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -> (boolean?, string?), label: string?)
+local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -> (boolean?, string?), label: string?, target: string)
 	local presetRow = row(order0, 36)
 	for i = 1, Config.Deck.Presets do
 		local preset = State.Decks.Presets[i] or Deck.Empty()
@@ -278,7 +400,7 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 		Parent = buttons,
 	})
 	edit.Activated:Connect(function()
-		actions.EditDeck()
+		actions.EditDeck(target)
 	end)
 	local fightButton = Kit.button(if unlocked then label or "FIGHT!" else "LOCKED", Theme.Color.Roll, Theme.Color.RollDeep, {
 		LayoutOrder = 2,
@@ -334,9 +456,20 @@ local function buildTower()
 	if affix then
 		text(foe, 3, `{affix.Icon} <b>{string.upper(affix.Name)}</b>: {affix.Text}`, Color3.fromRGB(255, 170, 230), 17, Theme.Font.Heavy)
 	end
+	local mutator = State.Mutator()
+	local resetIn = 86400 - os.time() % 86400
+	text(
+		foe,
+		5,
+		`TODAY  {mutator.Icon} <b>{string.upper(mutator.Name)}</b>: {mutator.Text}  ·  next in {resetIn // 3600}h {(resetIn % 3600) // 60}m`,
+		Color3.fromRGB(150, 255, 190),
+		16,
+		Theme.Font.Heavy
+	)
 	if not unlocked then
 		text(body, 3, `LOCKED · {Tower.UnlockHint()} to open the tower.`, Theme.Color.Roll, 15, Theme.Font.Heavy)
 	end
+	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.Id)
 
 	local enough = power >= floor.Recommended
 	local powerBox = box(4, if enough then Theme.Color.Quick else Theme.Color.Roll)
@@ -396,7 +529,121 @@ local function buildTower()
 			return
 		end
 		return actions.Fight(Tower.Id, nil)
-	end, `CLIMB · FLOOR {floorNo}`)
+	end, `CLIMB · FLOOR {floorNo}`, Tower.Id)
+	hintLabel.Parent = body
+end
+
+local function clock(seconds: number): string
+	seconds = math.max(0, math.floor(seconds))
+	return string.format("%d:%02d", seconds // 60, seconds % 60)
+end
+
+local function short(n: number): string
+	if n >= 1e9 then
+		return string.format("%.2fB", n / 1e9)
+	elseif n >= 1e6 then
+		return string.format("%.2fM", n / 1e6)
+	elseif n >= 1e4 then
+		return string.format("%.1fK", n / 1e3)
+	end
+	return Kit.commas(math.floor(n))
+end
+
+-- The RAID tab's changing parts: the countdown, the pool and the top hitters.
+local function updateRaidLive()
+	local raid = State.Raid
+	if raid == nil or raidLive.Status == nil or raidLive.Status.Parent == nil then
+		return
+	end
+	local now = workspace:GetServerTimeNow()
+	if raid.Open then
+		raidLive.Status.Text = `<font color="#FF5078"><b>LIVE</b></font> · ends in <b>{clock(raid.Ends - now)}</b>  ·  {raid.Hitters} hitter{if raid.Hitters == 1 then "" else "s"}`
+	elseif raid.Cleared and now < raid.Ends + 60 then
+		raidLive.Status.Text = `<font color="#56D68A"><b>CLEARED!</b></font>  ·  next raid in <b>{clock(raid.Next - now)}</b>`
+	else
+		raidLive.Status.Text = `Next raid in <b>{clock(raid.Next - now)}</b>  (every hour, at half past)`
+	end
+	local share = if raid.Max > 0 then math.clamp(1 - raid.Dealt / raid.Max, 0, 1) else 1
+	raidLive.Fill.Size = UDim2.fromScale(share, 1)
+	raidLive.Pool.Text = if raid.Max > 0
+		then `Colossus HP  <b>{short(math.max(0, raid.Max - raid.Dealt))}</b> / {short(raid.Max)}`
+		else "The Colossus's HP grows as players join: the first hit starts the pool"
+	local lines = {}
+	for i, hitter in raid.Top do
+		table.insert(lines, `{i}. <b>{hitter.Name}</b>  {short(hitter.Damage)}`)
+	end
+	raidLive.Top.Text = if #lines > 0 then "TOP HITTERS   " .. table.concat(lines, "    ") else "No hits yet: be the first!"
+	local luck = State.RaidLuck()
+	raidLive.Luck.Text = if luck > 1
+		then `🍀 RAID LUCK x{Raid.LuckBoost} is on for everyone: {clock((raid.LuckEnds or now) - now)} left`
+		else `🍀 Clear it: RAID LUCK x{Raid.LuckBoost} for everyone on the server for {Raid.LuckSeconds // 60} min`
+end
+
+-- The RAID tab: the server's Colossus, the shared pool, scouting, rewards and JOIN RAID.
+local function buildRaid()
+	local raid = State.Raid
+	local w = Raid.At(workspace:GetServerTimeNow())
+	local raidBoss = if raid then raid.Boss else w.Colossus.Boss
+	local raidName = if raid then raid.Name else w.Colossus.Name
+	local boss = Bosses.Get(raidBoss)
+	local open = raid ~= nil and raid.Open
+	local deck = State.ActiveDeck() or Deck.Empty()
+	local power = Deck.Power(deck, State.Cards)
+	raidShape = if raid then `{raid.Index}:{tostring(raid.Open)}:{tostring(raid.Cleared)}` else "none"
+	setShowcase(boss, nil, raidName)
+	buildTabs()
+
+	text(
+		body,
+		1,
+		"Everyone on this server fights the Colossus together. Every hit drains one shared HP pool: empty it before time runs out and everyone who hit it is paid.",
+		Theme.Color.Muted,
+		17,
+		Theme.Font.Bold
+	)
+	local status = box(2, RAID_COLOR)
+	text(status, 1, `SERVER RAID · <b>{string.upper(raidName)}</b>`, RAID_COLOR, 21, Theme.Font.Heavy)
+	raidLive.Status = text(status, 2, "", Theme.Color.Text, 17, Theme.Font.Heavy)
+	local track = Kit.new("Frame", {
+		LayoutOrder = 3,
+		Size = UDim2.new(1, 0, 0, 18),
+		BackgroundColor3 = Theme.Color.Backdrop,
+		Parent = status,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	raidLive.Fill = Kit.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = RAID_COLOR,
+		Parent = track,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	raidLive.Pool = text(status, 4, "", Theme.Color.Text, 16, Theme.Font.Bold)
+	raidLive.Top = text(status, 5, "", Theme.Color.Gold, 15, Theme.Font.Heavy)
+	raidLive.Luck = text(status, 6, "", Color3.fromRGB(150, 255, 190), 15, Theme.Font.Heavy)
+	text(status, 7, `{boss.Name}'s moves, alone and huge: {boss.Mechanic}`, Theme.Color.Muted, 15, Theme.Font.Bold)
+	updateRaidLive()
+
+	scoutBox(3, raidBoss, {}, deck, Raid.Id)
+
+	local reward = Raid.Reward(true, Raid.StatsFor(power).Base * 2, power, false)
+	local rewardBox = box(4, Theme.Color.Gold)
+	text(rewardBox, 1, "RAID REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
+	text(
+		rewardBox,
+		2,
+		`Cleared: <b>+💎{Kit.commas(reward.Shards)}</b> (two good runs; more damage pays more) + <b>{Packs.Describe(reward.Packs)}</b> · 🔮 artifact odds x{Raid.ClearDropBoost}`,
+		Theme.Color.Text,
+		17,
+		Theme.Font.Bold
+	)
+	text(rewardBox, 3, `Top hitter: <b>+{Packs.Describe(Raid.TopPacks)}</b>   ·   Not cleared: about half the Shards`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+	text(rewardBox, 4, `Each run is {Raid.FightSeconds} s against a Colossus sized to your deck, so every player's hits count.`, Theme.Color.Muted, 15, Theme.Font.Bold)
+
+	deckAndFight(5, deck, open, function()
+		if not open then
+			hint(if raid and raid.Cleared then "This raid is cleared: wait for the next one" else "The raid isn't open right now")
+			return
+		end
+		return actions.Fight(Raid.Id, nil)
+	end, if open then `JOIN RAID · {Raid.FightSeconds}s RUN` else "NOT OPEN", Raid.Id)
 	hintLabel.Parent = body
 end
 
@@ -410,6 +657,9 @@ local function build()
 	if mode == "tower" then
 		buildTower()
 		return
+	elseif mode == "raid" then
+		buildRaid()
+		return
 	end
 	local boss = Bosses.Get(bossId)
 	local fight = boss.Difficulties[difficulty]
@@ -422,6 +672,7 @@ local function build()
 
 	text(body, 1, boss.Mechanic, Theme.Color.Muted, 18, Theme.Font.Bold)
 	text(body, 1, guardLine(boss.Guards), Theme.Color.Text, 16, Theme.Font.Heavy)
+	scoutBox(3, boss.Id, boss.Guards, deck, boss.Id)
 
 	-- Difficulty: cleared ones get a tick, locked ones say what opens them.
 	local diffRow = row(2, 38)
@@ -529,7 +780,7 @@ local function build()
 			return
 		end
 		return actions.Fight(bossId, difficulty)
-	end)
+	end, nil, boss.Id)
 	hintLabel.Parent = body -- its own row: inside the wrapping button row it pushed the buttons up
 end
 
@@ -639,14 +890,42 @@ function BossScreen.Init(playerGui: Instance, bossActions: Actions)
 
 	modal.OnOpen = build
 	State.Changed:Connect(function(kind)
+		if kind == "raid" then
+			-- Raid news comes every second: only a new window, open or cleared rebuilds the tab.
+			if not modal.IsOpen then
+				return
+			end
+			local raid = State.Raid
+			local shape = if raid then `{raid.Index}:{tostring(raid.Open)}:{tostring(raid.Cleared)}` else "none"
+			if mode == "raid" and shape == raidShape then
+				updateRaidLive()
+			elseif mode == "raid" or (raid ~= nil and raid.Open) ~= tabsLive then
+				refresh()
+			end
+			return
+		end
 		if kind ~= "roll" then
 			refresh()
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if modal.IsOpen and mode == "raid" then
+				updateRaidLive()
+			end
 		end
 	end)
 end
 
 function BossScreen.Toggle()
 	modal:Toggle()
+end
+
+-- The RAID tab (from the HUD's raid pill).
+function BossScreen.OpenRaid()
+	mode = "raid"
+	modal:Open()
 end
 
 -- The TOWER tab, from the tower gate.

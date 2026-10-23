@@ -312,6 +312,23 @@ function Bosses.Get(id: string): Boss?
 	return Bosses.ById[id]
 end
 
+-- The elements of a fight's squad, one per enemy, the leader twice (it's the one that must fall):
+-- what counter-building weighs cards against. `guards` replaces the boss's own (tower floors, raids).
+function Bosses.SquadElements(bossId: string, guards: { string }?): { string }
+	local boss = Bosses.Get(bossId)
+	if boss == nil then
+		return {}
+	end
+	local list = { boss.Element, boss.Element }
+	for _, id in guards or boss.Guards do
+		local g = Bosses.GuardTypes[id]
+		if g then
+			table.insert(list, g.Element)
+		end
+	end
+	return list
+end
+
 -- "kurogane:Normal": the key for saved clears and best times.
 function Bosses.FightKey(bossId: string, difficulty: string): string
 	return `{bossId}:{difficulty}`

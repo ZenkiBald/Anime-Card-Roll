@@ -4,6 +4,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Meta = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Meta"))
+local Raid = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Raid"))
+local Tower = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Tower"))
 
 local State = {
 	Cards = {}, -- [cardId] = { Copies, Stars, Fusion, Borders, Trait }
@@ -21,6 +23,7 @@ local State = {
 	Tower = 0, -- highest Infinite Tower floor cleared
 	Packs = {}, -- Roll Packs held: Packs.luau id -> count
 	Battle = { AutoUlt = false, Speed = 1 },
+	Raid = nil, -- the server's raid (RaidService.Public): window, pool, top hitters; nil until it arrives
 	-- Long-term progression (MetaService.State): potions, upgrades, Index claims, daily, gifts, milestones,
 	-- daily quests ({ Day, ResetIn, List = { { Id, Progress, Claimed } } }), level and stat points.
 	Meta = {
@@ -123,10 +126,23 @@ function State.Event()
 	return Meta.EventAt(workspace:GetServerTimeNow(), override)
 end
 
--- Luck right now (base x the strongest running potion x the event), matching what the server uses.
+-- Raid Luck right now (x2 for a while after the server clears a raid).
+function State.RaidLuck(): number
+	local ends = ReplicatedStorage:GetAttribute("RaidLuckEnds")
+	return Raid.LuckAt(workspace:GetServerTimeNow(), if type(ends) == "number" then ends else nil)
+end
+
+-- Luck right now (base x the strongest running potion x the event x Raid Luck), matching the server.
 function State.Luck(): number
 	local event = State.Event()
-	return Meta.TotalLuck(State.Meta.BaseLuck or 1, Meta.PotionLuck(liveActive()), event and event.Luck)
+	local eventLuck = (event and event.Luck or 1) * State.RaidLuck()
+	return Meta.TotalLuck(State.Meta.BaseLuck or 1, Meta.PotionLuck(liveActive()), eventLuck)
+end
+
+-- Today's tower mutator (the test tools can pick one; same as the server).
+function State.Mutator(): Tower.Mutator
+	local id = ReplicatedStorage:GetAttribute("DevMutator")
+	return Tower.MutatorToday(Meta.DayNumber(os.time()), if State.TestMode and type(id) == "string" then id else nil)
 end
 
 function State.Cooldown(): number
@@ -181,6 +197,11 @@ end
 function State.ApplyPacks(packs)
 	State.Packs = packs or {}
 	changed:Fire("packs")
+end
+
+function State.ApplyRaid(raid)
+	State.Raid = raid
+	changed:Fire("raid")
 end
 
 function State.ApplyTower(floor: number)

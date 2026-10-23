@@ -1,6 +1,7 @@
 --!nonstrict
--- Deck screen. Left: the Attack and Support slot columns, deck presets, Deck Power and Auto-build.
--- Right: every owned card as an art tile with tabs, sort, filter and search.
+-- Deck screen. Left: the Attack and Support slot columns, the deck's synergies and bonds (Elements.luau),
+-- deck presets, Deck Power and Auto-build (COUNTER-BUILD when opened for a fight: weighed against that
+-- squad's elements). Right: every owned card as an art tile with tabs, sort, filters and search.
 -- Tap a card to put it in the deck (or take it out if it's already in). Tap a slot first to choose
 -- which slot it goes in or replaces. Every change goes to the server, which validates it.
 
@@ -12,6 +13,7 @@ local Borders = require(Shared.Borders)
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
 local Rarity = require(Shared.Rarity)
+local Elements = require(Shared.Elements)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -20,6 +22,7 @@ local Modal = require(script.Parent.Modal)
 local CardTile = require(script.Parent.CardTile)
 local Controls = require(script.Parent.Controls)
 local Sfx = require(script.Parent.Sfx)
+local ElementGuide = require(script.Parent.ElementGuide)
 local State = require(script.Parent.Parent.State)
 
 local DeckBuilder = {}
@@ -36,10 +39,14 @@ local backButton: TextButton
 local tabSetters = {}
 local emptyLabel: TextLabel
 local returnTo: (() -> ())? = nil
+local target: string? = nil -- the fight the deck screen was opened for (boss id, Tower.Id, Raid.Id)
+local synergyLabel: TextLabel
+local autoButton: TextButton
 
 local tab = "Attack"
 local sortBy = "Power"
 local filterBy = "All"
+local elementBy = "Any element"
 local search = ""
 local selected = nil -- { Row, Index } or nil
 local working = nil -- the deck being edited (mirrors the active preset)
@@ -246,7 +253,8 @@ local function drawGrid()
 			local inDeck = findInDeck(id) ~= nil
 			local matchesFilter = filterBy == "All" or (filterBy == "In deck" and inDeck) or (filterBy == "Not in deck" and not inDeck)
 			local matchesSearch = search == "" or string.find(string.lower(card.Name), search, 1, true) ~= nil
-			if matchesFilter and matchesSearch then
+			local matchesElement = elementBy == "Any element" or card.Element == elementBy
+			if matchesFilter and matchesSearch and matchesElement then
 				table.insert(list, card)
 			end
 		end
@@ -304,6 +312,25 @@ function refresh()
 		set(name == tab)
 	end
 	powerLabel.Text = `⚡ {Kit.commas(Deck.Power(working, State.Cards))}`
+	-- Synergies and bonds this deck switches on.
+	local parts = {}
+	for _, active in Elements.ActiveSynergies(Deck.Elements(working)) do
+		local element = Elements.Get(active.Synergy.Element)
+		table.insert(parts, `<font color="#{element.Color:ToHex()}">{element.Icon} <b>{string.upper(active.Synergy.Name)}</b> {active.Count}</font>`)
+	end
+	local ids = {}
+	for _, deckRow in Deck.Rows do
+		for _, id in working[deckRow] do
+			if id ~= "" then
+				table.insert(ids, id)
+			end
+		end
+	end
+	for _, bond in Elements.ActiveBonds(ids) do
+		table.insert(parts, `<font color="#FFBE78">🤝 <b>{string.upper(bond.Name)}</b></font>`)
+	end
+	synergyLabel.Text = if #parts > 0 then table.concat(parts, "  ·  ") else "2 cards of one element = a synergy · bonded pairs = a Dual Ultimate"
+	autoButton.Label.Text = if target then "COUNTER-BUILD" else "AUTO-BUILD"
 	presetLabel.Text = `DECK {State.Decks.Active}`
 	backButton.Visible = returnTo ~= nil
 	task.defer(sizeGrid)
@@ -345,10 +372,29 @@ function DeckBuilder.Init(playerGui: Instance)
 		Parent = modal.Body,
 	})
 	local columnArea = Kit.new("Frame", {
-		Size = UDim2.new(1, 0, 1, -112),
+		Size = UDim2.new(1, 0, 1, -152),
 		BackgroundTransparency = 1,
 		Parent = left,
 	})
+	synergyLabel = Kit.label({
+		Name = "Synergies",
+		Text = "",
+		RichText = true,
+		Font = Theme.Font.Heavy,
+		Position = UDim2.new(0, 0, 1, -148),
+		Size = UDim2.new(1, 0, 0, 38),
+		Parent = left,
+	}, 16)
+	Controls.Outlined(synergyLabel, 1.5)
+	-- Tapping the strip explains elements, synergies and bonds.
+	local synergyTap = Kit.new("TextButton", {
+		Name = "SynergyTap",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "",
+		Parent = synergyLabel,
+	})
+	synergyTap.Activated:Connect(ElementGuide.Open)
 	for i, row in Deck.Rows do
 		local column = Kit.new("Frame", {
 			Name = row,
@@ -477,15 +523,15 @@ function DeckBuilder.Init(playerGui: Instance)
 			back()
 		end
 	end)
-	local auto = Kit.button("AUTO-BUILD", Theme.Color.Quick, Theme.Color.QuickDeep, {
+	autoButton = Kit.button("AUTO-BUILD", Theme.Color.Quick, Theme.Color.QuickDeep, {
 		LayoutOrder = 1,
-		Size = UDim2.new(0, 140, 1, 0),
+		Size = UDim2.new(0, 160, 1, 0),
 		Parent = actions,
 	})
-	auto.Activated:Connect(function()
-		if call("AutoBuild", State.Decks.Active) then
+	autoButton.Activated:Connect(function()
+		if call("AutoBuild", State.Decks.Active, target) then
 			Sfx.Play("Upgrade", 1.1)
-			hint("Filled with your strongest cards")
+			hint(if target then "Rebuilt to counter this fight's elements" else "Filled with your strongest cards")
 		end
 	end)
 
@@ -547,6 +593,14 @@ function DeckBuilder.Init(playerGui: Instance)
 	end)
 	Controls.Option(options, "Filter", { "All", "Not in deck", "In deck" }, 2, function(value)
 		filterBy = value
+		refresh()
+	end)
+	local elementNames = { "Any element" }
+	for _, element in Elements.List do
+		table.insert(elementNames, element.Id)
+	end
+	Controls.Option(options, "Element", elementNames, 3, function(value)
+		elementBy = value
 		refresh()
 	end)
 
@@ -619,12 +673,15 @@ end
 
 function DeckBuilder.Toggle()
 	returnTo = nil
+	target = nil
 	modal:Toggle()
 end
 
--- Opens the deck screen; `back` adds a button that returns to wherever it was opened from.
-function DeckBuilder.Open(back: (() -> ())?)
+-- Opens the deck screen; `back` adds a button that returns to wherever it was opened from, and `fight`
+-- (a boss id, Tower.Id or Raid.Id) turns AUTO-BUILD into COUNTER-BUILD for that fight.
+function DeckBuilder.Open(back: (() -> ())?, fight: string?)
 	returnTo = back
+	target = fight
 	modal:Open()
 	refresh()
 end

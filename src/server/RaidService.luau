@@ -166,7 +166,7 @@ function RaidService.Join(player: Player, power: number)
 	if hitter == nil then
 		hitter = { Name = player.DisplayName, Damage = 0, Power = power }
 		current.Hitters[player.UserId] = hitter
-		current.Max += Raid.PoolFor(power)
+		current.Max += Raid.PoolFor(power, w.Colossus)
 	end
 	hitter.Power = math.max(hitter.Power, power) -- rewards follow the strongest deck they brought
 	dirty = true

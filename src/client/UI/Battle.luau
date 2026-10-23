@@ -15,6 +15,8 @@ local Bosses = require(Shared.Bosses)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Tower = require(Shared.Tower)
+local Elements = require(Shared.Elements)
+local Raid = require(Shared.Raid)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -28,6 +30,7 @@ local RewardReveal = require(script.Parent.RewardReveal)
 local PackOpen = require(script.Parent.PackOpen)
 local Packs = require(Shared.Packs)
 local Abilities = require(script.Parent.Abilities)
+local ElementUi = require(script.Parent.ElementUi)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
 
@@ -93,6 +96,8 @@ local REASONS = {
 	InBattle = "Already in a fight",
 	TooFast = "Slow down a little",
 	Loading = "Still loading your cards",
+	Closed = "The raid isn't open right now",
+	Cleared = "This raid is already cleared",
 }
 
 local STATUS = { B = "BURN", Z = "FROZEN", T = "TAUNT", U = "BUFFED", S = "SLOWED", G = "GUARDED", I = "SAFE" }
@@ -182,6 +187,14 @@ local function float(parent: GuiObject?, text: string, color: Color3, big: boole
 			end)
 		end
 	end)
+end
+
+local STRONG_COLOR = Color3.fromRGB(255, 160, 60)
+local WEAK_COLOR = Color3.fromRGB(170, 168, 196)
+
+-- "▲" on a strong hit (the element beats the target's), "▼" on a weak one.
+local function elementMark(flag: number?): string
+	return if flag == 1 then " ▲" elseif flag == -1 then " ▼" else ""
 end
 
 -- A big pill over a card naming the ability it just used, in its slot's colour (SKILL blue ...).
@@ -609,6 +622,13 @@ local function makeTile(unit, order: number)
 		BackgroundTransparency = 0.7,
 		Parent = portrait,
 	}, { Kit.corner(UDim.new(1, 0)) })
+	ElementUi.Badge(card.Element, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(0.98, 0.02),
+		Size = UDim2.fromScale(0.34, 0.34),
+		ZIndex = 4,
+		Parent = portrait,
+	})
 	local art = CardView.Art(unit.CardId, true, false)
 	if art then
 		-- A 2D illustration fills the portrait; the 3D figure is framed a little larger and lower.
@@ -877,6 +897,13 @@ local function makeGuardTile(enemy, slot: Frame)
 		Size = UDim2.fromScale(0.3, 0.46),
 		Parent = button,
 	}, 40)
+	ElementUi.Badge(enemy.Element, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(0.34, 0.02),
+		Size = UDim2.fromScale(0.13, 0.13),
+		ZIndex = 4,
+		Parent = button,
+	})
 	Kit.label({
 		Name = "GuardName",
 		Text = string.upper(enemy.Name),
@@ -1223,7 +1250,12 @@ local function playEvent(event)
 				elseif event.Bl then SHIELD_COLOR
 				elseif event.C then Theme.Color.Gold
 				else Color3.new(1, 1, 1)
-			local text = if event.C then `{Kit.commas(event.A)}!` else Kit.commas(event.A)
+			if event.El == 1 and kind == "Hit" and not event.C then
+				color = STRONG_COLOR
+			elseif event.El == -1 and kind == "Hit" and not event.C then
+				color = WEAK_COLOR
+			end
+			local text = (if event.C then `{Kit.commas(event.A)}!` else Kit.commas(event.A)) .. elementMark(event.El)
 			float(frame, text, color, event.C)
 			if kind == "Hit" then
 				if event.C then
@@ -1252,7 +1284,12 @@ local function playEvent(event)
 				elseif event.Bl then SHIELD_COLOR
 				elseif event.C then Theme.Color.Gold
 				else Color3.new(1, 1, 1)
-			float(guard.Card, if event.C then `{Kit.commas(event.A)}!` else Kit.commas(event.A), color, event.C)
+			if event.El == 1 and kind == "Hit" and not event.C then
+				color = STRONG_COLOR
+			elseif event.El == -1 and kind == "Hit" and not event.C then
+				color = WEAK_COLOR
+			end
+			float(guard.Card, (if event.C then `{Kit.commas(event.A)}!` else Kit.commas(event.A)) .. elementMark(event.El), color, event.C)
 			if kind == "Hit" then
 				Sfx.Play("Hit", 1.05 + math.random() * 0.2)
 				guard.Flash.BackgroundColor3 = Color3.new(1, 1, 1)
@@ -1270,7 +1307,7 @@ local function playEvent(event)
 			elseif kind == "Burn" then
 				float(tile.Card, `-{Kit.commas(event.A)}`, Theme.Color.Roll)
 			else
-				float(tile.Card, `-{Kit.commas(event.A)}`, if event.Sh then SHIELD_COLOR else Theme.Color.Danger)
+				float(tile.Card, `-{Kit.commas(event.A)}{elementMark(event.El)}`, if event.Sh then SHIELD_COLOR else Theme.Color.Danger)
 				Sfx.Play("Hit", 0.7)
 				slash(tile, if event.Sh then SHIELD_COLOR else Color3.fromRGB(255, 90, 90))
 				glow(tile, Theme.Color.Danger)
@@ -1386,6 +1423,22 @@ local function playEvent(event)
 		callout(`{string.upper(current.BossName)} STEALS YOUR BUFFS!`, Color3.fromRGB(230, 130, 255), 1.6)
 	elseif kind == "Opening" then
 		callout("SUPPORT OPENING!", Theme.Color.Support, 1.2)
+	elseif kind == "Bond" then
+		-- A Dual Ultimate: both bonded cards flare and strike the leader together.
+		callout(`🤝 {string.upper(event.N)}!`, Color3.fromRGB(255, 190, 120), 1.8)
+		Effects.Flash(gui, Color3.fromRGB(255, 190, 120), 0.5, 0.5)
+		Sfx.Play("Ultimate")
+		shakeStage(10, 0.4)
+		for _, id in event.U or {} do
+			local tile = tiles[id]
+			if tile then
+				glow(tile, Color3.fromRGB(255, 190, 120))
+				bump(tile.Scale, 0.15)
+				for i = 1, 2 do
+					task.delay(i * 0.06, bolt, tile.Card, bossHolder, Color3.fromRGB(255, 190, 120), 12)
+				end
+			end
+		end
 	elseif kind == "Signature" then
 		callout(event.N .. "!", Color3.fromRGB(240, 236, 255), 1.2)
 		if event.T then
@@ -1493,7 +1546,7 @@ end
 
 -- Intro ------------------------------------------------------------------------------------------
 
-local function playIntro(boss, subtitle: string, deckPower: number, seconds: number)
+local function playIntro(boss, subtitle: string, deckPower: number, seconds: number, extras: string?)
 	for _, child in intro:GetChildren() do
 		if child:IsA("GuiObject") then
 			child:Destroy()
@@ -1531,7 +1584,7 @@ local function playIntro(boss, subtitle: string, deckPower: number, seconds: num
 		Kit.tween(frame, 0.32, { Position = UDim2.fromScale(0.5, if fromLeft then 0.38 else 0.62) }, Enum.EasingStyle.Quart)
 		return frame
 	end
-	local left = panel(true, Theme.Color.Accent, Theme.Color.AccentDeep, "YOUR DECK", `Deck Power {Kit.commas(deckPower)}`)
+	local left = panel(true, Theme.Color.Accent, Theme.Color.AccentDeep, "YOUR DECK", `Deck Power {Kit.commas(deckPower)}{if extras then `  ·  {extras}` else ""}`)
 	local right = panel(false, boss.Accent, boss.Deep, string.upper(current.BossName), subtitle)
 	local vs = Kit.label({
 		Text = "VS",
@@ -1595,6 +1648,15 @@ local function showResults(summary)
 		Timeout = { "TIME UP", Theme.Color.Danger },
 		Forfeit = { "GAVE UP", Theme.Color.Muted },
 	}
+	if current.Raid then
+		-- A raid run has no win or loss of its own: it ends when its time does, or the raid does.
+		titles = {
+			Win = { "RAID CLEARED!", Theme.Color.Gold },
+			Lose = { "ALL CARDS DOWN", Theme.Color.Danger },
+			Timeout = { "RUN OVER", Theme.Color.Auto },
+			Forfeit = { "LEFT THE RAID", Theme.Color.Muted },
+		}
+	end
 	local title = titles[summary.Result] or titles.Lose
 	local rewards = summary.Rewards
 	-- Wins pay Shards and gear at once and drop Roll Packs (boss wins, some tower floors) into the BAG;
@@ -1741,11 +1803,39 @@ local function showResults(summary)
 
 	local timeText = string.format("%d:%04.1f", summary.Time // 60, summary.Time % 60)
 	local tower = current.Tower
-	line(if tower then `{current.BossName} · Floor {tower.Floor}` else `{current.BossName} · {current.Difficulty}`, Theme.Color.Text, 24, Theme.Font.Heavy)
+	line(
+		if current.Raid then `{current.BossName} · Server raid` elseif tower then `{current.BossName} · Floor {tower.Floor}` else `{current.BossName} · {current.Difficulty}`,
+		Theme.Color.Text,
+		24,
+		Theme.Font.Heavy
+	)
 	if summary.Tower then
 		State.ApplyTower(summary.Tower)
 	end
-	if summary.Result == "Win" then
+	if current.Raid then
+		local raidSummary = summary.Raid or {}
+		local raidState = raidSummary.State
+		if raidState then
+			State.ApplyRaid(raidState)
+		end
+		stat("DAMAGE", Kit.commas(raidSummary.Dealt or 0), Theme.Color.Gold, nil, "into the server's pool")
+		if raidState and raidState.Max > 0 then
+			local left = math.max(0, math.floor((1 - raidState.Dealt / raidState.Max) * 100 + 0.5))
+			stat("COLOSSUS HP", `{left}%`, Color3.fromRGB(255, 80, 120), nil, `{raidState.Hitters} hitter{if raidState.Hitters == 1 then "" else "s"}`)
+		end
+		line(
+			if summary.Result == "Win"
+				then "The pool is empty! Everyone who hit it has been paid."
+				else "Every hit stays in the pool. You're paid when the raid ends: more damage, more Shards.",
+			Theme.Color.Muted,
+			17,
+			Theme.Font.Bold
+		)
+		if summary.Result == "Win" then
+			Effects.Sparks(panel, Theme.Color.Gold, 30, 0.8)
+			Sfx.Play("Victory")
+		end
+	elseif summary.Result == "Win" then
 		local notes = {}
 		if tower then
 			table.insert(notes, `Floor {tower.Floor} cleared!`)
@@ -1969,13 +2059,20 @@ local function showResults(summary)
 		exit()
 	end)
 	-- In the tower, a win moves on to the next floor and a loss retries the same one.
-	local againText = if tower == nil then "FIGHT AGAIN" elseif summary.Result == "Win" then "NEXT FLOOR" else "TRY AGAIN"
+	local raidOpen = current.Raid ~= nil and State.Raid ~= nil and State.Raid.Open
+	local againText = if current.Raid then (if raidOpen then "RUN AGAIN" else "RAID OVER")
+		elseif tower == nil then "FIGHT AGAIN"
+		elseif summary.Result == "Win" then "NEXT FLOOR"
+		else "TRY AGAIN"
 	local again = Kit.button(againText, Theme.Color.Roll, Theme.Color.RollDeep, {
 		LayoutOrder = 2,
 		Size = UDim2.new(0, 210, 1, 0),
 		Parent = buttons,
 	})
-	local bossId, difficulty = if tower then Tower.Id else current.BossId, current.Difficulty
+	if current.Raid and not raidOpen then
+		Kit.dim(again, true)
+	end
+	local bossId, difficulty = if current.Raid then Raid.Id elseif tower then Tower.Id else current.BossId, current.Difficulty
 	local function goAgain()
 		local ok, message = startFight(bossId, difficulty)
 		if not ok and message then
@@ -2034,14 +2131,17 @@ end
 
 local function begin(start, bossId: string, difficulty: string)
 	-- A tower floor fights a boss's echo (start.Tower: Tower.FloorAt): its model, moves and backdrop.
+	-- A raid run fights the server's Colossus (start.Raid): the boss's model and moves, alone and huge.
 	local tower = start.Tower
-	local boss = Bosses.Get(if tower then tower.Boss else bossId)
+	local raid = start.Raid
+	local boss = Bosses.Get(if tower then tower.Boss else start.Info.BossId or bossId)
 	current = {
 		Info = start.Info,
 		BossId = boss.Id,
-		Difficulty = if tower then tower.Difficulty else difficulty,
+		Difficulty = if tower then tower.Difficulty else start.Info.Difficulty or difficulty,
 		Tower = tower,
-		BossName = if tower then tower.Name else boss.Name,
+		Raid = raid,
+		BossName = if raid then raid.Name elseif tower then tower.Name else boss.Name,
 		BossColor = boss.Accent,
 		Speed = start.Speed,
 		SpeedUnlocked = start.SpeedUnlocked,
@@ -2090,6 +2190,8 @@ local function begin(start, bossId: string, difficulty: string)
 	}, 10)
 	if tower then
 		bossView:SetTint(if tower.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
+	elseif raid then
+		bossView:SetTint(Color3.fromRGB(255, 150, 170)) -- a Colossus
 	end
 	barrierRing.Visible = false
 
@@ -2115,14 +2217,27 @@ local function begin(start, bossId: string, difficulty: string)
 	end
 	local diffIndex = Bosses.DifficultyIndex(current.Difficulty)
 	local subtitle = `{boss.Title} · {string.upper(current.Difficulty)}`
-	if tower then
+	local element = Elements.Get(boss.Element)
+	local icon = if element then `{element.Icon} ` else ""
+	if raid then
+		subtitle = `Server raid · {Raid.FightSeconds} s run · every hit counts`
+		bossName.Text = `{icon}{string.upper(raid.Name)}  <font color="#A8A2C8">SERVER RAID</font>`
+		bossChip.Label.Text = "RAID"
+		bossChip.BackgroundColor3 = Color3.fromRGB(255, 80, 120)
+		if raid.State then
+			State.ApplyRaid(raid.State)
+		end
+	elseif tower then
 		local affix = tower.Affix and Tower.AffixById[tower.Affix]
-		subtitle = `Infinite Tower · Floor {tower.Floor}` .. (if affix then ` · {string.upper(affix.Name)}` else "")
-		bossName.Text = `{string.upper(tower.Name)}  <font color="#A8A2C8">{if affix then `{affix.Icon} {affix.Name}` else boss.Title}</font>`
+		local mutator = start.Mutator and Tower.MutatorById[start.Mutator]
+		subtitle = `Infinite Tower · Floor {tower.Floor}`
+			.. (if affix then ` · {string.upper(affix.Name)}` else "")
+			.. (if mutator then ` · {mutator.Icon} {string.upper(mutator.Name)}` else "")
+		bossName.Text = `{icon}{string.upper(tower.Name)}  <font color="#A8A2C8">{if affix then `{affix.Icon} {affix.Name}` else boss.Title}</font>`
 		bossChip.Label.Text = `FLOOR {tower.Floor}`
 		bossChip.BackgroundColor3 = if tower.Guardian then Theme.Color.Gold else Color3.fromRGB(40, 170, 165)
 	else
-		bossName.Text = `{string.upper(boss.Name)}  <font color="#A8A2C8">{boss.Title}</font>`
+		bossName.Text = `{icon}{string.upper(boss.Name)}  <font color="#A8A2C8">{boss.Title}</font>`
 		bossChip.Label.Text = string.upper(difficulty)
 		bossChip.BackgroundColor3 = if diffIndex == 3 then Theme.Color.Danger elseif diffIndex == 2 then Theme.Color.Roll else Theme.Color.Quick
 	end
@@ -2137,7 +2252,16 @@ local function begin(start, bossId: string, difficulty: string)
 
 	gui.Enabled = true
 	hooks.OnStart()
-	playIntro(boss, subtitle, start.DeckPower or 0, start.Intro or 2)
+	-- The deck's synergies and bonds ride on the intro's YOUR DECK banner.
+	local extras = {}
+	for _, synergy in start.Info.Synergies or {} do
+		local e = Elements.Get(synergy.Element)
+		table.insert(extras, `{e and e.Icon or ""} {string.upper(synergy.Name)}`)
+	end
+	for _, bond in start.Info.Bonds or {} do
+		table.insert(extras, `🤝 {string.upper(bond.Name)}`)
+	end
+	playIntro(boss, subtitle, start.DeckPower or 0, start.Intro or 2, if #extras > 0 then table.concat(extras, " · ") else nil)
 	task.delay((start.Intro or 2) + 0.3, function()
 		if current and not current.Ended and current.Focus == nil then
 			hint("Tap an enemy to focus every attack on it")

@@ -10,6 +10,7 @@ local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
+local Elements = require(Shared.Elements)
 local Config = require(Shared.Config)
 local Odds = require(Shared.Odds)
 local Meta = require(Shared.Meta)
@@ -23,6 +24,7 @@ local CardTile = require(script.Parent.CardTile)
 local Controls = require(script.Parent.Controls)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
+local ElementUi = require(script.Parent.ElementUi)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
 
@@ -157,6 +159,30 @@ local function showDetail(card)
 				Cards.FusedRarity(card, fusion + 1)
 			)} (Hoshi the Fusion Master, in town)`
 		line(fusionText, Theme.Font.Bold, Color3.fromRGB(255, 160, 90), 20, 16)
+		-- Element: what it beats and what beats it; and its bonds (a Dual Ultimate with a named partner).
+		local element = Elements.Get(card.Element)
+		if element then
+			local beats = if #element.Beats > 0 then ElementUi.RichList(element.Beats) else "nothing"
+			local weakTo = {}
+			for _, other in Elements.List do
+				if other.Id ~= "Cosmic" and table.find(other.Beats, element.Id) then
+					table.insert(weakTo, other.Id)
+				end
+			end
+			local weakText = if element.Id == "Cosmic" or #weakTo == 0 then "nothing" else ElementUi.RichList(weakTo)
+			line(`Element  <b>{ElementUi.Rich(element.Id)}</b>   strong vs {beats}   weak vs {weakText}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)
+		end
+		for _, entry in Elements.BondsOf(card.Id) do
+			local partner = Cards.Get(entry.Partner)
+			local have = State.Cards[entry.Partner] ~= nil
+			line(
+				`🤝 Bond <b>{string.upper(entry.Bond.Name)}</b> with <b>{if partner then partner.Name else entry.Partner}</b>{if have then "" else " (not found yet)"}: both in a deck fire a Dual Ultimate ({math.floor(entry.Bond.Pct * 100)}% of both cards' power) once a fight`,
+				Theme.Font.Bold,
+				Color3.fromRGB(255, 190, 120),
+				18,
+				15
+			)
+		end
 		-- Borders found for this card: each one lit or still to find, with its odds.
 		local found = entry.Borders or {}
 		local parts = {}

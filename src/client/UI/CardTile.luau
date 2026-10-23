@@ -14,6 +14,7 @@ local Skin = require(script.Parent.Skin)
 local Effects = require(script.Parent.Effects)
 local CardView = require(script.Parent.CardView)
 local BorderFx = require(script.Parent.BorderFx)
+local ElementUi = require(script.Parent.ElementUi)
 
 local CardTile = {}
 
@@ -211,6 +212,14 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		}, 18), 1.5)
 	end
 
+	-- Element badge (top-right): shown even before the card is found, for planning.
+	ElementUi.Badge(card.Element, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(0.95, 0.05),
+		Size = UDim2.fromScale(0.2, 0.2),
+		Parent = button,
+	})
+
 	if owned and options.Copies then
 		outlined(Kit.label({
 			Name = "Copies",
@@ -218,7 +227,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 			Font = Theme.Font.Display,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.fromScale(0.95, 0.05),
+			Position = UDim2.fromScale(0.95, 0.27),
 			Size = UDim2.fromScale(0.34, 0.16),
 			ZIndex = 5,
 			Parent = button,

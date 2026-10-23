@@ -11,12 +11,14 @@ local Cards = require(Shared.Cards)
 
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
+local Elements = require(Shared.Elements)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Skin = require(script.Parent.Skin)
 local Effects = require(script.Parent.Effects)
 local BorderFx = require(script.Parent.BorderFx)
+local ElementUi = require(script.Parent.ElementUi)
 
 local CardView = {}
 
@@ -264,6 +266,14 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		end
 	end
 
+	-- Element badge: top-right on compact tiles, beside the name on full cards.
+	ElementUi.Badge(card.Element, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = if compact then UDim2.fromScale(0.95, 0.025) else UDim2.fromScale(0.96, 0.1),
+		Size = if compact then UDim2.fromScale(0.2, 0.2) else UDim2.fromScale(0.14, 0.14),
+		Parent = frame,
+	})
+
 	-- The name, big, under the chips (at the bottom on compact tiles).
 	local nameLabel = Kit.label({
 		Name = "CardName",
@@ -272,7 +282,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		TextColor3 = if owned then Color3.new(1, 1, 1) else Theme.Color.Muted,
 		TextXAlignment = if compact then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left,
 		Position = if compact then UDim2.fromScale(0.05, 0.8) else UDim2.fromScale(0.05, 0.095),
-		Size = if compact then UDim2.fromScale(0.9, 0.13) else UDim2.fromScale(0.9, 0.095),
+		Size = if compact then UDim2.fromScale(0.9, 0.13) else UDim2.fromScale(0.75, 0.095),
 		ZIndex = 5,
 		Parent = frame,
 	}, if compact then 22 else 40)
@@ -300,7 +310,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			TextColor3 = Color3.fromRGB(220, 214, 245),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Position = UDim2.fromScale(0.05, 0.19),
-			Size = UDim2.fromScale(0.9, 0.045),
+			Size = UDim2.fromScale(0.78, 0.045),
 			ZIndex = 5,
 			Parent = frame,
 		}, 18)
@@ -342,6 +352,10 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			local trait = Traits.Get(options.Trait)
 			if trait then
 				table.insert(tagList, { `{trait.Icon} {trait.Name}`, Rarity.Get(trait.Tier).Color })
+			end
+			local element = Elements.Get(card.Element)
+			if element then
+				table.insert(tagList, { `{element.Icon} {element.Name}`, element.Color })
 			end
 			table.insert(tagList, { if card.Type == "Attack" then "⚔️ Attack" else "✨ Support", Color3.fromRGB(230, 228, 245) })
 			for _, a in card.Abilities do

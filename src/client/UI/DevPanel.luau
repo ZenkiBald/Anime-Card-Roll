@@ -277,6 +277,25 @@ function DevPanel.Init(playerGui: Instance)
 		devCall("TowerReset")
 	end)
 
+	-- Strategy: open a server raid now (10 minutes) or switch the tower to the next daily mutator.
+	local raidRow = section(list, 15, "RAIDS · TOWER MUTATOR")
+	local startRaid = Kit.button("START RAID", Color3.fromRGB(255, 80, 120), Color3.fromRGB(120, 20, 50), {
+		LayoutOrder = 1,
+		Size = UDim2.fromOffset(150, 36),
+		Parent = raidRow,
+	})
+	startRaid.Activated:Connect(function()
+		devCall("StartRaid")
+	end)
+	local nextMutator = Kit.button("NEXT MUTATOR", Color3.fromRGB(60, 190, 120), Color3.fromRGB(20, 90, 50), {
+		LayoutOrder = 2,
+		Size = UDim2.fromOffset(170, 36),
+		Parent = raidRow,
+	})
+	nextMutator.Activated:Connect(function()
+		devCall("NextMutator")
+	end)
+
 	local reset = Kit.button("RESET MY DATA", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), {
 		LayoutOrder = 3,
 		Size = UDim2.fromOffset(160, 36),

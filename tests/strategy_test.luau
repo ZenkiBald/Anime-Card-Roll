@@ -149,33 +149,39 @@ check(Raid.LuckAt(10, 20) == Raid.LuckBoost and Raid.LuckAt(30, 20) == 1, "Raid 
 
 do
 	-- A run: the Colossus alone, sized to the deck, lasts Raid.FightSeconds and can't be felled solo;
-	-- a deck at its power deals two-three runs to drain its share of the pool.
+	-- a deck at its power drains its share of the pool in two-four runs, against every Colossus.
 	local runsOk, shareOk = true, true
-	for _, i in { 1, 4, 8, 12 } do
+	for _, i in { 1, 3, 5, 8, 12 } do
 		local deck, owned = F.fixtureDeck(F.FIGHTS[i])
 		local power = Deck.Power(deck, owned)
-		local colossus = Raid.Colossi[i % #Raid.Colossi + 1]
-		local stats = Raid.StatsFor(power)
-		local battle = Engine.new({
-			Units = F.units(deck, owned),
-			BossId = colossus.Boss,
-			Difficulty = Raid.Difficulty,
-			Rng = Random.new(i),
-			Stats = { HP = stats.HP, ATK = stats.ATK, WarnSeconds = stats.WarnSeconds },
-			Guards = {},
-			TimeLimit = Raid.FightSeconds,
-		})
-		battle.AutoUlt = true
-		while not battle.Over do
-			battle:Step(Config.Battle.Tick)
-			battle:TakeEvents()
+		local line = string.format("   raid runs to drain a share at %6d power:", power)
+		for _, colossus in Raid.Colossi do
+			local stats = Raid.StatsFor(power)
+			local dealt = 0
+			for seed = 1, 4 do
+				local battle = Engine.new({
+					Units = F.units(deck, owned),
+					BossId = colossus.Boss,
+					Difficulty = Raid.Difficulty,
+					Rng = Random.new(seed * 31 + i),
+					Stats = { HP = stats.HP, ATK = stats.ATK, WarnSeconds = stats.WarnSeconds, BarrierHP = stats.Base },
+					Guards = {},
+					TimeLimit = Raid.FightSeconds,
+				})
+				battle.AutoUlt = true
+				while not battle.Over do
+					battle:Step(Config.Battle.Tick)
+					battle:TakeEvents()
+				end
+				dealt += battle.Boss.MaxHP - battle.Boss.HP
+				runsOk = runsOk and #battle.Enemies == 1 and battle.Result ~= "Win" and battle.Time <= Raid.FightSeconds + 0.1
+			end
+			local runs = Raid.PoolFor(power, colossus) / math.max(1, dealt / 4)
+			line ..= string.format("  %s %.1f", colossus.Name, runs)
+			shareOk = shareOk and runs >= 1.5 and runs <= 4.5
 		end
-		local dealt = battle.Boss.MaxHP - battle.Boss.HP
-		local runs = Raid.PoolFor(power) / math.max(1, dealt)
-		print(string.format("   raid run %6d power vs %s: %s at %.0fs, dealt %d (%.1f runs to drain a share)", power, colossus.Name, battle.Result, battle.Time, dealt, runs))
-		runsOk = runsOk and #battle.Enemies == 1 and battle.Result ~= "Win" and battle.Time <= Raid.FightSeconds + 0.1
-		shareOk = shareOk and runs >= 1.5 and runs <= 4.5
+		print(line)
 	end
 	check(runsOk, "a raid run is the Colossus alone, 60 s, and nobody fells it solo")
-	check(shareOk, "a deck at its power drains its share of the pool in about 2-4 runs")
+	check(shareOk, "a deck at its power drains its share of the pool in about 2-4 runs, against every Colossus")
 end

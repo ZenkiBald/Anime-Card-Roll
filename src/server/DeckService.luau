@@ -7,6 +7,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
+local Bosses = require(Shared.Bosses)
+local Tower = require(Shared.Tower)
+local Raid = require(Shared.Raid)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -56,7 +59,21 @@ function DeckService.Start()
 		elseif action == "Select" then
 			data.Decks.Active = preset
 		elseif action == "AutoBuild" then
-			data.Decks.Presets[preset] = Deck.AutoBuild(data.Cards)
+			-- `deck` may name the fight to counter-build for: a boss id, the tower (its next floor) or the raid.
+			local against = nil
+			if type(deck) == "string" then
+				if deck == Tower.Id then
+					local floor = Tower.FloorAt(data.Tower.Floor + 1)
+					against = Bosses.SquadElements(floor.Boss, floor.Guards)
+				elseif deck == Raid.Id then
+					local forced = ReplicatedStorage:GetAttribute("DevRaidEnds")
+					local w = Raid.At(workspace:GetServerTimeNow(), if type(forced) == "number" then { Ends = forced } else nil)
+					against = Bosses.SquadElements(w.Colossus.Boss, {})
+				elseif Bosses.Get(deck) then
+					against = Bosses.SquadElements(deck)
+				end
+			end
+			data.Decks.Presets[preset] = Deck.AutoBuild(data.Cards, against)
 		else
 			return { Ok = false, Reason = "BadRequest" }
 		end

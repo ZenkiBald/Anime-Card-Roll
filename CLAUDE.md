@@ -109,6 +109,34 @@ ODDS panel), the card keeps its best (`Cards[id].Trait`); REROLL TRAIT in the In
 applied in BattleEngine like the old accessories (UnitSpec.Trait). Trait chip on cards. Test tools: GIVE TRAITS.
 CODES (menu button, `UI/Codes`): `src/server/Codes.luau` (server-only list; once per player, optional Expires),
 `CodeService` + `Redeem` remote, saved in `Codes`. Add a code = one entry in Codes.luau.
+Strategy layer (2026-10-23, from the user's design bible v2, mixed with Claude's ideas; the bible's DBZ / Naruto
+roster, worlds and anime roadmap were NOT used: original characters only; its VIP luck pass was not built either,
+see the paid random items rule): built in the cloud, headless tests only, not yet seen in Studio.
+Elements (`Elements.luau`): every card / boss / guard has one (`Element` field): Flame > Frost > Storm > Flame,
+Light <> Void, Cosmic (Secret cards only) beats all and is weak to none. Strong x1.3, weak x0.85, both ways (enemies
+hit cards by the same rule); picked so rarity still wins (1.6 x 0.85 > 1.3, strategy_test checks). Menders are
+Light (Void cards cut them down). Synergies: 2 / 4 cards of an element in the whole deck switch on a deck bonus
+(Wildfire ATK, Permafrost Guard, Tempest SPD + energy, Radiance crit, Abyss Vuln), run as battle effects at the
+start. Bonds: 8 named pairs (`Elements.Bonds`) fire a Dual Ultimate (300% of both cards' power at the leader) once,
+when the leader hits 50% or at 45 s. Engine: `Element` on units and enemies, `El` flag (1 / -1) on Hit events,
+"Bond" events, Info.Synergies / Info.Bonds. Boss HP and `Tower.Curve.Points` HP were retuned up (~1.05-1.3x, tower
+1.2x) since fixture decks now use the layer; a deck that ignores elements is slower.
+Scouting: the BATTLE screen's SCOUT box (leader + guard elements, what beats them, how your deck lines up, your
+synergies / bonds), COUNTER-BUILD (`Deck.AutoBuild(owned, against)`, `Bosses.SquadElements`; DeckService
+"AutoBuild" takes a boss id / Tower.Id / Raid.Id as its 3rd arg), HOW ELEMENTS WORK (`UI/ElementGuide`).
+Element badges on CardView / CardTile / battle tiles (`UI/ElementUi`), element tag chip, Index detail lists the
+element and bonds; deck screen has a synergy strip and an Element filter; battle numbers get ▲ / ▼.
+Tower daily mutators (`Tower.Mutators`, `Tower.MutatorAt(day)`, same on every server): one element +25% damage, or
+every card half Ultimate / +12% SPD; applied as extra trait effects in BattleService; only ever help (tests run
+without). Dev: NEXT MUTATOR (ReplicatedStorage attribute DevMutator).
+Server raids (`Raid.luau`, `RaidService`, remotes RaidState / RaidInfo): every hour at :30 for 10 min (clock, same
+on every server). A Colossus (a world boss alone, Hard moves) sized to each player's Deck Power (tower curve HP x4,
+can't fall solo; barriers sized off the base HP); 60 s runs (`BattleStart("raid")`, Engine `TimeLimit`, Guards {})
+drain one shared pool live (each player's first run adds 3x their base HP; per-Colossus Pool factor). Cleared:
+every hitter paid (`Raid.Reward`: Shards by damage, capped, + Roll Pack, top hitter + Big Roll Pack, 2x artifact
+odds) and RAID LUCK x2 for the whole server for 10 min (attribute RaidLuckEnds, in MetaService.Luck and
+State.Luck); failed: half Shards. Client: RAID tab on the BATTLE screen (live pool / timer / top hitters), raid pill
+under the event pill (tap to join), raid result panel, payout toast. Daily quest "raid". Dev: START RAID.
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
@@ -156,7 +184,8 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   `Borders` (card border odds, colours and bonus), `Items` (artifacts, accessories, drop odds, gear bonuses),
   `Deck` (deck rules, validation, Deck Power, Auto-build), `Bosses` (boss stats, moves, difficulties, unlocks),
   `Rewards` (boss reward rolls / luck / floor per difficulty score D), `BossModels` (NPC figures from plain parts),
-  `Tower` (Infinite Tower floors, enemies, affixes, curve, rewards),
+  `Tower` (Infinite Tower floors, enemies, affixes, curve, rewards, daily mutators),
+  `Elements` (element wheel, synergies, bonds), `Raid` (server raid schedule, Colossus sizing, pool, rewards),
   `Cards` also has the fusion helpers (`FusedRarity`, `MaxFusion`, `Stat`, `Power(card, stars, fusion)`),
   `Traits` (card traits: odds, effects, reroll cost), `Meta` (potions, upgrades, Index rewards, daily, gifts,
   milestones, daily quests, levels and stat points, server events, the Lucky Wheel, and the luck / cooldown formulas
@@ -172,12 +201,13 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   area in, then pivots beside the zone's Boss_ marker / Spawn), `FusionService` (Fuse remote: checks ownership,
   copies and max rarity, then fuses), `LeaderboardService` (leaderstats + the town boards; test scores go to
   `LB_*_Test_1` stores),
-  `ProfileService` (Profile remote: public profiles of players in the server), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
+  `ProfileService` (Profile remote: public profiles of players in the server), `RaidService` (the server's raid
+  pool, hitters, payouts, Raid Luck), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient` (progression calls, badge counts),
   `HubFx` (NPC idle animation, sage tips, portal lock labels), `ZoneFx` (zone music + lighting mood),
   `UI/*` (Kit helpers incl. `Kit.tile` / `Kit.dimTile`, Theme, Skin (UI kit image ids), BorderFx (card border frames), Title, Travel, Settings, Fusion, Modal (blurred-world
   panel with slanted banner), Controls (option pills, tabs, search, headers), CardView (full card), CardTile (square
-  grid tile), Reveal, Effects, Hud, Index, OddsPanel, Bag + BagGear, Stats, Shop, Gifts, DevPanel, DeckBuilder, BossScreen,
+  grid tile), ElementUi (element badges / rich text), ElementGuide (ELEMENTS panel), Reveal, Effects, Hud, Index, OddsPanel, Bag + BagGear, Stats, Shop, Gifts, DevPanel, DeckBuilder, BossScreen,
   Battle, RewardReveal, ModelView (3D figure in a ViewportFrame), Sfx).
 - Remotes are declared in `default.project.json` under ReplicatedStorage.Remotes.
 - Not in Rojo: the map lives only in the place file (published to Roblox): `workspace.Map` (Town, EmberVillage,
@@ -224,6 +254,6 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 - Type check (needs luau-lsp): `rojo sourcemap default.project.json --include-non-scripts -o sourcemap.json` then
   `luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions @roblox=tests/defs/globalTypes.d.luau --ignore "**/ProfileStore.luau" src/`
 - UI property names check (props set through `Kit.new` aren't type checked): `python tests/check_props.py tests/defs/globalTypes.d.luau src`
-- Odds / pity / card stat / progression / deck / battle / tower / pack tests (needs the `luau` CLI): `python tests/bundle.py` then `luau tests/bundle_out.luau`
+- Odds / card stat / progression / deck / battle / tower / pack / strategy (elements, raids) tests (needs the `luau` CLI): `python tests/bundle.py` then `luau tests/bundle_out.luau`
 
 Tool versions are pinned in `rokit.toml` (`rokit install`).

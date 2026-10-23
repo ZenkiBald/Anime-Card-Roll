@@ -48,8 +48,9 @@ export type UnitSpec = {
 -- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the leader's DEF / SPD:
 -- the Infinite Tower (Tower.luau) fights a boss's moves at stats scaled to the floor. Difficulty still
 -- picks which moves are in (MinDifficulty). Guards (optional) replaces the boss's own guard ids ({} = the
--- leader alone, as in a raid). TimeLimit (optional) replaces Config.Battle.TimeLimit.
-export type Stats = { HP: number, ATK: number, WarnSeconds: number, DEF: number?, SPD: number? }
+-- leader alone, as in a raid). TimeLimit (optional) replaces Config.Battle.TimeLimit. Stats.BarrierHP
+-- (optional) sizes barriers off that HP instead of the leader's max (a raid Colossus's HP is a pool).
+export type Stats = { HP: number, ATK: number, WarnSeconds: number, DEF: number?, SPD: number?, BarrierHP: number? }
 export type Setup = {
 	Units: { UnitSpec },
 	BossId: string,
@@ -212,6 +213,7 @@ function Engine.new(setup: Setup)
 		DEF = def.DEF + (setup.Stats and setup.Stats.DEF or 0),
 		SPD = def.SPD + (setup.Stats and setup.Stats.SPD or 0),
 	})
+	self.Boss.BarrierHP = setup.Stats and setup.Stats.BarrierHP or self.Boss.MaxHP
 	self.Enemies = { self.Boss }
 	self.ById = { Boss = self.Boss }
 	for i, guardId in setup.Guards or def.Guards or {} do
@@ -963,7 +965,7 @@ function Engine:EnemyStrike(enemy, move, target)
 
 	if move.Target == "Self" then
 		if move.Barrier then
-			enemy.Barrier = round(enemy.MaxHP * move.Barrier)
+			enemy.Barrier = round((enemy.BarrierHP or enemy.MaxHP) * move.Barrier)
 			self:Emit({ K = "Barrier", U = enemy.Id, A = enemy.Barrier })
 		end
 		return

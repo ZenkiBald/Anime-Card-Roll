@@ -70,8 +70,11 @@ local function recordResult(player: Player, state)
 	local data = profile.Data
 	local record = { FirstClear = false, NewBest = false }
 	if state.Raid then
-		-- A raid run: its damage already went into the pool; the payout comes when the raid ends.
-		MetaService.Track(player, "RaidRuns")
+		-- A raid run: its damage already went into the pool; the payout comes when the raid ends. Only a
+		-- run that was fought (not given up at once) counts for the daily quest.
+		if battle.Result ~= "Forfeit" and state.Raid.Reported > 0 then
+			MetaService.Track(player, "RaidRuns")
+		end
 		record.Progress = data.Progress
 		record.SpeedUnlocked = speedAllowed(data, 2)
 		return record
@@ -275,7 +278,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 		raid = RaidService.Join(player, deckPower)
 		boss = Bosses.Get(raid.Boss)
 		difficulty = Raid.Difficulty
-		stats = { HP = raid.Stats.HP, ATK = raid.Stats.ATK, WarnSeconds = raid.Stats.WarnSeconds }
+		stats = { HP = raid.Stats.HP, ATK = raid.Stats.ATK, WarnSeconds = raid.Stats.WarnSeconds, BarrierHP = raid.Stats.Base }
 	end
 
 	local battle = Engine.new({

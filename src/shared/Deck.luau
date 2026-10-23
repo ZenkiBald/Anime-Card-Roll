@@ -6,6 +6,7 @@
 local Config = require(script.Parent.Config)
 local Cards = require(script.Parent.Cards)
 local Borders = require(script.Parent.Borders)
+local Elements = require(script.Parent.Elements)
 
 export type Deck = { Attack: { string }, Support: { string } }
 export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }? } }
@@ -128,7 +129,41 @@ function Deck.Count(deck: Deck, row: string): number
 end
 
 -- Fills each row with the highest-power cards owned, strongest on the left.
-function Deck.AutoBuild(owned: Owned): Deck
+-- How much a card is worth against a squad of these elements (one entry per enemy, the leader can count
+-- twice): its power x its average damage multiplier, and for Attack cards / the average multiplier of
+-- the hits it takes. 1 against no one in particular.
+function Deck.MatchupValue(cardId: string, against: { string }?): number
+	local card = Cards.Get(cardId)
+	if card == nil or against == nil or #against == 0 then
+		return 1
+	end
+	local dealt, taken = 0, 0
+	for _, element in against do
+		dealt += Elements.Multiplier(card.Element, element)
+		taken += Elements.Multiplier(element, card.Element)
+	end
+	dealt /= #against
+	taken /= #against
+	return if card.Type == "Attack" then dealt / taken else dealt
+end
+
+-- The card elements in a deck, slot by slot (for synergies).
+function Deck.Elements(deck: Deck): { string }
+	local list = {}
+	for _, row in Deck.Rows do
+		for _, id in (deck :: any)[row] do
+			local card = Cards.Get(id)
+			if card then
+				table.insert(list, card.Element)
+			end
+		end
+	end
+	return list
+end
+
+-- The strongest 4 + 4. With `against` (the enemy squad's elements) it counter-builds: each card's power
+-- is weighed by Deck.MatchupValue, so cards that beat the squad's elements move up.
+function Deck.AutoBuild(owned: Owned, against: { string }?): Deck
 	local deck = Deck.Empty()
 	for _, row in Deck.Rows do
 		local pool = {}
@@ -139,7 +174,7 @@ function Deck.AutoBuild(owned: Owned): Deck
 			end
 		end
 		table.sort(pool, function(a, b)
-			local pa, pb = Deck.CardPower(a, owned), Deck.CardPower(b, owned)
+			local pa, pb = Deck.CardPower(a, owned) * Deck.MatchupValue(a, against), Deck.CardPower(b, owned) * Deck.MatchupValue(b, against)
 			if pa ~= pb then
 				return pa > pb
 			end

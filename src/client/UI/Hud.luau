@@ -45,6 +45,8 @@ local settingsButton: TextButton
 local petsButton: TextButton
 local levelBar: any -- children read by name
 local eventPill: any
+local raidPill: any -- under the event pill while a raid is live (tap to join) or Raid Luck runs
+local raidWanted = false
 local menuButtons = {} -- [name] = button (children read by name)
 local locks = {} -- [feature] = overlay frame
 local feedOrder = 0
@@ -262,6 +264,7 @@ local function applyHidden()
 	boostRow.Visible = not hidden
 	levelBar.Visible = not hidden
 	eventPill.Visible = not hidden
+	raidPill.Visible = raidWanted and not hidden
 end
 
 export type Handlers = {
@@ -281,6 +284,7 @@ export type Handlers = {
 	OnSettings: () -> (),
 	OnPets: () -> (),
 	OnCodes: () -> (),
+	OnRaid: () -> (),
 	OnDev: (() -> ())?,
 }
 
@@ -741,12 +745,47 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	}, 16)
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = eventText
 
+	-- Raid pill: the live raid (tap to join) or Raid Luck after a clear.
+	raidPill = Kit.new("TextButton", {
+		Name = "Raid",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 144),
+		Size = UDim2.fromOffset(420, 28),
+		AutoButtonColor = false,
+		BackgroundColor3 = Color3.fromRGB(110, 20, 50),
+		BackgroundTransparency = 0.1,
+		Text = "",
+		Visible = false,
+		Parent = gui,
+	}, {
+		Kit.corner(UDim.new(1, 0)),
+		Kit.stroke(Color3.fromRGB(255, 80, 120), 2, 0),
+		Kit.new("UIScale", { Name = "Pop", Scale = 1 }),
+	})
+	local raidText = Kit.label({
+		Name = "Text",
+		Text = "",
+		RichText = true,
+		Font = Theme.Font.Heavy,
+		Position = UDim2.fromScale(0.04, 0.12),
+		Size = UDim2.fromScale(0.92, 0.76),
+		Parent = raidPill,
+	}, 16)
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = raidText
+	raidPill.Activated:Connect(function()
+		if State.Raid and State.Raid.Open then
+			handlers.OnRaid()
+		end
+	end)
+	Kit.pressable(raidPill)
+
 	-- Narrow phones: the level bar and event pill shrink with the top bar.
 	local function fitBars()
 		local scale = math.clamp((gui.AbsoluteSize.X - 150) / 600, 0.55, 1)
 		levelBar.Fit.Scale = scale
 		levelBar.Position = UDim2.new(0.5, 0, 0, 8 + 72 * scale) -- under the top bar's ODDS label
 		eventPill.Position = UDim2.new(0.5, 0, 0, 8 + 104 * scale)
+		raidPill.Position = UDim2.new(0.5, 0, 0, 8 + 104 * scale + 34)
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBars)
 	fitBars()
@@ -758,6 +797,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 			Hud.RefreshBoosts()
 			Hud.RefreshBadges()
 			Hud.RefreshEvent()
+			Hud.RefreshRaid()
 		end
 	end)
 
@@ -806,6 +846,39 @@ function Hud.RefreshEvent()
 		lastEventId = id
 		Hud.Refresh() -- luck / cooldown numbers change with the event
 	end
+end
+
+local lastRaidOpen = false
+
+-- The raid pill: LIVE with the pool left and time (tap to join), or Raid Luck's timer, or hidden.
+function Hud.RefreshRaid()
+	local raid = State.Raid
+	local now = workspace:GetServerTimeNow()
+	local open = raid ~= nil and raid.Open and now < raid.Ends
+	local luckEnds = ReplicatedStorage:GetAttribute("RaidLuckEnds")
+	local luck = type(luckEnds) == "number" and luckEnds > now
+	local text = raidPill.Text
+	if open then
+		local left = if raid.Max > 0 then math.floor((1 - raid.Dealt / raid.Max) * 100 + 0.5) else 100
+		local seconds = math.floor(raid.Ends - now)
+		text.Text = `⚔️ <b>RAID LIVE</b> · {raid.Name} {left}% · {string.format("%d:%02d", seconds // 60, seconds % 60)} · TAP TO JOIN`
+		raidPill.BackgroundColor3 = Color3.fromRGB(110, 20, 50)
+		raidPill.UIStroke.Color = Color3.fromRGB(255, 80, 120)
+	elseif luck then
+		local seconds = math.floor(luckEnds - now)
+		text.Text = `🍀 <b>RAID LUCK x2</b> for everyone · {string.format("%d:%02d", seconds // 60, seconds % 60)}`
+		raidPill.BackgroundColor3 = Color3.fromRGB(20, 80, 50)
+		raidPill.UIStroke.Color = Color3.fromRGB(120, 255, 170)
+	end
+	raidWanted = open or luck
+	if open and not lastRaidOpen then
+		raidPill.Pop.Scale = 1.4
+		Kit.tween(raidPill.Pop, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
+		Effects.Sparks(raidPill, Color3.fromRGB(255, 80, 120), 16, 1)
+		Hud.Hint(`⚔️ A server raid opened: {raid.Name}! Tap the raid bar to join.`)
+	end
+	lastRaidOpen = open
+	applyHidden()
 end
 
 -- LEVEL UP: a gold burst in the middle of the screen with the reward.

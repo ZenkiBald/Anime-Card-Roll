@@ -33,13 +33,15 @@ Raid.ClearPacks = { ["10"] = 1 } -- every hitter of a cleared raid
 Raid.TopPacks = { ["100"] = 1 } -- the top hitter, on top
 Raid.ClearDropBoost = 2 -- artifact odds on a clear (Items.RollDrops)
 
-export type Colossus = { Boss: string, Name: string }
+-- Pool: a multiplier on the pool share for a kit that is slower to chew through (Vex's barrier wants
+-- Skills, Tenrai's chain lightning wears a young deck down; measured in tests/strategy_test.luau).
+export type Colossus = { Boss: string, Name: string, Pool: number? }
 
 Raid.Colossi = {
 	{ Boss = "kurogane", Name = "Ash Colossus" },
 	{ Boss = "rimeveil", Name = "Glacier Colossus" },
-	{ Boss = "vex", Name = "Null Colossus" },
-	{ Boss = "tenrai", Name = "Storm Colossus" },
+	{ Boss = "vex", Name = "Null Colossus", Pool = 0.7 },
+	{ Boss = "tenrai", Name = "Storm Colossus", Pool = 0.9 },
 } :: { Colossus }
 
 export type Window = {
@@ -88,9 +90,9 @@ function Raid.StatsFor(power: number): { HP: number, ATK: number, WarnSeconds: n
 	}
 end
 
--- What the pool grows by when a player of this power joins.
-function Raid.PoolFor(power: number): number
-	return math.floor(Raid.StatsFor(power).Base * Raid.PoolShare + 0.5)
+-- What the pool grows by when a player of this power joins (against `colossus`).
+function Raid.PoolFor(power: number, colossus: Colossus?): number
+	return math.floor(Raid.StatsFor(power).Base * Raid.PoolShare * (colossus and colossus.Pool or 1) + 0.5)
 end
 
 -- How many "runs' worth" a player's damage is (for rewards), capped.

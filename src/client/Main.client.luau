@@ -35,6 +35,7 @@ local Followers = require(script.Parent.Followers)
 local OddsPanel = require(UI.OddsPanel)
 local DevPanel = require(UI.DevPanel)
 local DeckBuilder = require(UI.DeckBuilder)
+local ElementGuide = require(UI.ElementGuide)
 local BossScreen = require(UI.BossScreen)
 local Battle = require(UI.Battle)
 local State = require(script.Parent.State)
@@ -43,6 +44,7 @@ local ZoneFx = require(script.Parent.ZoneFx)
 local Sfx = require(UI.Sfx)
 local MetaClient = require(script.Parent.MetaClient)
 local Meta = require(Shared.Meta)
+local Packs = require(Shared.Packs)
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -207,12 +209,13 @@ Codes.Init(playerGui)
 PlayerList.Init(playerGui, Profile.Open)
 Dash.Start(Title.IsOpen)
 Followers.Start()
+ElementGuide.Init(playerGui)
 DeckBuilder.Init(playerGui)
 BossScreen.Init(playerGui, {
-	EditDeck = function()
+	EditDeck = function(target)
 		DeckBuilder.Open(function()
 			BossScreen.Open()
-		end)
+		end, target)
 	end,
 	Fight = Battle.Start,
 })
@@ -296,11 +299,61 @@ Hud.Init(playerGui, {
 	OnSettings = Settings.Toggle,
 	OnPets = Pets.Toggle,
 	OnCodes = Codes.Toggle,
+	OnRaid = BossScreen.OpenRaid,
 	OnDev = if State.TestMode then DevPanel.Toggle else nil,
 })
 
-State.Changed:Connect(function()
-	Hud.Refresh()
+State.Changed:Connect(function(kind)
+	if kind ~= "raid" then
+		Hud.Refresh()
+	end
+end)
+
+-- Server raids: the live state (pool, timer, top hitters) and, when a raid ends, this player's payout.
+Remotes.RaidState.OnClientEvent:Connect(function(message)
+	if type(message) ~= "table" then
+		return
+	end
+	if message.State then
+		State.ApplyRaid(message.State)
+		Hud.RefreshRaid()
+	end
+	local payout = message.Payout
+	if payout then
+		local reward = payout.Reward
+		if reward then
+			if reward.Packs then
+				State.ApplyPacks(reward.Packs)
+			end
+			if reward.Meta then
+				State.ApplyMeta(reward.Meta)
+			end
+			if reward.Summary then
+				State.Summary = reward.Summary
+			end
+		end
+		local loot = reward and reward.Bundle and Meta.Describe(reward.Bundle) or ""
+		if reward and reward.NewPacks then
+			loot = `{Packs.Describe(reward.NewPacks)}  {loot}`
+		end
+		if payout.Cleared then
+			Sfx.Play("Victory")
+			Hud.Hint(`⚔️ RAID CLEARED: {payout.Name}! You were #{payout.Rank} of {payout.Hitters}{if payout.Top then " (TOP HITTER!)" else ""}`)
+		else
+			Hud.Hint(`The raid on {payout.Name} ran out of time. You were #{payout.Rank} of {payout.Hitters}.`)
+		end
+		Hud.Reward(loot)
+		Hud.RefreshBadges()
+	end
+end)
+task.spawn(function()
+	local ok, raid = pcall(function()
+		return Remotes.RaidInfo:InvokeServer()
+	end)
+	if ok and type(raid) == "table" then
+		State.ApplyRaid(raid)
+		Hud.RefreshRaid()
+	end
 end)
 Reveal.OnBusy = function(on: boolean)
 	Hud.SetRevealMode(on)
