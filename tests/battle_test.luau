@@ -1,5 +1,5 @@
 -- Deck rules, the battle engine, boss mechanics, rewards, and the tuning targets:
--- the first Common + Uncommon deck (about 14.6k Deck Power) beats Kurogane Normal in 60-90 s,
+-- the first all-Base deck (about 52k Deck Power) beats Kurogane Normal in 60-90 s,
 -- and a deck at each fight's recommended power wins it in 60-90 s.
 local Config = MODULES.Config
 local Deck = MODULES.Deck
@@ -14,9 +14,9 @@ local starterOwned = F.own(starterIds)
 local starter = Deck.AutoBuild(starterOwned)
 local starterPower = Deck.Power(starter, starterOwned)
 print(`   starter deck: {table.concat(starter.Attack, ",")} / {table.concat(starter.Support, ",")} = {starterPower} power`)
-check(math.abs(starterPower - 14600) <= 150, `first Common + Uncommon deck is about 14.6k power ({starterPower})`)
+check(math.abs(starterPower - 52300) <= 600, `the first all-Base deck is about 52k power ({starterPower})`)
 check(Deck.Count(starter, "Attack") == 4 and Deck.Count(starter, "Support") == 4, "auto-build fills 4 Attack + 4 Support")
-check(starter.Attack[1] == "tomo" and starter.Support[1] == "suzu", "auto-build puts the strongest card on the left")
+check(starter.Attack[1] == "rook" and starter.Support[1] == "suzu", "auto-build puts the strongest card on the left")
 
 local ok = Deck.Validate({ Attack = { "rook", "", "", "" }, Support = { "", "", "", "" } }, starterOwned)
 check(ok ~= nil, "a deck with empty slots is valid")
@@ -45,8 +45,8 @@ check(allBad, "malformed decks are refused")
 
 -- 2. Engine rules ----------------------------------------------------------------------
 do
-	-- Damage formula: Rook's first hit = 110 ATK x 100% x (1 - target DEF), or x1.5 on a crit. His
-	-- first target is Kurogane's Warder (the Ironclad taunts, 15% DEF): 94, or 140 on a crit.
+	-- Damage formula: Rook's first hit = 550 ATK x 100% x (1 - target DEF), or x1.5 on a crit. His
+	-- first target is Kurogane's Warder (the Ironclad taunts, 15% DEF): 468, or 701 on a crit.
 	local deck = F.deck({ "rook" }, {})
 	local battle, events = F.fight("kurogane", "Normal", deck, starterOwned, 3)
 	local first
@@ -57,7 +57,7 @@ do
 		end
 	end
 	local def = first and battle.ById[first.T].DEF or 0
-	local plain, crit = math.floor(110 * (1 - def) + 0.5), math.floor(110 * 1.5 * (1 - def) + 0.5)
+	local plain, crit = math.floor(550 * (1 - def) + 0.5), math.floor(550 * 1.5 * (1 - def) + 0.5)
 	check(first ~= nil and first.T == "G3" and (first.A == plain or (first.C and first.A == crit)), `damage formula (Rook's first hit {first and first.A} on {first and first.T})`)
 end
 
@@ -129,7 +129,8 @@ do
 		end
 	end
 	local geared = Engine.new({ Units = units, BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
-	check(math.abs(geared:Speed(geared.ById.A1) - plain:Speed(plain.ById.A1) * 1.1) < 1e-6, "a +10% speed trait makes the card 10% faster")
+	-- Speed buffs add up (a Tempest synergy may already be on): +10% of the card's base SPD.
+	check(math.abs(geared:Speed(geared.ById.A1) - plain:Speed(plain.ById.A1) - plain.ById.A1.SPD * 0.1) < 1e-6, "a +10% speed trait makes the card 10% faster")
 	check(geared.ById.A1.Energy == 0.25 * Config.Battle.UltimateCost, "a +25% energy trait starts the Ultimate a quarter charged")
 	check(geared.ById.A1.Main == plain.ById.A1.Main, "traits never change a card's ATK")
 end
@@ -243,25 +244,17 @@ check(
 check(Bosses.IsUnlocked({ ["kurogane:Hard"] = true }, "kurogane", "Nightmare"), "clearing Hard unlocks Nightmare")
 
 local rewardsOk = true
-local DESIGN = { -- D = rolls, luck, floor, first-clear bonus (design doc table)
-	{ 5, 1.35, "Uncommon", "Rare" },
-	{ 7, 1.70, "Uncommon", "Rare" },
-	{ 9, 2.05, "Rare", "Epic" },
-	{ 11, 2.40, "Rare", "Epic" },
-	{ 13, 2.75, "Rare", "Epic" },
-	{ 15, 3.10, "Rare", "Epic" },
-	{ 17, 3.45, "Epic", "Legendary" },
-	{ 19, 3.80, "Epic", "Legendary" },
-	{ 21, 4.00, "Epic", "Legendary" },
+local DESIGN = { -- D = rolls, luck (design doc table; reward floors went with the rarities)
+	{ 5, 1.35 }, { 7, 1.70 }, { 9, 2.05 }, { 11, 2.40 }, { 13, 2.75 }, { 15, 3.10 }, { 17, 3.45 }, { 19, 3.80 }, { 21, 4.00 },
 }
 for d, row in DESIGN do
 	local r = Rewards.For(d)
-	if r.Rolls ~= row[1] or not near(r.Luck, row[2], 1e-9) or r.Floor ~= row[3] or r.Bonus ~= row[4] then
+	if r.Rolls ~= row[1] or not near(r.Luck, row[2], 1e-9) then
 		rewardsOk = false
-		print(`   D{d}: {r.Rolls} rolls, {r.Luck}x, {r.Floor}, {r.Bonus}`)
+		print(`   D{d}: {r.Rolls} rolls, {r.Luck}x`)
 	end
 end
-check(rewardsOk, "reward rolls, boss luck, floor and first-clear bonus match the design table for D 1-9")
+check(rewardsOk, "reward rolls and boss luck match the design table for D 1-9")
 check(near(Rewards.TotalLuck(4, 8), Config.Roll.LuckCap), "boss luck x player luck is capped at the luck cap")
 
 local dOk = true
@@ -285,7 +278,7 @@ for _, t in times do
 end
 print(
 	string.format(
-		"   14.6k starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
+		"   52k all-Base starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
 		rate * 100,
 		F.percentile(times, 0.1),
 		F.percentile(times, 0.5),
@@ -293,7 +286,7 @@ print(
 		kos
 	)
 )
-check(rate >= 0.95, `the 14.6k deck wins at least 95% of fights ({math.floor(rate * 100)}%)`)
+check(rate >= 0.95, `the all-Base starter deck wins at least 95% of fights ({math.floor(rate * 100)}%)`)
 check(#times > 0 and inWindow / #times >= 0.9, `90%+ of its wins take 60-90 s ({inWindow}/{#times})`)
 
 for _, fx in F.FIGHTS do

@@ -5,7 +5,12 @@
 -- Attack cards (front row) have ATK and HP: they deal the damage and take the enemies' hits.
 -- Support cards (back row) have PWR only: no HP, never hit, never KO'd. They cast heals, shields,
 -- buffs, debuffs and chip damage, and each casts its Basic once as the fight opens.
--- Stats stay within +-10% of their tier's base, so rarity always decides power.
+--
+-- There are no card rarities: the BORDER is the tier (Borders.luau). Every card's base stats sit near
+-- the same line (ATK ~500 +-10%, HP = 2 x ATK; Support PWR ~300 +-10%), and the border it wears
+-- multiplies them: Base 1x, Gold 4x, Rainbow 16x, Secret 64x. Cards differ by element, abilities and how
+-- often they're pulled (Weight: relative pull weight; the chase cards have the lowest).
+-- Boss cards (Boss = a boss id) join the roll pool once that boss is beaten on Normal (Cards.Pool).
 
 -- What an ability does in battle, built from the effect library (BattleEngine runs them).
 -- Pct is a share of the caster's ATK (Attack) or PWR (Support).
@@ -50,7 +55,7 @@ export type Card = {
 	Name: string,
 	Title: string,
 	Type: string, -- "Attack" | "Support"
-	Rarity: string,
+	Weight: number, -- relative pull weight inside the roll pool
 	Element: string, -- Elements.luau: Flame | Frost | Storm | Light | Void | Cosmic
 	Main: number, -- ATK for Attack, PWR for Support
 	HP: number?, -- Attack cards only
@@ -62,10 +67,10 @@ export type Card = {
 	-- Support cards: the Slot Link passive given to the Attack card in the matching front slot (Support
 	-- slot 1 links to Attack slot 1, ...). Stat is a trait stat (Traits.luau); BattleEngine applies it.
 	Link: { Name: string, Stat: string, Amount: number, Text: string }?,
+	Boss: string?, -- a boss card: joins the pool after this boss's first Normal clear
 }
 
 local Config = require(script.Parent.Config)
-local Rarity = require(script.Parent.Rarity)
 local Borders = require(script.Parent.Borders)
 local Awaken = require(script.Parent.Awaken)
 
@@ -80,10 +85,10 @@ local list: { Card } = {
 		Name = "Rook",
 		Title = "Wolf Fist Brawler",
 		Type = "Attack",
-		Rarity = "Common",
+		Weight = 10,
 		Element = "Flame",
-		Main = 110,
-		HP = 360,
+		Main = 550,
+		HP = 1100,
 		SPD = 95,
 		Glyph = "RK",
 		Accent = Color3.fromRGB(196, 120, 72),
@@ -94,10 +99,10 @@ local list: { Card } = {
 		Name = "Kaede",
 		Title = "Kunai Thrower",
 		Type = "Attack",
-		Rarity = "Common",
+		Weight = 10,
 		Element = "Void",
-		Main = 95,
-		HP = 420,
+		Main = 475,
+		HP = 950,
 		SPD = 115,
 		Glyph = "KD",
 		Accent = Color3.fromRGB(120, 140, 170),
@@ -108,10 +113,10 @@ local list: { Card } = {
 		Name = "Tomo",
 		Title = "Lantern Swordsman",
 		Type = "Attack",
-		Rarity = "Uncommon",
+		Weight = 8,
 		Element = "Flame",
-		Main = 165,
-		HP = 620,
+		Main = 516,
+		HP = 1032,
 		SPD = 100,
 		Glyph = "TM",
 		Accent = Color3.fromRGB(255, 160, 70),
@@ -127,10 +132,10 @@ local list: { Card } = {
 		Name = "Mirai",
 		Title = "Spark Archer",
 		Type = "Attack",
-		Rarity = "Uncommon",
+		Weight = 8,
 		Element = "Storm",
-		Main = 150,
-		HP = 680,
+		Main = 469,
+		HP = 938,
 		SPD = 110,
 		Glyph = "MR",
 		Accent = Color3.fromRGB(255, 220, 90),
@@ -146,10 +151,10 @@ local list: { Card } = {
 		Name = "Sora Ikazuchi",
 		Title = "Storm Blade",
 		Type = "Attack",
-		Rarity = "Rare",
+		Weight = 6,
 		Element = "Storm",
-		Main = 270,
-		HP = 1000,
+		Main = 519,
+		HP = 1038,
 		SPD = 120,
 		Glyph = "SI",
 		Accent = Color3.fromRGB(90, 180, 255),
@@ -165,10 +170,10 @@ local list: { Card } = {
 		Name = "Akane",
 		Title = "Lightning Copy Blade",
 		Type = "Attack",
-		Rarity = "Epic",
+		Weight = 4,
 		Element = "Flame",
-		Main = 430,
-		HP = 1700,
+		Main = 512,
+		HP = 1024,
 		SPD = 105,
 		Glyph = "AK",
 		Accent = Color3.fromRGB(230, 60, 70),
@@ -188,10 +193,10 @@ local list: { Card } = {
 		Name = "Kaito",
 		Title = "Ascended Golden Warrior",
 		Type = "Attack",
-		Rarity = "Legendary",
+		Weight = 2.5,
 		Element = "Frost",
-		Main = 720,
-		HP = 2700,
+		Main = 514,
+		HP = 1028,
 		SPD = 110,
 		Glyph = "KR",
 		Accent = Color3.fromRGB(70, 200, 160),
@@ -211,10 +216,10 @@ local list: { Card } = {
 		Name = "Noa",
 		Title = "Starfall Witch",
 		Type = "Attack",
-		Rarity = "Mythic",
+		Weight = 1.5,
 		Element = "Void",
-		Main = 1250,
-		HP = 4600,
+		Main = 521,
+		HP = 1042,
 		SPD = 100,
 		Glyph = "NO",
 		Accent = Color3.fromRGB(150, 110, 255),
@@ -237,10 +242,10 @@ local list: { Card } = {
 		Name = "Raijen",
 		Title = "Autonomous God State",
 		Type = "Attack",
-		Rarity = "Secret",
+		Weight = 1,
 		Element = "Cosmic",
-		Main = 2050,
-		HP = 8100,
+		Main = 512,
+		HP = 1024,
 		SPD = 115,
 		Glyph = "RJ",
 		Accent = Color3.fromRGB(40, 30, 70),
@@ -262,10 +267,10 @@ local list: { Card } = {
 		Name = "Hana",
 		Title = "Herb Healer",
 		Type = "Support",
-		Rarity = "Common",
+		Weight = 10,
 		Element = "Light",
 		Link = { Name = "Herbal Ward", Stat = "Guard", Amount = 0.06, Text = "The Attack card in front takes 6% less damage" },
-		Main = 60,
+		Main = 300,
 		SPD = 100,
 		Glyph = "HN",
 		Accent = Color3.fromRGB(120, 200, 110),
@@ -280,10 +285,10 @@ local list: { Card } = {
 		Name = "Goro",
 		Title = "Shield Monk",
 		Type = "Support",
-		Rarity = "Common",
+		Weight = 10,
 		Element = "Light",
 		Link = { Name = "Stone Shoulder", Stat = "Guard", Amount = 0.08, Text = "The Attack card in front takes 8% less damage" },
-		Main = 55,
+		Main = 275,
 		SPD = 90,
 		Glyph = "GR",
 		Accent = Color3.fromRGB(200, 170, 110),
@@ -298,10 +303,10 @@ local list: { Card } = {
 		Name = "Suzu",
 		Title = "Shrine Drummer",
 		Type = "Support",
-		Rarity = "Uncommon",
+		Weight = 8,
 		Element = "Flame",
 		Link = { Name = "Battle Rhythm", Stat = "ATK", Amount = 0.06, Text = "The Attack card in front +6% ATK" },
-		Main = 100,
+		Main = 312,
 		SPD = 105,
 		Glyph = "SZ",
 		Accent = Color3.fromRGB(240, 110, 150),
@@ -319,10 +324,10 @@ local list: { Card } = {
 		Name = "Ibuki",
 		Title = "Fog Weaver",
 		Type = "Support",
-		Rarity = "Uncommon",
+		Weight = 8,
 		Element = "Frost",
 		Link = { Name = "Mist Cloak", Stat = "SPD", Amount = 0.06, Text = "The Attack card in front +6% SPD" },
-		Main = 92,
+		Main = 288,
 		SPD = 100,
 		Glyph = "IB",
 		Accent = Color3.fromRGB(150, 170, 200),
@@ -341,10 +346,10 @@ local list: { Card } = {
 		Name = "Yume Aoi",
 		Title = "Moonlight Priestess",
 		Type = "Support",
-		Rarity = "Rare",
+		Weight = 6,
 		Element = "Frost",
 		Link = { Name = "Moon Sight", Stat = "Crit", Amount = 0.06, Text = "The Attack card in front +6% crit chance" },
-		Main = 160,
+		Main = 308,
 		SPD = 110,
 		Glyph = "YA",
 		Accent = Color3.fromRGB(150, 200, 255),
@@ -363,10 +368,10 @@ local list: { Card } = {
 		Name = "Tetsu",
 		Title = "Iron Wall Guardian",
 		Type = "Support",
-		Rarity = "Epic",
+		Weight = 4,
 		Element = "Void",
 		Link = { Name = "Iron Back", Stat = "Guard", Amount = 0.1, Text = "The Attack card in front takes 10% less damage" },
-		Main = 245,
+		Main = 292,
 		SPD = 85,
 		Glyph = "TS",
 		Accent = Color3.fromRGB(140, 150, 165),
@@ -388,10 +393,10 @@ local list: { Card } = {
 		Name = "Luna Mei",
 		Title = "Celestial Strategist",
 		Type = "Support",
-		Rarity = "Legendary",
+		Weight = 2.5,
 		Element = "Light",
 		Link = { Name = "Star Chart", Stat = "CritDamage", Amount = 0.2, Text = "The Attack card in front +20% crit damage" },
-		Main = 430,
+		Main = 307,
 		SPD = 115,
 		Glyph = "LM",
 		Accent = Color3.fromRGB(110, 140, 255),
@@ -415,10 +420,10 @@ local list: { Card } = {
 		Name = "Orin",
 		Title = "Time Weaver",
 		Type = "Support",
-		Rarity = "Mythic",
+		Weight = 1.5,
 		Element = "Void",
 		Link = { Name = "Borrowed Time", Stat = "StartEnergy", Amount = 0.25, Text = "The Attack card in front starts with 25 Ultimate energy" },
-		Main = 740,
+		Main = 308,
 		SPD = 100,
 		Glyph = "OR",
 		Accent = Color3.fromRGB(90, 220, 220),
@@ -441,10 +446,10 @@ local list: { Card } = {
 		Name = "Aurelia",
 		Title = "Nine-Tails Sovereign",
 		Type = "Support",
-		Rarity = "Secret",
+		Weight = 1,
 		Element = "Cosmic",
 		Link = { Name = "Dawn Mantle", Stat = "ATK", Amount = 0.12, Text = "The Attack card in front +12% ATK" },
-		Main = 1230,
+		Main = 308,
 		SPD = 110,
 		Glyph = "AU",
 		Accent = Color3.fromRGB(255, 214, 140),
@@ -473,10 +478,10 @@ local list: { Card } = {
 		Name = "Hayate",
 		Title = "Gale Dancer",
 		Type = "Attack",
-		Rarity = "Rare",
+		Weight = 6,
 		Element = "Storm",
-		Main = 255,
-		HP = 1040,
+		Main = 490,
+		HP = 980,
 		SPD = 128,
 		Glyph = "HY",
 		Accent = Color3.fromRGB(110, 220, 170),
@@ -493,10 +498,10 @@ local list: { Card } = {
 		Name = "Amane",
 		Title = "Rain Priestess",
 		Type = "Support",
-		Rarity = "Epic",
+		Weight = 4,
 		Element = "Storm",
 		Link = { Name = "Rain Step", Stat = "SPD", Amount = 0.08, Text = "The Attack card in front +8% SPD" },
-		Main = 250,
+		Main = 298,
 		SPD = 105,
 		Glyph = "AM",
 		Accent = Color3.fromRGB(100, 160, 240),
@@ -516,10 +521,10 @@ local list: { Card } = {
 		Name = "Tsubasa",
 		Title = "Sky Knight",
 		Type = "Attack",
-		Rarity = "Legendary",
+		Weight = 2.5,
 		Element = "Light",
-		Main = 700,
-		HP = 2800,
+		Main = 500,
+		HP = 1000,
 		SPD = 112,
 		Glyph = "TB",
 		Accent = Color3.fromRGB(250, 210, 90),
@@ -540,10 +545,10 @@ local list: { Card } = {
 		Name = "Amaya",
 		Title = "Storm Oracle",
 		Type = "Support",
-		Rarity = "Mythic",
+		Weight = 1.5,
 		Element = "Storm",
 		Link = { Name = "Static Charge", Stat = "ATK", Amount = 0.1, Text = "The Attack card in front +10% ATK" },
-		Main = 760,
+		Main = 317,
 		SPD = 105,
 		Glyph = "AY",
 		Accent = Color3.fromRGB(255, 220, 80),
@@ -564,27 +569,153 @@ local list: { Card } = {
 			}),
 		},
 	},
+	-- BOSS CARDS: unlocked into the pool by each boss's first Normal clear -----------------------
+	{
+		Id = "kurogane_card",
+		Name = "Kurogane",
+		Title = "Nine-Tailed Calamity",
+		Type = "Attack",
+		Weight = 1,
+		Boss = "kurogane",
+		Element = "Flame",
+		Main = 550,
+		HP = 1100,
+		SPD = 102,
+		Glyph = "KG",
+		Accent = Color3.fromRGB(230, 90, 40),
+		Abilities = {
+			ability("Basic", "Ember Claw", "110% ATK", { { Kind = "Damage", Pct = 1.1 } }),
+			ability("Skill", "Ninefold Flame", "Every 3 actions: 220% ATK and burns for 10% a turn", {
+				{ Kind = "Damage", Pct = 2.2 },
+				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
+			}, 3),
+			ability("Ultimate", "Calamity Tail Storm", "6 hits x 80% ATK on every enemy's line", {
+				{ Kind = "Damage", Pct = 0.8, Hits = 6, Target = "RandomEnemy" },
+			}),
+		},
+	},
+	{
+		Id = "rimeveil_card",
+		Name = "Rimeveil",
+		Title = "Galactic Tyrant",
+		Type = "Attack",
+		Weight = 1,
+		Boss = "rimeveil",
+		Element = "Frost",
+		Main = 540,
+		HP = 1080,
+		SPD = 98,
+		Glyph = "RV",
+		Accent = Color3.fromRGB(110, 190, 255),
+		Abilities = {
+			ability("Basic", "Rime Lance", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Absolute Zero", "Every 4 actions: 250% ATK, enemies -15% SPD for 2 turns", {
+				{ Kind = "Damage", Pct = 2.5 },
+				{ Kind = "Debuff", Stat = "SPD", Amount = 0.15, Turns = 2, Target = "Enemies" },
+			}, 4),
+			ability("Ultimate", "Tyrant's Winter", "350% ATK, ignores DEF", {
+				{ Kind = "Damage", Pct = 3.5, IgnoreDef = true },
+			}),
+		},
+	},
+	{
+		Id = "vex_card",
+		Name = "Vex",
+		Title = "Six Paths Sovereign",
+		Type = "Attack",
+		Weight = 0.8,
+		Boss = "vex",
+		Element = "Void",
+		Main = 555,
+		HP = 1110,
+		SPD = 104,
+		Glyph = "VX",
+		Accent = Color3.fromRGB(150, 70, 230),
+		Abilities = {
+			ability("Basic", "Null Touch", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Six Paths", "Every 3 actions: 180% ATK, enemy DEF -15% for 3 turns", {
+				{ Kind = "Damage", Pct = 1.8 },
+				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
+			}, 3),
+			ability("Ultimate", "Null Emperor", "4 hits x 120% ATK, enemies take +15% damage", {
+				{ Kind = "Damage", Pct = 1.2, Hits = 4 },
+				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.15, Turns = 3, Target = "Enemies" },
+			}),
+		},
+	},
+	{
+		Id = "tenrai_card",
+		Name = "Tenrai",
+		Title = "Multiverse Titan",
+		Type = "Attack",
+		Weight = 0.6,
+		Boss = "tenrai",
+		Element = "Storm",
+		Main = 560,
+		HP = 1120,
+		SPD = 110,
+		Glyph = "TR",
+		Accent = Color3.fromRGB(255, 220, 80),
+		Abilities = {
+			ability("Basic", "Static Fist", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Chain Lightning", "Every 3 actions: 4 hits x 60% ATK on random enemies", {
+				{ Kind = "Damage", Pct = 0.6, Hits = 4, Target = "RandomEnemy" },
+			}, 3),
+			ability("Ultimate", "Thunderclap", "300% ATK to every enemy", {
+				{ Kind = "Damage", Pct = 3, Target = "Enemies" },
+			}),
+		},
+	},
 }
 
 local Cards = {}
 
 Cards.List = list
 Cards.ById = {} :: { [string]: Card }
-Cards.ByRarity = {} :: { [string]: { Card } }
 
 for _, card in list do
 	assert(Cards.ById[card.Id] == nil, `Duplicate card id "{card.Id}"`)
 	Cards.ById[card.Id] = card
-	local pool = Cards.ByRarity[card.Rarity]
-	if pool == nil then
-		pool = {}
-		Cards.ByRarity[card.Rarity] = pool
-	end
-	table.insert(pool, card)
 end
 
 function Cards.Get(id: string): Card?
 	return Cards.ById[id]
+end
+
+-- The roll pool: every card, except boss cards whose boss hasn't been beaten on Normal yet
+-- (`cleared` = Progress.Cleared, keyed "boss:Normal").
+function Cards.Pool(cleared: { [string]: boolean }?): { Card }
+	local pool = {}
+	for _, card in list do
+		if card.Boss == nil or (cleared ~= nil and cleared[`{card.Boss}:Normal`] == true) then
+			table.insert(pool, card)
+		end
+	end
+	return pool
+end
+
+-- Each card's chance (0-1) to be the card of a pull, in `pool`. `element` (infused packs) weighs that
+-- element's cards x `elementWeight`.
+function Cards.PullChances(pool: { Card }, element: string?, elementWeight: number?): { [string]: number }
+	local total = 0
+	for _, card in pool do
+		total += card.Weight * (if element and card.Element == element then elementWeight or 1 else 1)
+	end
+	local chances = {}
+	for _, card in pool do
+		chances[card.Id] = card.Weight * (if element and card.Element == element then elementWeight or 1 else 1) / total
+	end
+	return chances
+end
+
+-- The boss card a boss unlocks, if any.
+function Cards.ForBoss(bossId: string): Card?
+	for _, card in list do
+		if card.Boss == bossId then
+			return card
+		end
+	end
+	return nil
 end
 
 -- The card's ability in a slot ("Basic", "Skill", "Ultimate", ...), or nil.
@@ -602,42 +733,24 @@ function Cards.StatWithStars(base: number, stars: number): number
 	return math.floor(base * (1 + 0.05 * math.clamp(stars, 0, 5)) + 0.5)
 end
 
--- Fusion ----------------------------------------------------------------------------------------
--- Each fusion moves a card one rarity up. A fused card has the power a card of its new rarity would
--- have (its stats scaled by the two tiers' multipliers), so rarity still decides power.
-
--- The card's rarity after `fusion` fusions.
-function Cards.FusedRarity(card: Card, fusion: number?): string
-	local index = Rarity.Index(card.Rarity) + (fusion or 0)
-	return Rarity.Order[math.clamp(index, 1, #Rarity.Order)]
-end
-
--- How many times this card can fuse in total (a Common can go all the way to Secret).
-function Cards.MaxFusion(card: Card): number
-	return #Rarity.Order - Rarity.Index(card.Rarity)
-end
-
--- A stat with stars, fusion, the card's best border (Borders.luau: a small bonus) and its Awakening
--- node (Awaken.luau: node 1 adds +10%) applied.
-function Cards.Stat(card: Card, base: number, stars: number, fusion: number?, border: string?, awaken: number?): number
-	local scale = Rarity.Get(Cards.FusedRarity(card, fusion)).Multiplier / Rarity.Get(card.Rarity).Multiplier
-	return Cards.StatWithStars(base * scale * Borders.Multiplier(border) * Awaken.StatMultiplier(awaken), stars)
+-- A stat with stars, the border's tier multiplier (1x / 4x / 16x / 64x) and the Awakening node (node 1:
+-- +10%). The border decides power: 5 stars and node 1 together are 1.375x, far under the next border's 4x.
+function Cards.Stat(card: Card, base: number, stars: number, border: string?, awaken: number?): number
+	return Cards.StatWithStars(base * Borders.Multiplier(border) * Awaken.StatMultiplier(awaken), stars)
 end
 
 -- Deck Power used for boss recommendations: Attack = ATK x 10 + HP, Support = PWR x 24.
-function Cards.Power(card: Card, stars: number, fusion: number?, border: string?, awaken: number?): number
-	local main = Cards.Stat(card, card.Main, stars, fusion, border, awaken)
+function Cards.Power(card: Card, stars: number, border: string?, awaken: number?): number
+	local main = Cards.Stat(card, card.Main, stars, border, awaken)
 	if card.Type == "Attack" then
-		return main * Config.Power.PerATK + Cards.Stat(card, card.HP or 0, stars, fusion, border, awaken)
+		return main * Config.Power.PerATK + Cards.Stat(card, card.HP or 0, stars, border, awaken)
 	end
 	return main * Config.Power.PerPWR
 end
 
--- Deck Cost (the Cost Challenge): by the card's base rarity, so fusing never raises it.
-Cards.CostByRarity = { Common = 1, Uncommon = 1, Rare = 2, Epic = 3, Legendary = 4, Mythic = 6, Secret = 8 }
-
-function Cards.Cost(card: Card): number
-	return Cards.CostByRarity[card.Rarity] or 1
+-- Deck Cost (the Cost Challenge): by the border the card wears (Borders.Cost: 2 / 4 / 6 / 8).
+function Cards.Cost(border: string?): number
+	return Borders.Get(border).Cost
 end
 
 function Cards.MainLabel(card: Card): string

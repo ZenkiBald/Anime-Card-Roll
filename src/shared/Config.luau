@@ -26,19 +26,19 @@ Config.Unlocks = {
 Config.MaxStars = 5
 Config.StarBonus = 0.05 -- +5% stats per star
 
--- Fusion (the Fusion Master in town): this many copies of one card fuse it one rarity up, again and
--- again up to Secret. Duplicates past max stars count toward it (they no longer pay Shards).
+-- Fusion (Hoshi in town): this many copies of one card at one border fuse into 1 copy at the next
+-- border (Base -> Gold -> Rainbow -> Secret).
 Config.FusionCopies = 100
 
 -- Auto Roll stops by itself when it pulls this rarity or better.
-Config.AutoStopOptions = { "Legendary", "Mythic", "Secret", "Never" }
-Config.DefaultAutoStop = "Legendary"
+Config.AutoStopOptions = { "Gold", "Rainbow", "Secret", "Never" } -- the border Auto Roll stops at
+Config.DefaultAutoStop = "Rainbow"
 
 -- Music / Effects volume steps in SETTINGS (saved per player).
 Config.VolumeSteps = { 0, 0.25, 0.5, 0.75, 1 }
 
 -- Pulls of this rarity or better are announced to the whole server.
-Config.AnnounceFrom = "Mythic"
+Config.AnnounceFrom = "Rainbow" -- borders this good are announced to the server
 
 Config.Deck = {
 	Slots = 4, -- per row: 4 Attack (front) + 4 Support (back)
@@ -51,7 +51,7 @@ Config.Deck = {
 -- Deck Power per card. Support cards have no HP (they can't be hit), so their power is PWR only.
 Config.Power = {
 	PerATK = 10, -- Attack: ATK x 10 + HP
-	PerPWR = 24, -- Support: PWR x 24 (keeps the first Common + Uncommon deck at about 14.6k)
+	PerPWR = 24, -- Support: PWR x 24 (the first all-Base deck is about 52k)
 }
 
 -- Boss reward rolls (design doc, "Boss reward rolls"). D is the fight's difficulty score, 1 to 9.
@@ -60,11 +60,6 @@ Config.Rewards = {
 	RollsPerD = 2,
 	LuckPerD = 0.35, -- boss luck = 1 + 0.35D, capped at 4x; the player's own luck multiplies on top (total cap 25x)
 	BossLuckCap = 4,
-	Floors = { -- any result below the floor is upgraded to it
-		{ MaxD = 2, Floor = "Uncommon" },
-		{ MaxD = 6, Floor = "Rare" },
-		{ MaxD = math.huge, Floor = "Epic" },
-	},
 	ShardsPerD = 15, -- every win also pays 15 x D Shards
 	PotionChance = 0.5, -- and has this chance to drop a potion, better ones at higher D
 	PotionDrops = {

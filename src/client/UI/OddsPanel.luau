@@ -1,11 +1,11 @@
 --!nonstrict
--- Live odds with the player's current luck (pure luck: there is no pity), the border odds and every
--- trait's odds. Uses the same Odds / Borders / Traits modules as the server, so the numbers always match.
+-- Live odds with the player's current luck (pure luck: there is no pity): the border odds (the tiers), each
+-- card's pull chance, the foil odds and every trait's odds. Uses the same Odds / Borders / Traits modules as the server, so the numbers always match.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
+local Rarity = require(Shared.Rarity) -- trait tier colours
 local Cards = require(Shared.Cards)
 local Odds = require(Shared.Odds)
 local Config = require(Shared.Config)
@@ -22,28 +22,73 @@ local State = require(script.Parent.Parent.State)
 local OddsPanel = {}
 
 local modal
-local rows = {} -- [rarity] = { Chance, OneIn }
 local borderRows = {} -- [border id] = { Chance, OneIn }
+local cardRows = {} -- [card id] = { Chance, OneIn }
 local borderTitle: TextLabel
 local luckLabel: TextLabel
 local function refresh()
 	local luck = State.Luck()
-	local chances = Odds.Chances(luck)
-	for name, row in rows do
-		row.Chance.Text = Odds.FormatPercent(chances[name])
-		row.OneIn.Text = Odds.FormatOneIn(chances[name])
+	local boost = Meta.Bonus(State.Meta.Stats, State.Meta.Gear, "Border")
+	local chances = Odds.Chances(luck, boost)
+	for id, row in borderRows do
+		row.Chance.Text = Odds.FormatPercent(chances[id])
+		row.OneIn.Text = Odds.FormatOneIn(chances[id])
 	end
 	luckLabel.Text = string.format("Luck %.2fx   ·   every roll is pure luck", luck)
-
-	local boost = Meta.Bonus(State.Meta.Stats, State.Meta.Gear, "Border")
-	local borderChances = Borders.Chances(boost)
-	for id, row in borderRows do
-		row.Chance.Text = Odds.FormatPercent(borderChances[id])
-		row.OneIn.Text = if id == "Normal" then "" else Borders.OddsText(id, boost)
-	end
 	borderTitle.Text = if boost > 0
-		then `BORDERS  <font color="#FF78DC">(+{math.floor(boost * 100 + 0.5)}% Border Chance)</font>`
-		else "BORDERS"
+		then `BORDERS (the tiers)  <font color="#FF78DC">(+{math.floor(boost * 100 + 0.5)}% Border Chance)</font>`
+		else "BORDERS (the tiers)"
+	-- Which card a pull gives (any border): its pull weight among the cards unlocked so far.
+	local pull = Cards.PullChances(Cards.Pool(State.Progress.Cleared))
+	for id, row in cardRows do
+		local chance = pull[id]
+		row.Chance.Text = if chance then Odds.FormatPercent(chance * 100) else "🔒"
+		row.OneIn.Text = if chance then Odds.FormatOneIn(chance * 100) else "beat its boss on Normal"
+	end
+end
+
+local function oddsRow(parent: Instance, name: string, order: number, height: number)
+	local row = Kit.new("Frame", {
+		Name = name,
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, height),
+		BackgroundColor3 = Theme.Color.PanelLight,
+		Parent = parent,
+	}, { Kit.corner(UDim.new(0, 10)) })
+	local chance = Kit.label({
+		Name = "Chance",
+		Text = "",
+		Font = Theme.Font.Heavy,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Position = UDim2.new(0.5, 0, 0.2, 0),
+		Size = UDim2.new(0.22, 0, 0.6, 0),
+		Parent = row,
+	}, 17)
+	local oneIn = Kit.label({
+		Name = "OneIn",
+		Text = "",
+		Font = Theme.Font.Medium,
+		TextColor3 = Theme.Color.Muted,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Position = UDim2.new(0.72, 0, 0.2, 0),
+		Size = UDim2.new(0.28, -6, 0.6, 0),
+		Parent = row,
+	}, 15)
+	return row, { Chance = chance, OneIn = oneIn }
+end
+
+local function heading(parent: Instance, text: string, order: number): TextLabel
+	return Kit.label({
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, 28),
+		Font = Theme.Font.Display,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = false,
+		TextSize = 22,
+		Text = text,
+		RichText = true,
+		Parent = parent,
+	}, 22)
 end
 
 function OddsPanel.Init(playerGui: Instance)
@@ -74,78 +119,11 @@ function OddsPanel.Init(playerGui: Instance)
 		Parent = scroll,
 	}, 17)
 
-	for i = #Rarity.Order, 1, -1 do
-		local name = Rarity.Order[i]
-		local tier = Rarity.Get(name)
-		local count = #(Cards.ByRarity[name] or {})
-		local row = Kit.new("Frame", {
-			Name = name,
-			LayoutOrder = #Rarity.Order - i + 1,
-			Size = UDim2.new(1, 0, 0, 40),
-			BackgroundColor3 = Theme.Color.PanelLight,
-			Parent = scroll,
-		}, { Kit.corner(UDim.new(0, 10)) })
-		Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 12, 0.5, 0),
-			Size = UDim2.fromOffset(14, 14),
-			BackgroundColor3 = tier.Color,
-			Parent = row,
-		}, { Kit.corner(UDim.new(1, 0)) })
-		Kit.label({
-			Text = `<font color="#{tier.Color:ToHex()}">{string.upper(name)}</font>  <font color="#A8A2C8">{count} card{if count == 1
-				then ""
-				else "s"}</font>`,
-			RichText = true,
-			Font = Theme.Font.Heavy,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Position = UDim2.new(0, 36, 0.2, 0),
-			Size = UDim2.new(0.45, -36, 0.6, 0),
-			Parent = row,
-		}, 18)
-		local chance = Kit.label({
-			Name = "Chance",
-			Text = "",
-			Font = Theme.Font.Heavy,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			Position = UDim2.new(0.45, 0, 0.2, 0),
-			Size = UDim2.new(0.25, 0, 0.6, 0),
-			Parent = row,
-		}, 18)
-		local oneIn = Kit.label({
-			Name = "OneIn",
-			Text = "",
-			Font = Theme.Font.Medium,
-			TextColor3 = Theme.Color.Muted,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			Position = UDim2.new(0.7, 0, 0.2, 0),
-			Size = UDim2.new(0.28, -6, 0.6, 0),
-			Parent = row,
-		}, 16)
-		rows[name] = { Chance = chance, OneIn = oneIn }
-	end
-
-	-- Borders: rolled on every pull, separately from rarity (Border Chance stat raises them).
-	borderTitle = Kit.label({
-		LayoutOrder = 15,
-		Size = UDim2.new(1, 0, 0, 28),
-		Font = Theme.Font.Display,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextScaled = false,
-		TextSize = 22,
-		Text = "BORDERS",
-		RichText = true,
-		Parent = scroll,
-	}, 22)
+	-- Borders: the tiers, rolled on every pull at the player's luck (Border Chance raises them too).
+	borderTitle = heading(scroll, "BORDERS (the tiers)", 1)
 	for i = #Borders.List, 1, -1 do
 		local border = Borders.List[i]
-		local row = Kit.new("Frame", {
-			Name = "Border" .. border.Id,
-			LayoutOrder = 16 + (#Borders.List - i),
-			Size = UDim2.new(1, 0, 0, 36),
-			BackgroundColor3 = Theme.Color.PanelLight,
-			Parent = scroll,
-		}, { Kit.corner(UDim.new(0, 10)) })
+		local row, labels = oddsRow(scroll, "Border" .. border.Id, 2 + (#Borders.List - i), 36)
 		Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, 10, 0.5, 0),
@@ -154,7 +132,7 @@ function OddsPanel.Init(playerGui: Instance)
 			Parent = row,
 		}, { Kit.corner(UDim.new(0.3, 0)), Kit.gradient(border.Gradient, 45) })
 		Kit.label({
-			Text = `{string.upper(border.Name)}  <font color="#A8A2C8">+{math.floor(border.Bonus * 100 + 0.5)}% stats</font>`,
+			Text = `{string.upper(border.Name)}  <font color="#A8A2C8">{border.Multiplier}x stats</font>`,
 			RichText = true,
 			Font = Theme.Font.Heavy,
 			TextColor3 = border.Color,
@@ -163,31 +141,28 @@ function OddsPanel.Init(playerGui: Instance)
 			Size = UDim2.new(0.5, -38, 0.6, 0),
 			Parent = row,
 		}, 17)
-		local chance = Kit.label({
-			Name = "Chance",
-			Text = "",
+		borderRows[border.Id] = labels
+	end
+
+	-- Cards: which card a pull gives, by pull weight (boss cards join after their boss's first Normal clear).
+	heading(scroll, "CARDS (per pull, any border)", 10)
+	for i, card in Cards.List do
+		local row, labels = oddsRow(scroll, "Card" .. card.Id, 10 + i, 30)
+		Kit.label({
+			Text = `{card.Name}  <font color="#A8A2C8">{card.Type}{if card.Boss then " · boss card" else ""}</font>`,
+			RichText = true,
 			Font = Theme.Font.Heavy,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			Position = UDim2.new(0.5, 0, 0.2, 0),
-			Size = UDim2.new(0.22, 0, 0.6, 0),
-			Parent = row,
-		}, 17)
-		local oneIn = Kit.label({
-			Name = "OneIn",
-			Text = "",
-			Font = Theme.Font.Medium,
-			TextColor3 = Theme.Color.Muted,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			Position = UDim2.new(0.72, 0, 0.2, 0),
-			Size = UDim2.new(0.28, -6, 0.6, 0),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.new(0, 10, 0.2, 0),
+			Size = UDim2.new(0.5, -10, 0.6, 0),
 			Parent = row,
 		}, 15)
-		borderRows[border.Id] = { Chance = chance, OneIn = oneIn }
+		cardRows[card.Id] = labels
 	end
 
 	-- Foils: rolled on every pull, on their own (Foils.luau); a card wears its best.
 	Kit.label({
-		LayoutOrder = 30,
+		LayoutOrder = 300,
 		Size = UDim2.new(1, 0, 0, 28),
 		Font = Theme.Font.Display,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -200,7 +175,7 @@ function OddsPanel.Init(playerGui: Instance)
 	for i, foil in Foils.List do
 		local row = Kit.new("Frame", {
 			Name = "Foil" .. foil.Id,
-			LayoutOrder = 31 + (#Foils.List - i),
+			LayoutOrder = 301 + (#Foils.List - i),
 			Size = UDim2.new(1, 0, 0, 36),
 			BackgroundColor3 = Theme.Color.PanelLight,
 			Parent = scroll,
@@ -228,7 +203,7 @@ function OddsPanel.Init(playerGui: Instance)
 
 	-- Traits: rolled at the Trait Master for Trait Shards (Traits.luau), not on pulls.
 	Kit.label({
-		LayoutOrder = 40,
+		LayoutOrder = 400,
 		Size = UDim2.new(1, 0, 0, 28),
 		Font = Theme.Font.Display,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -243,7 +218,7 @@ function OddsPanel.Init(playerGui: Instance)
 		local tier = Rarity.Get(trait.Tier)
 		local row = Kit.new("Frame", {
 			Name = "Trait" .. trait.Id,
-			LayoutOrder = 41 + (#Traits.List - i),
+			LayoutOrder = 401 + (#Traits.List - i),
 			Size = UDim2.new(1, 0, 0, 36),
 			BackgroundColor3 = Theme.Color.PanelLight,
 			Parent = scroll,
@@ -270,7 +245,7 @@ function OddsPanel.Init(playerGui: Instance)
 	end
 
 	Kit.label({
-		LayoutOrder = 60,
+		LayoutOrder = 600,
 		Size = UDim2.new(1, 0, 0, 72),
 		Font = Theme.Font.Medium,
 		TextColor3 = Theme.Color.Muted,
@@ -278,11 +253,12 @@ function OddsPanel.Init(playerGui: Instance)
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextScaled = false,
 		TextSize = 14,
-		Text = "Rolls are free and pure luck (no pity). Luck is tiered: rarer tiers gain more from it, Commons never vanish, up to "
-			.. `{Config.Roll.LuckCap}x. Each card within a rarity is equally likely (an infused Mega Pack weighs its element x1.5). Every pull also `
-			.. "rolls a border and a foil on their own; a card keeps the best of each. Every 25th roll is an Overcharge Surge (Rare+, or Epic+ "
-			.. "and 3 cards with doubled border / foil odds when hit perfectly). Traits are rolled at the Trait Master. Probabilities are "
-			.. "rounded, so the displayed values may not add up to exactly 100%.",
+		Text = "Rolls are free and pure luck (no pity). Every pull picks a card by its pull weight, then rolls its border (the tier: "
+			.. `Base 1x / Gold 4x / Rainbow 16x / Secret 64x stats). Luck raises the rarer borders most, up to {Config.Roll.LuckCap}x; Base `
+			.. "always keeps at least half. An infused Mega Pack weighs its element x1.5. Every pull also rolls a foil on its own; a card "
+			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (better border odds, 3 cards when hit perfectly). 100 copies "
+			.. "at one border fuse into 1 at the next (Hoshi). Traits are rolled at the Trait Master. Probabilities are rounded, so the "
+			.. "displayed values may not add up to exactly 100%.",
 		Parent = scroll,
 	}, 14)
 

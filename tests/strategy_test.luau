@@ -2,7 +2,6 @@
 -- server raids (Raid.luau).
 local Config = MODULES.Config
 local Cards = MODULES.Cards
-local Rarity = MODULES.Rarity
 local Bosses = MODULES.Bosses
 local Elements = MODULES.Elements
 local Tower = MODULES.Tower
@@ -15,8 +14,8 @@ local F = FIXTURES
 local valid = true
 for _, card in Cards.List do
 	valid = valid and Elements.Get(card.Element) ~= nil
-	-- Cosmic is the Secret cards' element only.
-	valid = valid and ((card.Element == "Cosmic") == (card.Rarity == "Secret"))
+	-- Cosmic is the chase cards' element only (the lowest Weight, 1).
+	valid = valid and (card.Element ~= "Cosmic" or (card.Weight <= 1 and card.Boss == nil))
 end
 for _, boss in Bosses.List do
 	valid = valid and Elements.Get(boss.Element) ~= nil and boss.Element ~= "Cosmic"
@@ -24,7 +23,7 @@ end
 for _, g in Bosses.GuardList do
 	valid = valid and Elements.Get(g.Element) ~= nil and g.Element ~= "Cosmic"
 end
-check(valid, "every card, boss and guard has an element (Cosmic only on Secret cards)")
+check(valid, "every card, boss and guard has an element (Cosmic only on the chase cards)")
 
 local counters = true
 for _, boss in Bosses.List do
@@ -45,13 +44,14 @@ check(Elements.Multiplier("Light", "Void") == Elements.Strong and Elements.Multi
 check(Elements.Multiplier("Cosmic", "Void") == Elements.Strong and Elements.Multiplier("Storm", "Cosmic") == 1, "Cosmic beats every element and is weak to none")
 check(Elements.Multiplier("Flame", "Flame") == 1 and Elements.Multiplier("Light", "Storm") == 1, "everything else is neutral")
 
--- Rarity still wins: a card one tier up beats one below even when its matchup is against it.
-local rarityWins = true
-for i = 2, #Rarity.Order do
-	local lower, upper = Rarity.Get(Rarity.Order[i - 1]).Multiplier, Rarity.Get(Rarity.Order[i]).Multiplier
-	rarityWins = rarityWins and upper * Elements.Weak > lower * Elements.Strong
+-- The border still wins: a card one border up beats one below even when its matchup is against it.
+local borderWins = true
+local Borders = MODULES.Borders
+for i = 2, #Borders.Order do
+	local lower, upper = Borders.Multiplier(Borders.Order[i - 1]), Borders.Multiplier(Borders.Order[i])
+	borderWins = borderWins and upper * Elements.Weak > lower * Elements.Strong
 end
-check(rarityWins, "rarity still wins: tier x Weak (0.85) beats the tier below x Strong (1.3)")
+check(borderWins, "the border still wins: border x Weak (0.85) beats the border below x Strong (1.3)")
 
 local syn = Elements.ActiveSynergies({ "Flame", "Flame", "Frost", "Cosmic", "Cosmic" })
 check(#syn == 1 and syn[1].Synergy.Element == "Flame" and syn[1].Tier.Count == 2, "2 cards of an element switch its synergy on; Cosmic counts for none")

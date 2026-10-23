@@ -77,7 +77,7 @@ local function cardRow(order: number, cards, cellWidth: number)
 	})
 	for i, info in cards do
 		if info then
-			local tile = CardTile.new(info.Id, { Owned = true, Stars = info.Stars, Fusion = info.Fusion, Border = info.Border })
+			local tile = CardTile.new(info.Id, { Owned = true, Stars = info.Stars, Border = info.Border })
 			tile.LayoutOrder = i
 			tile.Size = UDim2.new(0, cellWidth, 1, 0)
 			tile.Parent = row
@@ -102,7 +102,6 @@ local function draw(data, isMe: boolean)
 		local view = CardView.new(data.Favorite.Id, {
 			Owned = true,
 			Stars = data.Favorite.Stars,
-			Fusion = data.Favorite.Fusion,
 			Border = data.Favorite.Border,
 			Trait = data.Favorite.Trait,
 			Animate = true,

@@ -5,7 +5,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
@@ -88,61 +87,35 @@ function DevPanel.Init(playerGui: Instance)
 		end)
 	end
 
-	-- Reveal previews (client only, nothing is saved)
+	-- Reveal previews (client only, nothing is saved): a random pool card wearing a NEW border.
 	local previewRow = section(list, 3, "PREVIEW A REVEAL (not saved)")
-	previewRow.Size = UDim2.new(1, 0, 0, 80)
-	for i, name in Rarity.Order do
-		local tier = Rarity.Get(name)
-		local top = if name == "Secret" then Color3.fromRGB(60, 200, 255) else tier.Color
-		local button = Kit.button(string.upper(name), top, tier.Dark, {
+	for i, id in Borders.Order do
+		local border = Borders.Get(id)
+		local button = Kit.button(string.upper(border.Name), border.Color, border.Dark, {
 			LayoutOrder = i,
 			Size = UDim2.fromOffset(110, 36),
 			Parent = previewRow,
 		})
 		button.Activated:Connect(function()
-			local pool = Cards.ByRarity[name]
+			local pool = Cards.Pool(State.Progress.Cleared)
 			local card = pool[math.random(1, #pool)]
 			modal:Close()
 			Reveal.Full({
 				CardId = card.Id,
-				Rarity = name,
-				Outcome = "New",
-				Stars = 0,
-				Copies = 1,
-			})
-		end)
-	end
-
-	-- Border reveal previews: a random Legendary-or-lower card wearing a NEW border.
-	local borderRow = section(list, 9, "PREVIEW A BORDER (not saved)")
-	for i, id in { "Gold", "Rainbow", "Secret" } do
-		local border = Borders.Get(id)
-		local button = Kit.button(string.upper(id), border.Color, border.Color:Lerp(Color3.new(0, 0, 0), 0.5), {
-			LayoutOrder = i,
-			Size = UDim2.fromOffset(120, 36),
-			Parent = borderRow,
-		})
-		button.Activated:Connect(function()
-			local rarity = Rarity.Order[math.random(1, 5)]
-			local pool = Cards.ByRarity[rarity]
-			local card = pool[math.random(1, #pool)]
-			modal:Close()
-			Reveal.Full({
-				CardId = card.Id,
-				Rarity = rarity,
 				Outcome = "New",
 				Stars = 0,
 				Copies = 1,
 				Border = id,
-				NewBorder = true,
-				Borders = { [id] = true },
+				NewBorder = id ~= "Normal",
+				Borders = { Normal = true, [id] = true },
+				BorderCopies = { [id] = 1 },
 			})
 		end)
 	end
 	local giveBorders = Kit.button("GIVE BORDERS", Color3.fromRGB(255, 110, 200), Color3.fromRGB(140, 40, 110), {
-		LayoutOrder = 4,
+		LayoutOrder = 10,
 		Size = UDim2.fromOffset(160, 36),
-		Parent = borderRow,
+		Parent = previewRow,
 	})
 	giveBorders.Activated:Connect(function()
 		devCall("GiveBorders") -- Gold on every owned card, Rainbow on every 2nd, Secret on every 4th

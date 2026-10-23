@@ -5,7 +5,6 @@ local Bosses = MODULES.Bosses
 local Deck = MODULES.Deck
 local Items = MODULES.Items
 local Meta = MODULES.Meta
-local Rarity = MODULES.Rarity
 local Tower = MODULES.Tower
 local Engine = MODULES.BattleEngine
 local F = FIXTURES

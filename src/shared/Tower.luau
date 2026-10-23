@@ -97,21 +97,21 @@ Tower.GuardianPower = 1.15 -- its recommended power over the floor's
 -- neither ever drops as power grows), joined in
 -- log space between points and carried on past the last one by the Beyond exponents.
 Tower.Curve = {
-	Power = 9000,
+	Power = 33000,
 	Growth = 1.068, -- about 2x every 10 floors; floor 48 is about Tenrai Nightmare
 	Points = {
-		{ Power = 9000, HP = 14500, ATK = 85 },
-		{ Power = 12000, HP = 19500, ATK = 105 },
-		{ Power = 18000, HP = 24500, ATK = 115 },
-		{ Power = 24000, HP = 48000, ATK = 240 },
-		{ Power = 28500, HP = 57500, ATK = 320 },
-		{ Power = 43000, HP = 181500, ATK = 440 },
-		{ Power = 55000, HP = 235000, ATK = 480 },
-		{ Power = 74500, HP = 605000, ATK = 700 },
-		{ Power = 99500, HP = 1411000, ATK = 1000 },
-		{ Power = 137000, HP = 1881500, ATK = 2600 },
-		{ Power = 171000, HP = 2419000, ATK = 3300 },
-		{ Power = 203000, HP = 2688000, ATK = 4000 },
+		{ Power = 33000, HP = 57000, ATK = 164 },
+		{ Power = 44000, HP = 76500, ATK = 203 },
+		{ Power = 64000, HP = 94500, ATK = 222 },
+		{ Power = 93500, HP = 181500, ATK = 426 },
+		{ Power = 111000, HP = 269000, ATK = 817 },
+		{ Power = 173000, HP = 680000, ATK = 962 },
+		{ Power = 214500, HP = 860000, ATK = 1052 },
+		{ Power = 270000, HP = 2100000, ATK = 1446 },
+		{ Power = 362000, HP = 5661000, ATK = 2102 },
+		{ Power = 545500, HP = 8118500, ATK = 5881 },
+		{ Power = 680500, HP = 10435500, ATK = 7465 },
+		{ Power = 751500, HP = 11881000, ATK = 9672 },
 	},
 	Beyond = { HP = 1.3, ATK = 1.3 }, -- past the last point: HP x (power / last) ^ 1.3
 }

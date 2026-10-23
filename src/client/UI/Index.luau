@@ -1,12 +1,12 @@
 --!nonstrict
--- The Index: every card by rarity, found or not, with each rarity's odds, how many copies you
--- have, and a completion reward (permanent luck + loot) for finding every card of a rarity.
--- Tap a card for its details; ODDS opens the live odds panel.
+-- The Index: every card by its best border (Base / Gold / Rainbow / Secret; not found yet under Base), each
+-- border's odds, how many cards were found at it, and a completion reward (permanent luck + loot) for finding
+-- every card at a border. Tap a card for its details; ODDS opens the live odds panel.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
+local Rarity = require(Shared.Rarity) -- trait tier colours only
 local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
@@ -57,10 +57,11 @@ local function showDetail(card)
 	local entry = State.Cards[card.Id]
 	local owned = entry ~= nil
 	local stars = if entry then entry.Stars else 0
-	local fusion = if entry then entry.Fusion or 0 else 0
-	local tier = Rarity.Get(card.Rarity)
+	local best = if entry then Borders.Best(entry.Borders) else "Normal"
+	local tier = Borders.Get(best)
+	local node = if entry then Awaken.Level(entry) else 0
 
-	-- Kit-style detail sheet: purple gradient, edged in the card's rarity colour.
+	-- Kit-style detail sheet: dark gradient, edged in the card's border colour.
 	local panel = Kit.new("TextButton", {
 		Name = "Detail",
 		Size = UDim2.fromScale(1, 1),
@@ -83,11 +84,9 @@ local function showDetail(card)
 		ZIndex = 21,
 		Parent = panel,
 	}, { Kit.padding(10) })
-	local best = if entry then Borders.Best(entry.Borders) else "Normal"
 	local view = CardView.new(card.Id, {
 		Owned = owned,
 		Stars = stars,
-		Fusion = fusion,
 		Animate = owned,
 		Border = best,
 		Trait = entry and entry.Trait,
@@ -96,7 +95,7 @@ local function showDetail(card)
 	view.AnchorPoint = Vector2.new(0.5, 0.5)
 	view.Position = UDim2.fromScale(0.5, 0.5)
 	view.Parent = left
-	if owned and Rarity.AtLeast(card.Rarity, "Legendary") then
+	if owned and Borders.Index(best) >= 3 then
 		Effects.Shimmer(view, 2)
 	end
 
@@ -137,14 +136,20 @@ local function showDetail(card)
 
 	line(if owned then card.Name else "???", Theme.Font.Display, Theme.Color.Text, 30, 28)
 	line(
-		`<font color="#{tier.Color:ToHex()}">{string.upper(card.Rarity)}</font>  ·  {card.Type}  ·  {if owned then card.Title else "Not found yet"}`,
+		`<font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)} BORDER · {tier.Multiplier}x</font>  ·  {card.Type}  ·  {if owned then card.Title else "Not found yet"}`,
 		Theme.Font.Heavy,
 		Theme.Color.Muted,
 		20,
 		17
 	)
-	local chance = Odds.Chances(State.Luck())[card.Rarity] / #Cards.ByRarity[card.Rarity]
-	line(`Chance per roll right now: <b>{Odds.FormatPercent(chance)}</b> ({Odds.FormatOneIn(chance)})`, Theme.Font.Bold, Theme.Color.Support, 18, 15)
+	-- The card's pull chance (any border); boss cards only join the pool after their boss's first Normal clear.
+	local pullChance = Cards.PullChances(Cards.Pool(State.Progress.Cleared))[card.Id]
+	if pullChance then
+		local chance = pullChance * 100
+		line(`Chance per roll: <b>{Odds.FormatPercent(chance)}</b> ({Odds.FormatOneIn(chance)}), any border`, Theme.Font.Bold, Theme.Color.Support, 18, 15)
+	elseif card.Boss then
+		line(`🔒 Beat {string.upper(card.Boss)} on Normal to add this card to the roll pool`, Theme.Font.Bold, Theme.Color.Support, 18, 15)
+	end
 	if owned then
 		line(
 			`★ {stars}/{Config.MaxStars} stars (+{math.floor(stars * Config.StarBonus * 100 + 0.5)}% stats)  ·  {entry.Copies} pulled`,
@@ -153,22 +158,39 @@ local function showDetail(card)
 			20,
 			16
 		)
-		local hpText = if card.HP then `   ❤️ HP <b>{Kit.commas(Cards.Stat(card, card.HP, stars, fusion, best, Awaken.Level(entry)))}</b>` else ""
+		local hpText = if card.HP then `   ❤️ HP <b>{Kit.commas(Cards.Stat(card, card.HP, stars, best, node))}</b>` else ""
 		line(
-			`{if card.Type == "Attack" then "⚔️ ATK" else "✨ PWR"} <b>{Kit.commas(Cards.Stat(card, card.Main, stars, fusion, best, Awaken.Level(entry)))}</b>{hpText}   ⚡ SPD <b>{card.SPD}</b>   Power <b>{Kit.commas(
-				Cards.Power(card, stars, fusion, best, Awaken.Level(entry))
+			`{if card.Type == "Attack" then "⚔️ ATK" else "✨ PWR"} <b>{Kit.commas(Cards.Stat(card, card.Main, stars, best, node))}</b>{hpText}   ⚡ SPD <b>{card.SPD}</b>   Power <b>{Kit.commas(
+				Cards.Power(card, stars, best, node)
 			)}</b>`,
 			Theme.Font.Medium,
 			Theme.Color.Text,
 			20,
 			16
 		)
-		local fusionText = if fusion >= Cards.MaxFusion(card)
-			then `🔥 Fused to {string.upper(Cards.FusedRarity(card, fusion))}: max rarity`
-			else `🔥 Fusion: <b>{Kit.commas(entry.Copies)}/{Config.FusionCopies}</b> copies to fuse into {string.upper(
-				Cards.FusedRarity(card, fusion + 1)
-			)} (Hoshi the Fusion Master, in town)`
-		line(fusionText, Theme.Font.Bold, Color3.fromRGB(255, 160, 90), 20, 16)
+		-- Border fusion: 100 copies at one border fuse into 1 copy at the next (Hoshi, in town).
+		local copies = entry.BorderCopies or {}
+		local copyParts = {}
+		for _, id in Borders.Order do
+			table.insert(copyParts, `<font color="#{Borders.Get(id).Color:ToHex()}">{Borders.Get(id).Name} {Kit.commas(copies[id] or 0)}</font>`)
+		end
+		line(`Copies  {table.concat(copyParts, "  ·  ")}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)
+		local fuseFrom = Borders.BestOwned(copies)
+		for _, id in Borders.Order do
+			if Borders.Next(id) and (copies[id] or 0) >= Config.FusionCopies then
+				fuseFrom = id
+			end
+		end
+		local fuseTo = Borders.Next(fuseFrom)
+		line(
+			if fuseTo
+				then `🔥 Border fusion: <b>{Kit.commas(copies[fuseFrom] or 0)}/{Config.FusionCopies}</b> {Borders.Get(fuseFrom).Name} copies fuse into 1 {string.upper(Borders.Get(fuseTo).Name)} (Hoshi the Fusion Master, in town)`
+				else `🔥 Secret Border: the top of the ladder`,
+			Theme.Font.Bold,
+			Color3.fromRGB(255, 160, 90),
+			20,
+			16
+		)
 		-- Element: what it beats and what beats it; and its bonds (a Dual Ultimate with a named partner).
 		local element = Elements.Get(card.Element)
 		if element then
@@ -182,11 +204,11 @@ local function showDetail(card)
 			local weakText = if element.Id == "Cosmic" or #weakTo == 0 then "nothing" else ElementUi.RichList(weakTo)
 			line(`Element  <b>{ElementUi.Rich(element.Id)}</b>   strong vs {beats}   weak vs {weakText}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)
 		end
-		for _, entry in Elements.BondsOf(card.Id) do
-			local partner = Cards.Get(entry.Partner)
-			local have = State.Cards[entry.Partner] ~= nil
+		for _, bond in Elements.BondsOf(card.Id) do
+			local partner = Cards.Get(bond.Partner)
+			local have = State.Cards[bond.Partner] ~= nil
 			line(
-				`🤝 Bond <b>{string.upper(entry.Bond.Name)}</b> with <b>{if partner then partner.Name else entry.Partner}</b>{if have then "" else " (not found yet)"}: both in a deck fire a Dual Ultimate ({math.floor(entry.Bond.Pct * 100)}% of both cards' power) once a fight`,
+				`🤝 Bond <b>{string.upper(bond.Bond.Name)}</b> with <b>{if partner then partner.Name else bond.Partner}</b>{if have then "" else " (not found yet)"}: both in a deck fire a Dual Ultimate ({math.floor(bond.Bond.Pct * 100)}% of both cards' power) once a fight`,
 				Theme.Font.Bold,
 				Color3.fromRGB(255, 190, 120),
 				18,
@@ -205,7 +227,7 @@ local function showDetail(card)
 		end
 		line(`Borders  {table.concat(parts, "   ")}`, Theme.Font.Heavy, Theme.Color.Text, 20, 17)
 		if best ~= "Normal" then
-			line(`Wearing {best}: +{math.floor(Borders.Get(best).Bonus * 100 + 0.5)}% stats`, Theme.Font.Bold, Borders.Get(best).Color, 18, 15)
+			line(`Wearing {tier.Name}: {tier.Multiplier}x base stats`, Theme.Font.Bold, tier.Color, 18, 15)
 		end
 		-- Foils found, Awakening nodes, and the trait slots (rolled at the Trait Master).
 		local foundFoils = entry.Foils or {}
@@ -222,7 +244,6 @@ local function showDetail(card)
 		if bestFoil ~= "standard" then
 			line(`Wearing {Foils.Get(bestFoil).Name}: {Foils.Get(bestFoil).Text} (in battle)`, Theme.Font.Bold, Foils.Get(bestFoil).Color, 18, 15)
 		end
-		local node = Awaken.Level(entry)
 		local nodeParts = {}
 		for _, n in Awaken.Nodes do
 			local open = node >= n.Node
@@ -283,19 +304,30 @@ local function showDetail(card)
 	end)
 end
 
+-- One border tier: its odds, how many cards have been found at it (boss cards aside), its completion
+-- reward, and the cards whose best border it is (Base also lists the cards not found yet).
 local function section(rarity: string, order: number)
-	local tier = Rarity.Get(rarity)
-	local pool = Cards.ByRarity[rarity] or {}
+	local tier = Borders.Get(rarity)
+	local pool = {}
 	local found = 0
-	for _, card in pool do
-		if State.Cards[card.Id] then
-			found += 1
+	for _, card in Cards.List do
+		if card.Boss == nil then
+			table.insert(pool, card)
+			local own = State.Cards[card.Id]
+			if own and (rarity == "Normal" or (own.Borders and own.Borders[rarity])) then
+				found += 1
+			end
 		end
 	end
 	-- Cards in this section after the tab / filter / search.
 	local shown = {}
-	for _, card in pool do
-		local owned = State.Cards[card.Id] ~= nil
+	for _, card in Cards.List do
+		local own = State.Cards[card.Id]
+		local owned = own ~= nil
+		local here = if owned then Borders.Best(own.Borders) == rarity else (rarity == "Normal" and card.Boss == nil)
+		if not here then
+			continue
+		end
 		local matchesTab = tab == "All" or card.Type == tab
 		local matchesFilter = filterBy == "All" or (filterBy == "Found" and owned) or (filterBy == "Missing" and not owned)
 		local matchesSearch = search == "" or (owned and string.find(string.lower(card.Name), search, 1, true) ~= nil)
@@ -316,11 +348,11 @@ local function section(rarity: string, order: number)
 		LayoutOrder = order,
 		Size = UDim2.new(1, -8, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = tier.Dark:Lerp(Color3.new(0, 0, 0), 0.3),
+		BackgroundColor3 = tier.Dark:Lerp(Color3.new(0, 0, 0), 0.6),
 		BackgroundTransparency = 0.2,
 		Parent = list,
 	}, {
-		Kit.corner(UDim.new(0, 18)),
+		Kit.corner(),
 		Kit.stroke(tier.Color, if complete then 3 else 2, if complete then 0 else 0.5),
 		Kit.padding(10),
 		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10) }),
@@ -334,29 +366,27 @@ local function section(rarity: string, order: number)
 		Parent = box,
 	}, {
 		Kit.corner(UDim.new(0, 14)),
-		Kit.gradient(ColorSequence.new(tier.Color:Lerp(Color3.new(0, 0, 0), 0.15), tier.Dark), 0),
-		Kit.stroke(Color3.new(1, 1, 1), 2, 0.4),
+		Kit.gradient(ColorSequence.new(tier.Dark:Lerp(Color3.new(0, 0, 0), 0.2), Color3.fromRGB(12, 15, 23)), 0),
+		Kit.stroke(tier.Color, 1.2, 0.2),
 	})
-	if rarity == "Secret" then
-		Kit.gradient(Rarity.Gradient("Secret"), 0).Parent = header
-	end
+	-- A swatch of the border's own frame colours.
 	local badge = Kit.new("Frame", {
 		Position = UDim2.new(0, 8, 0.5, 0),
 		AnchorPoint = Vector2.new(0, 0.5),
 		Size = UDim2.fromOffset(38, 38),
-		BackgroundColor3 = tier.Color,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		Parent = header,
-	}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Color3.new(1, 1, 1), 2, 0) })
+	}, { Kit.corner(UDim.new(0, 4)), Kit.gradient(tier.Gradient, 45), Kit.stroke(Color3.new(1, 1, 1), 1.2, 0.3) })
 	Controls.Outlined(Kit.label({
-		Text = CardTile.Letters[rarity],
+		Text = `{tier.Multiplier}x`,
 		Font = Theme.Font.Display,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromScale(0.75, 0.75),
+		Size = UDim2.fromScale(0.75, 0.6),
 		Parent = badge,
-	}, 24), 1.5)
+	}, 18), 1.5)
 	Controls.Outlined(Kit.label({
-		Text = string.upper(rarity),
+		Text = `{string.upper(tier.Name)} BORDER`,
 		Font = Theme.Font.Display,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromOffset(56, 4),
@@ -364,7 +394,7 @@ local function section(rarity: string, order: number)
 		Parent = header,
 	}, 26), 2)
 	Controls.Outlined(Kit.label({
-		Text = `{Odds.FormatPercent(chance)}  ·  {Odds.FormatOneIn(chance)}  ·  {found}/{#pool} found`,
+		Text = `{Odds.FormatPercent(chance)}  ·  {Odds.FormatOneIn(chance)}  ·  {found}/{#pool} found{if rarity == "Normal" then "" else ` at {tier.Name}`}`,
 		Font = Theme.Font.Heavy,
 		TextColor3 = Color3.fromRGB(223, 235, 255),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -406,7 +436,7 @@ local function section(rarity: string, order: number)
 		end)
 	else
 		Controls.Outlined(Kit.label({
-			Text = `Find all {#pool}:  {rewardText}`,
+			Text = `{if rarity == "Normal" then `Find all {#pool}` else `All {#pool} at {tier.Name}`}:  {rewardText}`,
 			Font = Theme.Font.Heavy,
 			TextColor3 = Color3.fromRGB(223, 235, 255),
 			TextXAlignment = Enum.TextXAlignment.Right,
@@ -442,7 +472,6 @@ local function section(rarity: string, order: number)
 		local tile = CardTile.new(card.Id, {
 			Owned = own ~= nil,
 			Stars = if own then own.Stars else 0,
-			Fusion = if own then own.Fusion else nil,
 			Border = if own then Borders.Best(own.Borders) else nil,
 			Copies = if own then own.Copies else nil,
 		})
@@ -480,8 +509,8 @@ function Index.Refresh()
 	for name, set in tabSetters do
 		set(name == tab)
 	end
-	for i, rarity in Rarity.Order do
-		section(rarity, i)
+	for i, border in Borders.Order do
+		section(border, i)
 	end
 end
 

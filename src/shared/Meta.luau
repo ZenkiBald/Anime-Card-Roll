@@ -124,15 +124,13 @@ for _, upgrade in Meta.Upgrades do
 	Meta.UpgradeById[upgrade.Id] = upgrade
 end
 
--- Finding every card of a rarity pays permanent luck plus a bundle, once.
+-- Finding every card (boss cards aside) at a border pays permanent luck plus a bundle, once. Keyed by
+-- border id ("Normal" = Base: every card found at all).
 Meta.IndexRewards = {
-	Common = { Luck = 0.02, Reward = { Shards = 25, Potions = { luck = 1 } } },
-	Uncommon = { Luck = 0.03, Reward = { Shards = 50, Potions = { luck = 2 } } },
-	Rare = { Luck = 0.05, Reward = { Shards = 100, Potions = { speed = 2, luck = 2 } } },
-	Epic = { Luck = 0.05, Reward = { Shards = 200, Potions = { superluck = 1 } } },
-	Legendary = { Luck = 0.1, Reward = { Shards = 400, Potions = { superluck = 2 } } },
-	Mythic = { Luck = 0.1, Reward = { Shards = 800, Potions = { mythic = 1 } } },
-	Secret = { Luck = 0.15, Reward = { Shards = 2000, Potions = { mythic = 3 } } },
+	Normal = { Luck = 0.05, Reward = { Shards = 200, Potions = { luck = 2 } } },
+	Gold = { Luck = 0.1, Reward = { Shards = 1000, Potions = { superluck = 2 } } },
+	Rainbow = { Luck = 0.2, Reward = { Shards = 5000, Potions = { mythic = 2 } } },
+	Secret = { Luck = 0.4, Reward = { Shards = 25000, Potions = { mythic = 5 } } },
 } :: { [string]: IndexReward }
 
 -- Daily login streak: claim once per day; missing a day restarts at day 1; day 7 loops back.

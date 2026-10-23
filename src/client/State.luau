@@ -53,6 +53,7 @@ local State = {
 		TraitShards = 0,
 		Gear = { Artifacts = {}, Worn = {} } :: any,
 		Favorite = nil :: any,
+		Avatar = nil :: any,
 		Volume = nil :: any,
 	},
 	MetaAt = os.clock(), -- when Meta arrived; timers count down from here
@@ -201,8 +202,9 @@ function State.ApplyRoll(result)
 		State.Cards[result.CardId] = {
 			Copies = result.Copies,
 			Stars = result.Stars,
-			Fusion = result.Fusion,
+			Fusion = old.Fusion,
 			Borders = result.Borders,
+			BorderCopies = result.BorderCopies,
 			Foils = result.Foils,
 			Awaken = result.Awaken,
 			Trait = result.CardTrait,

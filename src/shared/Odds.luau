@@ -1,67 +1,24 @@
 --!strict
--- Roll odds. Shared by the server (to roll) and the client (to show the Odds panel),
--- so what players see is exactly what the server uses.
---
--- Tiered luck: each tier's base chance is weighted by luck ^ its LuckExponent (Rarity.luau: Common and
--- Uncommon 0, Rare 0.6, Epic 0.75, Legendary 0.9, Mythic and Secret 1), then everything is scaled back to
--- 100%. Luck runs up to Config.Roll.LuckCap (25x) and Commons never vanish (about 28% at 25x); the rarest
--- tiers gain the most. A rarity floor (optional) upgrades any result below it to the floor tier. There
--- is no pity: every roll is pure luck.
+-- Roll odds. Shared by the server (to roll) and the client (to show the Odds panel), so what players
+-- see is exactly what the server uses. A pull is a card (Cards.PullChances: each card's Weight in the
+-- pool) and a border (Borders.Chances: the tier). Luck (capped at Config.Roll.LuckCap, 25x) raises the
+-- special borders: Gold by luck ^ 0.6, Rainbow ^ 0.8, Secret ^ 1. There is no pity: pure luck.
 
 local Config = require(script.Parent.Config)
-local Rarity = require(script.Parent.Rarity)
+local Borders = require(script.Parent.Borders)
 
 local Odds = {}
 
 export type Chances = { [string]: number }
 
--- Percent chance for each rarity at the given luck and optional floor. Always sums to 100.
-function Odds.Chances(luck: number, floor: string?): Chances
-	luck = math.clamp(luck, 1, Config.Roll.LuckCap)
-
-	local chances: Chances = {}
-	for _, name in Rarity.Order do
-		local tier = Rarity.Tiers[name]
-		chances[name] = tier.BaseChance * luck ^ tier.LuckExponent
+-- Percent chance of each border at `luck` with `boost` (Border Chance stat etc.). Sums to 100.
+function Odds.Chances(luck: number, boost: number?): Chances
+	local chances = Borders.Chances(boost, math.clamp(luck, 1, Config.Roll.LuckCap))
+	local percent: Chances = {}
+	for id, chance in chances do
+		percent[id] = chance * 100
 	end
-
-	if floor ~= nil then
-		local floorIndex = Rarity.Index(floor)
-		for i = 1, floorIndex - 1 do
-			local name = Rarity.Order[i]
-			chances[floor] += chances[name]
-			chances[name] = 0
-		end
-	end
-
-	-- Normalise so the total is exactly 100 even with floating-point error.
-	local total = 0
-	for _, name in Rarity.Order do
-		total += chances[name]
-	end
-	for _, name in Rarity.Order do
-		chances[name] = chances[name] / total * 100
-	end
-	return chances
-end
-
--- Pick a rarity from a chance table using the given Random.
-function Odds.PickTier(chances: Chances, rng: Random): string
-	local roll = rng:NextNumber() * 100
-	local acc = 0
-	local lastNonZero = Rarity.Order[1]
-	for i = #Rarity.Order, 1, -1 do
-		local name = Rarity.Order[i]
-		local chance = chances[name]
-		if chance > 0 then
-			lastNonZero = name
-			acc += chance
-			if roll < acc then
-				return name
-			end
-		end
-	end
-	return lastNonZero
+	return percent
 end
 
 -- "12.5%", "0.900%", "0.0100%" depending on size.

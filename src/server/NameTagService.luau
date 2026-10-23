@@ -8,7 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Cards = require(Shared.Cards)
-local Rarity = require(Shared.Rarity)
+local Borders = require(Shared.Borders)
+local Deck = require(Shared.Deck)
 
 local DataService = require(script.Parent.DataService)
 
@@ -84,19 +85,11 @@ local function build(character: Model, player: Player): BillboardGui?
 	return gui
 end
 
+-- The rarest card (best border, then least likely) and its border.
 local function rarest(data): (string?, string?)
-	local bestIndex, bestCard, bestRarity = 0, nil, nil
-	for id, entry in data.Cards do
-		local card = Cards.Get(id)
-		if card then
-			local rarity = Cards.FusedRarity(card, entry.Fusion)
-			local index = Rarity.Index(rarity)
-			if index > bestIndex then
-				bestIndex, bestCard, bestRarity = index, card.Name, rarity
-			end
-		end
-	end
-	return bestCard, bestRarity
+	local id, border = Deck.Rarest(data.Cards)
+	local card = id and Cards.Get(id)
+	return if card then card.Name else nil, if card then border else nil
 end
 
 local function refresh(player: Player)
@@ -119,14 +112,14 @@ local function refresh(player: Player)
 	-- A favourite card, when the player has picked one, stands in for the rarest.
 	local favorite = Cards.Get(data.Settings.Favorite or "")
 	if favorite and data.Cards[favorite.Id] then
-		card, rarity = favorite.Name, Cards.FusedRarity(favorite, data.Cards[favorite.Id].Fusion)
+		card, rarity = favorite.Name, Borders.Best(data.Cards[favorite.Id].Borders)
 	end
 	local parts = { `<font color="#FFC42E">Lv {data.Level}</font>` }
 	if (data.Settings.Title or "") ~= "" then
 		table.insert(parts, `<font color="#50E6C8">« {data.Settings.Title} »</font>`)
 	end
 	if card and rarity then
-		table.insert(parts, `<font color="#{Rarity.Get(rarity).Color:ToHex()}">{string.upper(rarity)}</font> {card}`)
+		table.insert(parts, `<font color="#{Borders.Get(rarity).Color:ToHex()}">{string.upper(Borders.Get(rarity).Name)}</font> {card}`)
 	else
 		table.insert(parts, "New roller")
 	end
@@ -135,7 +128,23 @@ local function refresh(player: Player)
 	gui.PlayerName.Text = if vip then `👑 {player.DisplayName}` else player.DisplayName
 	gui.PlayerName.TextColor3 = if vip then Color3.fromRGB(255, 205, 60) else Color3.new(1, 1, 1)
 	gui.Pill.Info.Text = table.concat(parts, "  ·  ")
-	gui.Pill.Edge.Color = if rarity then Rarity.Get(rarity).Color else Color3.fromRGB(150, 110, 255)
+	gui.Pill.Edge.Color = if rarity then Borders.Get(rarity).Color else Color3.fromRGB(150, 110, 255)
+end
+
+-- The card worn as an avatar (MetaService "SetAvatar"): its element and border go on the character as
+-- attributes, and every client draws the aura and trail (UI/Avatars).
+local function wearAvatar(player: Player)
+	local character = player.Character
+	local profile = DataService.Get(player)
+	if character == nil or profile == nil then
+		return
+	end
+	local id = profile.Data.Settings.Avatar or ""
+	local card = Cards.Get(id)
+	local entry = profile.Data.Cards[id]
+	character:SetAttribute("AvatarCard", if card and entry then id else nil)
+	character:SetAttribute("AvatarElement", if card and entry then card.Element else nil)
+	character:SetAttribute("AvatarBorder", if card and entry then Borders.Best(entry.Borders) else nil)
 end
 
 function NameTagService.Start()
@@ -144,6 +153,7 @@ function NameTagService.Start()
 			if build(character, player) then
 				refresh(player)
 			end
+			wearAvatar(player)
 		end)
 		if player.Character then
 			task.spawn(function()
@@ -162,6 +172,7 @@ function NameTagService.Start()
 			task.wait(REFRESH_SECONDS)
 			for _, player in Players:GetPlayers() do
 				refresh(player)
+				wearAvatar(player)
 			end
 		end
 	end)

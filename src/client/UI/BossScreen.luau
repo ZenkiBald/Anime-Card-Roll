@@ -14,7 +14,8 @@ local Cards = require(Shared.Cards)
 local Bosses = require(Shared.Bosses)
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
-local Rarity = require(Shared.Rarity)
+local Rarity = require(Shared.Rarity) -- artifact tier colours
+local Borders = require(Shared.Borders)
 local Rewards = require(Shared.Rewards)
 local Meta = require(Shared.Meta)
 local Items = require(Shared.Items)
@@ -376,7 +377,8 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 				Parent = peek,
 			}, { Kit.corner(UDim.new(0.25, 0)) })
 			if card then
-				Kit.stroke(Rarity.Get(card.Rarity).Color, 2, 0).Parent = chip
+				local own = State.Cards[card.Id]
+				Kit.stroke(Borders.Get(Borders.Best(own and own.Borders)).Color, 2, 0).Parent = chip
 			end
 			Kit.label({
 				Text = if card then card.Glyph else "-",
@@ -726,8 +728,8 @@ local function build()
 		text(powerBox, 3, "Below the recommended power: roll for more cards, or try anyway!", Theme.Color.Roll, 16, Theme.Font.Bold)
 	end
 
-	-- The Cost Challenge: a deck of at most Config.Deck.CostCap points (by base rarity) for 2x Trait Shards.
-	local cost = Deck.Cost(deck)
+	-- The Cost Challenge: a deck of at most Config.Deck.CostCap points (by the borders worn) for 2x Trait Shards.
+	local cost = Deck.Cost(deck, State.Cards)
 	local fits = cost <= Config.Deck.CostCap
 	local costRow = row(5, 40)
 	local toggle = pill(costRow, if costChallenge then "COST CHALLENGE: ON" else "COST CHALLENGE: OFF", 1, 190, Theme.Color.Gold, costChallenge, false)
@@ -738,7 +740,7 @@ local function build()
 	local costText = text(
 		costRow,
 		2,
-		`Deck Cost <font color="{if fits then "#56D68A" else "#FF7846"}"><b>{cost}/{Config.Deck.CostCap}</b></font> · win for <b>x{Config.Deck.CostTraitShards} 🧬</b> (Common/Uncommon 1 · Rare 2 · Epic 3 · Legendary 4 · Mythic 6 · Secret 8)`,
+		`Deck Cost <font color="{if fits then "#56D68A" else "#FF7846"}"><b>{cost}/{Config.Deck.CostCap}</b></font> · win for <b>x{Config.Deck.CostTraitShards} 🧬</b> (Base 2 · Gold 4 · Rainbow 6 · Secret 8)`,
 		Theme.Color.Text,
 		15,
 		Theme.Font.Heavy

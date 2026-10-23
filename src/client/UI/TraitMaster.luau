@@ -193,7 +193,6 @@ local function drawDetail()
 	local view = CardView.new(card.Id, {
 		Owned = true,
 		Stars = entry.Stars,
-		Fusion = entry.Fusion,
 		Border = Borders.Best(entry.Borders),
 		Trait = entry.Trait,
 	})
@@ -377,7 +376,6 @@ function drawGrid()
 		local tile = CardTile.new(card.Id, {
 			Owned = true,
 			Stars = entry.Stars,
-			Fusion = entry.Fusion,
 			Border = Borders.Best(entry.Borders),
 			Selected = card.Id == selectedId,
 		})

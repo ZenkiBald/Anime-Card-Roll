@@ -11,7 +11,6 @@ local StarterGui = game:GetService("StarterGui")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
-local Rarity = require(Shared.Rarity)
 local Borders = require(Shared.Borders)
 
 local Kit = require(script.Parent.Kit)
@@ -62,9 +61,8 @@ local function setPortrait(row, cardId: string, fusion: number, border: string)
 		row.Stroke.Color = Theme.Color.TileEdge
 		return
 	end
-	local rarity = Cards.FusedRarity(card, fusion)
 	row.Portrait.BackgroundColor3 = card.Accent
-	row.Stroke.Color = if border ~= "Normal" and Borders.Get(border) then Borders.Get(border).Color else Rarity.Get(rarity).Color
+	row.Stroke.Color = Borders.Get(border).Color
 	local art = CardView.Art(cardId, true, false)
 	if art then
 		art.Size = if card.Image then UDim2.fromScale(1, 1) else UDim2.fromScale(1.35, 1.35)

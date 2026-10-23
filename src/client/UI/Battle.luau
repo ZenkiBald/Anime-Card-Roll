@@ -9,8 +9,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
+local Borders = require(Shared.Borders)
 local Bosses = require(Shared.Bosses)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
@@ -249,7 +249,7 @@ local function showCardInfo(cardId: string)
 		return
 	end
 	local entry = State.Cards[cardId]
-	local tier = Rarity.Get(Cards.FusedRarity(card, entry and entry.Fusion))
+	local tier = Borders.Get(Borders.Best(entry and entry.Borders))
 	local cover = Kit.new("TextButton", {
 		Name = "CardInfo",
 		Size = UDim2.fromScale(1, 1),
@@ -279,7 +279,7 @@ local function showCardInfo(cardId: string)
 	})
 	local title = Kit.new("TextLabel", {
 		LayoutOrder = 0,
-		Text = `{card.Name}  <font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)}</font>`,
+		Text = `{card.Name}  <font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)} · {tier.Multiplier}x</font>`,
 		RichText = true,
 		Font = Theme.Font.Display,
 		TextSize = 28,
@@ -494,7 +494,8 @@ local function cutIn(cardId: string, ultName: string)
 	if card == nil then
 		return
 	end
-	local tier = Rarity.Get(card.Rarity)
+	local cutEntry = State.Cards[cardId]
+	local tier = Borders.Get(Borders.Best(cutEntry and cutEntry.Borders))
 	local band = Kit.new("Frame", {
 		Name = "CutIn",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -572,8 +573,8 @@ local function makeTile(unit, order: number)
 	if entry then
 		stars = entry.Stars
 	end
-	local rarity = Cards.FusedRarity(card, entry and entry.Fusion)
-	local tier = Rarity.Get(rarity)
+	local rarity = Borders.Best(entry and entry.Borders) -- the border is the tier
+	local tier = Borders.Get(rarity)
 	local isAttack = card.Type == "Attack"
 
 	local slot = Kit.new("Frame", {
@@ -596,7 +597,7 @@ local function makeTile(unit, order: number)
 		Kit.gradient(ColorSequence.new(tier.Dark:Lerp(Color3.new(1, 1, 1), 0.12), tier.Dark:Lerp(Color3.new(0, 0, 0), 0.35)), 90),
 	})
 	local stroke = Kit.stroke(Color3.new(1, 1, 1), 2, 0)
-	local strokeGradient = Kit.gradient(Rarity.Gradient(rarity), 45)
+	local strokeGradient = Kit.gradient(tier.Gradient, 45)
 	strokeGradient.Parent = stroke
 	stroke.Parent = button
 	if rarity == "Secret" then
@@ -1876,6 +1877,13 @@ local function showResults(summary)
 		end
 		if #notes > 0 then
 			line(table.concat(notes, "  ·  "), Theme.Color.Gold, 20)
+		end
+		-- A first Normal clear adds the boss's own card to the roll pool.
+		local unlocked = summary.CardUnlocked and Cards.Get(summary.CardUnlocked)
+		if unlocked then
+			line(`🔓 {string.upper(unlocked.Name)} UNLOCKED IN THE CARD VAULT!`, Color3.fromRGB(255, 214, 90), 24, Theme.Font.Display)
+			line("Its card can now drop from your rolls.", Theme.Color.Muted, 16, Theme.Font.Bold)
+			Effects.Sparks(panel, Color3.fromRGB(255, 214, 90), 24, 0.8)
 		end
 		stat("TIME", timeText, Theme.Color.Auto)
 		if (summary.Staggers or 0) > 0 then

@@ -12,7 +12,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
@@ -1243,7 +1242,7 @@ function Hud.FeedAdd(result)
 	if card == nil then
 		return
 	end
-	local tier = Rarity.Get(result.Rarity)
+	local tier = Borders.RevealTier(result.Border)
 	feedOrder += 1
 	local suffix = if result.Outcome == "New"
 		then " <font color='#FFC42E'>NEW</font>"
@@ -1307,18 +1306,23 @@ function Hud.Announce(playerName: string, cardId: string, borderId: string?, foi
 	if card == nil then
 		return
 	end
-	local tier = Rarity.Get(card.Rarity)
-	local special = borderId ~= nil and borderId ~= "Normal"
+	local border = Borders.Get(borderId)
+	local secret = borderId == "Secret"
 	bannerToken += 1
 	local token = bannerToken
-	banner.Gradient.Color = if special then Borders.Get(borderId).Gradient else Rarity.Gradient(card.Rarity)
+	-- A Secret border gets the gold server banner; others wear their border's colours.
+	banner.Gradient.Color = if secret
+		then ColorSequence.new(Color3.fromRGB(255, 226, 120), Color3.fromRGB(200, 130, 20))
+		else border.Gradient
 	banner.BackgroundColor3 = Color3.new(1, 1, 1)
-	local what = if special then `{string.upper(borderId :: string)} {string.upper(tier.Name)}` else string.upper(tier.Name)
+	local what = `{string.upper(border.Name)} BORDER`
 	if foilId == "demon" then
 		what = `{string.upper(Foils.Get(foilId).Name)} {what}`
 	end
-	bannerLabel.Text = `{playerName} pulled <b>{what}</b> {card.Name}, {card.Title}!`
-	bannerLabel.TextColor3 = if tier.Name == "Secret" and not special then Color3.fromRGB(8, 10, 15) else Color3.new(1, 1, 1)
+	bannerLabel.Text = if secret
+		then `[SERVER] {playerName} rolled a <b>SECRET BORDER</b> {card.Name}!`
+		else `{playerName} rolled a <b>{what}</b> {card.Name}, {card.Title}!`
+	bannerLabel.TextColor3 = if secret then Color3.fromRGB(40, 24, 0) else Color3.new(1, 1, 1)
 	banner.Visible = true
 	Kit.tween(banner, 0.35, { Position = UDim2.new(0.5, 0, 0, 72) }, Enum.EasingStyle.Back)
 	task.delay(4.5, function()

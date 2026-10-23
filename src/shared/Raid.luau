@@ -40,7 +40,7 @@ export type Colossus = { Boss: string, Name: string, Pool: number? }
 Raid.Colossi = {
 	{ Boss = "kurogane", Name = "Ash Colossus" },
 	{ Boss = "rimeveil", Name = "Glacier Colossus" },
-	{ Boss = "vex", Name = "Null Colossus", Pool = 0.7 },
+	{ Boss = "vex", Name = "Null Colossus", Pool = 0.65 },
 	{ Boss = "tenrai", Name = "Storm Colossus", Pool = 0.9 },
 } :: { Colossus }
 

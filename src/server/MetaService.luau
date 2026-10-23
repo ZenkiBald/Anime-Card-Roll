@@ -9,11 +9,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Cards = require(Shared.Cards)
+local Borders = require(Shared.Borders)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
-local Rarity = require(Shared.Rarity)
 local Items = require(Shared.Items)
-local Traits = require(Shared.Traits)
 local Packs = require(Shared.Packs)
 local Raid = require(Shared.Raid)
 local Awaken = require(Shared.Awaken)
@@ -219,14 +218,14 @@ function MetaService.Cooldown(data, player: Player?): number
 	return Meta.Cooldown(data.Upgrades, data.Potions.Active, event and event.Speed, data.Stats, data.Gear, boost)
 end
 
-local function indexComplete(data, rarity: string): boolean
-	local pool = Cards.ByRarity[rarity]
-	if pool == nil or #pool == 0 then
-		return false
-	end
-	for _, card in pool do
-		if data.Cards[card.Id] == nil then
-			return false
+-- Every card (boss cards aside) found at `border` ("Normal" = owned at all).
+local function indexComplete(data, border: string): boolean
+	for _, card in Cards.List do
+		if card.Boss == nil then
+			local entry = data.Cards[card.Id]
+			if entry == nil or (border ~= "Normal" and not (entry.Borders and entry.Borders[border])) then
+				return false
+			end
 		end
 	end
 	return true
@@ -237,8 +236,8 @@ function MetaService.State(player: Player, data)
 	local today = Meta.DayNumber(os.time())
 	local canClaim, streakDay = Meta.DailyStatus(data.Daily, today)
 	local complete = {}
-	for _, rarity in Rarity.Order do
-		complete[rarity] = indexComplete(data, rarity)
+	for _, border in Borders.Order do
+		complete[border] = indexComplete(data, border)
 	end
 	local claimedGifts = {}
 	for index in giftsClaimed[player] or {} do
@@ -269,6 +268,7 @@ function MetaService.State(player: Player, data)
 		Gear = data.Gear,
 		Wheel = { Spins = data.Wheel.Spins, Progress = data.Wheel.Progress },
 		Favorite = data.Settings.Favorite,
+		Avatar = data.Settings.Avatar, -- the card worn as an avatar aura ("" = none)
 		Packs = data.Packs, -- gifts, quests and milestones can grant Roll Packs
 	}
 end
@@ -393,6 +393,14 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 			return false, "BadRequest"
 		end
 		data.Settings.Favorite = arg
+		return true
+	elseif action == "SetAvatar" then
+		-- Wear an owned card as your look in town (its element aura; Rainbow / Secret borders add a
+		-- walking trail): NameTagService puts it on the character. "" takes it off.
+		if arg ~= "" and (type(arg) ~= "string" or data.Cards[arg] == nil) then
+			return false, "BadRequest"
+		end
+		data.Settings.Avatar = arg
 		return true
 	elseif action == "ClaimQuest" then
 		local quest = type(arg) == "string" and Meta.QuestById[arg]

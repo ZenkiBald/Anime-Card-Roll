@@ -1,11 +1,13 @@
 --!nonstrict
--- Square card tile for the deck and Index grids: full art, rarity border, letter badge,
--- star and copies pills and a big power number. Size it from outside (grid cell or slot).
+-- Square card tile for the deck and Index grids: full art framed only by its border (the tier: Base /
+-- Gold / Rainbow / Secret) and an element glow, a small star count, copies and a big power number. No
+-- rarity badges: the frame says the tier. Size it from outside (grid cell or slot).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
+local Borders = require(Shared.Borders)
+local Elements = require(Shared.Elements)
 local Cards = require(Shared.Cards)
 
 local Kit = require(script.Parent.Kit)
@@ -18,18 +20,15 @@ local ElementUi = require(script.Parent.ElementUi)
 
 local CardTile = {}
 
-CardTile.Letters = { Common = "C", Uncommon = "U", Rare = "R", Epic = "E", Legendary = "L", Mythic = "M", Secret = "S" }
-
 export type Options = {
 	Owned: boolean?,
 	Stars: number?,
-	Fusion: number?, -- times fused: new rarity border and letter, orange-ringed badge
 	Copies: number?,
 	Power: number?, -- shown big along the bottom
 	InDeck: boolean?,
 	Selected: boolean?,
 	Spin: boolean?, -- spin a Secret card's prismatic border (only for a few tiles at once)
-	Border: string?, -- the card's best border (Borders.luau): Gold / Rainbow / Secret frame
+	Border: string?, -- the card's best border (Borders.luau): the tier and its frame
 }
 
 local function outlined(label: TextLabel, thickness: number?)
@@ -41,8 +40,10 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	local options = opts or {}
 	local card = Cards.Get(cardId)
 	assert(card, `Unknown card {cardId}`)
-	local rarity = Cards.FusedRarity(card, options.Fusion) -- fused cards wear their new rarity
-	local tier = Rarity.Get(rarity)
+	local borderId = if options.Owned ~= false then options.Border or "Normal" else "Normal"
+	local tier = Borders.Get(borderId)
+	local element = Elements.Get(card.Element)
+	local glow = if element then element.Color else Theme.Color.Neon
 	local owned = options.Owned ~= false
 
 	local button = Kit.new("TextButton", {
@@ -55,19 +56,37 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Kit.corner(UDim.new(0.12, 0)),
 		Kit.gradient(
 			ColorSequence.new(
-				if owned then card.Accent:Lerp(Color3.new(1, 1, 1), 0.1) else Color3.fromRGB(46, 42, 62),
-				if owned then tier.Dark:Lerp(Color3.new(0, 0, 0), 0.2) else Color3.fromRGB(18, 16, 28)
+				if owned then card.Accent:Lerp(Color3.new(0, 0, 0), 0.25) else Color3.fromRGB(26, 30, 42),
+				if owned then glow:Lerp(Color3.new(0, 0, 0), 0.82) else Color3.fromRGB(11, 13, 20)
 			),
 			120
 		),
 	})
-	local stroke = Kit.stroke(Color3.new(1, 1, 1), 3, 0)
-	local strokeGradient = Kit.gradient(Rarity.Gradient(rarity), 45)
+	-- The frame: the border's colours (a plain element-tinted edge on Base); BorderFx draws the full
+	-- Gold / Rainbow / Secret frame on top.
+	local stroke = Kit.stroke(Color3.new(1, 1, 1), if borderId == "Normal" then 1.2 else 2.5, 0)
+	local strokeGradient = Kit.gradient(if borderId == "Normal" then ColorSequence.new(glow:Lerp(Theme.Color.Line, 0.45)) else tier.Gradient, 45)
 	strokeGradient.Parent = stroke
 	stroke.Parent = button
-	if rarity == "Secret" and options.Spin then
+	if borderId == "Secret" and options.Spin then
 		Effects.Spin(strokeGradient, 100)
 	end
+	-- Element glow rising from the bottom edge.
+	Kit.new("Frame", {
+		Name = "ElementGlow",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.fromScale(1, 0.55),
+		BackgroundColor3 = glow,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+		Parent = button,
+	}, {
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, if owned then 0.6 else 0.9) }),
+		}),
+	})
 
 	-- Light rays behind the character.
 	local rays = Kit.new("Frame", {
@@ -85,8 +104,8 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(0.08, 0.72),
 			Rotation = (i - 1) * 30,
-			BackgroundColor3 = tier.Color,
-			BackgroundTransparency = if owned then 0.84 else 0.95,
+			BackgroundColor3 = if borderId == "Normal" then glow else tier.Color,
+			BackgroundTransparency = if owned then 0.86 else 0.96,
 			BorderSizePixel = 0,
 			Parent = rays,
 		})
@@ -144,9 +163,8 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		}),
 	})
 
-	-- Uploaded rarity frame art goes over the character (it replaces the plain coloured border), and
-	-- the card's best border over that.
-	Skin.Frame(button, rarity, 4)
+	-- The card's border frame over the art (uploaded frame art per border when Skin.KitArt is on).
+	Skin.Frame(button, borderId, 4)
 	if owned then
 		BorderFx.Apply(button, options.Border, { Corner = UDim.new(0.12, 0), ZIndex = 5, Spin = options.Spin })
 	end
@@ -163,37 +181,11 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Parent = button,
 	}, 22), 2)
 
-	-- Rarity letter badge (top-left) and the star pill next to it.
-	local badge = Kit.new("Frame", {
-		Name = "Rarity",
-		Position = UDim2.fromScale(0.05, 0.05),
-		Size = UDim2.fromScale(0.22, 0.22),
-		BackgroundColor3 = tier.Color,
-		ZIndex = 5,
-		Parent = button,
-	}, {
-		Kit.corner(UDim.new(1, 0)),
-		Kit.aspect(1, Enum.DominantAxis.Width),
-		-- Orange ring = fused.
-		if (options.Fusion or 0) > 0 then Kit.stroke(Color3.fromRGB(255, 138, 61), 3, 0) else Kit.stroke(Color3.new(1, 1, 1), 2, 0),
-	})
-	if rarity == "Secret" then
-		Kit.gradient(Rarity.Gradient("Secret"), 45).Parent = badge
-	end
-	outlined(Kit.label({
-		Text = CardTile.Letters[rarity] or "?",
-		Font = Theme.Font.Display,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromScale(0.75, 0.75),
-		ZIndex = 6,
-		Parent = badge,
-	}, 22), 1.5)
-
+	-- Stars (top-left): the only badge; the border says the tier.
 	if owned and (options.Stars or 0) > 0 then
 		local pill = Kit.new("Frame", {
 			Name = "Stars",
-			Position = UDim2.fromScale(0.28, 0.07),
+			Position = UDim2.fromScale(0.05, 0.06),
 			Size = UDim2.fromScale(0.3, 0.17),
 			BackgroundColor3 = Color3.fromRGB(8, 10, 15),
 			BackgroundTransparency = 0.25,

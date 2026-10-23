@@ -34,7 +34,7 @@ check(Awaken.FromCopies(19) == 0 and Awaken.FromCopies(20) == 1 and Awaken.FromC
 check(Awaken.Level({ Copies = 5, Awaken = 3 }) == 3, "a node stays open after the copies are spent")
 check(Awaken.Level({ Copies = 1, Fusion = 1 }) == 5, "a fused card has node 5")
 local card = Cards.Get("tomo")
-check(Cards.Stat(card, 100, 0, 0, nil, 1) == 110 and Cards.Stat(card, 100, 0, 0, nil, 0) == 100, "node 1 adds +10% base stats")
+check(Cards.Stat(card, 100, 0, nil, 1) == 110 and Cards.Stat(card, 100, 0, nil, 0) == 100, "node 1 adds +10% base stats")
 
 -- 3. Momentum and surges -----------------------------------------------------------------------------
 local speed, luck = RollBoost.MomentumBonus(500)
@@ -55,11 +55,12 @@ check(infused ~= nil and infused.Rolls == 1000 and infused.Element == "Flame" an
 check(Packs.Count({ ["1000:Void"] = 2, ["10"] = 1 }) == 3, "infused packs count as packs")
 
 -- 5. Deck Cost and Trait Shards ------------------------------------------------------------------------
-check(Cards.Cost(Cards.Get("rook")) == 1 and Cards.Cost(Cards.Get("raijen")) == 8 and Cards.Cost(Cards.Get("noa")) == 6, "Deck Cost by base rarity")
+check(Cards.Cost("Normal") == 2 and Cards.Cost("Gold") == 4 and Cards.Cost("Secret") == 8, "Deck Cost by border")
 local starterCost = Deck.Cost(F.deck({ "tomo", "mirai", "rook", "kaede" }, { "suzu", "ibuki", "hana", "goro" }))
-check(starterCost == 8, "the Common + Uncommon starter deck costs 8")
-local topCost = Deck.Cost(F.deck(F.FIGHTS[12].Attack, F.FIGHTS[12].Support))
-check(topCost > Config.Deck.CostCap, `a Secret / Mythic deck ({topCost}) breaks the {Config.Deck.CostCap}-point Cost Challenge`)
+check(starterCost == 16, "an all-Base deck costs 16")
+local topDeck, topOwned = F.fixtureDeck(F.FIGHTS[12])
+local topCost = Deck.Cost(topDeck, topOwned)
+check(topCost > Config.Deck.CostCap, `a Rainbow / Gold deck ({topCost}) breaks the {Config.Deck.CostCap}-point Cost Challenge`)
 check(Rewards.TraitShards(1, false) == 1 and Rewards.TraitShards(12, false) == 5 and Rewards.TraitShards(6, true) == 2 * Rewards.TraitShards(6, false), "bosses pay 1-5 Trait Shards by D, doubled on a first clear")
 check(Tower.Reward(3).TraitShards >= 1 and Tower.Reward(10).TraitShards >= 10 and Tower.Reward(50).TraitShards > Tower.Reward(10).TraitShards, "every tower floor pays Trait Shards, Guardians a big bundle")
 local raidClear = Raid.Reward(true, 1e9, 30000, false)

@@ -239,7 +239,30 @@ Polish + deck rebuild (2026-10-23, user's spec; cloud-built, headless tests + lu
 - Pets / mounts: follower pets float over the right shoulder (bob sin(t x 4) x 0.4, bank into turns, lean with
   speed; `Followers`). Mount parts weld to one MountRoot joined by Motor6D "MountJoint" (MountService); clients
   sway it with the stride (pitch / roll / heave + turn bank) in PreSimulation.
-Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
+Border tiers (2026-10-23, user's spec; cloud-built, headless tests + luau-lsp only, not yet seen in Studio). This
+overrides the rarity / fusion / border notes above wherever they disagree:
+- No card rarities: the BORDER is the tier. `Borders.luau`: Base ("Normal" save key) 1x / Gold 4x / Rainbow 16x /
+  Secret 64x stats, base odds 98.4 / 1.5 / 0.099 / 0.001% (luck ^ LuckExponent 0.6 / 0.8 / 1, Border Chance and
+  surges boost them, the special borders capped at 50% together), Deck Cost 2 / 4 / 6 / 8. Every card sits on one
+  line (ATK ~500 +-10%, HP = 2 x ATK; Support PWR ~300), so `Cards.Stat(card, base, stars, border?, awaken?)`.
+  Which card a pull gives is its `Weight` (`Cards.Pool`, `Cards.PullChances`). Rarity badges are gone; cards show
+  clean art framed by the border + an element glow. `Rarity.luau` stays only for artifact / trait tiers.
+- Saves: `Cards[id].BorderCopies` (copies per border), `Borders` (found), `Fusion` = fusions done (node 5 luck).
+  Old saves migrate on load (DataService): old copies -> Base, each found border -> 1 copy, an old rarity fusion
+  -> Gold copies; invalid AutoStop -> default. Index rewards are keyed by border (old rarity claims don't pay).
+- Border fusion only (user's call): 100 copies at one border -> 1 copy at the next (Hoshi, `Fuse(cardId, border)`).
+- Secret pulls: "[SERVER] {Player} rolled a SECRET BORDER {Card}!" banner. Auto Roll stop: Gold / Rainbow / Secret.
+- Boss cards: `kurogane_card` / `rimeveil_card` / `vex_card` / `tenrai_card` (`Boss` field) join that player's pool
+  after the boss's first Normal clear ("KUROGANE UNLOCKED IN THE CARD VAULT!" on the result panel,
+  `summary.CardUnlocked`).
+- Avatar: EQUIP AS AVATAR in the DECK inspector (MetaService "SetAvatar", `Settings.Avatar`); NameTagService sets
+  AvatarCard / AvatarElement / AvatarBorder on the character; client `Avatars.luau` draws the element aura, fire
+  footsteps (Rainbow) or celestial motes (Secret) while walking.
+- `UI/CardTooltip`: DECK plates + CARD VAULT tiles zoom to 1.15 on hover, a 0.25 s hover (touch: tap / long press)
+  opens a 280 px flyout: name, title, element, role (Striker / Hexer / Mender / Warder, read from the abilities),
+  "Gold Border · 4x", Basic (target, formula), Skill (CD, stagger), Ultimate (energy), bonds.
+- Bosses / tower rescaled to the new power line (Kurogane Normal 45k ... Tenrai Nightmare 774k; fixtures use borders).
+Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: the border still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
 refreshed every 60 s.
@@ -280,17 +303,17 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 
 ## Layout (Rojo project, `default.project.json`)
 
-- `src/shared` -> ReplicatedStorage.Shared: `Config` (tuning + `TestMode`, deck and battle rules), `Rarity` (7 tiers),
+- `src/shared` -> ReplicatedStorage.Shared: `Config` (tuning + `TestMode`, deck and battle rules), `Rarity` (7 tiers, artifacts / traits only),
   `Cards` (card data; each ability lists its battle effects from the effect library documented at the top),
   `Odds` (luck, floor, pity math, shared by server and client so the odds panel matches the server),
-  `Borders` (card border odds, colours and bonus), `Items` (artifacts, accessories, drop odds, gear bonuses),
+  `Borders` (the card tiers: odds, multipliers, cost, colours), `Items` (artifacts, accessories, drop odds, gear bonuses),
   `Deck` (deck rules, validation, Deck Power, Auto-build), `Bosses` (boss stats, moves, difficulties, unlocks),
   `Rewards` (boss reward rolls / luck / floor per difficulty score D), `BossModels` (NPC figures from plain parts),
   `Tower` (Infinite Tower floors, enemies, affixes, curve, rewards, daily mutators),
   `Elements` (element wheel, synergies, bonds), `Raid` (server raid schedule, Colossus sizing, pool, rewards),
   `Foils` (foil editions), `Awaken` (Awakening nodes), `RollBoost` (Momentum + Overcharge Surge),
   `MonetizationConfig` (pass / product ids, perks, mock toggle),
-  `Cards` also has the fusion helpers (`FusedRarity`, `MaxFusion`, `Stat`, `Power(card, stars, fusion)`),
+  `Cards` also has `Pool`, `PullChances`, `ForBoss`, `Stat`, `Power(card, stars, border, awaken)`, `Cost(border)`,
   `Traits` (card traits: odds, effects, reroll cost), `Meta` (potions, upgrades, Index rewards, daily, gifts,
   milestones, daily quests, levels and stat points, server events, the Lucky Wheel, and the luck / cooldown formulas
   both sides use), `Mounts` (ride pets).
@@ -303,17 +326,17 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   owns the dev luck override and the player's total luck / cooldown),
   `TravelService` (Travel remote: validates "Town" or a boss id, rate-limited, refused in battle, streams the
   area in, then pivots beside the zone's Boss_ marker / Spawn), `FusionService` (Fuse remote: checks ownership,
-  copies and max rarity, then fuses), `LeaderboardService` (leaderstats + the town boards; test scores go to
+  100 copies at that border, then fuses into the next border), `LeaderboardService` (leaderstats + the town boards; test scores go to
   `LB_*_Test_1` stores),
   `ProfileService` (Profile remote: public profiles of players in the server), `RaidService` (the server's raid
   pool, hitters, payouts, Raid Luck), `TraitService` (Trait Master rolls), `Momentum` (roll chains),
   `MonetizationService` (passes, policy gating, Luck Totem, Shard bundles, receipts), `NpcRange` (town NPC
   services only beside their NPC), `CodeService` + `Codes` (redeem codes, server-only list), `ProfileStore` (vendored, Apache-2.0). `RollService.RewardRolls` pays boss rewards (wired into BattleService in `Main.server`).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient` (progression calls, badge counts),
-  `LightingSetup` (the twilight base light), `Followers` (shoulder pets, mount stride sway),
+  `LightingSetup` (the twilight base light), `Followers` (shoulder pets, mount stride sway), `Avatars` (avatar auras / trails),
   `HubFx` (NPC idle animation, sage tips, portal lock labels), `ZoneFx` (zone music + lighting mood),
   `UI/*` (Kit helpers incl. `Kit.tile` / `Kit.dimTile`, Theme, Skin (UI kit image ids), BorderFx (card border frames), Title, Travel, Settings, Fusion, Modal (blurred-world
-  obsidian panel with title tab; `Modal.Tabbed` pages), Alchemy (Hoshi's PACK ALCHEMY tab), Waypoint (guide line to a town NPC), Controls (dropdown tiles, tabs, chips, search, banners), CardView (full card), CardTile (square
+  obsidian panel with title tab; `Modal.Tabbed` pages), Alchemy (Hoshi's PACK ALCHEMY tab), Waypoint (guide line to a town NPC), Controls (dropdown tiles, tabs, chips, search, banners), CardView (full card), CardTooltip (hover zoom + ability flyout), CardTile (square
   grid tile), ElementUi (element badges / rich text), ElementGuide (ELEMENTS panel), TraitMaster, Store, Reveal, Effects, Hud, Index, OddsPanel, Bag + BagGear, Stats, Shop, Gifts, DevPanel, DeckBuilder, BossScreen,
   Battle, RewardReveal, ModelView (3D figure in a ViewportFrame), Sfx).
 - Remotes are declared in `default.project.json` under ReplicatedStorage.Remotes.
@@ -325,10 +348,11 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 ## Rules to keep
 
 - The server owns every roll, stat and result; the client only requests and animates. Validate every remote argument on the server.
-- Rarity always wins: each tier's stats are >= 1.6x the tier below; a card stays within +-10% of its tier base; stars add +5% each, max 5.
-  Traits and borders stay small (traits never add ATK / HP). Rolls are pure luck: no pity.
-  Fusion keeps this: a fused card counts as its new rarity (stats scaled by the tier multipliers), never more.
-- Content is data: a new card is one entry in `src/shared/Cards.luau` (stats, abilities, `Image`), a new boss or
+- The border always wins: Base 1x / Gold 4x / Rainbow 16x / Secret 64x; every card's base stats stay within +-10% of
+  one line (HP = 2 x ATK); stars add +5% each, max 5; a maxed card on one border never reaches a 0-star card on the
+  next (odds_test checks). Traits stay small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border
+  fusion only: 100 copies at one border -> 1 copy at the next.
+- Content is data: a new card is one entry in `src/shared/Cards.luau` (stats, abilities, `Weight`, `Image`), a new boss or
   difficulty one entry in `src/shared/Bosses.luau`, a new artifact one entry in `src/shared/Items.luau`, a new trait one entry in `src/shared/Traits.luau`,
   a new potion / gift / milestone / quest one entry in `src/shared/Meta.luau`
   (no other code changes). Only Secret signatures are coded in `BattleEngine`.

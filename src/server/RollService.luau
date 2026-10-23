@@ -1,7 +1,8 @@
 --!nonstrict
 -- Every roll happens here, on the server. The client only asks and then animates.
--- Every pull rolls a rarity (tiered luck, Odds.luau), a card, a border and a foil (Foils.luau); its
--- copies open Awakening nodes (Awaken.luau). Traits are not rolled here any more (TraitService).
+-- Every pull rolls a card (Cards.Pool: each card's Weight; boss cards join after their boss's first
+-- Normal clear), a border (the tier: Borders.luau, raised by luck) and a foil (Foils.luau); its copies
+-- open Awakening nodes (Awaken.luau) and pile up per border for Hoshi's border fusion. Traits are not rolled here any more (TraitService).
 -- Card rolls build the Momentum chain and every 25th is an Overcharge Surge (RollBoost.luau); the
 -- Triple Roll pass rolls 3 per click. Roll Packs open here too, and Pack Alchemy condenses / infuses them.
 
@@ -10,9 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
-local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
-local Odds = require(Shared.Odds)
 local Rewards = require(Shared.Rewards)
 local Bosses = require(Shared.Bosses)
 local Tower = require(Shared.Tower)
@@ -115,22 +114,17 @@ end
 export type RollOptions = {
 	BorderMult: number?, -- x border odds (surges, infused packs under a luck boost)
 	FoilMult: number?, -- x foil odds (perfect surges)
-	Element: string?, -- infused packs: this element's cards weigh Packs.InfuseWeight inside the rarity
+	Element: string?, -- infused packs: this element's cards weigh Packs.InfuseWeight in the pool
 	Surge: string?, -- "Plain" | "Perfect": tagged on the result for the reveal
 }
 
--- A card of the rolled rarity: even odds, or the infused element's cards weighted up.
-local function pickCard(pool, element: string?)
-	if element == nil then
-		return pool[rng:NextInteger(1, #pool)]
-	end
-	local total = 0
+-- A card from the player's pool by Weight (the infused element's cards weighted up).
+local function pickCard(data, element: string?)
+	local pool = Cards.Pool(data.Progress.Cleared)
+	local chances = Cards.PullChances(pool, element, Packs.InfuseWeight)
+	local target = rng:NextNumber()
 	for _, card in pool do
-		total += if card.Element == element then Packs.InfuseWeight else 1
-	end
-	local target = rng:NextNumber() * total
-	for _, card in pool do
-		target -= if card.Element == element then Packs.InfuseWeight else 1
+		target -= chances[card.Id]
 		if target < 0 then
 			return card
 		end
@@ -138,24 +132,41 @@ local function pickCard(pool, element: string?)
 	return pool[#pool]
 end
 
--- One roll: pick rarity (luck only, no pity: pure luck), pick card, apply duplicates, roll a border and
--- a foil. Duplicates add stars up to the max, then pile up as copies for the Fusion Master
+-- Adds one copy of a card at a border: the per-border count (for Hoshi's border fusion) and the set of
+-- borders it has found (it wears the best).
+local function addCopy(entry, border: string): boolean
+	entry.BorderCopies = entry.BorderCopies or {}
+	entry.BorderCopies[border] = (entry.BorderCopies[border] or 0) + 1
+	local new = false
+	if border ~= "Normal" then
+		entry.Borders = entry.Borders or {}
+		new = entry.Borders[border] ~= true
+		entry.Borders[border] = true
+	end
+	return new
+end
+RollService.AddCopy = addCopy
+
+-- One roll: pick a card, roll its border (the tier; luck raises it, no pity: pure luck) and a foil, apply
+-- duplicates. Duplicates add stars up to the max and pile up as copies at their border for Hoshi
 -- (FusionService); every 20 copies open an Awakening node.
--- luck / minFloor default to the player's own luck and no floor.
+-- luck defaults to the player's own luck.
 -- `batch` (opening a Roll Pack): XP is added up in batch.XP for one AddXP at the end, nothing is
 -- announced (the pack announces its best pull), and the result skips the HUD summary and quests.
-local function doRoll(player: Player, profile, luck: number?, minFloor: string?, batch: { XP: number }?, opts: RollOptions?)
+local function doRoll(player: Player, profile, luck: number?, batch: { XP: number }?, opts: RollOptions?)
 	local data = profile.Data
 	local o = opts or {}
 
-	local chances = Odds.Chances(luck or luckFor(player, data), minFloor)
-	local tier = Odds.PickTier(chances, rng)
-	local card = pickCard(Cards.ByRarity[tier], o.Element)
+	local card = pickCard(data, o.Element)
+	-- The border: the tier. Luck, the Border Chance stat / artifacts and surge / pack multipliers raise it.
+	local borderBoost = (1 + Meta.Bonus(data.Stats, data.Gear, "Border")) * (o.BorderMult or 1) - 1
+	local rollLuck = luck or luckFor(player, data)
+	local border = Borders.Pick(rng:NextNumber(), borderBoost, rollLuck)
 
 	data.TotalRolls += 1
 	MetaService.Track(player, "Rolls")
-	if Rarity.AtLeast(tier, "Epic") then
-		MetaService.Track(player, "EpicPulls")
+	if border ~= "Normal" then
+		MetaService.Track(player, "EpicPulls") -- the "special pull" quest: any Gold or better border
 	end
 
 	local entry = data.Cards[card.Id]
@@ -184,16 +195,8 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?,
 	entry.Awaken = if node > 0 then node else nil
 	local newNode = if node > oldNode then node else nil
 
-	-- Every pull also rolls a border (Border Chance stat makes the special ones likelier). The card
-	-- keeps each border it has found and wears the best.
-	local borderBoost = (1 + Meta.Bonus(data.Stats, data.Gear, "Border")) * (o.BorderMult or 1) - 1
-	local border = Borders.Pick(rng:NextNumber(), borderBoost)
-	local newBorder = false
-	if border ~= "Normal" then
-		entry.Borders = entry.Borders or {}
-		newBorder = entry.Borders[border] ~= true
-		entry.Borders[border] = true
-	end
+	-- The copy goes on the pile of its border; the card keeps every border it has found and wears the best.
+	local newBorder = addCopy(entry, border)
 
 	-- And a foil (Foils.luau), kept the same way.
 	local foil = Foils.Pick(rng:NextNumber(), o.FoilMult)
@@ -204,7 +207,7 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?,
 		entry.Foils[foil] = true
 	end
 
-	local big = Rarity.AtLeast(tier, Config.AnnounceFrom) or Borders.Index(border) >= Borders.Index("Rainbow") or foil == "demon"
+	local big = Borders.Index(border) >= Borders.Index(Config.AnnounceFrom) or foil == "demon"
 	if batch == nil and big then
 		Remotes.Announce:FireAllClients(player.DisplayName, card.Id, border, foil)
 	end
@@ -212,12 +215,11 @@ local function doRoll(player: Player, profile, luck: number?, minFloor: string?,
 	return {
 		Ok = true,
 		CardId = card.Id,
-		Rarity = tier,
 		Outcome = outcome, -- "New" | "Star" | "Copy" (toward fusion)
 		Stars = entry.Stars,
 		Copies = entry.Copies,
-		Fusion = entry.Fusion,
-		Border = border, -- the border this pull rolled
+		BorderCopies = entry.BorderCopies,
+		Border = border, -- the border this pull rolled (the tier)
 		NewBorder = newBorder, -- first time this card got it
 		Borders = entry.Borders, -- every border the card has found
 		Foil = foil, -- the foil this pull rolled
@@ -239,12 +241,12 @@ local function rollClick(player: Player, profile, perfect: boolean, click: boole
 	local data = profile.Data
 	local surge = RollBoost.IsSurge(data.TotalRolls + 1)
 	local cfg = RollBoost.Surge
-	local main, count, mult
+	local main, count, mult, foilMult
 	if surge and perfect then
-		main = doRoll(player, profile, nil, cfg.PerfectFloor, nil, { BorderMult = cfg.PerfectBorderMult, FoilMult = cfg.PerfectBorderMult, Surge = "Perfect" })
-		count, mult = cfg.PerfectCards, cfg.PerfectBorderMult
+		main = doRoll(player, profile, nil, nil, { BorderMult = cfg.PerfectBorderMult, FoilMult = cfg.PerfectFoilMult, Surge = "Perfect" })
+		count, mult, foilMult = cfg.PerfectCards, cfg.PerfectBorderMult, cfg.PerfectFoilMult
 	elseif surge then
-		main = doRoll(player, profile, nil, cfg.Floor, nil, { BorderMult = cfg.BorderMult, FoilMult = cfg.BorderMult, Surge = "Plain" })
+		main = doRoll(player, profile, nil, nil, { BorderMult = cfg.BorderMult, FoilMult = cfg.FoilMult, Surge = "Plain" })
 		count, mult = 1, nil
 	else
 		main = doRoll(player, profile)
@@ -255,7 +257,7 @@ local function rollClick(player: Player, profile, perfect: boolean, click: boole
 	end
 	local extra = {}
 	for _ = 2, count do
-		table.insert(extra, doRoll(player, profile, nil, nil, nil, { BorderMult = mult, FoilMult = mult }))
+		table.insert(extra, doRoll(player, profile, nil, nil, { BorderMult = mult, FoilMult = foilMult }))
 	end
 	main.Extra = if #extra > 0 then extra else nil
 
@@ -293,15 +295,15 @@ local function payWin(player: Player, profile, packs: { [string]: number }?, sha
 end
 
 local function rarer(a, b): boolean
-	local ra, rb = Rarity.Index(a.Rarity), Rarity.Index(b.Rarity)
-	if ra ~= rb then
-		return ra > rb
+	local ba, bb = Borders.Index(a.Border), Borders.Index(b.Border)
+	if ba ~= bb then
+		return ba > bb
 	end
-	return Borders.Index(a.Border) > Borders.Index(b.Border)
+	return (Cards.Get(a.CardId) :: any).Weight < (Cards.Get(b.CardId) :: any).Weight -- the less likely card
 end
 
 -- Opens one Roll Pack: its rolls at the player's luck right now. Returns the rarest ShowCards pulls in
--- full (for the flip reveal), how many of each rarity came out, how many were new, and the touched
+-- full (for the flip reveal), how many of each border came out, how many were new, and the touched
 -- cards' new state; XP is paid once and only the best pull is announced.
 local function openPack(player: Player, profile, pack: Packs.Pack)
 	local data = profile.Data
@@ -317,8 +319,8 @@ local function openPack(player: Player, profile, pack: Packs.Pack)
 	local shown, counts, cards = {}, {}, {}
 	local newCards = 0
 	for _ = 1, pack.Rolls do
-		local result = doRoll(player, profile, luck, nil, batch, opts)
-		counts[result.Rarity] = (counts[result.Rarity] or 0) + 1
+		local result = doRoll(player, profile, luck, batch, opts)
+		counts[result.Border] = (counts[result.Border] or 0) + 1
 		if result.Outcome == "New" then
 			newCards += 1
 		end
@@ -334,7 +336,7 @@ local function openPack(player: Player, profile, pack: Packs.Pack)
 	end
 	MetaService.AddXP(player, data, batch.XP)
 	local best = shown[1]
-	if best and (Rarity.AtLeast(best.Rarity, Config.AnnounceFrom) or Borders.Index(best.Border) >= Borders.Index("Rainbow")) then
+	if best and Borders.Index(best.Border) >= Borders.Index(Config.AnnounceFrom) then
 		Remotes.Announce:FireAllClients(player.DisplayName, best.CardId, best.Border)
 	end
 	local state = {}
@@ -436,7 +438,7 @@ local function startAuto(player: Player)
 			for _, r in { result, table.unpack(result.Extra or {}) } do
 				local bigBorder = r.NewBorder and Borders.Index(r.Border) >= Borders.Index("Rainbow")
 				local bigFoil = r.NewFoil and r.Foil == "demon"
-				hitStop = hitStop or (stopAt ~= "Never" and Rarity.AtLeast(r.Rarity, stopAt)) or bigBorder or bigFoil
+				hitStop = hitStop or (stopAt ~= "Never" and Borders.Index(r.Border) >= Borders.Index(stopAt)) or bigBorder or bigFoil
 			end
 			if hitStop then
 				stopAuto(player)
@@ -623,11 +625,11 @@ function RollService.Start()
 			local luck = tonumber(value) or 1
 			MetaService.SetDevLuck(player, math.clamp(luck, 1, Config.Roll.LuckCap))
 		elseif action == "GrantAll" or action == "GrantStarter" then
-			-- GrantStarter: just the Commons and Uncommons, i.e. the first ~14.6k deck.
-			for _, card in Cards.List do
-				local include = action == "GrantAll" or not Rarity.AtLeast(card.Rarity, "Rare")
+			-- GrantStarter: just the most common cards (Weight 8+), a first deck; GrantAll: the whole pool.
+			for _, card in Cards.Pool(profile.Data.Progress.Cleared) do
+				local include = action == "GrantAll" or card.Weight >= 8
 				if include and profile.Data.Cards[card.Id] == nil then
-					profile.Data.Cards[card.Id] = { Copies = 1, Stars = 0 }
+					profile.Data.Cards[card.Id] = { Copies = 1, Stars = 0, BorderCopies = { Normal = 1 } }
 				end
 			end
 		elseif action == "MaxStars" then
@@ -638,11 +640,16 @@ function RollService.Start()
 				end
 			end
 		elseif action == "FillCopies" then
-			-- Every owned card that can still fuse gets enough copies for its next fusion.
-			for id, entry in profile.Data.Cards do
-				local card = Cards.Get(id)
-				if card and (entry.Fusion or 0) < Cards.MaxFusion(card) then
-					entry.Copies = math.max(entry.Copies, Config.FusionCopies)
+			-- Every owned card gets enough copies at its best border for the next border fusion.
+			for _, entry in profile.Data.Cards do
+				local best = Borders.Best(entry.Borders)
+				if Borders.Next(best) then
+					entry.BorderCopies = entry.BorderCopies or {}
+					local have = entry.BorderCopies[best] or 0
+					if have < Config.FusionCopies then
+						entry.BorderCopies[best] = Config.FusionCopies
+						entry.Copies += Config.FusionCopies - have
+					end
 				end
 			end
 		elseif action == "StartEvent" then
@@ -659,10 +666,13 @@ function RollService.Start()
 				local entry = profile.Data.Cards[card.Id]
 				if entry then
 					i += 1
-					entry.Borders = entry.Borders or {}
-					entry.Borders.Gold = true
-					entry.Borders.Rainbow = entry.Borders.Rainbow or i % 2 == 0
-					entry.Borders.Secret = entry.Borders.Secret or i % 4 == 0
+					addCopy(entry, "Gold")
+					if i % 2 == 0 then
+						addCopy(entry, "Rainbow")
+					end
+					if i % 4 == 0 then
+						addCopy(entry, "Secret")
+					end
 				end
 			end
 		elseif action == "GiveItems" then
@@ -711,6 +721,8 @@ function RollService.Start()
 			-- +20 copies on every owned card: an Awakening node each time.
 			for _, entry in profile.Data.Cards do
 				entry.Copies += Awaken.Every
+				entry.BorderCopies = entry.BorderCopies or {}
+				entry.BorderCopies.Normal = (entry.BorderCopies.Normal or 0) + Awaken.Every
 				entry.Stars = math.max(entry.Stars, math.min(Config.MaxStars, entry.Copies - 1))
 				entry.Awaken = math.max(entry.Awaken or 0, Awaken.FromCopies(entry.Copies))
 			end

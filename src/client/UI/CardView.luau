@@ -1,12 +1,13 @@
 --!nonstrict
--- Draws a card, full-art: the character's 2D illustration (Card.Image) fills the card on a sunburst in
--- the rarity colour, with chips, the big name, the headline ability, tags and DMG / HP on top of it.
+-- Draws a card, full-art: the character's 2D illustration (Card.Image) fills the card, framed only by its
+-- border (the tier: Base / Gold / Rainbow / Secret) and an element glow, with stars, the big name, the
+-- headline ability, tags and DMG / HP on top of it. No rarity badges: the frame says the tier.
 -- Cards without an illustration yet show their glyph big; cards not found yet show a dark silhouette.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
+local Rarity = require(Shared.Rarity) -- trait tier colours only
 local Cards = require(Shared.Cards)
 
 local Borders = require(Shared.Borders)
@@ -26,10 +27,9 @@ local CardView = {}
 export type Options = {
 	Owned: boolean?,
 	Stars: number?,
-	Fusion: number?, -- times fused: the card shows its new rarity and stats
 	Compact: boolean?, -- small grid tile: hides title and stats
 	Animate: boolean?, -- the figure sways (big reveals and detail views only)
-	Border: string?, -- Borders.luau id: Gold / Rainbow / Secret frame (and its small stat bonus)
+	Border: string?, -- Borders.luau id: the tier (frame and stat multiplier)
 	Trait: string?, -- Traits.luau id: shown as the first tag chip, in its tier colour
 	Foil: string?, -- Foils.luau id: shown as a tag chip when it isn't Standard
 }
@@ -151,12 +151,14 @@ function CardView.new(cardId: string, opts: Options?): Frame
 	local options = opts or {}
 	local card = Cards.Get(cardId)
 	assert(card, `Unknown card {cardId}`)
-	local rarity = Cards.FusedRarity(card, options.Fusion) -- fused cards wear their new rarity
-	local tier = Rarity.Get(rarity)
 	local owned = options.Owned ~= false
 	local stars = options.Stars or 0
 	local compact = options.Compact == true
-	local border = options.Border or "Normal"
+	local border = if owned then options.Border or "Normal" else "Normal"
+	local element = Elements.Get(card.Element)
+	local glowColor = if element then element.Color else Theme.Color.Neon
+	-- The tier's colours (the element's on a Base card) drive the frame, the sunburst and the halo.
+	local tier = { Color = if border == "Normal" then glowColor else Borders.Get(border).Color, Dark = glowColor:Lerp(Color3.new(0, 0, 0), 0.75) }
 
 	local frame = Kit.new("Frame", {
 		Name = "Card_" .. card.Id,
@@ -174,14 +176,14 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		),
 	})
 
-	-- Rarity frame: gradient stroke (prismatic for Secret).
-	local stroke = Kit.stroke(Color3.new(1, 1, 1), if compact then 2.5 else 4, 0)
+	-- The border frame: its gradient (prismatic for Secret); a thin element-tinted edge on Base.
+	local stroke = Kit.stroke(Color3.new(1, 1, 1), if border == "Normal" then 1.2 else (if compact then 2.5 else 4), 0)
 	stroke.Name = "RarityStroke"
-	local strokeGradient = Kit.gradient(Rarity.Gradient(rarity), 45)
+	local strokeGradient = Kit.gradient(if border == "Normal" then ColorSequence.new(glowColor:Lerp(Theme.Color.Line, 0.4)) else Borders.Get(border).Gradient, 45)
 	strokeGradient.Name = "RarityGradient"
 	strokeGradient.Parent = stroke
 	stroke.Parent = frame
-	if rarity == "Secret" and options.Animate then
+	if border == "Secret" and options.Animate then
 		Effects.Spin(strokeGradient, 120)
 	end
 
@@ -247,25 +249,28 @@ function CardView.new(cardId: string, opts: Options?): Frame
 	shade(frame, true, if compact then 0.3 else 0.3)
 	shade(frame, false, if compact then 0.38 else 0.48)
 
-	-- Chips along the top: rarity, border, stars, fusion.
+	-- Element glow rising from the bottom edge.
+	Kit.new("Frame", {
+		Name = "ElementGlow",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.fromScale(1, 0.5),
+		BackgroundColor3 = glowColor,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+		Parent = frame,
+	}, {
+		Kit.corner(UDim.new(0.05, 0)),
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, if owned then 0.55 else 0.9) }),
+		}),
+	})
+
+	-- Only the stars along the top: the frame already says the tier.
 	local chips = row(frame, "Chips", 0.025, if compact then 0.1 else 0.06)
-	if compact then
-		chip(chips, 1, string.upper(string.sub(rarity, 1, 1)), tier.Color, 0.2, Color3.fromRGB(16, 10, 30))
-		if (options.Fusion or 0) > 0 and owned then
-			chip(chips, 2, "🔥", Color3.fromRGB(255, 138, 61), 0.2)
-		end
-	else
-		chip(chips, 1, rarity, tier.Color, 0.32, Color3.fromRGB(16, 10, 30))
-		if owned and border ~= "Normal" then
-			local b = Borders.Get(border)
-			chip(chips, 2, b.Name, b.Color, 0.26, Color3.fromRGB(16, 10, 30))
-		end
-		if owned then
-			chip(chips, 3, `★{stars}`, Color3.fromRGB(70, 70, 90), 0.16, if stars > 0 then Theme.Color.Gold else nil)
-		end
-		if (options.Fusion or 0) > 0 and owned then
-			chip(chips, 4, if options.Fusion == 1 then "FUSED" else `FUSED x{options.Fusion}`, Color3.fromRGB(255, 138, 61), 0.26)
-		end
+	if owned and stars > 0 then
+		chip(chips, 1, `★{stars}`, Color3.fromRGB(16, 19, 28), if compact then 0.3 else 0.16, Theme.Color.Gold)
 	end
 
 	-- Element badge: top-right on compact tiles, beside the name on full cards.
@@ -359,7 +364,6 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			if options.Foil and options.Foil ~= "standard" then
 				table.insert(tagList, { `{foil.Icon} {foil.Name}`, foil.Color })
 			end
-			local element = Elements.Get(card.Element)
 			if element then
 				table.insert(tagList, { `{element.Icon} {element.Name}`, element.Color })
 			end
@@ -377,11 +381,11 @@ function CardView.new(cardId: string, opts: Options?): Frame
 
 		-- Footer: DMG (ATK) and HP for Attack cards, PWR and SPD for Support cards.
 		if owned then
-			local main = Cards.Stat(card, card.Main, stars, options.Fusion, options.Border)
+			local main = Cards.Stat(card, card.Main, stars, options.Border)
 			local leftText, leftColor, rightText, rightColor
 			if card.Type == "Attack" then
 				leftText, leftColor = `DMG {short(main)}`, Color3.fromRGB(255, 70, 70)
-				rightText = `HP {short(Cards.Stat(card, card.HP or 0, stars, options.Fusion, options.Border))}`
+				rightText = `HP {short(Cards.Stat(card, card.HP or 0, stars, options.Border))}`
 				rightColor = Color3.fromRGB(90, 230, 110)
 			else
 				leftText, leftColor = `PWR {short(main)}`, Color3.fromRGB(110, 200, 255)
@@ -404,8 +408,8 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		end
 	end
 
-	-- Uploaded rarity frame art, over everything but the foil, then the border (Gold / Rainbow / Secret).
-	Skin.Frame(frame, rarity, 7)
+	-- Uploaded frame art per border (when Skin.KitArt is on), then the border's own frame.
+	Skin.Frame(frame, border, 7)
 	if owned then
 		BorderFx.Apply(frame, options.Border, {
 			Corner = UDim.new(0.05, 0),
@@ -416,8 +420,8 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		})
 	end
 
-	-- Foil layer used by the shimmer (Legendary and up).
-	if Rarity.AtLeast(rarity, "Legendary") and owned then
+	-- Foil layer used by the shimmer (Rainbow and Secret borders).
+	if Borders.Index(border) >= Borders.Index("Rainbow") and owned then
 		local shine = Kit.new("Frame", {
 			Name = "Shine",
 			Size = UDim2.fromScale(1, 1),

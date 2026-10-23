@@ -67,10 +67,10 @@ check(Traits.Text("tempest"):find("speed") ~= nil, "trait text names its effects
 check(near(Meta.BaseLuck({ Luck = 0 }, {}), 1), "base luck starts at 1x")
 check(near(Meta.BaseLuck({ Luck = 10 }, {}), 1.5), "10 Lucky Charm levels give +0.5x")
 local allClaimed = {}
-for _, name in Rarity.Order do
-	allClaimed[name] = true
+for _, id in MODULES.Borders.Order do
+	allClaimed[id] = true
 end
-check(near(Meta.BaseLuck({ Luck = 0 }, allClaimed), 1.5), "a full Index gives +0.5x luck")
+check(near(Meta.BaseLuck({ Luck = 0 }, allClaimed), 1.75), "a full Index at every border gives +0.75x luck")
 check(near(Meta.BaseLuck({ Luck = 0 }, {}, { Luck = 10 }), 1.2), "10 Luck stat points give +0.2x base luck")
 
 -- Stat points: one per level past 1, capped per stat, and they show up where they should.
@@ -138,9 +138,9 @@ end
 for _, m in Meta.Milestones do
 	tablesOk = tablesOk and bundleOk(m.Reward)
 end
-for _, name in Rarity.Order do
-	local reward = Meta.IndexRewards[name]
-	tablesOk = tablesOk and reward ~= nil and bundleOk(reward.Reward) and #(Cards.ByRarity[name] or {}) > 0
+for _, id in MODULES.Borders.Order do
+	local reward = Meta.IndexRewards[id]
+	tablesOk = tablesOk and reward ~= nil and bundleOk(reward.Reward)
 end
 for d = 1, 9 do
 	tablesOk = tablesOk and Meta.PotionById[Rewards.For(d).Potion] ~= nil and Rewards.For(d).Shards == 15 * d

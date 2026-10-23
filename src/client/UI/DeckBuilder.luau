@@ -19,7 +19,7 @@ local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
-local Rarity = require(Shared.Rarity)
+local Rarity = require(Shared.Rarity) -- trait tier colours
 local Elements = require(Shared.Elements)
 local Traits = require(Shared.Traits)
 local Awaken = require(Shared.Awaken)
@@ -33,6 +33,8 @@ local Controls = require(script.Parent.Controls)
 local Sfx = require(script.Parent.Sfx)
 local ElementGuide = require(script.Parent.ElementGuide)
 local Waypoint = require(script.Parent.Waypoint)
+local CardTooltip = require(script.Parent.CardTooltip)
+local MetaClient = require(script.Parent.Parent.MetaClient)
 local State = require(script.Parent.Parent.State)
 
 local DeckBuilder = {}
@@ -260,10 +262,13 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	local tile = CardTile.new(id, {
 		Owned = true,
 		Stars = if own then own.Stars else 0,
-		Fusion = if own then own.Fusion else nil,
 		Border = if own then Borders.Best(own.Borders) else nil,
 		Spin = true,
 	})
+	CardTooltip.Attach(tile, function()
+		local now = entry(id)
+		return id, if now then Borders.Best(now.Borders) else nil
+	end)
 	tile.AnchorPoint = Vector2.new(0, 0.5)
 	tile.Position = UDim2.new(0, 26, 0.5, 0)
 	tile.Size = UDim2.new(0.28, 0, 0.84, 0)
@@ -272,7 +277,7 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	tile.Activated:Connect(function()
 		plate:SetAttribute("Tap", ((plate:GetAttribute("Tap") or 0) :: number) + 1)
 	end)
-	local rarity = Cards.FusedRarity(card, own and own.Fusion)
+	local border = Borders.Get(if own then Borders.Best(own.Borders) else nil)
 	local element = Elements.Get(card.Element)
 	local info = Kit.new("Frame", {
 		Name = "Info",
@@ -281,7 +286,7 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 		BackgroundTransparency = 1,
 		Parent = plate,
 	})
-	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = Rarity.Get(rarity).Color, Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, 0.3), Parent = info }, 17)
+	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, 0.3), Parent = info }, 17)
 	text({ Text = card.Title or "", Font = Theme.Font.Bold, TextColor3 = Theme.Color.Muted, Position = UDim2.fromScale(0, 0.39), Size = UDim2.fromScale(1, 0.22), Parent = info }, 12)
 	text({
 		Text = `{if element then `<font color="#{element.Color:ToHex()}">{element.Icon}</font>  ` else ""}<font color="#FFC42E">⚡ {Kit.commas(Deck.CardPower(id, State.Cards))}</font>`,
@@ -382,9 +387,9 @@ local SORTS = {
 	Power = function(a, b)
 		return Deck.CardPower(a.Id, State.Cards) > Deck.CardPower(b.Id, State.Cards)
 	end,
-	Rarity = function(a, b)
-		local fa, fb = entry(a.Id) and entry(a.Id).Fusion, entry(b.Id) and entry(b.Id).Fusion
-		return Rarity.Index(Cards.FusedRarity(a, fa)) > Rarity.Index(Cards.FusedRarity(b, fb))
+	Border = function(a, b)
+		local ea, eb = entry(a.Id), entry(b.Id)
+		return Borders.Index(Borders.Best(ea and ea.Borders)) > Borders.Index(Borders.Best(eb and eb.Borders))
 	end,
 	Stars = function(a, b)
 		return (entry(a.Id) and entry(a.Id).Stars or 0) > (entry(b.Id) and entry(b.Id).Stars or 0)
@@ -435,7 +440,6 @@ local function drawGrid()
 		local tile = CardTile.new(card.Id, {
 			Owned = true,
 			Stars = own.Stars,
-			Fusion = own.Fusion,
 			Border = Borders.Best(own.Borders),
 			Copies = own.Copies,
 			Power = Deck.CardPower(card.Id, State.Cards),
@@ -444,6 +448,10 @@ local function drawGrid()
 		})
 		tile.LayoutOrder = i
 		tile.Parent = grid
+		CardTooltip.Attach(tile, function()
+			local now = entry(card.Id)
+			return card.Id, if now then Borders.Best(now.Borders) else nil
+		end)
 		tile.Activated:Connect(function()
 			if inspectId == card.Id then
 				equip(card.Id) -- a second tap puts it in (or takes it out)
@@ -491,12 +499,13 @@ local function drawInspector()
 		}, 15)
 		return
 	end
-	local rarity = Cards.FusedRarity(card, own.Fusion)
+	local best = Borders.Best(own.Borders)
+	local border = Borders.Get(best)
 	local element = Elements.Get(card.Element)
 	local left = Kit.new("Frame", { Size = UDim2.new(0.58, -8, 1, 0), BackgroundTransparency = 1, Parent = inspector })
-	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = Rarity.Get(rarity).Color, Size = UDim2.new(1, 0, 0, 22), Parent = left }, 20)
+	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Size = UDim2.new(1, 0, 0, 22), Parent = left }, 20)
 	text({
-		Text = `{card.Title or ""}  ·  {rarity} {card.Type}{if element then `  ·  <font color="#{element.Color:ToHex()}">{element.Icon} {element.Name}</font>` else ""}`,
+		Text = `{card.Title or ""}  ·  {Borders.Label(best)} {card.Type}{if element then `  ·  <font color="#{element.Color:ToHex()}">{element.Icon} {element.Name}</font>` else ""}`,
 		Font = Theme.Font.Bold,
 		TextColor3 = Theme.Color.Muted,
 		Position = UDim2.fromOffset(0, 24),
@@ -521,7 +530,7 @@ local function drawInspector()
 	for node = 1, #Awaken.Nodes do
 		table.insert(pips, if level >= node then `<font color="#3CDCFF">[●]</font>` else `<font color="#5A6480">[○]</font>`)
 	end
-	local copies = if (own.Fusion or 0) > 0 then "FUSED" else `{math.min(own.Copies, Config.FusionCopies)}/{Config.FusionCopies} dupes`
+	local copies = `{Kit.commas(own.Copies)} dupes`
 	text({ Text = `AWAKENING  {table.concat(pips, "")}  <font color="#8A94AC">({copies})</font>`, Position = UDim2.fromOffset(0, 94), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 14)
 
 	-- Actions.
@@ -553,6 +562,23 @@ local function drawInspector()
 		Size = UDim2.new(1, 0, 0, 40),
 		Parent = actions,
 	})
+	-- EQUIP AS AVATAR: your character wears this card's element aura (plus fire footsteps on Rainbow,
+	-- celestial motes on Secret) while walking. Tap again to take it off.
+	local worn = State.Meta.Avatar == card.Id
+	local avatar = Kit.button(if worn then "✓ WORN AS AVATAR" else "EQUIP AS AVATAR", if element then element.Color else CYAN, Color3.fromRGB(20, 26, 40), {
+		LayoutOrder = 3,
+		Size = UDim2.new(1, 0, 0, 36),
+		Parent = actions,
+	})
+	avatar.Activated:Connect(function()
+		local want = if State.Meta.Avatar == card.Id then "" else card.Id
+		local result = MetaClient.Call("SetAvatar", want)
+		if result and result.Ok then
+			Sfx.Play("Upgrade", 1.2)
+			hint(if want ~= "" then `{card.Name} is now your avatar aura` else "Avatar aura off")
+			drawInspector()
+		end
+	end)
 	master.Activated:Connect(function()
 		modal:Close()
 		if Waypoint.To("traitmaster", "🧬 KENSHIN · TRAIT MASTER", Color3.fromRGB(80, 230, 200)) then
@@ -565,7 +591,7 @@ end
 
 local function drawCost()
 	clear(costPill)
-	local cost = Deck.Cost(working)
+	local cost = Deck.Cost(working, State.Cards)
 	local ok = cost <= Config.Deck.CostCap
 	local color = if ok then GOOD else BAD
 	costPill.BackgroundColor3 = color:Lerp(Color3.new(0, 0, 0), 0.78)
@@ -833,7 +859,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		typeBy = value
 		refresh()
 	end)
-	Controls.Option(dropdowns, "Sort", { "Power", "Rarity", "Stars", "Copies", "Name" }, 2, function(value)
+	Controls.Option(dropdowns, "Sort", { "Power", "Border", "Stars", "Copies", "Name" }, 2, function(value)
 		sortBy = value
 		refresh()
 	end)

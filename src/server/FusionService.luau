@@ -1,9 +1,10 @@
 --!strict
--- The Fusion Master: Config.FusionCopies copies of one card fuse it one rarity up, again and again
--- up to Secret. The fused card keeps its stars and gets its new rarity's power (Cards.Stat), so the
--- battle engine, Deck Power and the deck screen all pick it up from the save's Fusion count.
--- Fusing is Awakening node 5 (Awaken.luau): it pays Awaken.FusionTraitShards, and every fusion adds
--- Awaken.FusionLuck permanent base luck (MetaService.BaseLuck counts the fusions).
+-- Hoshi's border fusion: Config.FusionCopies (100) copies of one card at one border fuse into 1 copy of
+-- it at the next border (Base -> Gold -> Rainbow -> Secret). The card wears its best border, so Deck
+-- Power, the battle engine and every screen pick the new tier up from the save (Cards[id].BorderCopies /
+-- Borders). Fusing is Awakening node 5 (Awaken.luau): it pays Awaken.FusionTraitShards, and every fusion
+-- adds Awaken.FusionLuck permanent base luck (MetaService.BaseLuck counts them in Cards[id].Fusion).
+-- Fuse remote: (cardId, border) = fuse 100 of that border; only beside Hoshi (NpcRange).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -12,6 +13,7 @@ local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Awaken = require(Shared.Awaken)
+local Borders = require(Shared.Borders)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -23,10 +25,12 @@ local FusionService = {}
 
 local limiter = RateLimit.new(2, 4)
 
-local function fuse(player: Player, cardId: unknown): { [string]: any }
+local function fuse(player: Player, cardId: unknown, border: unknown): { [string]: any }
 	if type(cardId) ~= "string" then
 		return { Ok = false, Reason = "BadRequest" }
 	end
+	local from = if type(border) == "string" and Borders.ById[border] then border else "Normal"
+	local to = Borders.Next(from)
 	local profile = DataService.Get(player)
 	if profile == nil then
 		return { Ok = false, Reason = "Loading" }
@@ -42,15 +46,20 @@ local function fuse(player: Player, cardId: unknown): { [string]: any }
 	if card == nil or entry == nil then
 		return { Ok = false, Reason = "NotOwned" }
 	end
-	local fusion = entry.Fusion or 0
-	if fusion >= Cards.MaxFusion(card) then
-		return { Ok = false, Reason = "MaxRarity" }
+	if to == nil then
+		return { Ok = false, Reason = "MaxBorder" }
 	end
-	if entry.Copies < Config.FusionCopies then
+	local copies = entry.BorderCopies or {}
+	if (copies[from] or 0) < Config.FusionCopies then
 		return { Ok = false, Reason = "NotEnough" }
 	end
-	entry.Copies -= Config.FusionCopies - 1 -- the copies become one fused card
-	entry.Fusion = fusion + 1
+	copies[from] -= Config.FusionCopies
+	copies[to] = (copies[to] or 0) + 1
+	entry.BorderCopies = copies
+	entry.Copies -= Config.FusionCopies - 1 -- the copies become one card at the next border
+	entry.Borders = entry.Borders or {}
+	entry.Borders[to] = true
+	entry.Fusion = (entry.Fusion or 0) + 1 -- fusions done (node 5 luck)
 	entry.Awaken = math.max(entry.Awaken or 0, 4) -- nodes 1-4 stay open for good
 	local granted = MetaService.Grant(profile.Data, { TraitShards = Awaken.FusionTraitShards }, player)
 	MetaService.Track(player, "Fusions")
@@ -60,7 +69,8 @@ local function fuse(player: Player, cardId: unknown): { [string]: any }
 		CardId = cardId,
 		Card = DataService.CardState(entry),
 		Granted = granted, -- the node 5 Trait Shards
-		Rarity = Cards.FusedRarity(card, entry.Fusion),
+		From = from,
+		Border = to,
 		Meta = MetaService.State(player, profile.Data), -- the "fuse a card" quest
 	}
 end

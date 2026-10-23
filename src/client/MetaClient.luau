@@ -7,7 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
 local Meta = require(Shared.Meta)
-local Rarity = require(Shared.Rarity)
+local Borders = require(Shared.Borders)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local State = require(script.Parent.State)
@@ -55,15 +55,15 @@ function MetaClient.Message(result): string
 	return MetaClient.Reasons[result.Reason] or "Something went wrong"
 end
 
--- Found every card of a rarity (computed here, checked again by the server on claim).
-function MetaClient.RarityComplete(rarity: string): boolean
-	local pool = Cards.ByRarity[rarity]
-	if pool == nil or #pool == 0 then
-		return false
-	end
-	for _, card in pool do
-		if State.Cards[card.Id] == nil then
-			return false
+-- Found every card (boss cards aside) at a border ("Normal" = found at all). Computed here, checked again
+-- by the server on claim.
+function MetaClient.RarityComplete(border: string): boolean
+	for _, card in Cards.List do
+		if card.Boss == nil then
+			local entry = State.Cards[card.Id]
+			if entry == nil or (border ~= "Normal" and not (entry.Borders and entry.Borders[border])) then
+				return false
+			end
 		end
 	end
 	return true
@@ -71,7 +71,7 @@ end
 
 function MetaClient.IndexClaimable(): number
 	local n = 0
-	for _, rarity in Rarity.Order do
+	for _, rarity in Borders.Order do
 		if MetaClient.RarityComplete(rarity) and not State.Meta.IndexClaimed[rarity] then
 			n += 1
 		end

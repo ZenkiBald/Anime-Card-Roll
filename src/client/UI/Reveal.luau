@@ -1,22 +1,19 @@
 --!nonstrict
--- The reveal ladder: every rarity gets a bigger show than the one below it. Every reveal stands on
--- a backdrop in the tier's colour (radial glow + rising motes) and the card flips over, then sways.
---   Common / Uncommon  quick pop, soft rays
---   Rare               coloured build-up pulse + light rays
---   Epic               + screen shake + sparks
---   Legendary          + cinematic letterbox, longer build-up, gold flash, foil shimmer
---   Mythic             + full-screen cut-in banner, light burst before the flip
---   Secret             + blackout heartbeat, prismatic frame
+-- The reveal ladder: every border (the tier) gets a bigger show than the one below it
+-- (Borders.RevealTier). Every reveal stands on a backdrop in the tier's colour (radial glow + rising
+-- motes) and the card flips over, then sways.
+--   Base      quick pop, soft rays
+--   Gold      coloured build-up pulses, screen shake + sparks
+--   Rainbow   + cinematic letterbox, full-screen cut-in banner, light burst before the flip
+--   Secret    + blackout heartbeat, prismatic frame
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Borders = require(Shared.Borders)
-local Traits = require(Shared.Traits)
 local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
 
@@ -307,7 +304,7 @@ local function playFull(result)
 	if card == nil then
 		return
 	end
-	local tier = Rarity.Get(result.Rarity)
+	local tier = Borders.RevealTier(result.Border)
 	local idx = tier.Index
 
 	local root = Kit.new("Frame", {
@@ -394,7 +391,7 @@ local function playFull(result)
 	waitFor(Kit.tween(scale, 0.28, { Scale = 1 }, Enum.EasingStyle.Back), skipped)
 
 	-- Build-up: the back glows in the tier's colour and pulses faster for rarer cards.
-	local pulses = BUILD_PULSES[tier.Name]
+	local pulses = BUILD_PULSES[tier.Sting]
 	if pulses then
 		local stroke = back:FindFirstChild("BackStroke")
 		if stroke then
@@ -454,7 +451,7 @@ local function playFull(result)
 	Sfx.Play("Flip")
 	Kit.tween(flip, 0.09, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Wait()
 	Effects.Flash(root, flashColor, 0.4 + idx * 0.06, if idx >= 5 then 0 else 0.4)
-	Sfx.Sting(tier.Name)
+	Sfx.Sting(tier.Sting)
 	if closeBars then
 		closeBars()
 	end
@@ -539,12 +536,12 @@ local function playFull(result)
 	-- Text under the card.
 	local callSize = 0.06 + idx * 0.008
 	if special then
-		-- "RAINBOW LEGENDARY!" in the border's own colours.
-		local text = `{string.upper(Borders.Get(borderId).Name)} {string.upper(tier.Name)}!`
+		-- "RAINBOW BORDER!" in the border's own colours.
+		local text = `{string.upper(Borders.Get(borderId).Name)} BORDER!`
 		local label = callout(root, text, Color3.new(1, 1, 1), 0.81, callSize + 0.01, 72)
 		Kit.gradient(Borders.Get(borderId).Gradient, 0).Parent = label
 	else
-		callout(root, if idx >= 4 then string.upper(tier.Name) .. "!" else string.upper(tier.Name), tier.Color, 0.81, callSize, 70)
+		callout(root, string.upper(card.Name), tier.Color, 0.81, callSize, 70)
 	end
 	local outcome = Kit.label({
 		Text = outcomeText(result),
@@ -666,10 +663,10 @@ function Reveal.Quick(result)
 	if card == nil then
 		return
 	end
-	local tier = Rarity.Get(result.Rarity)
+	local tier = Borders.RevealTier(result.Border)
 	local borderId = result.Border or "Normal"
 	if tier.Index >= 6 or Borders.Index(borderId) >= Borders.Index("Rainbow") then
-		Reveal.Full(result) -- Mythic and up, and any Rainbow / Secret border, always get the full show
+		Reveal.Full(result) -- any Rainbow / Secret border always gets the full show
 		return
 	end
 
@@ -716,7 +713,7 @@ function Reveal.Quick(result)
 
 	Kit.tween(scale, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
 	Sfx.Play("Flip", 1.1 + math.random() * 0.2)
-	Sfx.Sting(tier.Name, true)
+	Sfx.Sting(tier.Sting, true)
 	if tier.Index >= 4 then
 		Effects.Flash(gui, tier.Color, 0.35, 0.65)
 		Effects.Sparks(slot, tier.Color, 10, 0.9)

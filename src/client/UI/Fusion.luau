@@ -1,8 +1,9 @@
 --!nonstrict
--- FUSION (talk to Hoshi the Fusion Master in town): Config.FusionCopies copies of one card fuse it one
--- rarity up, again and again up to Secret (Awakening node 5: +25 Trait Shards and +0.05x luck each). Left: your cards with their copy progress, ready ones
--- first. Right: the picked card now and after fusing, and the FUSE button. The server does the fusing
--- (FusionService); this screen asks and plays the fusion.
+-- FUSION (talk to Hoshi the Fusion Master in town): border fusion only. Config.FusionCopies (100) copies of
+-- one card at one border fuse into 1 copy at the next border (Base -> Gold -> Rainbow -> Secret; Awakening
+-- node 5: +25 Trait Shards and +0.05x luck each). Left: your cards with their copy progress, ready ones first.
+-- Right: the picked card at its fusing border and at the next, and the FUSE button. The server does the
+-- fusing (FusionService); this screen asks and plays the fusion.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -10,7 +11,6 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
-local Rarity = require(Shared.Rarity)
 local Config = require(Shared.Config)
 local Awaken = require(Shared.Awaken)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -32,7 +32,7 @@ local FIRE_DEEP = Color3.fromRGB(190, 60, 20)
 local REASONS = {
 	NotEnough = "Not enough copies yet",
 	TooFar = "Stand beside Hoshi to fuse",
-	MaxRarity = "Already Secret: it can't fuse further",
+	MaxBorder = "Already Secret: it can't fuse further",
 	NotOwned = "You don't own that card",
 	TooFast = "One fusion at a time",
 	Loading = "Still loading",
@@ -60,8 +60,30 @@ local function hint(text: string)
 	end)
 end
 
-local function canFuse(card, entry): boolean
-	return (entry.Fusion or 0) < Cards.MaxFusion(card) and entry.Copies >= Config.FusionCopies
+-- The border a card fuses from: the highest one with 100 copies ready, else the one closest to 100
+-- (Secret never fuses). nil once all its copies are Secret.
+local function fuseBorder(entry): string?
+	local copies = entry.BorderCopies or {}
+	local pick, most = nil, -1
+	for _, id in Borders.Order do
+		local n = copies[id] or 0
+		if Borders.Next(id) and n > 0 then
+			if n >= Config.FusionCopies then
+				pick, most = id, math.huge
+			elseif most ~= math.huge and n > most then
+				pick, most = id, n
+			end
+		end
+	end
+	return pick
+end
+
+local function copiesAt(entry, border: string?): number
+	return if border then (entry.BorderCopies or {})[border] or 0 else 0
+end
+
+local function canFuse(_card, entry): boolean
+	return copiesAt(entry, fuseBorder(entry)) >= Config.FusionCopies
 end
 
 -- Owned cards that can still fuse, ready ones first, then the closest to their next fusion.
@@ -78,8 +100,9 @@ local function cardsByProgress()
 		if ra ~= rb then
 			return ra
 		end
-		if a.Entry.Copies ~= b.Entry.Copies then
-			return a.Entry.Copies > b.Entry.Copies
+		local ca, cb = copiesAt(a.Entry, fuseBorder(a.Entry)), copiesAt(b.Entry, fuseBorder(b.Entry))
+		if ca ~= cb then
+			return ca > cb
 		end
 		return a.Card.Id < b.Card.Id
 	end)
@@ -94,10 +117,10 @@ local function clear(frame: Instance)
 	end
 end
 
-local function statLine(card, stars: number, fusion: number): string
-	local main = Kit.commas(Cards.Stat(card, card.Main, stars, fusion))
-	local text = if card.Type == "Attack" then `⚔️ {main}  ❤️ {Kit.commas(Cards.Stat(card, card.HP or 0, stars, fusion))}` else `✨ {main} PWR`
-	return `{text}\n<b>{Kit.commas(Cards.Power(card, stars, fusion))}</b> power`
+local function statLine(card, stars: number, border: string, node: number): string
+	local main = Kit.commas(Cards.Stat(card, card.Main, stars, border, node))
+	local text = if card.Type == "Attack" then `⚔️ {main}  ❤️ {Kit.commas(Cards.Stat(card, card.HP or 0, stars, border, node))}` else `✨ {main} PWR`
+	return `{text}\n<b>{Kit.commas(Cards.Power(card, stars, border, node))}</b> power`
 end
 
 local drawGrid -- forward declaration
@@ -120,10 +143,8 @@ local function endFusion(token: number)
 	end
 end
 
-local function playFusion(cardId: string, before, after, token: number)
-	local card = Cards.Get(cardId)
-	local rarity = Cards.FusedRarity(card, after.Fusion)
-	local tier = Rarity.Get(rarity)
+local function playFusion(cardId: string, before, after, from: string, to: string, token: number)
+	local tier = Borders.RevealTier(to)
 	local stage = Kit.new("Frame", {
 		Name = "FusionStage",
 		Size = UDim2.fromScale(1, 1),
@@ -135,7 +156,7 @@ local function playFusion(cardId: string, before, after, token: number)
 		Parent = detail,
 	}, { Kit.corner(UDim.new(0, 18)) })
 	fusionStage = stage
-	local old = CardView.new(cardId, { Owned = true, Stars = before.Stars, Fusion = before.Fusion, Compact = true })
+	local old = CardView.new(cardId, { Owned = true, Stars = before.Stars, Border = from, Compact = true })
 	old.AnchorPoint = Vector2.new(0.5, 0.5)
 	old.Position = UDim2.fromScale(0.5, 0.45)
 	old.Size = UDim2.fromScale(0.5, 0.55)
@@ -150,10 +171,10 @@ local function playFusion(cardId: string, before, after, token: number)
 	task.wait(0.25)
 	old:Destroy()
 	Effects.Flash(stage, tier.Color, 0.6, 0)
-	Sfx.Sting(rarity)
+	Sfx.Sting(tier.Sting)
 	local rays = Effects.Rays(stage, tier.Color, if Theme.FxLow then 6 else 12)
 	rays.ZIndex = 41
-	local fused = CardView.new(cardId, { Owned = true, Stars = after.Stars, Fusion = after.Fusion, Animate = true })
+	local fused = CardView.new(cardId, { Owned = true, Stars = after.Stars, Border = to, Animate = true })
 	fused.AnchorPoint = Vector2.new(0.5, 0.5)
 	fused.Position = UDim2.fromScale(0.5, 0.44)
 	fused.Size = UDim2.fromScale(0.62, 0.68)
@@ -162,11 +183,11 @@ local function playFusion(cardId: string, before, after, token: number)
 	local fusedScale = Kit.new("UIScale", { Scale = 0.3, Parent = fused })
 	Kit.tween(fusedScale, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
 	Effects.Sparks(stage, tier.Color, 36, 1.2)
-	if Rarity.AtLeast(rarity, "Legendary") then
+	if Borders.Index(to) >= 3 then
 		Effects.Shimmer(fused, 2)
 	end
 	local title = Kit.label({
-		Text = `FUSED! {string.upper(rarity)}`,
+		Text = `FUSED! {string.upper(tier.Name)} BORDER`,
 		Font = Theme.Font.Display,
 		TextColor3 = tier.Color,
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -204,10 +225,14 @@ local function fuse(cardId: string)
 	if busy then
 		return
 	end
+	local from = fuseBorder(State.Cards[cardId])
+	if from == nil then
+		return
+	end
 	busy = true
 	local before = table.clone(State.Cards[cardId])
 	local ok, result = pcall(function()
-		return Remotes.Fuse:InvokeServer(cardId)
+		return Remotes.Fuse:InvokeServer(cardId, from)
 	end)
 	if not ok or result == nil or not result.Ok then
 		busy = false
@@ -223,7 +248,7 @@ local function fuse(cardId: string)
 	hint(`✴️ AWAKENING 5: +🧬{granted} Trait Shards · +{Awaken.FusionLuck}x permanent luck`)
 	fusionToken += 1
 	local token = fusionToken
-	local played, err = pcall(playFusion, cardId, before, result.Card, token)
+	local played, err = pcall(playFusion, cardId, before, result.Card, result.From or from, result.Border or Borders.Next(from), token)
 	if not played then
 		warn(`[Fusion] animation failed: {err}`)
 		endFusion(token)
@@ -236,7 +261,7 @@ local function drawDetail()
 	local card = selectedId and Cards.Get(selectedId)
 	if entry == nil or card == nil then
 		Kit.label({
-			Text = "Pick a card on the left.\n100 copies of the same card fuse it into the next rarity, with that rarity's power.",
+			Text = `Pick a card on the left.\n{Config.FusionCopies} copies of a card at one border fuse into 1 copy at the next border (4x the stats).`,
 			Font = Theme.Font.Heavy,
 			TextColor3 = Theme.Color.Muted,
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -246,8 +271,12 @@ local function drawDetail()
 		}, 22)
 		return
 	end
-	local fusion = entry.Fusion or 0
-	local maxed = fusion >= Cards.MaxFusion(card)
+	local from = fuseBorder(entry)
+	local maxed = from == nil
+	local shown = from or Borders.Best(entry.Borders)
+	local to = if from then Borders.Next(from) else nil
+	local node = Awaken.Level(entry)
+	local have = copiesAt(entry, from)
 
 	-- Now -> after fusing, side by side.
 	local cardsRow = Kit.new("Frame", {
@@ -262,7 +291,7 @@ local function drawDetail()
 		view.Size = UDim2.fromScale(0.4, 0.98)
 		view.Parent = cardsRow
 	end
-	placeCard(CardView.new(card.Id, { Owned = true, Stars = entry.Stars, Fusion = fusion, Compact = true, Border = Borders.Best(entry.Borders) }), if maxed then 0.5 else 0.25)
+	placeCard(CardView.new(card.Id, { Owned = true, Stars = entry.Stars, Compact = true, Border = shown }), if maxed then 0.5 else 0.25)
 	if not maxed then
 		local arrow = Kit.label({
 			Text = "▶",
@@ -274,7 +303,7 @@ local function drawDetail()
 			Parent = cardsRow,
 		}, 56)
 		Kit.textStroke(FIRE_DEEP, 2, 0).Parent = arrow
-		placeCard(CardView.new(card.Id, { Owned = true, Stars = entry.Stars, Fusion = fusion + 1, Compact = true, Border = Borders.Best(entry.Borders) }), 0.75)
+		placeCard(CardView.new(card.Id, { Owned = true, Stars = entry.Stars, Compact = true, Border = to }), 0.75)
 	end
 
 	-- Stats now and after.
@@ -284,12 +313,12 @@ local function drawDetail()
 		BackgroundTransparency = 1,
 		Parent = detail,
 	})
-	local function statTile(x: number, width: number, rarity: string, text: string)
-		local tile = Kit.tile({ Position = UDim2.fromScale(x, 0), Size = UDim2.fromScale(width, 1), Parent = statsRow }, Rarity.Get(rarity).Color)
+	local function statTile(x: number, width: number, border: string, text: string)
+		local tile = Kit.tile({ Position = UDim2.fromScale(x, 0), Size = UDim2.fromScale(width, 1), Parent = statsRow }, Borders.Get(border).Color)
 		Kit.label({
-			Text = string.upper(rarity),
+			Text = string.upper(Borders.Label(border)),
 			Font = Theme.Font.Display,
-			TextColor3 = Rarity.Get(rarity).Color,
+			TextColor3 = Borders.Get(border).Color,
 			Position = UDim2.new(0, 0, 0, 4),
 			Size = UDim2.new(1, 0, 0.3, 0),
 			Parent = tile,
@@ -303,15 +332,15 @@ local function drawDetail()
 			Parent = tile,
 		}, 17)
 	end
-	if maxed then
-		statTile(0.25, 0.5, Cards.FusedRarity(card, fusion), statLine(card, entry.Stars, fusion))
+	if maxed or to == nil then
+		statTile(0.25, 0.5, shown, statLine(card, entry.Stars, shown, node))
 	else
-		statTile(0.02, 0.44, Cards.FusedRarity(card, fusion), statLine(card, entry.Stars, fusion))
-		statTile(0.54, 0.44, Cards.FusedRarity(card, fusion + 1), statLine(card, entry.Stars, fusion + 1))
+		statTile(0.02, 0.44, shown, statLine(card, entry.Stars, shown, node))
+		statTile(0.54, 0.44, to, statLine(card, entry.Stars, to, node))
 	end
 
 	-- Copies bar.
-	local copies = math.min(entry.Copies, Config.FusionCopies)
+	local copies = math.min(have, Config.FusionCopies)
 	local track = Kit.new("Frame", {
 		Position = UDim2.fromScale(0.04, 0.77),
 		Size = UDim2.fromScale(0.92, 0.055),
@@ -324,7 +353,7 @@ local function drawDetail()
 		Parent = track,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 200, 90), FIRE), 0) })
 	local barText = Kit.label({
-		Text = if maxed then "MAX RARITY" else `{Kit.commas(entry.Copies)} / {Config.FusionCopies} copies`,
+		Text = if maxed then "SECRET BORDER: MAX" else `{Kit.commas(have)} / {Config.FusionCopies} {Borders.Get(shown).Name} copies`,
 		Font = Theme.Font.Display,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -337,7 +366,7 @@ local function drawDetail()
 	-- FUSE.
 	local ready = canFuse(card, entry)
 	local button = Kit.button(
-		if maxed then "MAX RARITY" elseif ready then "🔥 FUSE!" else `NEED {Config.FusionCopies - entry.Copies} MORE`,
+		if maxed then "MAX BORDER" elseif ready then "🔥 FUSE!" else `NEED {Config.FusionCopies - have} MORE`,
 		FIRE,
 		FIRE_DEEP,
 		{
@@ -356,7 +385,7 @@ local function drawDetail()
 		if ready then
 			fuse(card.Id)
 		else
-			hint(if maxed then REASONS.MaxRarity else "Roll more copies of this card")
+			hint(if maxed then REASONS.MaxBorder else "Roll more copies of this card")
 		end
 	end)
 end
@@ -373,13 +402,14 @@ function drawGrid()
 		local tile = CardTile.new(card.Id, {
 			Owned = true,
 			Stars = entry.Stars,
-			Fusion = entry.Fusion,
 			Border = Borders.Best(entry.Borders),
 			Selected = card.Id == selectedId,
 		})
 		tile.Size = UDim2.new(1, 0, 1, -22)
 		tile.Parent = cell
-		local maxed = (entry.Fusion or 0) >= Cards.MaxFusion(card)
+		local from = fuseBorder(entry)
+		local maxed = from == nil
+		local have = copiesAt(entry, from)
 		local track = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0, 1),
 			Position = UDim2.fromScale(0, 1),
@@ -388,12 +418,12 @@ function drawGrid()
 			Parent = cell,
 		}, { Kit.corner(UDim.new(1, 0)) })
 		Kit.new("Frame", {
-			Size = UDim2.fromScale(if maxed then 1 else math.min(entry.Copies / Config.FusionCopies, 1), 1),
+			Size = UDim2.fromScale(if maxed then 1 else math.min(have / Config.FusionCopies, 1), 1),
 			BackgroundColor3 = if canFuse(card, entry) then Theme.Color.Gold else FIRE,
 			Parent = track,
 		}, { Kit.corner(UDim.new(1, 0)) })
 		local text = Kit.label({
-			Text = if maxed then "MAX" elseif canFuse(card, entry) then "READY!" else `{entry.Copies}/{Config.FusionCopies}`,
+			Text = if maxed then "MAX" elseif canFuse(card, entry) then "READY!" else `{have}/{Config.FusionCopies}`,
 			Font = Theme.Font.Heavy,
 			Size = UDim2.fromScale(1, 1),
 			ZIndex = 2,

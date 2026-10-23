@@ -14,7 +14,6 @@ local Shared = ReplicatedStorage.Shared
 local Bosses = require(Shared.Bosses)
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
-local Rarity = require(Shared.Rarity)
 
 local Deck = require(Shared.Deck)
 local Borders = require(Shared.Borders)
@@ -69,27 +68,25 @@ local BOARDS: { Board } = {
 	{
 		Id = "Rarest",
 		Title = "RAREST CARD",
-		Sub = "Fused cards count",
+		Sub = "Best border, then the rarest pull",
 		Color = Color3.fromRGB(220, 90, 255),
 		Ascending = false,
-		-- Rarity (after fusion) x 1000 + the card's list position, so ties go to the same card.
+		-- The rarest card (Deck.Rarest: best border, then least likely): border index x 1000 + the
+		-- card's list position, so the board can show which card it is.
 		Score = function(data)
-			local best = 0
-			for id, entry in data.Cards do
-				local card = Cards.Get(id)
-				if card then
-					best = math.max(best, Rarity.Index(Cards.FusedRarity(card, entry.Fusion)) * 1000 + (cardIndex[id] or 0))
-				end
+			local id, border = Deck.Rarest(data.Cards)
+			if id == nil then
+				return nil
 			end
-			return if best > 0 then best else nil
+			return Borders.Index(border) * 1000 + (cardIndex[id] or 0)
 		end,
 		Show = function(value)
-			local tier = Rarity.Order[value // 1000]
+			local border = Borders.Order[value // 1000]
 			local card = Cards.List[value % 1000]
-			if tier == nil or card == nil then
+			if border == nil or card == nil then
 				return "?", nil
 			end
-			return `{tier} · {card.Name}`, Rarity.Get(tier).Color
+			return `{Borders.Get(border).Name} · {card.Name}`, Borders.Get(border).Color
 		end,
 	},
 	{
@@ -151,15 +148,7 @@ local function updateStats()
 			local fav = data.Settings.Favorite
 			if fav == nil or fav == "" or data.Cards[fav] == nil then
 				-- No favourite yet: the rarest card owned.
-				fav = ""
-				local best = 0
-				for id, entry in data.Cards do
-					local card = Cards.Get(id)
-					local index = if card then Rarity.Index(Cards.FusedRarity(card, entry.Fusion)) else 0
-					if index > best then
-						best, fav = index, id
-					end
-				end
+				fav = Deck.Rarest(data.Cards) or ""
 			end
 			local entry = data.Cards[fav]
 			player:SetAttribute("Fav", fav)

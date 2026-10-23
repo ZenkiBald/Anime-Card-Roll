@@ -25,7 +25,7 @@ local TEMPLATE = {
 	TraitShards = 0, -- the Trait Master's currency
 	Playtime = 0, -- seconds, saved when the player leaves
 	-- Favorite: the card shown as the player's picture in the server list and on their name tag ("" = none).
-	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "", Title = "" },
+	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "", Title = "", Avatar = "" },
 	Decks = { Active = 1, Presets = presets }, -- each preset: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} }, -- keyed by Bosses.FightKey, e.g. "kurogane:Normal"
 	-- Long-term progression (Meta.luau): potions owned / seconds left running (ticks only while online),
@@ -110,6 +110,7 @@ function DataService.CardState(entry)
 		Stars = entry.Stars,
 		Fusion = entry.Fusion,
 		Borders = entry.Borders,
+		BorderCopies = entry.BorderCopies,
 		Foils = entry.Foils,
 		Awaken = entry.Awaken,
 		Trait = entry.Trait,
@@ -200,6 +201,33 @@ local function onPlayerAdded(player: Player)
 		gear.Cards = nil
 	end
 	profile.Data.Pity = nil -- rolls are pure luck now
+	-- Borders became the tiers (no card rarities): each card gets per-border copy counts. Its old copies
+	-- are Base copies, minus one for each special border it had found; an old rarity fusion becomes one
+	-- Gold copy. Old Auto Roll stops (rarities) go back to the default.
+	for _, entry in profile.Data.Cards do
+		if type(entry) == "table" and entry.BorderCopies == nil then
+			local copies = { Normal = 0 }
+			local special = 0
+			for id, has in entry.Borders or {} do
+				if has and id ~= "Normal" then
+					copies[id] = 1
+					special += 1
+				end
+			end
+			local fused = entry.Fusion or 0
+			if fused > 0 then
+				copies.Gold = (copies.Gold or 0) + fused
+				entry.Borders = entry.Borders or {}
+				entry.Borders.Gold = true
+				entry.Copies += fused
+			end
+			copies.Normal = math.max(0, (entry.Copies or 1) - special - fused)
+			entry.BorderCopies = copies
+		end
+	end
+	if not table.find(Config.AutoStopOptions, profile.Data.Settings.AutoStop) then
+		profile.Data.Settings.AutoStop = Config.DefaultAutoStop
+	end
 	-- Saves from the short-lived roll bank (rarity tickets) get their tickets back as Roll Packs.
 	local bank = profile.Data.RollBank
 	if type(bank) == "table" then

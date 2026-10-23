@@ -5,8 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity)
-local Config = require(Shared.Config)
+local Borders = require(Shared.Borders)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -78,7 +77,7 @@ end
 function RewardReveal.Play(parent: Frame, rewards, onDone: (() -> ())?)
 	local results = table.clone(rewards.Results or {})
 	table.sort(results, function(a, b)
-		local ra, rb = Rarity.Index(a.Rarity), Rarity.Index(b.Rarity)
+		local ra, rb = Borders.Index(a.Border), Borders.Index(b.Border)
 		if ra ~= rb then
 			return ra < rb
 		end
@@ -171,7 +170,7 @@ function RewardReveal.Play(parent: Frame, rewards, onDone: (() -> ())?)
 				return
 			end
 			local slot = slots[i]
-			local tier = Rarity.Get(result.Rarity)
+			local tier = Borders.RevealTier(result.Border)
 			local idx = tier.Index
 			if skipped then
 				slot.Back:Destroy()
@@ -199,7 +198,7 @@ function RewardReveal.Play(parent: Frame, rewards, onDone: (() -> ())?)
 			front.Parent = slot.Holder
 			Kit.tween(slot.Holder, 0.2, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
 			Sfx.Play("Flip", 0.9 + idx * 0.06)
-			Sfx.Sting(tier.Name, true)
+			Sfx.Sting(tier.Sting, true)
 			if result.Border and result.Border ~= "Normal" then
 				Sfx.Play("Reward", 1.2)
 				Effects.Sparks(slot.Slot, Color3.fromRGB(255, 200, 60), 12, 0.9)

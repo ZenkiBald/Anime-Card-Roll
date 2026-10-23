@@ -10,7 +10,7 @@ local Elements = require(script.Parent.Elements)
 local Awaken = require(script.Parent.Awaken)
 
 export type Deck = { Attack: { string }, Support: { string } }
-export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, Awaken: number? } }
+export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, BorderCopies: { [string]: number }?, Awaken: number? } }
 
 local Deck = {}
 
@@ -96,7 +96,7 @@ function Deck.Clean(deck: Deck, owned: Owned): Deck
 	return clean
 end
 
--- Card power with the owner's stars, fusions and best border.
+-- Card power with the owner's stars, best border (the tier) and Awakening.
 function Deck.CardPower(id: string, owned: Owned): number
 	local card = Cards.Get(id)
 	if card == nil then
@@ -104,8 +104,25 @@ function Deck.CardPower(id: string, owned: Owned): number
 	end
 	local entry = owned[id]
 	return if entry
-		then Cards.Power(card, entry.Stars, entry.Fusion, Borders.Best(entry.Borders), Awaken.Level(entry :: any))
+		then Cards.Power(card, entry.Stars, Borders.Best(entry.Borders), Awaken.Level(entry :: any))
 		else Cards.Power(card, 0)
+end
+
+-- The player's "rarest" card: the best border worn, then the least likely card (lowest Weight).
+-- A score for leaderboards too: border index x 1000 + how rare the card is (0-999).
+function Deck.Rarest(owned: Owned): (string?, string, number)
+	local bestId, bestBorder, bestScore = nil, "Normal", -1
+	for id, entry in owned do
+		local card = Cards.Get(id)
+		if card then
+			local border = Borders.Best(entry.Borders)
+			local score = Borders.Index(border) * 1000 + math.clamp(math.floor(999 - card.Weight * 50), 0, 999)
+			if score > bestScore then
+				bestId, bestBorder, bestScore = id, border, score
+			end
+		end
+	end
+	return bestId, bestBorder, math.max(bestScore, 0)
 end
 
 -- Deck Power: the sum of the cards in it.
@@ -121,14 +138,16 @@ function Deck.Power(deck: Deck, owned: Owned): number
 	return total
 end
 
--- Deck Cost: each card's Cards.Cost (by base rarity), for the Cost Challenge (Config.Deck.CostCap).
-function Deck.Cost(deck: Deck): number
+-- Deck Cost: each card's Cards.Cost (by the border it wears), for the Cost Challenge
+-- (Config.Deck.CostCap). Without `owned`, every card counts as Base.
+function Deck.Cost(deck: Deck, owned: Owned?): number
 	local total = 0
 	for _, row in Deck.Rows do
 		for _, id in (deck :: any)[row] :: { string } do
 			local card = Cards.Get(id)
 			if card then
-				total += Cards.Cost(card)
+				local entry = owned and owned[id]
+				total += Cards.Cost(if entry then Borders.Best(entry.Borders) else nil)
 			end
 		end
 	end

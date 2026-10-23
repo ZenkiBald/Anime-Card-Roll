@@ -12,7 +12,6 @@ local Cards = require(Shared.Cards)
 local Bosses = require(Shared.Bosses)
 local Borders = require(Shared.Borders)
 local Deck = require(Shared.Deck)
-local Rarity = require(Shared.Rarity)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -25,7 +24,7 @@ local limiter = RateLimit.new(2, 4)
 local TOP_CARDS = 6
 
 local function cardInfo(id: string, entry): { [string]: any }
-	return { Id = id, Stars = entry.Stars, Fusion = entry.Fusion, Border = Borders.Best(entry.Borders), Trait = entry.Trait }
+	return { Id = id, Stars = entry.Stars, Border = Borders.Best(entry.Borders), Trait = entry.Trait }
 end
 
 local function profileOf(target: Player)
@@ -40,7 +39,7 @@ local function profileOf(target: Player)
 	for id, entry in data.Cards do
 		local card = Cards.Get(id)
 		if card then
-			table.insert(owned, { Id = id, Entry = entry, Power = Cards.Power(card, entry.Stars, entry.Fusion, Borders.Best(entry.Borders)), Rarity = Rarity.Index(Cards.FusedRarity(card, entry.Fusion)) })
+			table.insert(owned, { Id = id, Entry = entry, Power = Cards.Power(card, entry.Stars, Borders.Best(entry.Borders)) })
 		end
 	end
 	table.sort(owned, function(a, b)
@@ -55,13 +54,7 @@ local function profileOf(target: Player)
 	end
 	local favId = data.Settings.Favorite
 	if favId == nil or data.Cards[favId] == nil then
-		favId = nil
-		local best = 0
-		for _, c in owned do
-			if c.Rarity > best then
-				best, favId = c.Rarity, c.Id
-			end
-		end
+		favId = Deck.Rarest(data.Cards)
 	end
 
 	local cleared, fights = 0, 0

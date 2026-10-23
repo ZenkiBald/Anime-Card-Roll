@@ -3,14 +3,21 @@ local Config = MODULES.Config
 local Cards = MODULES.Cards
 local Deck = MODULES.Deck
 local Engine = MODULES.BattleEngine
+local Borders = MODULES.Borders
 
 local Fixtures = {}
 
--- `fusion` (optional) maps card ids to how many times they're fused.
-function Fixtures.own(ids, stars, fusion)
+-- `borders` (optional) maps card ids to the border (tier) they wear; the rest are Base.
+function Fixtures.own(ids, stars, borders)
 	local owned = {}
 	for _, id in ids do
-		owned[id] = { Copies = 1, Stars = stars or 0, Fusion = fusion and fusion[id] }
+		local border = borders and borders[id] or "Normal"
+		owned[id] = {
+			Copies = 1,
+			Stars = stars or 0,
+			Borders = if border ~= "Normal" then { [border] = true } else nil,
+			BorderCopies = { [border] = 1 },
+		}
 	end
 	return owned
 end
@@ -39,7 +46,7 @@ function Fixtures.units(deck, owned)
 	for _, row in { "Attack", "Support" } do
 		for i, id in deck[row] do
 			if id ~= "" then
-				table.insert(list, { Id = `{string.sub(row, 1, 1)}{i}`, CardId = id, Stars = owned[id].Stars, Fusion = owned[id].Fusion })
+				table.insert(list, { Id = `{string.sub(row, 1, 1)}{i}`, CardId = id, Stars = owned[id].Stars, Border = Borders.Best(owned[id].Borders) })
 			end
 		end
 	end
@@ -91,32 +98,34 @@ function Fixtures.campaign(bossId, difficulty, deck, owned, n)
 	return wins / n, times, kos / n
 end
 
--- A deck at about the recommended power for each fight, built the way a player would get there.
+-- A deck at about the recommended power for each fight, built the way a player would get there: World 1
+-- on Base cards, World 2 brings in Gold borders, World 3 is all Gold, World 4 adds Rainbow borders.
+-- `Borders` maps card ids to their border (the rest are Base).
 Fixtures.FIGHTS = {
 	{ Boss = "kurogane", Difficulty = "Normal", Stars = 0,
 		Attack = { "tomo", "mirai", "rook", "kaede" }, Support = { "ibuki", "hana", "goro" } },
 	{ Boss = "kurogane", Difficulty = "Hard", Stars = 5,
 		Attack = { "tomo", "mirai", "rook", "kaede" }, Support = { "suzu", "ibuki", "hana", "goro" } },
-	{ Boss = "kurogane", Difficulty = "Nightmare", Stars = 0,
+	{ Boss = "kurogane", Difficulty = "Nightmare", Stars = 0, Borders = { akane = "Gold", yume = "Gold" },
 		Attack = { "akane", "sora", "tomo", "mirai" }, Support = { "yume", "suzu", "ibuki", "hana" } },
-	{ Boss = "rimeveil", Difficulty = "Normal", Stars = 0,
+	{ Boss = "rimeveil", Difficulty = "Normal", Stars = 0, Borders = { akane = "Gold", sora = "Gold", tetsu = "Gold" },
 		Attack = { "akane", "sora", "tomo", "mirai" }, Support = { "tetsu", "yume", "suzu", "ibuki" } },
-	{ Boss = "rimeveil", Difficulty = "Hard", Stars = 0,
+	{ Boss = "rimeveil", Difficulty = "Hard", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
 		Attack = { "kaito", "akane", "sora", "mirai" }, Support = { "luna", "tetsu", "yume", "hana" } },
-	{ Boss = "rimeveil", Difficulty = "Nightmare", Stars = 5,
+	{ Boss = "rimeveil", Difficulty = "Nightmare", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", tomo = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold", suzu = "Gold" },
 		Attack = { "kaito", "akane", "sora", "tomo" }, Support = { "luna", "tetsu", "yume", "suzu" } },
-	{ Boss = "vex", Difficulty = "Normal", Stars = 3,
+	{ Boss = "vex", Difficulty = "Normal", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", tomo = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
 		Attack = { "kaito", "akane", "sora", "tomo" }, Support = { "luna", "tetsu", "yume", "suzu" } },
-	{ Boss = "vex", Difficulty = "Hard", Stars = 0,
+	{ Boss = "vex", Difficulty = "Hard", Stars = 5, Borders = { noa = "Gold", kaito = "Gold", akane = "Gold", sora = "Gold", orin = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
 		Attack = { "noa", "kaito", "akane", "sora" }, Support = { "orin", "luna", "tetsu", "yume" } },
-	{ Boss = "vex", Difficulty = "Nightmare", Stars = 0,
+	{ Boss = "vex", Difficulty = "Nightmare", Stars = 5, Borders = { raijen = "Rainbow", noa = "Gold", kaito = "Gold", akane = "Gold", orin = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
 		Attack = { "raijen", "noa", "kaito", "akane" }, Support = { "orin", "luna", "tetsu", "yume" } },
-	-- World 4: Amane's cleanse answers Thunderclap; Nightmare needs a few fusions on top of 5 stars.
-	{ Boss = "tenrai", Difficulty = "Normal", Stars = 0,
+	-- World 4: Amane's cleanse answers Thunderclap; Rainbow borders join.
+	{ Boss = "tenrai", Difficulty = "Normal", Stars = 0, Borders = { raijen = "Rainbow", noa = "Rainbow", kaito = "Gold", tsubasa = "Gold", aurelia = "Rainbow", amaya = "Rainbow", orin = "Gold", amane = "Gold" },
 		Attack = { "raijen", "noa", "kaito", "tsubasa" }, Support = { "aurelia", "amaya", "orin", "amane" } },
-	{ Boss = "tenrai", Difficulty = "Hard", Stars = 5,
+	{ Boss = "tenrai", Difficulty = "Hard", Stars = 5, Borders = { raijen = "Rainbow", noa = "Rainbow", kaito = "Gold", tsubasa = "Gold", aurelia = "Rainbow", amaya = "Rainbow", orin = "Gold", amane = "Gold" },
 		Attack = { "raijen", "noa", "kaito", "tsubasa" }, Support = { "aurelia", "amaya", "orin", "amane" } },
-	{ Boss = "tenrai", Difficulty = "Nightmare", Stars = 5, Fusion = { kaito = 1, tsubasa = 1, amane = 2 },
+	{ Boss = "tenrai", Difficulty = "Nightmare", Stars = 5, Borders = { raijen = "Rainbow", noa = "Rainbow", kaito = "Rainbow", tsubasa = "Gold", aurelia = "Rainbow", amaya = "Rainbow", orin = "Gold", amane = "Gold" },
 		Attack = { "raijen", "noa", "kaito", "tsubasa" }, Support = { "aurelia", "amaya", "orin", "amane" } },
 }
 
@@ -125,7 +134,7 @@ function Fixtures.fixtureDeck(fixture)
 	for _, id in fixture.Support do
 		table.insert(ids, id)
 	end
-	local owned = Fixtures.own(ids, fixture.Stars, fixture.Fusion)
+	local owned = Fixtures.own(ids, fixture.Stars, fixture.Borders)
 	return Fixtures.deck(fixture.Attack, fixture.Support), owned
 end
 

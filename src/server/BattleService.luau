@@ -187,6 +187,11 @@ local function run(player: Player, state)
 		elseif battle.Result == "Win" and rewardRolls and boss then
 			summary.Rewards = rewardRolls(player, boss.Difficulties[battle.Difficulty].D, record.FirstClear, state.Cost)
 			summary.CostChallenge = state.Cost
+			-- A first Normal clear puts the boss's own card into this player's roll pool (Cards.Pool).
+			local bossCard = Cards.ForBoss(boss.Id)
+			if record.FirstClear and battle.Difficulty == "Normal" and bossCard then
+				summary.CardUnlocked = bossCard.Id
+			end
 		end
 	end
 	if player.Parent == Players then
@@ -228,7 +233,6 @@ local function deckUnits(data, deck, mutator: Tower.Mutator?)
 					Id = `{string.sub(row, 1, 1)}{i}`,
 					CardId = id,
 					Stars = owned.Stars,
-					Fusion = owned.Fusion,
 					Border = Borders.Best(owned.Borders),
 					Awaken = node,
 					Trait = effects,
@@ -289,7 +293,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 
 	-- The Cost Challenge: boss fights only, and the deck must fit the cap.
 	local cost = type(options) == "table" and (options :: any).Cost == true and boss ~= nil and not isTower and not isRaid
-	if cost and Deck.Cost(deck) > Config.Deck.CostCap then
+	if cost and Deck.Cost(deck, data.Cards) > Config.Deck.CostCap then
 		return { Ok = false, Reason = "TooCostly" }
 	end
 

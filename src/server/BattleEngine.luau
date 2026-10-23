@@ -49,7 +49,6 @@ export type UnitSpec = {
 	Id: string,
 	CardId: string,
 	Stars: number,
-	Fusion: number?,
 	Border: string?,
 	Awaken: number?, -- Awakening node (Awaken.luau): stats, and the 400% bond at node 3
 	Trait: { { Stat: string, Amount: number } }?, -- unit effects: traits, foil, Awakening, mutator
@@ -104,8 +103,8 @@ local function newUnit(spec: UnitSpec)
 		Element = card.Element,
 		Awaken = spec.Awaken or 0,
 		HPCost = 0,
-		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Fusion, spec.Border, spec.Awaken),
-		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Fusion, spec.Border, spec.Awaken) else 0,
+		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Border, spec.Awaken),
+		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Border, spec.Awaken) else 0,
 		SPD = card.SPD,
 		Gauge = 0,
 		Energy = 0,

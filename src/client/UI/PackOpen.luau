@@ -7,7 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Packs = require(Shared.Packs)
-local Rarity = require(Shared.Rarity)
+local Borders = require(Shared.Borders)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -52,11 +52,11 @@ function PackOpen.SummaryText(result): string
 	if (result.New or 0) > 0 then
 		table.insert(parts, `<font color="#FFC42E"><b>{result.New} NEW</b></font>`)
 	end
-	for i = #Rarity.Order, 1, -1 do
-		local name = Rarity.Order[i]
-		local count = result.Counts and result.Counts[name]
+	for i = #Borders.Order, 1, -1 do
+		local id = Borders.Order[i]
+		local count = result.Counts and result.Counts[id]
 		if count and count > 0 then
-			table.insert(parts, `<font color="#{Rarity.Get(name).Color:ToHex()}">{name} {Kit.commas(count)}</font>`)
+			table.insert(parts, `<font color="#{Borders.Get(id).Color:ToHex()}">{Borders.Get(id).Name} {Kit.commas(count)}</font>`)
 		end
 	end
 	return table.concat(parts, "  ·  ")
