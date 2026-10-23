@@ -31,6 +31,7 @@ local Skin = require(script.Parent.Skin)
 local ModelView = require(script.Parent.ModelView)
 local ElementUi = require(script.Parent.ElementUi)
 local ElementGuide = require(script.Parent.ElementGuide)
+local CardView = require(script.Parent.CardView)
 local State = require(script.Parent.Parent.State)
 
 local BossScreen = {}
@@ -376,16 +377,18 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 				Parent = peek,
 			}, { Kit.corner(UDim.new(0.25, 0)) })
 			if card then
-				Kit.stroke(Rarity.Get(card.Rarity).Color, 2, 0).Parent = chip
+				CardView.Portrait(id, true).Parent = chip
+				CardView.Bevel(chip, card.Rarity, 2)
+			else
+				Kit.label({
+					Text = "-",
+					Font = Theme.Font.Display,
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.5, 0.5),
+					Size = UDim2.fromScale(0.8, 0.6),
+					Parent = chip,
+				}, 22)
 			end
-			Kit.label({
-				Text = if card then card.Glyph else "-",
-				Font = Theme.Font.Display,
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.fromScale(0.8, 0.6),
-				Parent = chip,
-			}, 22)
 		end
 		if deckRow == "Attack" then
 			order += 1

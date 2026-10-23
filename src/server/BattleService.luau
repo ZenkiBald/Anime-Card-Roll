@@ -66,6 +66,21 @@ function BattleService.TowerOpen(data): boolean
 	return not Config.Unlocks.Enabled or data.Progress.Cleared[Tower.UnlockAfter] == true
 end
 
+-- Fights are staged in 3D at the boss's own spot in its world (the client's Arena). With streaming on,
+-- the client only has the area around its focus, so the fight moves the focus to the boss's marker
+-- (and asks for the area at once); it goes back to the character when the fight ends.
+local function setArenaFocus(player: Player, bossId: string?)
+	local map = workspace:FindFirstChild("Map")
+	local markers = map and map:FindFirstChild("Markers")
+	local marker = if bossId and markers then markers:FindFirstChild(`Boss_{bossId}`) else nil
+	if marker and marker:IsA("BasePart") then
+		player.ReplicationFocus = marker
+		task.spawn(pcall, player.RequestStreamAroundAsync, player, marker.Position, 5)
+	else
+		player.ReplicationFocus = nil
+	end
+end
+
 local function recordResult(player: Player, state)
 	local battle = state.Engine
 	local profile = DataService.Get(player)
@@ -162,6 +177,7 @@ local function run(player: Player, state)
 		return -- stopped from outside (player left, test-data reset)
 	end
 	active[player] = nil
+	setArenaFocus(player, nil)
 	local summary = battle:Summary()
 	if (summary.CounterStaggers or 0) > 0 then
 		TutorialService.Note(player, "CounterStagger") -- Kenji's last quest
@@ -202,6 +218,7 @@ end
 function BattleService.Stop(player: Player)
 	if active[player] then
 		active[player] = nil
+		setArenaFocus(player, nil)
 		Remotes.BattleEvent:FireClient(player, { Done = { Result = "Stopped" } })
 	end
 end
@@ -322,6 +339,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		Raid = if raid then { Index = raid.Index, Name = raid.Name, Reported = 0 } else nil,
 	}
 	active[player] = state
+	setArenaFocus(player, boss.Id)
 	task.spawn(run, player, state)
 
 	return {

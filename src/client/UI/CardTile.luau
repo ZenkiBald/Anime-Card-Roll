@@ -96,19 +96,16 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	local art = CardView.Art(cardId, owned, false)
 	if art then
 		art.AnchorPoint = Vector2.new(0.5, 0.5)
-		art.Position = UDim2.fromScale(0.5, if card.Image then 0.5 else 0.52)
-		art.Size = if card.Image then UDim2.fromScale(1, 1) else UDim2.fromScale(1.12, 1.12)
+		art.Position = UDim2.fromScale(0.5, 0.5)
+		art.Size = UDim2.fromScale(1, 1)
 		art.Parent = button
 	else
-		outlined(Kit.label({
-			Text = if owned then card.Glyph else "?",
-			Font = Theme.Font.Display,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.45),
-			Size = UDim2.fromScale(0.7, 0.4),
-			ZIndex = 2,
-			Parent = button,
-		}, 60), 3)
+		-- No illustration yet: the element-lit bust (with its own "?" when not found).
+		local bust = CardView.Portrait(cardId, owned, false)
+		bust.AnchorPoint = Vector2.new(0.5, 0.5)
+		bust.Position = UDim2.fromScale(0.5, 0.44)
+		bust.Size = UDim2.fromScale(0.74, 0.62)
+		bust.Parent = button
 	end
 	if not owned and art then
 		outlined(Kit.label({

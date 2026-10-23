@@ -65,15 +65,8 @@ local function setPortrait(row, cardId: string, fusion: number, border: string)
 	local rarity = Cards.FusedRarity(card, fusion)
 	row.Portrait.BackgroundColor3 = card.Accent
 	row.Stroke.Color = if border ~= "Normal" and Borders.Get(border) then Borders.Get(border).Color else Rarity.Get(rarity).Color
-	local art = CardView.Art(cardId, true, false)
-	if art then
-		art.Size = if card.Image then UDim2.fromScale(1, 1) else UDim2.fromScale(1.35, 1.35)
-		art.AnchorPoint = Vector2.new(0.5, 0.5)
-		art.Position = if card.Image then UDim2.fromScale(0.5, 0.5) else UDim2.fromScale(0.5, 0.62)
-		art.Parent = row.Portrait
-	else
-		Kit.label({ Text = card.Glyph, Font = Theme.Font.Display, Size = UDim2.fromScale(1, 1), Parent = row.Portrait }, 24)
-	end
+	row.Portrait.BackgroundColor3 = CardView.Glow(cardId)
+	CardView.Portrait(cardId, true).Parent = row.Portrait
 end
 
 local function makeRow(player: Player)

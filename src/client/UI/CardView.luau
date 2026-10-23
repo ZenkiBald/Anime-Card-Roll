@@ -1,7 +1,8 @@
 --!nonstrict
 -- Draws a card, full-art: the character's 2D illustration (Card.Image) fills the card on a sunburst in
 -- the rarity colour, with chips, the big name, the headline ability, tags and DMG / HP on top of it.
--- Cards without an illustration yet show their glyph big; cards not found yet show a dark silhouette.
+-- Cards without an illustration yet show an element-lit bust (CardView.Portrait, used by every card
+-- slot); cards not found yet show a dark silhouette.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -56,6 +57,140 @@ function CardView.Art(cardId: string, owned: boolean, _animate: boolean?): GuiOb
 		ImageColor3 = if owned then Color3.new(1, 1, 1) else SILHOUETTE,
 		ZIndex = 2,
 	})
+end
+
+-- Element glow behind portraits: amber Flame, ice Frost, gold Storm, warm Light, violet Void, teal Cosmic.
+local GLOW = {
+	Flame = Color3.fromRGB(255, 130, 40),
+	Frost = Color3.fromRGB(80, 190, 255),
+	Storm = Color3.fromRGB(255, 205, 60),
+	Light = Color3.fromRGB(255, 232, 150),
+	Void = Color3.fromRGB(150, 70, 255),
+	Cosmic = Color3.fromRGB(40, 230, 210),
+}
+
+function CardView.Glow(cardId: string): Color3
+	local card = Cards.Get(cardId)
+	return card and GLOW[card.Element] or Color3.fromRGB(150, 150, 170)
+end
+
+-- Until a card has its illustration: a rim-lit bust silhouette over the element's icon, never letters.
+local function bust(card, owned: boolean): Frame
+	local glow = GLOW[card.Element] or card.Accent
+	local holder = Kit.new("Frame", {
+		Name = "Bust",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 2,
+	})
+	local element = Elements.Get(card.Element)
+	if element and owned then
+		Kit.label({
+			Name = "Mark",
+			Text = element.Icon,
+			Font = Theme.Font.Heavy,
+			TextTransparency = 0.72,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.42),
+			Size = UDim2.fromScale(0.9, 0.62),
+			ZIndex = 2,
+			Parent = holder,
+		}, 160)
+	end
+	local fill = if owned then Color3.fromRGB(18, 14, 30) else SILHOUETTE
+	local rim = if owned then glow else Color3.fromRGB(60, 56, 80)
+	local function piece(name: string, anchorY: number, y: number, w: number, h: number, round: UDim, aspect: boolean?)
+		local part = Kit.new("Frame", {
+			Name = name,
+			AnchorPoint = Vector2.new(0.5, anchorY),
+			Position = UDim2.fromScale(0.5, y),
+			Size = UDim2.fromScale(w, h),
+			BackgroundColor3 = fill,
+			ZIndex = 3,
+			Parent = holder,
+		}, {
+			Kit.corner(round),
+			Kit.stroke(rim, 2, if owned then 0.15 else 0.5),
+			Kit.gradient(ColorSequence.new(if owned then fill:Lerp(glow, 0.35) else fill, fill), 90),
+		})
+		if aspect then
+			Kit.aspect(1, Enum.DominantAxis.Width).Parent = part
+		end
+		return part
+	end
+	piece("Shoulders", 1, 1.04, 0.86, 0.36, UDim.new(0.45, 0))
+	piece("Head", 0.5, 0.44, 0.36, 0.36, UDim.new(1, 0), true)
+	return holder
+end
+
+-- A portrait for any card slot: the element glow, then the illustration or the bust. Fills its parent.
+-- `background` = false leaves the glow out (full cards draw their own sunburst).
+function CardView.Portrait(cardId: string, owned: boolean, background: boolean?): Frame
+	local card = Cards.Get(cardId)
+	local frame = Kit.new("Frame", {
+		Name = "PortraitArt",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(10, 10, 18),
+		BackgroundTransparency = if background == false then 1 else 0,
+		ClipsDescendants = true,
+		ZIndex = 2,
+	}, { Kit.corner(UDim.new(0.14, 0)) })
+	if card == nil then
+		return frame
+	end
+	if background ~= false then
+		Kit.new("Frame", {
+			Name = "Glow",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = if owned then CardView.Glow(cardId) else Color3.fromRGB(40, 38, 56),
+			ZIndex = 2,
+			Parent = frame,
+		}, {
+			Kit.corner(UDim.new(0.14, 0)),
+			Kit.new("UIGradient", {
+				Rotation = 90,
+				Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(20, 20, 30)),
+				Transparency = NumberSequence.new(0.1, 0.4),
+			}),
+		})
+	end
+	local art = CardView.Art(cardId, owned)
+	local inner = art or bust(card, owned)
+	inner.Parent = frame
+	if not owned then
+		Kit.label({
+			Name = "Unknown",
+			Text = "?",
+			Font = Theme.Font.Display,
+			TextColor3 = Color3.fromRGB(194, 204, 225),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.44),
+			Size = UDim2.fromScale(0.5, 0.3),
+			ZIndex = 5,
+			Parent = frame,
+		}, 80)
+	end
+	return frame
+end
+
+-- A sharp bevelled metal edge in the rarity colour: light on the top-left, dark on the bottom-right.
+function CardView.Bevel(target: GuiObject, rarity: string, thickness: number?)
+	local color = Rarity.Get(rarity).Color
+	local stroke = Kit.stroke(Color3.new(1, 1, 1), thickness or 2.5, 0)
+	stroke.Name = "Bevel"
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	Kit.new("UIGradient", {
+		Rotation = 45,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, color:Lerp(Color3.new(1, 1, 1), 0.7)),
+			ColorSequenceKeypoint.new(0.45, color),
+			ColorSequenceKeypoint.new(0.55, color:Lerp(Color3.new(0, 0, 0), 0.45)),
+			ColorSequenceKeypoint.new(1, color:Lerp(Color3.new(1, 1, 1), 0.25)),
+		}),
+		Parent = stroke,
+	})
+	stroke.Parent = target
+	return stroke
 end
 
 -- "130.01K" / "1.25M" for the stat footer.
@@ -226,24 +361,14 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		Kit.corner(UDim.new(1, 0)),
 		Kit.aspect(1, Enum.DominantAxis.Width),
 	})
-	local art = CardView.Art(card.Id, owned, options.Animate)
-	if art then
-		art.Parent = portrait -- the illustration fills the whole card
+	-- The illustration fills the whole card; until it exists, the element-lit bust stands in the middle.
+	local art = CardView.Portrait(card.Id, owned, false)
+	if card.Image == nil then
+		art.AnchorPoint = Vector2.new(0.5, 0.5)
+		art.Position = UDim2.fromScale(0.5, 0.4)
+		art.Size = UDim2.fromScale(0.72, 0.5)
 	end
-	if art == nil or not owned then
-		Kit.label({
-			Name = "Glyph",
-			Text = if owned then card.Glyph else "?",
-			Font = Theme.Font.Display,
-			TextColor3 = Color3.new(1, 1, 1),
-			TextTransparency = if owned then 0.05 else 0.25,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.45),
-			Size = UDim2.fromScale(0.6, if art then 0.3 else 0.4),
-			ZIndex = 3,
-			Parent = portrait,
-		}, 120)
-	end
+	art.Parent = portrait
 	shade(frame, true, if compact then 0.3 else 0.3)
 	shade(frame, false, if compact then 0.38 else 0.48)
 

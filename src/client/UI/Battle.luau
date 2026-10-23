@@ -2,7 +2,9 @@
 -- Battle screen. The fight runs on the server; this draws the snapshots it streams
 -- (HP, shields, action bars, energy) and animates its events (hits, heals, warnings).
 -- The player only taps charged cards to fire Ultimates, toggles Auto and speed, or gives up.
--- Plain Frames + tweens and one 3D boss in a ViewportFrame, so it stays cheap on phones.
+-- The squad is staged in 3D in the boss's world (UI/Arena: leader, guards, cinematic camera) with the
+-- boss holder and guard tiles on world-space billboards; the squad dock keeps to the lower 22%.
+-- Without a map, the boss stands in a ViewportFrame over a 2D backdrop instead.
 
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,6 +27,7 @@ local Skin = require(script.Parent.Skin)
 local Modal = require(script.Parent.Modal)
 local Effects = require(script.Parent.Effects)
 local ModelView = require(script.Parent.ModelView)
+local Arena = require(script.Parent.Arena)
 local CardView = require(script.Parent.CardView)
 local RewardReveal = require(script.Parent.RewardReveal)
 local PackOpen = require(script.Parent.PackOpen)
@@ -606,15 +609,10 @@ local function cutIn(cardId: string, ultName: string)
 		Kit.aspect(1, Enum.DominantAxis.Height),
 		Kit.stroke(neon, 4, 0),
 	})
-	Kit.label({
-		Text = card.Glyph,
-		Font = Theme.Font.Display,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.8, 0.5),
-		ZIndex = 72,
-		Parent = portrait,
-	}, 60)
+	local face = CardView.Portrait(cardId, true)
+	face:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
+	face.Glow.UICorner.CornerRadius = UDim.new(1, 0)
+	face.Parent = portrait
 	local name = Kit.label({
 		Text = string.upper(ultName),
 		Font = Theme.Font.Display,
@@ -754,24 +752,9 @@ local function makeTile(unit, order: number)
 		ZIndex = 4,
 		Parent = portrait,
 	})
-	local art = CardView.Art(unit.CardId, true, false)
-	if art then
-		-- A 2D illustration fills the portrait; the 3D figure is framed a little larger and lower.
-		art.Size = if card.Image then UDim2.fromScale(1, 1) else UDim2.fromScale(1.25, 1.25)
-		art.AnchorPoint = Vector2.new(0.5, 0.5)
-		art.Position = if card.Image then UDim2.fromScale(0.5, 0.5) else UDim2.fromScale(0.5, 0.58)
-		art.Parent = portrait
-	else
-		Kit.label({
-			Name = "Glyph",
-			Text = card.Glyph,
-			Font = Theme.Font.Display,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.46),
-			Size = UDim2.fromScale(0.85, 0.5),
-			Parent = portrait,
-		}, 40)
-	end
+	-- The illustration (or the element-lit bust) in a bevelled metal frame in the rarity colour.
+	CardView.Portrait(unit.CardId, true).Parent = portrait
+	CardView.Bevel(portrait, rarity, 2)
 	if stars > 0 then
 		Kit.label({
 			Name = "Stars",
@@ -1009,6 +992,28 @@ local function setFocus(id: string)
 end
 
 -- A guard: icon, name, role, HP and action bars; tap to focus it.
+-- In a staged fight the boss holder and guard slots ride on the arena's world-space billboards;
+-- sendHome() puts them back in the screen layout.
+local stageHomes = {} -- [GuiObject] = { Parent, Size, Position }
+
+local function moveInto(object: GuiObject, parent: Instance)
+	if stageHomes[object] == nil then
+		stageHomes[object] = { Parent = object.Parent, Size = object.Size, Position = object.Position }
+	end
+	object.Parent = parent
+	object.Size = UDim2.fromScale(1, 1)
+	object.Position = UDim2.fromScale(0.5, 0.5)
+end
+
+local function sendHome()
+	for object, home in stageHomes do
+		object.Parent = home.Parent
+		object.Size = home.Size
+		object.Position = home.Position
+	end
+	table.clear(stageHomes)
+end
+
 local function makeGuardTile(enemy, slot: Frame)
 	local g = Bosses.GuardTypes[enemy.GuardId]
 	local color = if g then g.Color else Theme.Color.Danger
@@ -1196,6 +1201,7 @@ local function applySnapshot(snap)
 		if id == "Boss" then
 			local maxHP = current.Info.Boss.MaxHP
 			setHp(bossHpFill, bossHpTrail, s.H / maxHP)
+			Arena.SetLeaderHp(s.H / maxHP)
 			local barrier = s.Bar or 0
 			Kit.tween(bossBarrier, 0.2, { Size = UDim2.fromScale(math.min(1, barrier / maxHP * 8), 1) })
 			bossHpText.Text = if barrier > 0
@@ -1224,6 +1230,7 @@ local function applySnapshot(snap)
 			if tile.Ko.Visible ~= down then
 				tile.Ko.Visible = down
 				tile.Focus.Visible = false
+				Arena.SetDown(id, down)
 			end
 		else
 			local tile = tiles[id]
@@ -1437,6 +1444,7 @@ local function playEvent(event)
 				guard.Flash.BackgroundTransparency = 0.5
 				Kit.tween(guard.Flash, 0.2, { BackgroundTransparency = 1 })
 				bump(guard.Scale, if event.C then 0.1 else 0.04)
+				Arena.Hit(event.T, event.C)
 			end
 		else
 			local tile = tiles[event.T]
@@ -2359,35 +2367,55 @@ local function begin(start, bossId: string, difficulty: string?)
 	arena.Disc.UIStroke.Color = boss.Accent:Lerp(Color3.new(1, 1, 1), 0.35)
 	arena.Inner.BackgroundColor3 = boss.Deep:Lerp(Color3.new(0, 0, 0), 0.3)
 
-	-- The boss, live in 3D.
+	-- The boss, live in 3D: staged in its own world (UI/Arena) with its guards beside it, else (no map)
+	-- in a ViewportFrame over the 2D backdrop.
 	if bossView then
 		bossView.Frame:Destroy()
 	end
-	bossView = ModelView.new(boss.Id, {
-		Name = "BossView",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(1.6, 1.25),
-		ZIndex = 2,
-		Parent = bossHolder,
-	}, 10)
-	if tower then
-		bossView:SetTint(if tower.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
-	elseif raid then
-		bossView:SetTint(Color3.fromRGB(255, 150, 170)) -- a Colossus
-	end
-	barrierRing.Visible = false
-
-	-- The enemy squad: the leader in 3D in the middle, its guards as tiles around it.
-	local guardIndex = 0
+	sendHome()
+	local guards = {}
 	for _, enemy in start.Info.Enemies or {} do
 		enemyNames[enemy.Id] = enemy.Name
 		if not enemy.Leader then
-			guardIndex += 1
-			local slot = guardSlots[guardIndex]
-			if slot then
-				makeGuardTile(enemy, slot)
+			table.insert(guards, enemy)
+		end
+	end
+	local tint = if tower then (if tower.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
+		elseif raid then Color3.fromRGB(255, 150, 170) -- a Colossus
+		else nil
+	local staged = Arena.Start(boss, guards, tint)
+	backdrop.BackgroundTransparency = if staged then 1 else 0.02
+	backdrop.Active = staged == nil -- staged: taps reach the enemies' world-space billboards
+	gui.Spotlight.Visible = staged == nil
+	arena.Visible = staged == nil
+	if staged then
+		bossView = staged.View
+		moveInto(bossHolder, staged.LeaderGui)
+		for i, slot in guardSlots do
+			if staged.GuardGuis[i] then
+				moveInto(slot, staged.GuardGuis[i])
 			end
+		end
+	else
+		bossView = ModelView.new(boss.Id, {
+			Name = "BossView",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1.6, 1.25),
+			ZIndex = 2,
+			Parent = bossHolder,
+		}, 10)
+		if tint then
+			bossView:SetTint(tint)
+		end
+	end
+	barrierRing.Visible = false
+
+	-- The enemy squad: the leader in the middle, its guards left, right and in front of it.
+	for i, enemy in guards do
+		local slot = guardSlots[i]
+		if slot then
+			makeGuardTile(enemy, slot)
 		end
 	end
 	enemyNames.Boss = current.BossName
@@ -2486,6 +2514,8 @@ function exit()
 		bossView.Frame:Destroy()
 		bossView = nil
 	end
+	sendHome() -- before the arena's billboards go
+	Arena.Stop()
 	for _, child in particles:GetChildren() do
 		child:Destroy()
 	end
@@ -2857,26 +2887,16 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		Parent = warnBanner,
 	}, 28)
 
-	-- Card rows: Attack (front) above Support (back, slimmer: no HP).
+	-- The squad dock: the lower 22% of the screen, so the fight above has the rest. Attack badges (front)
+	-- with each Support's mini-chip tucked under the Attacker in the same column (back, no HP).
 	local rowsFrame = Kit.new("Frame", {
 		Name = "Rows",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 1),
-		Size = UDim2.fromScale(0.64, 0.46),
+		Position = UDim2.new(0.5, 0, 1, -6),
+		Size = UDim2.fromScale(0.66, 0.22),
 		BackgroundTransparency = 1,
 		Parent = stage,
-	}, { Kit.new("UISizeConstraint", { MaxSize = Vector2.new(980, 320) }) })
-	local function rowLabel(text: string, y: number, color: Color3)
-		Kit.label({
-			Text = text,
-			Font = Theme.Font.Heavy,
-			TextColor3 = color,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Position = UDim2.fromScale(0, y),
-			Size = UDim2.fromScale(0.6, 0.07),
-			Parent = rowsFrame,
-		}, 14)
-	end
+	}, { Kit.new("UISizeConstraint", { MaxSize = Vector2.new(980, 190) }) })
 	local function row(name: string, y: number, height: number): Frame
 		return Kit.new("Frame", {
 			Name = name,
@@ -2893,9 +2913,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 			}),
 		})
 	end
-	rowLabel("ATTACK · FRONT ROW", 0, Theme.Color.Attack)
-	frontRow = row("Front", 0.08, 0.5)
-	rowLabel("SUPPORT · BACK ROW · CAN'T BE HIT", 0.6, Theme.Color.Support)
+	frontRow = row("Front", 0, 0.64)
 	backRow = row("Back", 0.68, 0.32)
 
 	-- Controls down the left edge (where the main menu sits outside battle).

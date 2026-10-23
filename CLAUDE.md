@@ -246,6 +246,15 @@ metal FIGHT! drop-in; a STAGGERED banner under the leader's HP while Staggered (
 Ultimates +50%). NPC / booth name plates and the town boards show within 25 studs only (HubFx fades them); the
 Momentum line sits in a glass header over the roll console with a 2 px bar to 500; Travel cards get a biome glow
 and a boss badge (highest cleared difficulty).
+Arena pass (2026-10-23, not yet seen in Studio): fights are staged in 3D at the boss's own spot in its world
+(`UI/Arena`; World publishes each spot as `ReplicatedStorage.Arenas[bossId]` attribute Stand, BattleService moves
+the player's ReplicationFocus to the `Boss_` marker for the fight): the leader where its NPC stands (the NPC is
+hidden locally), the 3 guards as smaller copies of the boss figure tinted by role (Highlight) left / right / front,
+two braziers in the world colour, ZoneFx mood of that zone, a low Scriptable camera looking up with depth of field.
+The boss holder (taps, rings, damage numbers) and guard tiles ride on world-space BillboardGuis; the leader also has
+a name + HP plate. No map: the old ViewportFrame + 2D backdrop. The squad dock is the lower 22% (attack badges, each
+Support's chip under its column). Card portraits: `CardView.Portrait` (element glow + the Image, else a rim-lit bust
+silhouette, never letters) and `CardView.Bevel` (metal rarity edge) everywhere cards show.
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,

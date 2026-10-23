@@ -739,6 +739,14 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 
 	local height = BossModels.Height(boss.Id)
 	local stand = bossMarker.CFrame
+	-- Fights are staged here (client Arena): published so clients know the spot before it streams in.
+	local arenas = ReplicatedStorage:FindFirstChild("Arenas") or Instance.new("Folder")
+	arenas.Name = "Arenas"
+	arenas.Parent = ReplicatedStorage
+	local spot = Instance.new("Configuration")
+	spot.Name = boss.Id
+	spot:SetAttribute("Stand", stand)
+	spot.Parent = arenas
 	local model = npc(boss.Id, stand * CFrame.new(0, height / 2, 0), area, "Challenge", `{boss.Name}, {boss.Title}`)
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	local prompt = (model.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")
