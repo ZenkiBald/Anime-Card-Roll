@@ -128,7 +128,8 @@ Frost Wolf, Void Ray, Storm Kirin unlock on each boss's first Normal clear), spe
 G or the PETS paw (top right, under the gear) rides / gets off; the server welds the model under the rider.
 Models live in the place at `ReplicatedStorage.MountKit` (not Rojo); per mount `Seat` is the rider's hip height
 and `Forward` slides the model so the saddle is under them. Dash on Q (touch: DASH button, gamepad: X), client
-side with a 1.2 s cooldown; Quick Roll moved from Q to T.
+side; two charges (double dash), both back 1.2 s after the last; a mid-air double jump (ring of light, back on
+landing), both in `Dash.luau`; Quick Roll moved from Q to T.
 On foot, your last mount follows as a small pet (`Followers.luau`, client-drawn from the character's "Pet"
 attribute). Name tags over every player (`NameTagService`: name, level, rarest card in its colour).
 Sakura petals drift in town and leaves in Ember Village (`ZoneFx`). The 4 bosses, Kenji and Hoshi use AI
