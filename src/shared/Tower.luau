@@ -14,7 +14,10 @@
 --     bosses are tuned on. tests/tower_test.luau checks a deck at a floor's recommended power wins it.
 --   * Every floor pays Shards, XP and a roll for gear (Items.RollDrops at D = floor x DPerFloor, World 1
 --     Normal = 1, boosted on Guardians); some floors also drop Roll Packs (Packs.ForFloor).
--- A new enemy or affix is one entry below.
+--   * Every day (UTC) one mutator is on for every tower floor, the same on every server: a boon for one
+--     element's cards (or for every card) that turns the day's climb into a different deck puzzle.
+--     Mutators only ever help, so the tuning tests (run without one) are the hardest case.
+-- A new enemy, affix or mutator is one entry below.
 
 local Bosses = require(script.Parent.Bosses)
 local Rewards = require(script.Parent.Rewards)
@@ -59,6 +62,30 @@ Tower.Affixes = {
 	{ Id = "colossal", Name = "Colossal", Icon = "⛰️", Text = "+20% HP, -15% ATK", HP = 1.2, ATK = 0.85 },
 } :: { Affix }
 
+export type Mutator = {
+	Id: string,
+	Name: string,
+	Icon: string,
+	Text: string,
+	Element: string?, -- only cards of this element get it (nil = every card)
+	Effects: { { Stat: string, Amount: number } }, -- the trait format (Traits.luau), applied the same way
+}
+
+Tower.Mutators = {
+	{ Id = "wildfire", Name = "Wildfire Day", Icon = "🔥", Element = "Flame", Text = "Flame cards +25% damage", Effects = { { Stat = "ATK", Amount = 0.25 } } },
+	{ Id = "deepfreeze", Name = "Deep Freeze", Icon = "❄️", Element = "Frost", Text = "Frost cards +25% damage", Effects = { { Stat = "ATK", Amount = 0.25 } } },
+	{ Id = "thunder", Name = "Thunder Day", Icon = "⚡", Element = "Storm", Text = "Storm cards +25% damage", Effects = { { Stat = "ATK", Amount = 0.25 } } },
+	{ Id = "radiant", Name = "Radiant Day", Icon = "☀️", Element = "Light", Text = "Light cards +25% damage", Effects = { { Stat = "ATK", Amount = 0.25 } } },
+	{ Id = "eclipse", Name = "Eclipse Day", Icon = "🌑", Element = "Void", Text = "Void cards +25% damage", Effects = { { Stat = "ATK", Amount = 0.25 } } },
+	{ Id = "overcharge", Name = "Overcharge", Icon = "🔋", Text = "Every card starts with half its Ultimate charged", Effects = { { Stat = "StartEnergy", Amount = 0.5 } } },
+	{ Id = "haste", Name = "Haste", Icon = "💨", Text = "Every card +12% SPD", Effects = { { Stat = "SPD", Amount = 0.12 } } },
+} :: { Mutator }
+
+Tower.MutatorById = {} :: { [string]: Mutator }
+for _, mutator in Tower.Mutators do
+	Tower.MutatorById[mutator.Id] = mutator
+end
+
 Tower.AffixFrom = 5 -- floors from here up may roll an affix
 Tower.AffixChance = 0.5
 Tower.GuardianEvery = 10 -- floor 10, 20, 30 ...: a Guardian
@@ -73,18 +100,18 @@ Tower.Curve = {
 	Power = 9000,
 	Growth = 1.068, -- about 2x every 10 floors; floor 48 is about Tenrai Nightmare
 	Points = {
-		{ Power = 9000, HP = 11000, ATK = 85 },
-		{ Power = 12000, HP = 14500, ATK = 105 },
-		{ Power = 18000, HP = 18500, ATK = 115 },
-		{ Power = 24000, HP = 36000, ATK = 240 },
-		{ Power = 28500, HP = 43000, ATK = 320 },
-		{ Power = 43000, HP = 135000, ATK = 440 },
-		{ Power = 55000, HP = 175000, ATK = 480 },
-		{ Power = 74500, HP = 450000, ATK = 700 },
-		{ Power = 99500, HP = 1050000, ATK = 1000 },
-		{ Power = 137000, HP = 1400000, ATK = 2600 },
-		{ Power = 171000, HP = 1800000, ATK = 3300 },
-		{ Power = 203000, HP = 2000000, ATK = 4000 },
+		{ Power = 9000, HP = 13000, ATK = 85 },
+		{ Power = 12000, HP = 17500, ATK = 105 },
+		{ Power = 18000, HP = 22000, ATK = 115 },
+		{ Power = 24000, HP = 43000, ATK = 240 },
+		{ Power = 28500, HP = 51500, ATK = 320 },
+		{ Power = 43000, HP = 162000, ATK = 440 },
+		{ Power = 55000, HP = 210000, ATK = 480 },
+		{ Power = 74500, HP = 540000, ATK = 700 },
+		{ Power = 99500, HP = 1260000, ATK = 1000 },
+		{ Power = 137000, HP = 1680000, ATK = 2600 },
+		{ Power = 171000, HP = 2160000, ATK = 3300 },
+		{ Power = 203000, HP = 2400000, ATK = 4000 },
 	},
 	Beyond = { HP = 1.3, ATK = 1.3 }, -- past the last point: HP x (power / last) ^ 1.3
 }
@@ -277,6 +304,30 @@ function Tower.UnlockHint(): string
 	local id, difficulty = string.match(Tower.UnlockAfter, "^(.-):(.+)$")
 	local boss = Bosses.Get(id or "")
 	return if boss then `Beat {boss.Name} on {difficulty}` else ""
+end
+
+-- The day's mutator. `day` is the UTC day number (Meta.DayNumber), so every server agrees.
+function Tower.MutatorAt(day: number): Mutator
+	return Tower.Mutators[hash(math.floor(day), 77) % #Tower.Mutators + 1]
+end
+
+-- The mutator in force: the day's, unless the test tools picked one (`overrideId`).
+function Tower.MutatorToday(day: number, overrideId: string?): Mutator
+	return (if overrideId then Tower.MutatorById[overrideId] else nil) or Tower.MutatorAt(day)
+end
+
+-- What a mutator gives a card of `element` (the trait format), or an empty list.
+function Tower.MutatorEffects(mutator: Mutator?, element: string): { { Stat: string, Amount: number } }
+	if mutator == nil or (mutator.Element ~= nil and mutator.Element ~= element) then
+		return {}
+	end
+	return mutator.Effects
+end
+
+-- The tower floor whose recommended power is nearest `power` (raids use it to size their rewards).
+function Tower.FloorForPower(power: number): number
+	local c = Tower.Curve
+	return math.max(1, math.floor(math.log(math.max(power, c.Power) / c.Power) / math.log(c.Growth) + 1.5))
 end
 
 -- The next Guardian floor at or above `floor`.

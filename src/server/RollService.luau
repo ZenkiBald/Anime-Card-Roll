@@ -24,6 +24,7 @@ local Borders = require(Shared.Borders)
 local Items = require(Shared.Items)
 local Traits = require(Shared.Traits)
 local RateLimit = require(script.Parent.RateLimit)
+local RaidService = require(script.Parent.RaidService)
 
 local RollService = {}
 
@@ -261,6 +262,15 @@ function RollService.TowerRewards(player: Player, floor: number)
 	end
 	local reward = Tower.Reward(floor)
 	return payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.D, reward.DropBoost)
+end
+
+-- A raid's payout to one hitter (RaidService calls this when the raid ends): Raid.Reward says what.
+function RollService.RaidRewards(player: Player, reward)
+	local profile = DataService.Get(player)
+	if profile == nil then
+		return nil
+	end
+	return payWin(player, profile, reward.Packs, reward.Shards, nil, 0, reward.D, reward.DropBoost)
 end
 
 local function cooldownLeft(player: Player): number
@@ -512,6 +522,15 @@ function RollService.Start()
 			profile.Data.Tower.Floor += 10
 		elseif action == "TowerReset" then
 			profile.Data.Tower.Floor = 0
+		elseif action == "StartRaid" then
+			-- Opens a raid now for its usual length (every server player can join).
+			RaidService.Force(true)
+		elseif action == "NextMutator" then
+			-- Switches the tower to the next mutator (for everyone on this server, until it restarts).
+			local id = ReplicatedStorage:GetAttribute("DevMutator")
+			local today = Tower.MutatorToday(Meta.DayNumber(os.time()), if type(id) == "string" then id else nil)
+			local index = table.find(Tower.Mutators, today) or 0
+			ReplicatedStorage:SetAttribute("DevMutator", Tower.Mutators[index % #Tower.Mutators + 1].Id)
 		elseif action == "Reset" then
 			stopAuto(player)
 			BattleService.Stop(player)

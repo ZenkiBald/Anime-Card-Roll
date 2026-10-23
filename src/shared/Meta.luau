@@ -187,6 +187,7 @@ Meta.Quests = {
 	{ Id = "gifts", Text = "Claim 2 playtime gifts", Stat = "Gifts", Goal = 2, Reward = { Shards = 25 } },
 	{ Id = "potion", Text = "Use a potion", Stat = "Potions", Goal = 1, Reward = { Shards = 20 } },
 	{ Id = "tower", Text = "Climb 2 Infinite Tower floors", Stat = "TowerFloors", Goal = 2, Reward = { Shards = 50 } },
+	{ Id = "raid", Text = "Fight 2 raid runs", Stat = "RaidRuns", Goal = 2, Reward = { Shards = 60, Potions = { luck = 1 } } },
 } :: { Quest }
 
 Meta.QuestById = {} :: { [string]: Quest }

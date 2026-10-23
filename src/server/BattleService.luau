@@ -1,7 +1,9 @@
 --!nonstrict
 -- Boss fights run here, on the server, in real time. The client only asks (start, fire an
 -- Ultimate, pick a target, toggle Auto, change speed, give up) and animates the events streamed back.
--- BattleStart(Tower.Id) fights the player's next Infinite Tower floor (Tower.luau) instead of a boss.
+-- BattleStart(Tower.Id) fights the player's next Infinite Tower floor (Tower.luau) instead of a boss,
+-- with the day's tower mutator on; BattleStart(Raid.Id) runs a raid run against the server's Colossus
+-- (Raid.luau, RaidService): its damage goes into the shared pool as it lands.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,12 +17,15 @@ local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
 local Tower = require(Shared.Tower)
+local Raid = require(Shared.Raid)
+local Cards = require(Shared.Cards)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
 local DeckService = require(script.Parent.DeckService)
 local MetaService = require(script.Parent.MetaService)
 local RateLimit = require(script.Parent.RateLimit)
+local RaidService = require(script.Parent.RaidService)
 local Engine = require(script.Parent.BattleEngine)
 
 local BattleService = {}
@@ -64,6 +69,13 @@ local function recordResult(player: Player, state)
 	end
 	local data = profile.Data
 	local record = { FirstClear = false, NewBest = false }
+	if state.Raid then
+		-- A raid run: its damage already went into the pool; the payout comes when the raid ends.
+		MetaService.Track(player, "RaidRuns")
+		record.Progress = data.Progress
+		record.SpeedUnlocked = speedAllowed(data, 2)
+		return record
+	end
 	if state.Floor then
 		-- A tower floor: a win moves the player up one (only the next floor can be fought, so every
 		-- win is a first clear and pays once).
@@ -117,6 +129,18 @@ local function run(player: Player, state)
 			battle:Step(B.Tick)
 			pending -= B.Tick
 		end
+		local raid = state.Raid
+		if raid and (battle.Over or sinceFlush >= FLUSH_SECONDS) then
+			-- Raid damage drains the server's pool as it lands; the run ends once the raid is over.
+			local dealt = battle.Boss.MaxHP - battle.Boss.HP
+			if dealt > raid.Reported then
+				RaidService.AddDamage(player, raid.Index, dealt - raid.Reported)
+				raid.Reported = dealt
+			end
+			if not battle.Over and RaidService.Done(raid.Index) then
+				battle:Finish(if RaidService.Cleared(raid.Index) then "Win" else "Timeout")
+			end
+		end
 		if battle.Over or sinceFlush >= FLUSH_SECONDS then
 			sinceFlush = 0
 			Remotes.BattleEvent:FireClient(player, { Events = battle:TakeEvents(), Snap = battle:Snapshot() })
@@ -139,8 +163,13 @@ local function run(player: Player, state)
 		summary.Tower = record.Tower
 		summary.Floor = state.Floor
 		summary.SpeedUnlocked = record.SpeedUnlocked
+		if state.Raid then
+			summary.Raid = { Dealt = state.Raid.Reported, Name = state.Raid.Name, State = RaidService.Public() }
+		end
 		local boss = Bosses.Get(battle.BossId)
-		if state.Floor then
+		if state.Raid then
+			-- paid by RaidService when the raid ends
+		elseif state.Floor then
 			if record.FirstClear and towerRewards then
 				summary.Rewards = towerRewards(player, state.Floor)
 			end
@@ -165,20 +194,26 @@ function BattleService.Stop(player: Player)
 	end
 end
 
--- The saved deck is checked again here: the fight only ever uses owned cards.
-local function deckUnits(data, deck)
+-- The saved deck is checked again here: the fight only ever uses owned cards. `mutator` (the tower's
+-- daily one) adds its boon to the matching cards like an extra trait.
+local function deckUnits(data, deck, mutator: Tower.Mutator?)
 	local units = {}
 	for _, row in Deck.Rows do
 		for i, id in deck[row] do
 			if id ~= "" then
 				local owned = data.Cards[id]
+				local card = Cards.Get(id)
+				local effects = table.clone(Traits.Effects(owned.Trait))
+				for _, effect in Tower.MutatorEffects(mutator, card and card.Element or "") do
+					table.insert(effects, effect)
+				end
 				table.insert(units, {
 					Id = `{string.sub(row, 1, 1)}{i}`,
 					CardId = id,
 					Stars = owned.Stars,
 					Fusion = owned.Fusion,
 					Border = Borders.Best(owned.Borders),
-					Trait = Traits.Effects(owned.Trait),
+					Trait = effects,
 				})
 			end
 		end
@@ -191,8 +226,9 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 		return { Ok = false, Reason = "BadRequest" }
 	end
 	local isTower = bossId == Tower.Id
+	local isRaid = bossId == Raid.Id
 	local boss = Bosses.Get(bossId)
-	if not isTower and (boss == nil or type(difficulty) ~= "string" or boss.Difficulties[difficulty] == nil) then
+	if not isTower and not isRaid and (boss == nil or type(difficulty) ~= "string" or boss.Difficulties[difficulty] == nil) then
 		return { Ok = false, Reason = "BadRequest" }
 	end
 	if active[player] then
@@ -207,11 +243,19 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 	-- The tower always fights the floor above the player's best: the server picks it, not the client.
 	local floor = nil
 	local stats = nil
-	if isTower then
+	local mutator = nil
+	if isRaid then
+		local reason = RaidService.CanJoin()
+		if reason then
+			return { Ok = false, Reason = reason }
+		end
+	elseif isTower then
 		if not BattleService.TowerOpen(data) then
 			return { Ok = false, Reason = "Locked" }
 		end
 		floor = Tower.FloorAt(data.Tower.Floor + 1)
+		local devMutator = ReplicatedStorage:GetAttribute("DevMutator")
+		mutator = Tower.MutatorToday(Meta.DayNumber(os.time()), if Config.TestMode and type(devMutator) == "string" then devMutator else nil)
 		boss = Bosses.Get(floor.Boss)
 		difficulty = floor.Difficulty
 		stats = { HP = floor.HP, ATK = floor.ATK, WarnSeconds = floor.WarnSeconds, DEF = floor.DEF, SPD = floor.SPD }
@@ -223,18 +267,35 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 	if Deck.Count(deck, "Attack") == 0 then
 		return { Ok = false, Reason = "NoAttack" }
 	end
+	local deckPower = Deck.Power(deck, data.Cards)
+
+	-- A raid run: the Colossus alone, sized to this deck, for Raid.FightSeconds.
+	local raid = nil
+	if isRaid then
+		raid = RaidService.Join(player, deckPower)
+		boss = Bosses.Get(raid.Boss)
+		difficulty = Raid.Difficulty
+		stats = { HP = raid.Stats.HP, ATK = raid.Stats.ATK, WarnSeconds = raid.Stats.WarnSeconds }
+	end
 
 	local battle = Engine.new({
-		Units = deckUnits(data, deck),
+		Units = deckUnits(data, deck, mutator),
 		BossId = boss.Id,
 		Difficulty = difficulty,
 		Rng = Random.new(),
 		Stats = stats,
-		Guards = floor and floor.Guards,
+		Guards = if raid then {} else floor and floor.Guards,
+		TimeLimit = if raid then Raid.FightSeconds else nil,
 	})
 	battle.AutoUlt = data.Settings.AutoUlt == true
 	local speed = if speedAllowed(data, data.Settings.BattleSpeed) then data.Settings.BattleSpeed else 1
-	local state = { Engine = battle, Speed = speed, Started = false, Floor = floor and floor.Floor }
+	local state = {
+		Engine = battle,
+		Speed = speed,
+		Started = false,
+		Floor = floor and floor.Floor,
+		Raid = if raid then { Index = raid.Index, Name = raid.Name, Reported = 0 } else nil,
+	}
 	active[player] = state
 	task.spawn(run, player, state)
 
@@ -242,12 +303,14 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 		Ok = true,
 		Info = battle:Info(),
 		Tower = floor, -- the floor being fought (nil for a boss fight)
+		Mutator = if mutator then mutator.Id else nil, -- the day's tower mutator
+		Raid = if raid then { Name = raid.Name, State = RaidService.Public() } else nil,
 		Snap = battle:Snapshot(),
 		AutoUlt = battle.AutoUlt,
 		Speed = speed,
 		SpeedUnlocked = speedAllowed(data, 2),
 		Intro = B.IntroSeconds,
-		DeckPower = Deck.Power(deck, data.Cards),
+		DeckPower = deckPower,
 	}
 end
 

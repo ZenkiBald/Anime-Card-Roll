@@ -15,6 +15,7 @@ local Rarity = require(Shared.Rarity)
 local Items = require(Shared.Items)
 local Traits = require(Shared.Traits)
 local Packs = require(Shared.Packs)
+local Raid = require(Shared.Raid)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -167,10 +168,17 @@ function MetaService.QuestState(player: Player, data)
 	return { Day = today, ResetIn = 86400 - os.time() % 86400, List = list }
 end
 
--- The player's own luck: base x the strongest running luck potion x the event, capped.
+-- Raid Luck: x2 for the whole server for a while after a cleared raid (RaidService sets the attribute).
+function MetaService.RaidLuck(): number
+	local ends = ReplicatedStorage:GetAttribute("RaidLuckEnds")
+	return Raid.LuckAt(workspace:GetServerTimeNow(), if type(ends) == "number" then ends else nil)
+end
+
+-- The player's own luck: base x the strongest running luck potion x the event x Raid Luck, capped.
 function MetaService.Luck(player: Player, data): number
 	local event = MetaService.Event()
-	return Meta.TotalLuck(MetaService.BaseLuck(player, data), Meta.PotionLuck(data.Potions.Active), event and event.Luck)
+	local eventLuck = (event and event.Luck or 1) * MetaService.RaidLuck()
+	return Meta.TotalLuck(MetaService.BaseLuck(player, data), Meta.PotionLuck(data.Potions.Active), eventLuck)
 end
 
 function MetaService.Cooldown(data): number

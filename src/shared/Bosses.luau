@@ -48,6 +48,7 @@ export type GuardType = {
 	Icon: string,
 	Role: string, -- Striker | Hexer | Mender | Warder (what it's for, shown on its tile)
 	World: number, -- the world it belongs to (the tower mixes guards from worlds the floor has reached)
+	Element: string, -- Elements.luau: its world's, except Menders, which are Light (Void cards cut them down)
 	Color: Color3,
 	HP: number, -- share of the leader's HP
 	ATK: number, -- share of the leader's ATK
@@ -69,6 +70,7 @@ export type Difficulty = {
 export type Boss = {
 	Id: string,
 	World: number,
+	Element: string, -- Elements.luau
 	WorldName: string,
 	Name: string,
 	Title: string,
@@ -95,6 +97,7 @@ Bosses.DifficultyOrder = { "Normal", "Hard", "Nightmare" }
 local list: { Boss } = {
 	{
 		Id = "kurogane",
+		Element = "Flame",
 		World = 1,
 		WorldName = "Ember Village",
 		Name = "Kurogane",
@@ -114,13 +117,14 @@ local list: { Boss } = {
 			{ Name = "Ash Cut", Target = "Single", Pct = 1, Burn = { Pct = 0.15, Turns = 2 } },
 		},
 		Difficulties = {
-			Normal = { D = 1, Recommended = 12000, HP = 14500, ATK = 102, WarnSeconds = 2 },
-			Hard = { D = 2, Recommended = 18000, HP = 19000, ATK = 123, WarnSeconds = 2 },
-			Nightmare = { D = 3, Recommended = 24000, HP = 42000, ATK = 243, WarnSeconds = 1 },
+			Normal = { D = 1, Recommended = 12000, HP = 17000, ATK = 102, WarnSeconds = 2 },
+			Hard = { D = 2, Recommended = 18000, HP = 23000, ATK = 123, WarnSeconds = 2 },
+			Nightmare = { D = 3, Recommended = 24000, HP = 52500, ATK = 243, WarnSeconds = 1 },
 		},
 	},
 	{
 		Id = "rimeveil",
+		Element = "Frost",
 		World = 2,
 		WorldName = "Frostfang Peaks",
 		Name = "Rimeveil",
@@ -140,13 +144,14 @@ local list: { Boss } = {
 			{ Name = "Ice Shard", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 4, Recommended = 28000, HP = 37000, ATK = 432, WarnSeconds = 2 },
-			Hard = { D = 5, Recommended = 42000, HP = 124500, ATK = 534, WarnSeconds = 2 },
-			Nightmare = { D = 6, Recommended = 56000, HP = 164000, ATK = 655, WarnSeconds = 1 },
+			Normal = { D = 4, Recommended = 28000, HP = 43500, ATK = 432, WarnSeconds = 2 },
+			Hard = { D = 5, Recommended = 42000, HP = 136000, ATK = 534, WarnSeconds = 2 },
+			Nightmare = { D = 6, Recommended = 56000, HP = 173500, ATK = 655, WarnSeconds = 1 },
 		},
 	},
 	{
 		Id = "vex",
+		Element = "Void",
 		World = 3,
 		WorldName = "Neon Abyss",
 		Name = "Null Emperor Vex",
@@ -167,13 +172,14 @@ local list: { Boss } = {
 			{ Name = "Void Slash", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 7, Recommended = 50000, HP = 145500, ATK = 600, WarnSeconds = 2 },
-			Hard = { D = 8, Recommended = 75000, HP = 408000, ATK = 640, WarnSeconds = 2 },
-			Nightmare = { D = 9, Recommended = 100000, HP = 1143500, ATK = 950, WarnSeconds = 1 },
+			Normal = { D = 7, Recommended = 50000, HP = 150000, ATK = 600, WarnSeconds = 2 },
+			Hard = { D = 8, Recommended = 75000, HP = 422500, ATK = 640, WarnSeconds = 2 },
+			Nightmare = { D = 9, Recommended = 100000, HP = 1355500, ATK = 950, WarnSeconds = 1 },
 		},
 	},
 	{
 		Id = "tenrai",
+		Element = "Storm",
 		World = 4,
 		WorldName = "Stormspire Isle",
 		Name = "Tenrai",
@@ -194,9 +200,9 @@ local list: { Boss } = {
 		},
 		Difficulties = {
 			-- Nightmare's recommended deck needs a few fusions (see tests/fixtures.luau).
-			Normal = { D = 10, Recommended = 140000, HP = 1496500, ATK = 3400, WarnSeconds = 2 },
-			Hard = { D = 11, Recommended = 172000, HP = 1866000, ATK = 3480, WarnSeconds = 2 },
-			Nightmare = { D = 12, Recommended = 205000, HP = 2089000, ATK = 4485, WarnSeconds = 1 },
+			Normal = { D = 10, Recommended = 140000, HP = 1955500, ATK = 3400, WarnSeconds = 2 },
+			Hard = { D = 11, Recommended = 172000, HP = 2418500, ATK = 3480, WarnSeconds = 2 },
+			Nightmare = { D = 12, Recommended = 205000, HP = 2733000, ATK = 4485, WarnSeconds = 1 },
 		},
 	},
 }
@@ -210,7 +216,7 @@ local GUARD = {
 	Warder = { HP = 0.2, ATK = 0.25, SPD = 90, DEF = 0.15 },
 }
 
-local function guard(id: string, name: string, icon: string, role: string, world: number, color: Color3, moves: { Move }, extra: { [string]: any }?): GuardType
+local function guard(id: string, name: string, icon: string, role: string, world: number, element: string, color: Color3, moves: { Move }, extra: { [string]: any }?): GuardType
 	local base = GUARD[role]
 	local g = {
 		Id = id,
@@ -218,6 +224,7 @@ local function guard(id: string, name: string, icon: string, role: string, world
 		Icon = icon,
 		Role = role,
 		World = world,
+		Element = element,
 		Color = color,
 		HP = base.HP,
 		ATK = base.ATK,
@@ -243,42 +250,42 @@ end
 local WARDER = { Taunt = true, Protect = 0.3 }
 
 local guardList: { GuardType } = {
-	guard("ashigaru", "Ash Ashigaru", "🗡️", "Striker", 1, Color3.fromRGB(255, 120, 70), {
+	guard("ashigaru", "Ash Ashigaru", "🗡️", "Striker", 1, "Flame", Color3.fromRGB(255, 120, 70), {
 		{ Name = "Ember Thrust", Target = "Single", Pct = 1.8, Every = 4, Warn = true, Burn = { Pct = 0.1, Turns = 2 } },
 		{ Name = "Spear Jab", Target = "Single", Pct = 1 },
 	}),
-	guard("embermonk", "Ember Monk", "🔥", "Mender", 1, Color3.fromRGB(255, 170, 90), mender("Cinder Prayer", "War Chant", "Palm Strike")),
-	guard("ironclad", "Ironclad", "🛡️", "Warder", 1, Color3.fromRGB(170, 120, 100), {
+	guard("embermonk", "Ember Monk", "🔥", "Mender", 1, "Light", Color3.fromRGB(255, 170, 90), mender("Cinder Prayer", "War Chant", "Palm Strike")),
+	guard("ironclad", "Ironclad", "🛡️", "Warder", 1, "Flame", Color3.fromRGB(170, 120, 100), {
 		{ Name = "Quake Stomp", Target = "All", Pct = 0.4, Every = 4 },
 		{ Name = "Shield Bash", Target = "Single", Pct = 0.8 },
 	}, WARDER),
-	guard("frostarcher", "Frost Archer", "🏹", "Hexer", 2, Color3.fromRGB(140, 220, 255), {
+	guard("frostarcher", "Frost Archer", "🏹", "Hexer", 2, "Frost", Color3.fromRGB(140, 220, 255), {
 		{ Name = "Rime Volley", Target = "Random", Pct = 0.6, Hits = 2, Every = 4, Freeze = true },
 		{ Name = "Ice Arrow", Target = "Single", Pct = 1 },
 	}),
-	guard("snowmaiden", "Snow Maiden", "❄️", "Mender", 2, Color3.fromRGB(200, 235, 255), mender("Frost Bloom", "Winter Hymn", "Snow Lash")),
-	guard("glaciergolem", "Glacier Golem", "🧊", "Warder", 2, Color3.fromRGB(110, 170, 220), {
+	guard("snowmaiden", "Snow Maiden", "❄️", "Mender", 2, "Light", Color3.fromRGB(200, 235, 255), mender("Frost Bloom", "Winter Hymn", "Snow Lash")),
+	guard("glaciergolem", "Glacier Golem", "🧊", "Warder", 2, "Frost", Color3.fromRGB(110, 170, 220), {
 		{ Name = "Permafrost", Target = "All", Pct = 0.35, Every = 4, Slow = { Amount = 0.15, Turns = 2 } },
 		{ Name = "Ice Fist", Target = "Single", Pct = 0.8 },
 	}, WARDER),
-	guard("shade", "Void Shade", "🌑", "Striker", 3, Color3.fromRGB(190, 80, 255), {
+	guard("shade", "Void Shade", "🌑", "Striker", 3, "Void", Color3.fromRGB(190, 80, 255), {
 		{ Name = "Umbral Rend", Target = "Single", Pct = 2, Every = 4, Warn = true },
 		{ Name = "Shadow Claw", Target = "Single", Pct = 1 },
 	}),
-	guard("nullwitch", "Null Witch", "🔮", "Hexer", 3, Color3.fromRGB(230, 110, 255), {
+	guard("nullwitch", "Null Witch", "🔮", "Hexer", 3, "Void", Color3.fromRGB(230, 110, 255), {
 		{ Name = "Entropy", Target = "All", Pct = 0.35, Every = 4, Slow = { Amount = 0.2, Turns = 2 } },
 		{ Name = "Hex Bolt", Target = "Single", Pct = 1, Burn = { Pct = 0.08, Turns = 2 } },
 	}),
-	guard("voidknight", "Void Knight", "⚔️", "Warder", 3, Color3.fromRGB(120, 70, 170), {
+	guard("voidknight", "Void Knight", "⚔️", "Warder", 3, "Void", Color3.fromRGB(120, 70, 170), {
 		{ Name = "Gravity Well", Target = "All", Pct = 0.4, Every = 4 },
 		{ Name = "Null Blade", Target = "Single", Pct = 0.8 },
 	}, WARDER),
-	guard("thunderhawk", "Thunder Hawk", "🦅", "Striker", 4, Color3.fromRGB(255, 230, 90), {
+	guard("thunderhawk", "Thunder Hawk", "🦅", "Striker", 4, "Storm", Color3.fromRGB(255, 230, 90), {
 		{ Name = "Talon Storm", Target = "Random", Pct = 0.7, Hits = 3, Every = 4 },
 		{ Name = "Dive", Target = "Single", Pct = 1 },
 	}, { SPD = 120 }),
-	guard("stormpriest", "Storm Priest", "⛈️", "Mender", 4, Color3.fromRGB(150, 170, 255), mender("Rain of Life", "Thunder Hymn", "Static Touch")),
-	guard("raiju", "Raiju", "⚡", "Hexer", 4, Color3.fromRGB(255, 210, 60), {
+	guard("stormpriest", "Storm Priest", "⛈️", "Mender", 4, "Light", Color3.fromRGB(150, 170, 255), mender("Rain of Life", "Thunder Hymn", "Static Touch")),
+	guard("raiju", "Raiju", "⚡", "Hexer", 4, "Storm", Color3.fromRGB(255, 210, 60), {
 		{ Name = "Paralyze", Target = "Single", Pct = 0.8, Every = 3, Freeze = true },
 		{ Name = "Spark Bite", Target = "Random", Pct = 0.5, Hits = 2 },
 	}),

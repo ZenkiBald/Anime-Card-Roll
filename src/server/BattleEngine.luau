@@ -19,13 +19,18 @@
 --   * Ultimates cost 100 energy (+20 per action, +10 per hit taken); fired by UseUltimate or AutoUlt.
 --   * Big enemy moves show a warning first. At 50% HP the leader adds its phase-2 move; at 20% it enrages.
 --   * Win when the leader falls. Lose when every Attack card is KO'd or the timer runs out.
---   * Damage = ATK x Skill% x (1 + sum of buffs) x Crit x (1 - target DEF) x (1 - Protect on the leader).
+--   * Damage = ATK x Skill% x (1 + sum of buffs) x Crit x (1 - target DEF) x (1 - Protect on the leader)
+--     x Element (Elements.luau: x1.3 when the hitter's element beats the target's, x0.85 the other way;
+--     enemies hitting cards use the same rule).
+--   * Synergies (2 / 4 cards of one element in the deck) are on from the start; bonds (two named cards)
+--     fire a Dual Ultimate once, when the leader first drops to half HP or at Elements.BondAt seconds.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Cards = require(Shared.Cards)
 local Bosses = require(Shared.Bosses)
+local Elements = require(Shared.Elements)
 
 local B = Config.Battle
 
@@ -42,7 +47,8 @@ export type UnitSpec = {
 }
 -- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the leader's DEF / SPD:
 -- the Infinite Tower (Tower.luau) fights a boss's moves at stats scaled to the floor. Difficulty still
--- picks which moves are in (MinDifficulty). Guards (optional) replaces the boss's own guard ids.
+-- picks which moves are in (MinDifficulty). Guards (optional) replaces the boss's own guard ids ({} = the
+-- leader alone, as in a raid). TimeLimit (optional) replaces Config.Battle.TimeLimit.
 export type Stats = { HP: number, ATK: number, WarnSeconds: number, DEF: number?, SPD: number? }
 export type Setup = {
 	Units: { UnitSpec },
@@ -51,6 +57,7 @@ export type Setup = {
 	Rng: Random?,
 	Stats: Stats?,
 	Guards: { string }?,
+	TimeLimit: number?,
 }
 
 -- Effects that only make sense on a card with HP.
@@ -84,6 +91,7 @@ local function newUnit(spec: UnitSpec)
 		Type = card.Type,
 		HasHP = hasHP,
 		Card = card,
+		Element = card.Element,
 		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Fusion, spec.Border),
 		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Fusion, spec.Border) else 0,
 		SPD = card.SPD,
@@ -131,6 +139,7 @@ local function newEnemy(id: string, order: number, props)
 		Leader = props.Leader == true,
 		Def = props.Def,
 		Name = props.Name,
+		Element = props.Element,
 		Moves = props.Moves,
 		MaxHP = math.max(1, round(props.HP)),
 		ATK = props.ATK,
@@ -176,6 +185,10 @@ function Engine.new(setup: Setup)
 	self.BossId = def.Id
 	self.Difficulty = setup.Difficulty
 	self.DifficultyIndex = Bosses.DifficultyIndex(setup.Difficulty)
+	self.TimeLimit = setup.TimeLimit or B.TimeLimit
+	self.Synergies = {} -- the deck's active synergies (Elements.ActiveSynergies)
+	self.Bonds = {} -- { Bond, A, B (units) } for each bond in the deck
+	self.BondsFired = false
 
 	local function movesFor(list)
 		local moves = {}
@@ -192,6 +205,7 @@ function Engine.new(setup: Setup)
 		Leader = true,
 		Def = def,
 		Name = def.Name,
+		Element = def.Element,
 		Moves = movesFor(def.Moves),
 		HP = leaderHP,
 		ATK = leaderATK,
@@ -206,6 +220,7 @@ function Engine.new(setup: Setup)
 		local enemy = newEnemy(`G{i}`, 100 + i, {
 			Def = g,
 			Name = g.Name,
+			Element = g.Element,
 			Moves = movesFor(g.Moves),
 			HP = leaderHP * g.HP,
 			ATK = leaderATK * g.ATK,
@@ -255,6 +270,39 @@ function Engine.new(setup: Setup)
 					end
 				end
 			end
+		end
+	end
+	-- Synergies: the deck's element counts switch on whole-deck bonuses for the fight.
+	local elements, cardIds = {}, {}
+	for _, unit in self.Allies do
+		table.insert(elements, unit.Element)
+		table.insert(cardIds, unit.Card.Id)
+	end
+	if #self.Allies > 0 then
+		for _, active in Elements.ActiveSynergies(elements) do
+			table.insert(self.Synergies, active)
+			for _, effect in active.Tier.Effects do
+				self:RunEffect(self.Allies[1], effect, true, `Synergy:{active.Synergy.Element}`)
+			end
+		end
+	end
+	-- Bonds: the Attack card (if either is one) leads the Dual Ultimate, so its element counts.
+	for _, bond in Elements.ActiveBonds(cardIds) do
+		local a, b
+		for _, unit in self.Allies do
+			if unit.Card.Id == bond.Cards[1] or unit.Card.Id == bond.Cards[2] then
+				if a == nil then
+					a = unit
+				else
+					b = unit
+				end
+			end
+		end
+		if a and b then
+			if b.Type == "Attack" and a.Type ~= "Attack" then
+				a, b = b, a
+			end
+			table.insert(self.Bonds, { Bond = bond, A = a, B = b })
 		end
 	end
 	self.Events = {} -- start-of-battle effects are part of the initial state, not news
@@ -518,7 +566,7 @@ function Engine:StealBuffs()
 	self:Emit({ K = "Steal", A = stolen, Stat = steal })
 end
 
-function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: string)
+function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: string, el: number?)
 	if self.Over or not enemy.Alive then
 		return
 	end
@@ -533,6 +581,7 @@ function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: 
 		A = amount,
 		C = crit or nil,
 		Bl = if enemy.Barrier > 0 then true else nil,
+		El = el, -- 1 strong, -1 weak (Elements.luau)
 	})
 
 	if enemy.HP <= 0 then
@@ -572,19 +621,24 @@ function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: 
 	end
 end
 
-function Engine:HitEnemy(unit, enemy, pct: number, ignoreDef: boolean?)
+local function elementFlag(mult: number): number?
+	return if mult > 1 then 1 elseif mult < 1 then -1 else nil
+end
+
+function Engine:HitEnemy(unit, enemy, pct: number, ignoreDef: boolean?, kind: string?)
 	local buffs = self:Buff(unit, "ATK") + self:EnemyDebuff(enemy, "Vuln")
 	local crit = self.Rng:NextNumber() < B.CritChance + self:Buff(unit, "Crit")
 	local critMult = if crit then B.CritDamage + self:Buff(unit, "CritDamage") else 1
 	local def = if ignoreDef then 0 else self:EnemyDEF(enemy)
 	local protect = if ignoreDef then 0 else self:Protection(enemy)
-	local amount = math.max(1, round(unit.Main * pct * (1 + buffs) * critMult * (1 - def) * (1 - protect)))
+	local element = Elements.Multiplier(unit.Element, enemy.Element)
+	local amount = math.max(1, round(unit.Main * pct * (1 + buffs) * critMult * (1 - def) * (1 - protect) * element))
 	local burst = self.Slot == "Skill" or self.Slot == "Ultimate"
 	amount = if ignoreDef then amount else self:ThroughBarrier(enemy, amount, burst)
-	self:DamageEnemy(enemy, unit, amount, crit, "Hit")
+	self:DamageEnemy(enemy, unit, amount, crit, kind or "Hit", elementFlag(element))
 end
 
-function Engine:DamageAlly(target, amount: number, kind: string, sourceId: string?)
+function Engine:DamageAlly(target, amount: number, kind: string, sourceId: string?, el: number?)
 	if not target.Alive or not target.HasHP or self.Over then
 		return
 	end
@@ -595,7 +649,7 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 	local absorbed = math.min(target.Shield, amount)
 	target.Shield -= absorbed
 	target.HP -= amount - absorbed
-	self:Emit({ K = kind, U = sourceId, T = target.Id, A = amount, Sh = if absorbed > 0 then absorbed else nil })
+	self:Emit({ K = kind, U = sourceId, T = target.Id, A = amount, Sh = if absorbed > 0 then absorbed else nil, El = el })
 
 	if target.HP > 0 then
 		return
@@ -631,9 +685,10 @@ function Engine:HitAlly(enemy, target, move)
 		self:Emit({ K = "Miss", U = enemy.Id, T = target.Id })
 		return
 	end
-	local atk = self:EnemyATK(enemy)
+	local element = Elements.Multiplier(enemy.Element, target.Element)
+	local atk = self:EnemyATK(enemy) * element
 	local amount = math.max(1, round(atk * move.Pct * (1 - math.min(0.8, self:Buff(target, "Guard")))))
-	self:DamageAlly(target, amount, "Hit", enemy.Id)
+	self:DamageAlly(target, amount, "Hit", enemy.Id, elementFlag(element))
 	if not target.Alive then
 		return
 	end
@@ -676,7 +731,7 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 		if effect.Chance == nil or rng:NextNumber() < effect.Chance then
 			for _, enemy in self:EnemyTargets(effect.Target) do
 				table.insert(enemy.Burns, {
-					Damage = math.max(1, round(unit.Main * effect.Pct)),
+					Damage = math.max(1, round(unit.Main * effect.Pct * Elements.Multiplier(unit.Element, enemy.Element))),
 					Ticks = effect.Turns or 3,
 					Timer = B.TurnSeconds,
 					Source = unit,
@@ -1124,8 +1179,30 @@ function Engine:Step(dt: number)
 		end
 	end
 
-	if not self.Over and self.Time >= B.TimeLimit then
+	if not self.Over and not self.BondsFired and (self.Boss.Phase >= 2 or self.Time >= Elements.BondAt) then
+		self:FireBonds()
+	end
+
+	if not self.Over and self.Time >= self.TimeLimit then
 		self:Finish("Timeout")
+	end
+end
+
+-- Dual Ultimates: every bond in the deck whose two cards still stand hits the leader once.
+function Engine:FireBonds()
+	self.BondsFired = true
+	for _, entry in self.Bonds do
+		if self.Over then
+			return
+		end
+		local a, b = entry.A, entry.B
+		if a.Alive and b.Alive then
+			self:Emit({ K = "Bond", N = entry.Bond.Name, U = { a.Id, b.Id } })
+			local previous = self.Slot
+			self.Slot = "Ultimate" -- breaks barriers like an Ultimate
+			self:HitEnemy(a, self.Boss, entry.Bond.Pct * (a.Main + b.Main) / a.Main, false)
+			self.Slot = previous
+		end
 	end
 end
 
@@ -1138,6 +1215,7 @@ function Engine:Info()
 		table.insert(allies, {
 			Id = unit.Id,
 			CardId = unit.Card.Id,
+			Element = unit.Element,
 			MaxHP = if unit.HasHP then unit.MaxHP else nil,
 			Main = unit.Main,
 			Ultimate = if unit.Ultimate then unit.Ultimate.Name else nil,
@@ -1150,6 +1228,7 @@ function Engine:Info()
 			Leader = enemy.Leader,
 			GuardId = if enemy.Leader then nil else enemy.Def.Id,
 			Name = enemy.Name,
+			Element = enemy.Element,
 			Icon = if enemy.Leader then nil else enemy.Def.Icon,
 			Role = if enemy.Leader then "Leader" else enemy.Def.Role,
 			MaxHP = enemy.MaxHP,
@@ -1158,14 +1237,24 @@ function Engine:Info()
 			Protect = if enemy.Protect > 0 then enemy.Protect else nil,
 		})
 	end
+	local synergies = {}
+	for _, active in self.Synergies do
+		table.insert(synergies, { Element = active.Synergy.Element, Name = active.Synergy.Name, Count = active.Count, Text = active.Tier.Text })
+	end
+	local bonds = {}
+	for _, entry in self.Bonds do
+		table.insert(bonds, { Name = entry.Bond.Name, Units = { entry.A.Id, entry.B.Id } })
+	end
 	local boss = self.Boss
 	return {
 		BossId = self.BossId,
 		Difficulty = self.Difficulty,
-		Boss = { MaxHP = boss.MaxHP, ATK = round(boss.ATK), DEF = boss.DEF, SPD = boss.SPD },
+		Boss = { MaxHP = boss.MaxHP, ATK = round(boss.ATK), DEF = boss.DEF, SPD = boss.SPD, Element = boss.Element },
 		Enemies = enemies,
 		Allies = allies,
-		TimeLimit = B.TimeLimit,
+		Synergies = synergies,
+		Bonds = bonds,
+		TimeLimit = self.TimeLimit,
 		UltimateCost = B.UltimateCost,
 	}
 end
