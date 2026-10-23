@@ -49,6 +49,7 @@ local stage: Frame -- everything inside the safe area
 local fxLayer: Frame -- bolts, slashes and cut-ins, positioned in screen pixels
 local bossName: TextLabel
 local bossStagger: Frame -- the Stagger bar along the bottom of the leader's HP bar
+local staggerBanner: TextLabel -- glows under the leader's HP bar while it is Staggered
 local bossChip: any
 local bossHpFill: Frame
 local bossHpTrail: Frame
@@ -102,7 +103,6 @@ local REASONS = {
 	Cleared = "This raid is already cleared",
 }
 
-local STATUS = { B = "BURN", Z = "FROZEN", T = "TAUNT", U = "BUFFED", S = "SLOWED", G = "GUARDED", I = "SAFE" }
 local BOSS_STATUS = {
 	D = "DEF DOWN",
 	A = "ATK DOWN",
@@ -386,13 +386,57 @@ local function setHp(fill: Frame, trail: Frame?, ratio: number)
 	end
 end
 
+local NEON_EMERALD = Color3.fromRGB(40, 255, 140)
+local NEON_RED = Color3.fromRGB(255, 50, 70)
+local NEON_CYAN = Color3.fromRGB(60, 230, 255)
+
 local function hpColor(ratio: number): Color3
-	if ratio > 0.5 then
-		return Theme.Color.Quick
-	elseif ratio > 0.25 then
-		return Theme.Color.Gold
+	return if ratio >= 0.3 then NEON_EMERALD else NEON_RED
+end
+
+-- Crisp status badges docked top right on a battle card (instead of tinting the card).
+local BADGES = {
+	{ Flag = "U", Text = "BUFFED ▲", Color = Color3.fromRGB(255, 210, 60) },
+	{ Flag = "B", Text = "BURN 🔥", Color = Color3.fromRGB(255, 96, 40) },
+	{ Flag = "Z", Text = "FROZEN ❄", Color = Color3.fromRGB(120, 220, 255) },
+	{ Flag = "S", Text = "SLOWED ▼", Color = Color3.fromRGB(170, 140, 255) },
+	{ Flag = "T", Text = "TAUNT", Color = Color3.fromRGB(255, 120, 90) },
+	{ Flag = "G", Text = "GUARD 🛡", Color = Color3.fromRGB(150, 210, 255) },
+	{ Flag = "I", Text = "SAFE", Color = Color3.fromRGB(150, 255, 190) },
+}
+
+local function setBadges(dock: Frame, flags: string)
+	if dock:GetAttribute("Flags") == flags then
+		return
 	end
-	return Theme.Color.Danger
+	dock:SetAttribute("Flags", flags)
+	for _, child in dock:GetChildren() do
+		if child:IsA("TextLabel") then
+			child:Destroy()
+		end
+	end
+	for i, badge in BADGES do
+		if string.find(flags, badge.Flag, 1, true) then
+			local label = Kit.label({
+				Text = badge.Text,
+				Font = Theme.Font.Heavy,
+				TextColor3 = badge.Color,
+				LayoutOrder = i,
+				AutomaticSize = Enum.AutomaticSize.X,
+				Size = UDim2.fromScale(0, 1),
+				TextScaled = false,
+				TextWrapped = false,
+				TextSize = 11,
+				BackgroundColor3 = Color3.fromRGB(8, 10, 16),
+				BackgroundTransparency = 0.15,
+				ZIndex = 8,
+				Parent = dock,
+			}, 11)
+			Kit.corner(UDim.new(0, 3)).Parent = label
+			Kit.stroke(badge.Color, 1, 0.3).Parent = label
+			Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = label })
+		end
+	end
 end
 
 -- Screen-space effects --------------------------------------------------------------------------
@@ -488,24 +532,68 @@ local function glow(tile, color: Color3)
 	Kit.tween(flash, 0.35, { BackgroundTransparency = 1 })
 end
 
--- A band across the screen naming an Ultimate.
+-- Neon edge per element for the Ultimate cut-in.
+local NEON = {
+	Flame = Color3.fromRGB(255, 96, 40),
+	Frost = Color3.fromRGB(60, 230, 255),
+	Storm = Color3.fromRGB(255, 210, 40),
+	Light = Color3.fromRGB(255, 240, 170),
+	Void = Color3.fromRGB(176, 70, 255),
+	Cosmic = Color3.fromRGB(40, 240, 210),
+}
+local CUT_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
+
+-- An obsidian slash across the screen naming an Ultimate: slides in from the left with a punch,
+-- holds 0.7 s, then slashes out to the right trailing sparks.
 local function cutIn(cardId: string, ultName: string)
 	local card = Cards.Get(cardId)
 	if card == nil then
 		return
 	end
-	local tier = Rarity.Get(card.Rarity)
+	local neon = NEON[card.Element] or card.Accent
 	local band = Kit.new("Frame", {
 		Name = "CutIn",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(-0.8, 0.46),
 		Size = UDim2.fromScale(1.5, 0.17),
-		Rotation = -5,
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		Rotation = -8,
+		BackgroundColor3 = Color3.fromRGB(12, 16, 26),
+		BackgroundTransparency = 0.15,
 		BorderSizePixel = 0,
 		ZIndex = 70,
 		Parent = fxLayer,
-	}, { Kit.gradient(ColorSequence.new(tier.Dark, card.Accent), 0) })
+	}, {
+		-- Sharp ends: the band fades out at both tips like a blade stroke.
+		Kit.new("UIGradient", {
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.12, 0),
+				NumberSequenceKeypoint.new(0.88, 0),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		}),
+	})
+	for _, y in { 0, 1 } do -- the glowing neon edges
+		Kit.new("Frame", {
+			Name = "Edge",
+			AnchorPoint = Vector2.new(0, y),
+			Position = UDim2.fromScale(0, y),
+			Size = UDim2.new(1, 0, 0, 3),
+			BackgroundColor3 = neon,
+			BorderSizePixel = 0,
+			ZIndex = 71,
+			Parent = band,
+		}, {
+			Kit.new("UIGradient", {
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(0.2, 0),
+					NumberSequenceKeypoint.new(0.8, 0),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
+			}),
+		})
+	end
 	local portrait = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.33, 0.5),
@@ -516,7 +604,7 @@ local function cutIn(cardId: string, ultName: string)
 	}, {
 		Kit.corner(UDim.new(1, 0)),
 		Kit.aspect(1, Enum.DominantAxis.Height),
-		Kit.stroke(tier.Color, 4, 0),
+		Kit.stroke(neon, 4, 0),
 	})
 	Kit.label({
 		Text = card.Glyph,
@@ -536,20 +624,37 @@ local function cutIn(cardId: string, ultName: string)
 		ZIndex = 72,
 		Parent = band,
 	}, 64)
-	Kit.textStroke(Color3.new(0, 0, 0), 3, 0.1).Parent = name
-	Kit.label({
-		Text = `{card.Name} · ULTIMATE`,
+	name.FontFace = CUT_FONT
+	name.TextColor3 = Color3.new(1, 1, 1)
+	-- Metallic fill: bright steel over a darker band, tinted toward the element at the bottom.
+	Kit.new("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.45, Color3.fromRGB(200, 210, 225)),
+			ColorSequenceKeypoint.new(0.55, Color3.fromRGB(130, 140, 160)),
+			ColorSequenceKeypoint.new(1, neon:Lerp(Color3.new(1, 1, 1), 0.3)),
+		}),
+		Parent = name,
+	})
+	Kit.textStroke(neon, 2.5, 0.35).Parent = name -- the glow
+	local sub = Kit.label({
+		Text = `{string.upper(card.Name)} · ULTIMATE`,
 		Font = Theme.Font.Heavy,
-		TextColor3 = tier.Color,
+		TextColor3 = neon,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromScale(0.4, 0.66),
 		Size = UDim2.fromScale(0.42, 0.24),
 		ZIndex = 72,
 		Parent = band,
 	}, 26)
-	Kit.tween(band, 0.22, { Position = UDim2.fromScale(0.5, 0.46) }, Enum.EasingStyle.Quart).Completed:Connect(function()
-		task.delay(0.55, function()
-			Kit.tween(band, 0.2, { Position = UDim2.fromScale(1.8, 0.46) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In).Completed
+	sub.FontFace = CUT_FONT
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = sub
+	Kit.tween(band, 0.16, { Position = UDim2.fromScale(0.5, 0.46) }, Enum.EasingStyle.Quart).Completed:Connect(function()
+		shakeStage(5, 0.18)
+		task.delay(0.7, function()
+			Effects.Sparks(band, neon, 16, 0.6)
+			Kit.tween(band, 0.16, { Position = UDim2.fromScale(1.8, 0.46) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In).Completed
 				:Connect(function()
 					band:Destroy()
 				end)
@@ -593,7 +698,24 @@ local function makeTile(unit, order: number)
 		Parent = slot,
 	}, {
 		Kit.corner(UDim.new(0.12, 0)),
-		Kit.gradient(ColorSequence.new(tier.Dark:Lerp(Color3.new(1, 1, 1), 0.12), tier.Dark:Lerp(Color3.new(0, 0, 0), 0.35)), 90),
+		-- Obsidian, whatever the rarity: the rarity lives in the edge, not a washed-out fill.
+		Kit.gradient(ColorSequence.new(Color3.fromRGB(15, 18, 28), Color3.fromRGB(8, 10, 16)), 90),
+	})
+	local badgeDock = Kit.new("Frame", {
+		Name = "Badges",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -4, 0, -9),
+		Size = UDim2.new(0.9, 0, 0, 16),
+		BackgroundTransparency = 1,
+		ZIndex = 8,
+		Parent = button,
+	}, {
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 3),
+		}),
 	})
 	local stroke = Kit.stroke(Color3.new(1, 1, 1), 2, 0)
 	local strokeGradient = Kit.gradient(Rarity.Gradient(rarity), 45)
@@ -703,11 +825,14 @@ local function makeTile(unit, order: number)
 		TierColor = tier.Color,
 		CardId = unit.CardId,
 		BaseStatus = status.Text,
+		Badges = badgeDock,
 	}
 
 	if isAttack then
-		local hpTrack, hpFill, hpTrail = bar(info, "HP", 0.45, 0.25, Theme.Color.Quick, true)
+		local hpTrack, hpFill, hpTrail = bar(info, "HP", 0.45, 0.25, NEON_EMERALD, true)
 		hpFill.Size = UDim2.fromScale(1, 1)
+		Kit.gradient(ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(120, 140, 130)), 90).Parent = hpFill
+		Kit.new("UISizeConstraint", { MinSize = Vector2.new(0, 6), Parent = hpTrack })
 		tile.HpFill, tile.HpTrail = hpFill, hpTrail
 		tile.Shield = Kit.new("Frame", {
 			Name = "Shield",
@@ -728,11 +853,19 @@ local function makeTile(unit, order: number)
 		}, 13)
 		Kit.textStroke(Color3.new(0, 0, 0), 1, 0.25).Parent = tile.HpText
 	end
-	local _, gauge = bar(info, "Action", if isAttack then 0.76 else 0.62, if isAttack then 0.09 else 0.12, Color3.fromRGB(222, 234, 255))
+	local _, gauge = bar(info, "Action", if isAttack then 0.76 else 0.62, if isAttack then 0.09 else 0.12, NEON_CYAN)
 	tile.Gauge = gauge
 	if unit.Ultimate then
-		local _, energy = bar(info, "Energy", if isAttack then 0.89 else 0.8, if isAttack then 0.09 else 0.12, Theme.Color.Gold)
+		local energyTrack, energy = bar(info, "Energy", if isAttack then 0.89 else 0.8, if isAttack then 0.09 else 0.12, Theme.Color.Gold)
+		Kit.gradient(ColorSequence.new(NEON_CYAN, Theme.Color.Gold), 0).Parent = energy
+		energy.BackgroundColor3 = Color3.new(1, 1, 1)
 		tile.Energy = energy
+		-- Fully charged: the bar glows and pulses.
+		local glow = Kit.stroke(Theme.Color.Gold, 2, 0)
+		glow.Enabled = false
+		glow.Parent = energyTrack
+		pulseForever(glow, { Transparency = 0.7, Thickness = 3.5 }, 0.4)
+		tile.EnergyGlow = glow
 	end
 
 	tile.Flash = Kit.new("Frame", {
@@ -1074,6 +1207,13 @@ local function applySnapshot(snap)
 			local staggered = string.find(s.F, "Q") ~= nil
 			Kit.tween(bossStagger, 0.15, { Size = UDim2.fromScale(if staggered then 1 else (s.St or 0), 0.22) })
 			bossStagger.BackgroundColor3 = if staggered then Color3.new(1, 1, 1) else Theme.Color.Gold
+			if staggerBanner.Visible ~= staggered then
+				staggerBanner.Visible = staggered
+				if staggered then
+					staggerBanner.Size = UDim2.fromScale(0.75, 0.3)
+					Kit.tween(staggerBanner, 0.2, { Size = UDim2.fromScale(0.62, 0.24) }, Enum.EasingStyle.Back)
+				end
+			end
 		elseif enemyTiles[id] then
 			local tile = enemyTiles[id]
 			setHp(tile.HpFill, tile.HpTrail, s.H / tile.MaxHP)
@@ -1096,14 +1236,8 @@ local function applySnapshot(snap)
 					tile.Shield.Size = UDim2.fromScale(math.min(1, (s.S or 0) / tile.MaxHP), 1)
 					tile.HpText.Text = if (s.S or 0) > 0 then `{Kit.commas(s.H)} +{Kit.commas(s.S)}` else Kit.commas(s.H)
 					alive = s.H > 0
-					tile.Status.Text = flagWords(s.F, STATUS)
-					tile.Status.TextColor3 = if string.find(s.F, "B") then Theme.Color.Roll
-						elseif string.find(s.F, "Z") then ICE_COLOR
-						else Theme.Color.Gold
-				else
-					local words = flagWords(s.F, STATUS)
-					tile.Status.Text = if words ~= "" then words else tile.BaseStatus
 				end
+				setBadges(tile.Badges, if alive then s.F else "")
 				local gaugeGoal = UDim2.fromScale(s.G, 1)
 				if s.G < tile.Gauge.Size.X.Scale then
 					tile.Gauge.Size = gaugeGoal -- it just acted: snap back
@@ -1112,6 +1246,7 @@ local function applySnapshot(snap)
 				end
 				if tile.Energy then
 					Kit.tween(tile.Energy, 0.15, { Size = UDim2.fromScale(s.E / cost, 1) })
+					tile.EnergyGlow.Enabled = alive and s.E >= cost
 				end
 				if tile.Ko.Visible ~= not alive then
 					tile.Ko.Visible = not alive
@@ -1631,14 +1766,30 @@ local function playIntro(boss, subtitle: string, deckPower: number, seconds: num
 	task.delay(math.max(0.6, seconds - 0.7), function()
 		Kit.tween(left, 0.25, { Position = UDim2.fromScale(-0.5, 0.38) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
 		Kit.tween(right, 0.25, { Position = UDim2.fromScale(1.5, 0.62) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+		-- FIGHT! drops in hard in brushed metal, then fades 1 s later.
 		vs.Text = "FIGHT!"
 		vs.TextColor3 = Color3.new(1, 1, 1)
-		vsScale.Scale = 1.6
-		Kit.tween(vsScale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
+		vs.FontFace = CUT_FONT
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(190, 200, 215)),
+				ColorSequenceKeypoint.new(0.52, Color3.fromRGB(120, 130, 150)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(235, 240, 250)),
+			}),
+			Parent = vs,
+		})
+		vs.Position = UDim2.fromScale(0.5, 0.3)
+		vsScale.Scale = 1.4
+		Kit.tween(vs, 0.18, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		Kit.tween(vsScale, 0.18, { Scale = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Connect(function()
+			shakeStage(6, 0.2)
+		end)
 		Kit.tween(intro, 0.4, { BackgroundTransparency = 1 })
 	end)
-	task.delay(seconds, function()
-		Kit.tween(vs, 0.2, { TextTransparency = 1 }).Completed:Connect(function()
+	task.delay(math.max(0.6, seconds - 0.7) + 1, function()
+		Kit.tween(vs, 0.25, { TextTransparency = 1 }).Completed:Connect(function()
 			intro.Visible = false
 		end)
 	end)
@@ -2494,6 +2645,27 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		ZIndex = 4,
 		Parent = hpTrack,
 	}, { Kit.corner(UDim.new(1, 0)) })
+	staggerBanner = Kit.label({
+		Name = "StaggerBanner",
+		Text = `STAGGERED!  DEF 0 · ULTIMATES +{math.floor(Config.Battle.StaggerUltBonus * 100 + 0.5)}%`,
+		Font = Theme.Font.Display,
+		TextColor3 = Theme.Color.Gold,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.7),
+		Size = UDim2.fromScale(0.62, 0.24),
+		BackgroundColor3 = Color3.fromRGB(12, 16, 26),
+		BackgroundTransparency = 0.15,
+		Visible = false,
+		ZIndex = 12,
+		Parent = hpTrack.Parent,
+	}, 20)
+	staggerBanner.FontFace = CUT_FONT
+	Kit.corner(UDim.new(0, 4)).Parent = staggerBanner
+	local staggerGlow = Kit.stroke(Theme.Color.Gold, 2, 0)
+	staggerGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	staggerGlow.Parent = staggerBanner
+	pulseForever(staggerGlow, { Transparency = 0.6, Thickness = 4 }, 0.35)
+	Kit.textStroke(Color3.fromRGB(60, 30, 0), 1.5, 0).Parent = staggerBanner
 	for _, at in { Config.Battle.PhaseAt, Config.Battle.EnrageAt } do
 		Kit.new("Frame", {
 			Name = "Marker",

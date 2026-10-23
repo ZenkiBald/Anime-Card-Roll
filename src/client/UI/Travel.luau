@@ -26,6 +26,27 @@ local COOLDOWN = 2 -- matches the server's rate limit
 
 -- Emoji per boss particle theme (no icon art for worlds yet).
 local WORLD_ICONS = { Embers = "🏮", Snow = "🏔️", Motes = "🌌", Rain = "⚡" }
+-- Biome glow behind each card: ember crimson, deep ice, void purple, storm indigo; the town warm gold.
+local BIOME = {
+	Town = Color3.fromRGB(150, 110, 30),
+	Embers = Color3.fromRGB(170, 30, 20),
+	Snow = Color3.fromRGB(30, 110, 180),
+	Motes = Color3.fromRGB(110, 30, 180),
+	Rain = Color3.fromRGB(50, 70, 160),
+}
+local badges = {} -- [bossId] = boss badge label
+
+-- "KUROGANE · HARD ✓" (highest cleared difficulty), or "KUROGANE · NOT CLEARED".
+local function bossStatus(boss): string
+	local cleared = State.Progress.Cleared or {}
+	local best = nil
+	for _, difficulty in Bosses.DifficultyOrder do
+		if cleared[Bosses.FightKey(boss.Id, difficulty)] then
+			best = difficulty
+		end
+	end
+	return `{string.upper(boss.Name)} · {if best then string.upper(best) .. " ✓" else "NOT CLEARED"}`
+end
 
 local function stops()
 	local list = {
@@ -39,6 +60,8 @@ local function stops()
 			Sub = `World {boss.World} · {boss.Name}`,
 			Accent = boss.Accent,
 			Icon = WORLD_ICONS[boss.Particles] or "⚔️",
+			Biome = BIOME[boss.Particles] or boss.Accent,
+			Boss = boss,
 		})
 	end
 	return list
@@ -102,7 +125,46 @@ function Travel.Init(playerGui: Instance, showHint: (string) -> ())
 		}),
 	})
 	for i, stop in stops() do
-		local tile = Kit.tile({ Name = stop.Id, LayoutOrder = i, Parent = grid }, stop.Accent, "TextButton")
+		local tile = Kit.tile({ Name = stop.Id, LayoutOrder = i, ClipsDescendants = true, Parent = grid }, stop.Accent, "TextButton")
+		-- Biome vignette: the world's colour glowing from behind the icon, fading to dark on the right.
+		Kit.new("Frame", {
+			Name = "Biome",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			ZIndex = 0,
+			Parent = tile,
+		}, {
+			Kit.corner(),
+			Kit.new("UIGradient", {
+				Color = ColorSequence.new(stop.Biome or BIOME.Town, Color3.fromRGB(8, 10, 16)),
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.35),
+					NumberSequenceKeypoint.new(0.6, 0.75),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
+			}),
+		})
+		if stop.Boss then
+			local badge = Kit.label({
+				Text = "",
+				Font = Theme.Font.Heavy,
+				TextColor3 = stop.Accent:Lerp(Color3.new(1, 1, 1), 0.3),
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -8, 0, 8),
+				AutomaticSize = Enum.AutomaticSize.X,
+				Size = UDim2.fromOffset(0, 20),
+				TextScaled = false,
+				TextWrapped = false,
+				TextSize = 12,
+				BackgroundColor3 = Color3.fromRGB(8, 10, 16),
+				BackgroundTransparency = 0.2,
+				Parent = tile,
+			}, 12)
+			Kit.corner(UDim.new(0, 4)).Parent = badge
+			Kit.stroke(stop.Accent, 1, 0.3).Parent = badge
+			Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = badge })
+			badges[stop.Boss.Id] = { Label = badge, Boss = stop.Boss }
+		end
 		Kit.label({
 			Text = stop.Icon,
 			Font = Theme.Font.Heavy,
@@ -147,6 +209,9 @@ function Travel.Init(playerGui: Instance, showHint: (string) -> ())
 		local current = ZoneFx.Current()
 		for zone, label in here do
 			label.Visible = zone == current
+		end
+		for _, entry in badges do
+			entry.Label.Text = bossStatus(entry.Boss)
 		end
 	end
 end

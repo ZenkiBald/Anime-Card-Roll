@@ -113,7 +113,7 @@ function HubFx.SageTalk(prompt: ProximityPrompt)
 		bubble.Name = "TipBubble"
 		bubble.Size = UDim2.fromOffset(300, 90)
 		bubble.StudsOffset = Vector3.new(0, 7, 0)
-		bubble.MaxDistance = 60
+		bubble.MaxDistance = 25
 		bubble.LightInfluence = 0
 		local frame = Instance.new("Frame")
 		frame.Name = "Bubble"
@@ -186,8 +186,10 @@ local function fadeSigns()
 		if position == nil then
 			continue
 		end
-		local far = math.max(gui.MaxDistance, FADE_NEAR + 1)
-		local fade = math.clamp(((position - eye).Magnitude - FADE_NEAR) / (far - FADE_NEAR), 0, 1)
+		-- NPC plates have a short range (25): they fade over its last 40%.
+		local far = math.max(gui.MaxDistance, 2)
+		local near = math.min(FADE_NEAR, far * 0.6)
+		local fade = math.clamp(((position - eye).Magnitude - near) / (far - near), 0, 1)
 		for _, label in gui:GetChildren() do
 			if label:IsA("TextLabel") then
 				label.TextTransparency = fade

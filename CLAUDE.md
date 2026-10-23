@@ -239,6 +239,13 @@ Polish + deck rebuild (2026-10-23, user's spec; cloud-built, headless tests + lu
 - Pets / mounts: follower pets float over the right shoulder (bob sin(t x 4) x 0.4, bank into turns, lean with
   speed; `Followers`). Mount parts weld to one MountRoot joined by Motor6D "MountJoint" (MountService); clients
   sway it with the stride (pitch / roll / heave + turn bank) in PreSimulation.
+Combat & VFX pass (2026-10-23, not yet seen in Studio): Ultimate cut-in is an obsidian slash with an element
+neon edge (`NEON` in `UI/Battle`), italic metallic GothamBlack, punch + sparks; battle cards stay obsidian (rarity
+in the edge), neon emerald / red HP, cyan action bar, energy glows when full, status badges top right (`BADGES`);
+metal FIGHT! drop-in; a STAGGERED banner under the leader's HP while Staggered (shows the real effect, DEF 0 /
+Ultimates +50%). NPC / booth name plates and the town boards show within 25 studs only (HubFx fades them); the
+Momentum line sits in a glass header over the roll console with a 2 px bar to 500; Travel cards get a biome glow
+and a boss badge (highest cleared difficulty).
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
