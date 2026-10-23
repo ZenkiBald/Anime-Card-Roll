@@ -142,14 +142,14 @@ end
 
 -- Bonds: pairs with a story. Pct is a share of both cards' ATK / PWR added together.
 Elements.Bonds = {
-	{ Id = "village", Name = "Village Oath", Cards = { "rook", "tomo" }, Pct = 3, Text = "The brawler and the lantern swordsman swore to guard Ember Village together." },
-	{ Id = "mist", Name = "Mist and Steel", Cards = { "kaede", "ibuki" }, Pct = 3, Text = "Kunai fly out of Ibuki's fog where no one can see them coming." },
-	{ Id = "drum", Name = "Thunder Drum", Cards = { "mirai", "suzu" }, Pct = 3, Text = "Suzu drums the rhythm, Mirai looses on the beat." },
-	{ Id = "tempest", Name = "Twin Tempest", Cards = { "sora", "hayate" }, Pct = 3, Text = "Two storm blades, one wind: rivals since the dojo." },
-	{ Id = "crimson", Name = "Crimson Dragon", Cards = { "akane", "kaito" }, Pct = 3, Text = "The lancer and the ronin never agree, except on who falls first." },
-	{ Id = "starfall", Name = "Starfall Gambit", Cards = { "noa", "luna" }, Pct = 3, Text = "Luna reads the stars, Noa drops them." },
-	{ Id = "skyfall", Name = "Sky and Thunder", Cards = { "tsubasa", "amaya" }, Pct = 3, Text = "The sky knight rides the oracle's lightning down." },
-	{ Id = "duskdawn", Name = "Dusk and Dawn", Cards = { "raijen", "aurelia" }, Pct = 3, Text = "Eclipse and sunrise: the two Secret sovereigns, finally on one side." },
+	{ Id = "village", Name = "Martial Oath", Cards = { "rook", "tomo" }, Pct = 3, Text = "The brawler and the lantern swordsman swore to guard Ember Village together." },
+	{ Id = "mist", Name = "Shadow and Mist", Cards = { "kaede", "ibuki" }, Pct = 3, Text = "Kunai fly out of Ibuki's fog where no one can see them coming." },
+	{ Id = "drum", Name = "Thunder Rhythm", Cards = { "mirai", "suzu" }, Pct = 3, Text = "Suzu drums the rhythm, Mirai looses on the beat." },
+	{ Id = "tempest", Name = "Rival Tempest", Cards = { "sora", "hayate" }, Pct = 3, Text = "Two storm blades, one wind: rivals since the dojo." },
+	{ Id = "crimson", Name = "Pride & Lightning", Cards = { "akane", "kaito" }, Pct = 3, Text = "The copy blade and the golden warrior never agree, except on who falls first." },
+	{ Id = "starfall", Name = "Celestial Gambit", Cards = { "noa", "luna" }, Pct = 3, Text = "Luna reads the stars, Noa drops them." },
+	{ Id = "skyfall", Name = "Sky Sovereigns", Cards = { "tsubasa", "amaya" }, Pct = 3, Text = "The sky knight rides the oracle's lightning down." },
+	{ Id = "duskdawn", Name = "Cosmic Supremacy", Cards = { "raijen", "aurelia" }, Pct = 3, Text = "Eclipse and sunrise: the two Secret sovereigns, finally on one side." },
 } :: { Bond }
 
 Elements.BondById = {} :: { [string]: Bond }

@@ -226,4 +226,12 @@ function Store.Toggle()
 	modal:Toggle()
 end
 
+-- Opened at the Server Luck Totem (the last row; HUD: STORE > TOTEM).
+function Store.OpenTotem()
+	modal:Open()
+	task.defer(function()
+		list.CanvasPosition = Vector2.new(0, math.max(0, list.AbsoluteCanvasSize.Y - list.AbsoluteWindowSize.Y))
+	end)
+end
+
 return Store

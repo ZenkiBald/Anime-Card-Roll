@@ -25,7 +25,7 @@ local TEMPLATE = {
 	TraitShards = 0, -- the Trait Master's currency
 	Playtime = 0, -- seconds, saved when the player leaves
 	-- Favorite: the card shown as the player's picture in the server list and on their name tag ("" = none).
-	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "" },
+	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "", Title = "" },
 	Decks = { Active = 1, Presets = presets }, -- each preset: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} }, -- keyed by Bosses.FightKey, e.g. "kurogane:Normal"
 	-- Long-term progression (Meta.luau): potions owned / seconds left running (ticks only while online),
@@ -55,6 +55,10 @@ local TEMPLATE = {
 	Codes = {},
 	-- Passes bought in Studio / test mode while their id is still 0 (MonetizationService): key -> true.
 	MockPasses = {},
+	-- Kenji's questline (Tutorial.luau): the open quest, flags noted by the services, supplies given.
+	Tutorial = { Step = 1, Flags = {}, Supplied = {} },
+	-- Titles earned (name -> true); the worn one is Settings.Title.
+	Titles = {},
 	-- Developer product receipts already paid out (PurchaseId -> os.time()), so a retry never pays twice.
 	Purchases = {},
 }
@@ -67,6 +71,25 @@ local PlayerStore = ProfileStore.New(STORE_NAME, TEMPLATE)
 local DataService = {}
 
 local profiles = {} -- [Player] = Profile
+-- Messages to a save from another server or while its player was away (ProfileStore MessageAsync), e.g. a
+-- raid payout for a hitter who left before the raid ended. Set by Main.server (MetaService grants them).
+local messageHandler: ((player: Player, profile: any, message: any) -> ())? = nil
+
+function DataService.SetMessageHandler(fn)
+	messageHandler = fn
+end
+
+-- Queues a message for a player's save, online or not; it's handled the next time their profile loads
+-- (or right away if it's loaded on any server). Yields; returns whether it was stored.
+function DataService.SendMessage(userId: number, message): boolean
+	local ok, stored = pcall(function()
+		return PlayerStore:MessageAsync(`{userId}`, message)
+	end)
+	if not ok then
+		warn(`[DataService] message for {userId} failed: {stored}`)
+	end
+	return ok and stored == true
+end
 local sessionStart = {} -- [Player] = os.clock() when the profile loaded
 
 local function deepCopy(value)
@@ -201,6 +224,16 @@ local function onPlayerAdded(player: Player)
 	if player.Parent == Players then
 		profiles[player] = profile
 		sessionStart[player] = os.clock()
+		profile:MessageHandler(function(message, processed)
+			if messageHandler then
+				local ok, err = pcall(messageHandler, player, profile, message)
+				if not ok then
+					warn(`[DataService] message handler failed: {err}`)
+					return -- left in the queue, tried again next load
+				end
+			end
+			processed()
+		end)
 	else
 		profile:EndSession()
 	end

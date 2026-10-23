@@ -122,6 +122,9 @@ local function refresh(player: Player)
 		card, rarity = favorite.Name, Cards.FusedRarity(favorite, data.Cards[favorite.Id].Fusion)
 	end
 	local parts = { `<font color="#FFC42E">Lv {data.Level}</font>` }
+	if (data.Settings.Title or "") ~= "" then
+		table.insert(parts, `<font color="#50E6C8">« {data.Settings.Title} »</font>`)
+	end
 	if card and rarity then
 		table.insert(parts, `<font color="#{Rarity.Get(rarity).Color:ToHex()}">{string.upper(rarity)}</font> {card}`)
 	else

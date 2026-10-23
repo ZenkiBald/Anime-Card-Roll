@@ -130,7 +130,7 @@ local function newUnit(spec: UnitSpec)
 	unit.SkillCooldown = if unit.Skill then (unit.Skill.Every or 3) - 1 else 0
 	-- The card's trait (Traits.luau): a head start on its Ultimate, or a buff that lasts the whole
 	-- fight (Left = huge, so it never runs out and bosses can't steal it).
-	for i, effect in spec.Trait or {} do
+	for i, effect in (spec.Trait or {}) :: { { Amount: number, Stat: string } } do
 		if effect.Stat == "StartEnergy" then
 			if unit.Ultimate then
 				unit.Energy = math.min(B.UltimateCost, unit.Energy + effect.Amount * B.UltimateCost)
@@ -177,6 +177,7 @@ local function newEnemy(id: string, order: number, props)
 		Stagger = 0, -- leader: the Stagger bar, 0-1
 		Staggered = 0, -- leader: seconds of Stagger left
 		Staggers = 0,
+		CounterStaggers = 0, -- Staggers finished by a hit from an element that beats it
 	}
 	enemy.HP = enemy.MaxHP
 	return enemy
@@ -699,6 +700,9 @@ function Engine:FillStagger(enemy, element: string?)
 	enemy.Stagger = 0
 	enemy.Staggered = B.StaggerSeconds
 	enemy.Staggers += 1
+	if matchup == "Strong" then
+		enemy.CounterStaggers += 1
+	end
 	local cancelled = enemy.Pending and enemy.Pending.Move.Name
 	enemy.Pending = nil
 	enemy.Gauge = 0
@@ -1461,6 +1465,7 @@ function Engine:Summary()
 		BossMaxHP = self.Boss.MaxHP,
 		GuardsDown = guardsDown,
 		Staggers = self.Boss.Staggers,
+		CounterStaggers = self.Boss.CounterStaggers,
 		Guards = #self.Enemies - 1,
 		Units = dealt,
 	}

@@ -30,10 +30,10 @@ local function dismount(character: Model)
 	end
 	local humanoid = humanoidOf(character)
 	if humanoid and character:GetAttribute("Mount") then
-		humanoid.HipHeight = humanoid:GetAttribute("BaseHipHeight") or humanoid.HipHeight
-		humanoid.WalkSpeed = humanoid:GetAttribute("BaseWalkSpeed") or 16
-		humanoid.JumpPower = humanoid:GetAttribute("BaseJumpPower") or 50
-		humanoid.JumpHeight = humanoid:GetAttribute("BaseJumpHeight") or 7.2
+		humanoid.HipHeight = (humanoid:GetAttribute("BaseHipHeight") or humanoid.HipHeight) :: number
+		humanoid.WalkSpeed = (humanoid:GetAttribute("BaseWalkSpeed") or 16) :: number
+		humanoid.JumpPower = (humanoid:GetAttribute("BaseJumpPower") or 50) :: number
+		humanoid.JumpHeight = (humanoid:GetAttribute("BaseJumpHeight") or 7.2) :: number
 	end
 	character:SetAttribute("Mount", nil)
 end
@@ -125,7 +125,7 @@ local function setPet(player: Player, character: Model)
 	if mount == nil or not Mounts.Unlocked(mount, profile.Data.Progress.Cleared) then
 		mount = Mounts.List[1]
 	end
-	character:SetAttribute("Pet", mount.Id)
+	character:SetAttribute("Pet", (mount :: Mounts.Mount).Id)
 end
 
 function MountService.Start()

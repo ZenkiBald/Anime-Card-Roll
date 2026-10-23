@@ -127,7 +127,7 @@ end
 -- The best border in a set of found ones ({ Gold = true, ... }), or "Normal".
 function Borders.Best(found: { [string]: boolean }?): string
 	local best = "Normal"
-	for id, has in found or {} do
+	for id, has in (found or {}) :: { [string]: boolean } do
 		if has and Borders.Index(id) > Borders.Index(best) then
 			best = id
 		end

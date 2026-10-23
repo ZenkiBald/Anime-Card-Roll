@@ -244,7 +244,7 @@ end
 
 function Meta.StatsSpent(stats: { [string]: number }?): number
 	local spent = 0
-	for _, value in stats or {} do
+	for _, value in (stats or {}) :: { [string]: number } do
 		spent += value
 	end
 	return spent
@@ -485,7 +485,7 @@ function Meta.Describe(bundle: Bundle): string
 			end
 		end
 	end
-	for id in bundle.Artifacts or {} do
+	for id in (bundle.Artifacts or {}) :: { [string]: number } do
 		local artifact = Items.ArtifactById[id]
 		if artifact then
 			table.insert(parts, `{artifact.Icon} {artifact.Name}`)

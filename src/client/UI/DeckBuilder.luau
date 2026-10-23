@@ -343,7 +343,8 @@ function refresh()
 	local cost = Deck.Cost(working)
 	table.insert(parts, `<font color="{if cost <= Config.Deck.CostCap then "#56D68A" else "#FF7846"}">COST <b>{cost}/{Config.Deck.CostCap}</b></font>`)
 	synergyLabel.Text = if #parts > 1 then table.concat(parts, "  ·  ") else `2 cards of one element = a synergy · bonded pairs = a Dual Ultimate  ·  {parts[1]}`
-	autoButton.Label.Text = if target then "COUNTER-BUILD" else "AUTO-BUILD"
+	local auto: any = autoButton
+	auto.Label.Text = if target then "COUNTER-BUILD" else "AUTO-BUILD"
 	presetLabel.Text = `DECK {State.Decks.Active}`
 	backButton.Visible = returnTo ~= nil
 	task.defer(sizeGrid)

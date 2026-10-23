@@ -24,11 +24,15 @@ local dirty = false
 local lastBroadcast = 0
 local infoLimiter = RateLimit.new(2, 4)
 
--- Pays one hitter (set by Main.server to RollService.RaidRewards): returns what the client shows.
+-- Pays one hitter (set by Main.server to RollService.RaidRewards): returns what the client shows. A
+-- hitter who left before the end is paid through `offlinePayer` (RollService.RaidRewardsOffline: a
+-- ProfileStore message their save picks up next time, so the Shards / packs wait in their BAG).
 local payer: ((player: Player, reward: Raid.Reward) -> any)? = nil
+local offlinePayer: ((userId: number, reward: Raid.Reward, name: string) -> ())? = nil
 
-function RaidService.SetPayer(fn)
+function RaidService.SetPayer(fn, offlineFn)
 	payer = fn
+	offlinePayer = offlineFn
 end
 
 local function now(): number
@@ -105,7 +109,12 @@ local function settle(cleared: boolean)
 	for _, entry in list do
 		local player = Players:GetPlayerByUserId(entry.UserId)
 		local hitter = current.Hitters[entry.UserId]
-		if player and hitter and hitter.Damage > 0 then
+		if (player == nil or (hitter and hitter.Left)) and hitter and hitter.Damage > 0 and offlinePayer then
+			-- Left before the end (or leaving now, their save closing): what they earned waits for them.
+			local reward = Raid.Reward(cleared, hitter.Damage, hitter.Power, entry.UserId == topId)
+			local name = current.Window.Colossus.Name
+			task.spawn(offlinePayer, entry.UserId, reward, name)
+		elseif player and hitter and hitter.Damage > 0 then
 			local reward = Raid.Reward(cleared, hitter.Damage, hitter.Power, entry.UserId == topId)
 			local paid = if payer then payer(player, reward) else nil
 			Remotes.RaidState:FireClient(player, {
@@ -164,9 +173,14 @@ function RaidService.Join(player: Player, power: number)
 	local w = current.Window
 	local hitter = current.Hitters[player.UserId]
 	if hitter == nil then
-		hitter = { Name = player.DisplayName, Damage = 0, Power = power }
+		hitter = { Name = player.DisplayName, Damage = 0, Power = power, Share = 0 }
 		current.Hitters[player.UserId] = hitter
-		current.Max += Raid.PoolFor(power, w.Colossus)
+	end
+	if hitter.Share == 0 then
+		-- First run this window (or back after leaving): their share joins the pool.
+		hitter.Share = Raid.PoolFor(power, w.Colossus)
+		hitter.Left = nil
+		current.Max += hitter.Share
 	end
 	hitter.Power = math.max(hitter.Power, power) -- rewards follow the strongest deck they brought
 	dirty = true
@@ -191,6 +205,22 @@ function RaidService.AddDamage(player: Player, index: number, amount: number): b
 		return true
 	end
 	return false
+end
+
+-- A player left: the part of their share they never dealt comes off the pool (their damage stays, and
+-- is paid if the raid is cleared). Clears the raid if what's left is already dealt.
+function RaidService.Leave(player: Player)
+	local hitter = current and current.Hitters[player.UserId]
+	if hitter == nil or current.Settled or hitter.Left then
+		return
+	end
+	current.Max = Raid.PoolAfterLeave(current.Max, current.Dealt, hitter.Share, hitter.Damage)
+	hitter.Share = 0
+	hitter.Left = true
+	dirty = true
+	if current.Max > 0 and current.Dealt >= current.Max then
+		settle(true)
+	end
 end
 
 -- Whether window `index` is over (cleared or closed): running raid fights end when it is.
@@ -227,6 +257,7 @@ function RaidService.Start()
 			task.wait(0.5)
 		end
 	end)
+	Players.PlayerRemoving:Connect(RaidService.Leave)
 	if not Config.TestMode then
 		ReplicatedStorage:SetAttribute("DevRaidEnds", nil)
 	end

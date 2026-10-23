@@ -32,7 +32,9 @@
         "Store": { "$className": "RemoteFunction" },
         "StoreState": { "$className": "RemoteEvent" },
         "TraitMaster": { "$className": "RemoteFunction" },
-        "PackAlchemy": { "$className": "RemoteFunction" }
+        "PackAlchemy": { "$className": "RemoteFunction" },
+        "Tutorial": { "$className": "RemoteFunction" },
+        "TutorialState": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {

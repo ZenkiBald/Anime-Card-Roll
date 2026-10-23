@@ -30,13 +30,15 @@ local function loop(instance: Instance, goal, seconds: number)
 end
 
 function Title.Show(playerGui: Instance)
-	gui = Kit.screenGui("TitleGui", 40, playerGui)
-	gui.IgnoreGuiInset = true
+	local screen = Kit.screenGui("TitleGui", 40, playerGui)
+	screen.IgnoreGuiInset = true
+	gui = screen
 
-	blur = Instance.new("BlurEffect")
-	blur.Name = "TitleBlur"
-	blur.Size = 20
-	blur.Parent = Lighting
+	local titleBlur = Instance.new("BlurEffect")
+	titleBlur.Name = "TitleBlur"
+	titleBlur.Size = 20
+	titleBlur.Parent = Lighting
+	blur = titleBlur
 
 	Kit.new("Frame", {
 		Name = "Wash",

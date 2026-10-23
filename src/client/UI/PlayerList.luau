@@ -179,7 +179,8 @@ function PlayerList.Refresh()
 	local shown = math.min(#players, MAX_ROWS)
 	list.Visible = not folded
 	panel.Size = UDim2.new(0, panel.Size.X.Offset, 0, 32 + (if folded then 0 else shown * ROW_HEIGHT + 4))
-	foldButton.Label.Text = if folded then "‹" else "›"
+	local fold: any = foldButton
+	fold.Label.Text = if folded then "‹" else "›"
 end
 
 local function applyHidden()
@@ -255,7 +256,8 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?)
 	-- Small screens: shrink it, and start folded on phones so it doesn't cover the world.
 	local function fit()
 		local height = gui.AbsoluteSize.Y
-		panel.Fit.Scale = math.clamp(height / 900, 0.6, 1)
+		local fitted: any = panel
+		fitted.Fit.Scale = math.clamp(height / 900, 0.6, 1)
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	fit()

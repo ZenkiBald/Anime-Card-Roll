@@ -35,6 +35,7 @@ local RateLimit = require(script.Parent.RateLimit)
 local RaidService = require(script.Parent.RaidService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local Momentum = require(script.Parent.Momentum)
+local TutorialService = require(script.Parent.TutorialService)
 
 local RollService = {}
 
@@ -271,7 +272,7 @@ end
 -- (sure, or by chance) and a roll for an artifact at `d` (Items.RollDrops, x `boost`).
 local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, d: number, boost: number, traitShards: number?)
 	local held = profile.Data.Packs
-	for id, count in packs or {} do
+	for id, count in (packs or {}) :: { [string]: number } do
 		held[id] = (held[id] or 0) + count
 	end
 	local bundle = { Shards = shards, Potions = {}, TraitShards = traitShards }
@@ -363,6 +364,14 @@ function RollService.TowerRewards(player: Player, floor: number)
 	end
 	local reward = Tower.Reward(floor)
 	return payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.D, reward.DropBoost, reward.TraitShards)
+end
+
+-- A raid payout for a hitter who left before the raid ended: the same reward, built into one bundle
+-- (artifact roll included) and sent to their save as a message; it lands when they next play.
+function RollService.RaidRewardsOffline(userId: number, reward, name: string)
+	local bundle = { Shards = reward.Shards, TraitShards = reward.TraitShards, Packs = reward.Packs }
+	bundle.Artifacts = Items.RollDrops(reward.D, rng, reward.DropBoost).Artifacts
+	DataService.SendMessage(userId, { Kind = "Grant", Source = "Raid", Note = name, Bundle = bundle })
 end
 
 -- Sends the HUD summary on its own (e.g. when the Momentum chain breaks).
@@ -499,7 +508,7 @@ function RollService.Start()
 		}
 	end
 
-	Remotes.Roll.OnServerInvoke = function(player: Player, mode: unknown)
+	Remotes.Roll.OnServerInvoke = function(player: Player, mode: unknown, early: unknown)
 		if mode ~= "Full" and mode ~= "Quick" then
 			return { Ok = false, Reason = "BadRequest" }
 		end
@@ -517,9 +526,10 @@ function RollService.Start()
 		if left > COOLDOWN_TOLERANCE then
 			return { Ok = false, Reason = "Cooldown", Wait = left }
 		end
-		-- A surge is perfect when this click lands inside the window after the cooldown came back (or
-		-- with the Auto Roll pass's perfect hit).
-		local perfect = left > -(RollBoost.Surge.PerfectWindow + COOLDOWN_TOLERANCE) and lastRoll[player] ~= nil
+		-- A surge is perfect only for a clean tap made after the cooldown came back (the client flags taps
+		-- made during the cooldown as early; they queue and roll a plain surge) that lands inside the
+		-- window; or with the Auto Roll pass's perfect hit.
+		local perfect = RollBoost.IsPerfect(early == true, left, COOLDOWN_TOLERANCE) and lastRoll[player] ~= nil
 		perfect = perfect or MonetizationService.Perk(player, "AutoRoll", true)
 		lastRoll[player] = os.clock()
 		return rollClick(player, profile, perfect, true)
@@ -548,6 +558,7 @@ function RollService.Start()
 			end
 			held[packId] -= rule.Need
 			made = rule.To
+			TutorialService.Note(player, "Condense")
 		elseif action == "Infuse" then
 			local id = if type(element) == "string" then Packs.InfusedId(element) else nil
 			if packId ~= "1000" or id == nil then

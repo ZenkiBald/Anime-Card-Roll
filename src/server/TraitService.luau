@@ -17,6 +17,7 @@ local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
 local MetaService = require(script.Parent.MetaService)
 local RateLimit = require(script.Parent.RateLimit)
+local TutorialService = require(script.Parent.TutorialService)
 
 local TraitService = {}
 
@@ -119,6 +120,7 @@ local function handle(player: Player, action: unknown, cardId: unknown, arg: unk
 	end
 	entry.Pending = { Slot = slot, Traits = rolled }
 	MetaService.Track(player, "TraitRolls")
+	TutorialService.Note(player, "TraitRoll")
 	local best = 0
 	for _, id in rolled do
 		best = math.max(best, Traits.TierIndex(id))

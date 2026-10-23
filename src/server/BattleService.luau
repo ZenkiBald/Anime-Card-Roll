@@ -30,6 +30,7 @@ local DeckService = require(script.Parent.DeckService)
 local MetaService = require(script.Parent.MetaService)
 local RateLimit = require(script.Parent.RateLimit)
 local RaidService = require(script.Parent.RaidService)
+local TutorialService = require(script.Parent.TutorialService)
 local Engine = require(script.Parent.BattleEngine)
 
 local BattleService = {}
@@ -162,6 +163,9 @@ local function run(player: Player, state)
 	end
 	active[player] = nil
 	local summary = battle:Summary()
+	if (summary.CounterStaggers or 0) > 0 then
+		TutorialService.Note(player, "CounterStagger") -- Kenji's last quest
+	end
 	local record = recordResult(player, state)
 	if record then
 		summary.FirstClear = record.FirstClear

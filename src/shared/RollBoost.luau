@@ -7,9 +7,11 @@
 --     (boss, tower or raid), so fighting never costs a streak. Session only (not saved).
 --   * Overcharge Surge: every 25th roll (by lifetime rolls) is a surge.
 --       - On Auto Roll: the card is Rare or better, with 1.5x border and foil odds.
---       - By hand, inside the Surge window (the PerfectWindow seconds after the cooldown is ready), or
---         on Auto with the Auto Roll pass: a PERFECT surge rolls 3 cards at once, the first Epic or
---         better, all with 2x border and foil odds. A late click gets the plain surge.
+--       - By hand, a clean tap inside the Surge window (the PerfectWindow seconds after the cooldown is
+--         ready and the surge ring lights up), or on Auto with the Auto Roll pass: a PERFECT surge rolls
+--         3 cards at once, the first Epic or better, all with 2x border and foil odds. A late tap, or one
+--         made while the cooldown was still running (an Early input, queued by the client), gets the
+--         plain surge.
 
 local RollBoost = {}
 
@@ -41,6 +43,13 @@ end
 -- Whether lifetime roll number `n` (the roll about to happen is TotalRolls + 1) is a surge.
 function RollBoost.IsSurge(n: number): boolean
 	return n > 0 and n % RollBoost.Surge.Every == 0
+end
+
+-- Whether a hand roll of a surge is PERFECT: `early` (tapped while the cooldown still ran), `left` = the
+-- cooldown still left when it reached the server (negative = that long since it came back), `tolerance`
+-- the network slack the server forgives.
+function RollBoost.IsPerfect(early: boolean, left: number, tolerance: number): boolean
+	return not early and left <= tolerance and left > -(RollBoost.Surge.PerfectWindow + tolerance)
 end
 
 -- Rolls until the next surge, counting the next roll as 1.

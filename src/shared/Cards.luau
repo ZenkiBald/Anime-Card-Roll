@@ -78,7 +78,7 @@ local list: { Card } = {
 	{
 		Id = "rook",
 		Name = "Rook",
-		Title = "Village Brawler",
+		Title = "Wolf Fist Brawler",
 		Type = "Attack",
 		Rarity = "Common",
 		Element = "Flame",
@@ -163,7 +163,7 @@ local list: { Card } = {
 	{
 		Id = "akane",
 		Name = "Akane",
-		Title = "Crimson Lancer",
+		Title = "Lightning Copy Blade",
 		Type = "Attack",
 		Rarity = "Epic",
 		Element = "Flame",
@@ -185,8 +185,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "kaito",
-		Name = "Kaito Ryuzen",
-		Title = "Dragon-Eye Ronin",
+		Name = "Kaito",
+		Title = "Ascended Golden Warrior",
 		Type = "Attack",
 		Rarity = "Legendary",
 		Element = "Frost",
@@ -235,7 +235,7 @@ local list: { Card } = {
 	{
 		Id = "raijen",
 		Name = "Raijen",
-		Title = "Eclipse Sovereign",
+		Title = "Autonomous God State",
 		Type = "Attack",
 		Rarity = "Secret",
 		Element = "Cosmic",
@@ -439,7 +439,7 @@ local list: { Card } = {
 	{
 		Id = "aurelia",
 		Name = "Aurelia",
-		Title = "Dawn Empress",
+		Title = "Nine-Tails Sovereign",
 		Type = "Support",
 		Rarity = "Secret",
 		Element = "Cosmic",

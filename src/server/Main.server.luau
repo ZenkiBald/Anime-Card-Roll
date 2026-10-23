@@ -18,10 +18,35 @@ local RaidService = require(script.Parent.RaidService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local TraitService = require(script.Parent.TraitService)
 local Momentum = require(script.Parent.Momentum)
+local TutorialService = require(script.Parent.TutorialService)
 
 World.Build()
 BattleService.SetRewardHandler(RollService.RewardRolls, RollService.TowerRewards)
-RaidService.SetPayer(RollService.RaidRewards)
+RaidService.SetPayer(RollService.RaidRewards, RollService.RaidRewardsOffline)
+-- Saved messages (e.g. a raid payout from while the player was away) are granted as they load.
+DataService.SetMessageHandler(function(player, profile, message)
+	if type(message) == "table" and message.Kind == "Grant" and type(message.Bundle) == "table" then
+		local granted = MetaService.Grant(profile.Data, message.Bundle, nil)
+		task.delay(8, function() -- after the client has loaded
+			if player.Parent then
+				game:GetService("ReplicatedStorage").Remotes.RaidState:FireClient(player, {
+					Payout = {
+						Cleared = true,
+						Offline = true,
+						Name = message.Note or "the raid",
+						Reward = {
+							Bundle = granted,
+							NewPacks = message.Bundle.Packs,
+							Packs = profile.Data.Packs,
+							Meta = MetaService.State(player, profile.Data),
+						},
+					},
+				})
+				RollService.PushSummary(player) -- the top bar's Shards
+			end
+		end)
+	end
+end)
 MonetizationService.SetGranter(MetaService.Grant)
 Momentum.Configure(BattleService.InBattle, function(player)
 	RollService.PushSummary(player) -- the chain broke: the HUD meter drops
@@ -41,4 +66,5 @@ RaidService.Start()
 MonetizationService.Start()
 TraitService.Start()
 Momentum.Start()
+TutorialService.Start()
 DataService.Start()

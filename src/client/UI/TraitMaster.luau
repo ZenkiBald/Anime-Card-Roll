@@ -285,7 +285,7 @@ local function drawDetail()
 			if result then
 				if result.Applied then
 					Sfx.Play("Upgrade", 1.2)
-					hint(`Applied {Traits.Get(result.Applied).Name}!`)
+					hint(`Applied {(Traits.Get(result.Applied) :: any).Name}!`)
 				else
 					hint("Kept the old trait")
 				end

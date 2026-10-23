@@ -106,7 +106,7 @@ end
 -- Total packs held.
 function Packs.Count(held: { [string]: number }?): number
 	local n = 0
-	for id, count in held or {} do
+	for id, count in (held or {}) :: { [string]: number } do
 		if Packs.ById[id] then
 			n += count
 		end

@@ -29,8 +29,8 @@ Raid.PoolShare = 3 -- the first run adds 3x that HP to the server's pool
 Raid.MaxScore = 4 -- rewards count up to 4 "runs' worth" of damage (damage / the tower HP at their power)
 Raid.LuckBoost = 2 -- Raid Luck: x2 luck for everyone on the server...
 Raid.LuckSeconds = 600 -- ...for 10 minutes after a clear
-Raid.ClearPacks = { ["10"] = 1 } -- every hitter of a cleared raid
-Raid.TopPacks = { ["100"] = 1 } -- the top hitter, on top
+Raid.ClearPacks = { ["10"] = 1 } :: { [string]: number } -- every hitter of a cleared raid
+Raid.TopPacks = { ["100"] = 1 } :: { [string]: number } -- the top hitter, on top
 Raid.ClearDropBoost = 2 -- artifact odds on a clear (Items.RollDrops)
 
 -- Pool: a multiplier on the pool share for a kit that is slower to chew through (Vex's barrier wants
@@ -106,6 +106,12 @@ Raid.ClearTraitShards = 5 -- every hitter of a cleared raid, + 2 per run's worth
 Raid.FailTraitShards = 2 -- a failed raid, + 1 per run's worth
 Raid.TopTraitShards = 10 -- the top hitter, on top
 
+-- A hitter left mid-raid: the part of their share they never dealt comes off the pool, so the raid stays
+-- winnable for the rest (it never drops below what's been dealt already).
+function Raid.PoolAfterLeave(max: number, dealt: number, share: number, damage: number): number
+	return math.max(dealt, max - math.max(0, share - damage))
+end
+
 -- What a hitter is paid: scaled to their progress (the tower floor matching their power) and damage.
 function Raid.Reward(cleared: boolean, damage: number, power: number, top: boolean): Reward
 	local floor = Tower.FloorForPower(power)
@@ -120,7 +126,7 @@ function Raid.Reward(cleared: boolean, damage: number, power: number, top: boole
 			TraitShards = Raid.FailTraitShards + math.floor(score) + topShards,
 		}
 	end
-	local packs = table.clone(Raid.ClearPacks)
+	local packs: { [string]: number } = table.clone(Raid.ClearPacks)
 	if top then
 		for id, count in Raid.TopPacks do
 			packs[id] = (packs[id] or 0) + count

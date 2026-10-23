@@ -30,6 +30,7 @@ local Wheel = require(UI.Wheel)
 local PlayerList = require(UI.PlayerList)
 local Profile = require(UI.Profile)
 local Codes = require(UI.Codes)
+local TutorialUi = require(UI.Tutorial)
 local Dash = require(script.Parent.Dash)
 local Followers = require(script.Parent.Followers)
 local OddsPanel = require(UI.OddsPanel)
@@ -106,13 +107,16 @@ local function requestRoll(mode: string)
 	end
 	busy = true
 	Sfx.Play("Whoosh", if mode == "Full" then 0.9 else 1.15)
-	-- If a reveal was tapped away early, wait out the rest of the cooldown instead of being refused.
+	-- If a reveal was tapped away early, wait out the rest of the cooldown instead of being refused. A tap
+	-- made while the cooldown still runs is an Early input: it never counts as a perfect Overcharge Surge
+	-- (that needs a clean tap after the surge ring lights up).
 	local wait = State.Cooldown() - (os.clock() - lastRollAt)
-	if wait > 0 then
+	local early = wait > 0
+	if early then
 		task.wait(wait)
 	end
 	local ok, result = pcall(function()
-		return Remotes.Roll:InvokeServer(mode)
+		return Remotes.Roll:InvokeServer(mode, early)
 	end)
 	if not ok or not result or not result.Ok then
 		busy = false
@@ -323,7 +327,10 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 	if type(bossId) == "string" then
 		BossScreen.Open(bossId)
 	elseif prompt:GetAttribute("Npc") == "sage" then
-		HubFx.SageTalk(prompt)
+		-- While his questline runs, Kenji opens KENJI'S PATH; after it, he's back to tips.
+		if not TutorialUi.Open() then
+			HubFx.SageTalk(prompt)
+		end
 	elseif prompt:GetAttribute("Npc") == "fuser" then
 		Fusion.Open()
 	elseif prompt:GetAttribute("Npc") == "traitmaster" then
@@ -358,6 +365,17 @@ Hud.Init(playerGui, {
 	OnCodes = Codes.Toggle,
 	OnRaid = BossScreen.OpenRaid,
 	OnStore = Store.Toggle,
+	OnTower = BossScreen.OpenTower,
+	OnCost = BossScreen.OpenCost,
+	OnTraits = function()
+		TraitMaster.Open()
+	end,
+	OnKenji = function()
+		TutorialUi.Open()
+	end,
+	OnFusion = Fusion.Open,
+	OnWheel = Wheel.Open,
+	OnTotem = Store.OpenTotem,
 	OnDev = if State.TestMode then DevPanel.Toggle else nil,
 })
 
@@ -394,7 +412,10 @@ Remotes.RaidState.OnClientEvent:Connect(function(message)
 		if reward and reward.NewPacks then
 			loot = `{Packs.Describe(reward.NewPacks)}  {loot}`
 		end
-		if payout.Cleared then
+		if payout.Offline then
+			Sfx.Play("Reward")
+			Hud.Hint(`⚔️ While you were away, {payout.Name} was cleared: your share is in your BAG!`)
+		elseif payout.Cleared then
 			Sfx.Play("Victory")
 			Hud.Hint(`⚔️ RAID CLEARED: {payout.Name}! You were #{payout.Rank} of {payout.Hitters}{if payout.Top then " (TOP HITTER!)" else ""}`)
 		else
@@ -418,16 +439,33 @@ Reveal.OnBusy = function(on: boolean)
 	PlayerList.SetHidden("Reveal", on)
 end
 
--- Red badges: rewards ready in GIFTS and INDEX, potions to use in the BAG, stat points to spend.
+-- Red badges: rewards ready in QUESTS (gifts) and INDEX, potions and packs in the BAG, stat points to
+-- spend, cards ready to fuse, Kenji's quest to claim. Each category's badge adds up its items.
 Hud.SetBadgeSource(function()
 	return {
-		GIFTS = MetaClient.GiftsClaimable(),
+		QUESTS = MetaClient.GiftsClaimable(),
 		INDEX = MetaClient.IndexClaimable(),
 		BAG = MetaClient.PotionCount() + MetaClient.PackCount(),
 		STATS = State.Meta.StatPoints or 0,
+		FUSION = Fusion.ReadyCount(),
+		KENJI = if TutorialUi.Ready() then 1 else 0,
 	}
 end)
 Hud.RefreshBadges()
+
+-- Kenji's questline: the tracker banner and KENJI'S PATH (rewards and his lines go through the HUD toasts).
+TutorialUi.Init(playerGui, Hud.QuestSlot(), function(text, hint)
+	if text ~= "" then
+		Hud.Reward(text)
+	end
+	if hint then
+		Hud.Hint(hint)
+	end
+end, function(active)
+	Hud.SetQuestActive(active)
+	Hud.RefreshBadges()
+end)
+
 
 -- XP and level-ups from the server: the bar moves, and a level-up gets its celebration.
 Remotes.Progress.OnClientEvent:Connect(function(progress)
@@ -467,7 +505,7 @@ Title.Ready(function()
 	PlayerList.SetHidden("Title", false)
 	if State.Meta.Daily and State.Meta.Daily.CanClaim then
 		task.delay(0.8, function()
-			Hud.Hint(`Daily reward ready: day {State.Meta.Daily.Day} of 7. Open GIFTS!`)
+			Hud.Hint(`Daily reward ready: day {State.Meta.Daily.Day} of 7. HUB > QUESTS!`)
 		end)
 	end
 end)

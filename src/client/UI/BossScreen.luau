@@ -49,7 +49,7 @@ local TOWER_COLOR = Color3.fromRGB(90, 230, 220)
 local RAID_COLOR = Color3.fromRGB(255, 80, 120)
 local SCOUT_COLOR = Color3.fromRGB(150, 200, 255)
 local costChallenge = false -- boss fights: the 30-point Cost Challenge (2x Trait Shards)
-local raidLive = {} -- the RAID tab's live labels, updated every second without a rebuild
+local raidLive: { [string]: any } = {} -- the RAID tab's live labels, updated every second without a rebuild
 local tabsLive = false -- whether the tabs were drawn with the raid live
 local raidShape = "" -- what the RAID tab was built for (window, open, cleared): a change rebuilds it
 local showcase: Frame -- left: the boss in 3D
@@ -949,6 +949,13 @@ end
 -- The RAID tab (from the HUD's raid pill).
 function BossScreen.OpenRaid()
 	mode = "raid"
+	modal:Open()
+end
+
+-- A boss fight with the Cost Challenge switched on (HUD: BATTLE > COST).
+function BossScreen.OpenCost()
+	mode = "boss"
+	costChallenge = true
 	modal:Open()
 end
 

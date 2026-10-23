@@ -90,6 +90,7 @@ local function profileOf(target: Player)
 		Name = target.Name,
 		DisplayName = target.DisplayName,
 		Level = data.Level,
+		Title = data.Settings.Title or "",
 		Rolls = data.TotalRolls,
 		Power = Deck.Power(deck, data.Cards),
 		Floor = data.Tower.Floor,

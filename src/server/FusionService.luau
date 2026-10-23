@@ -22,7 +22,7 @@ local FusionService = {}
 
 local limiter = RateLimit.new(2, 4)
 
-local function fuse(player: Player, cardId: unknown)
+local function fuse(player: Player, cardId: unknown): { [string]: any }
 	if type(cardId) ~= "string" then
 		return { Ok = false, Reason = "BadRequest" }
 	end

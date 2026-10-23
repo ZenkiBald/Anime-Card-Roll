@@ -135,7 +135,7 @@ function Items.ArtifactBonus(gear: Gear?, kind: string): number
 		return 0
 	end
 	local total = 0
-	for _, id in gear.Worn or {} do
+	for _, id in (gear.Worn or {}) :: { string } do
 		local artifact = Items.ArtifactById[id]
 		local level = (gear.Artifacts or {})[id]
 		if artifact and level and artifact.Kind == kind then

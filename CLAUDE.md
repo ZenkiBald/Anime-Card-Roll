@@ -173,6 +173,30 @@ DBZ x Naruto roster / boss mapping (#6) was NOT done: original characters only (
   Trait Shard bonus, Triple Roll, perfect surges, the Totem) only where `ArePaidRandomItemsRestricted` is false
   (unknown = restricted); the STORE greys them out and links to ODDS. Mock buys (Studio / TestMode, id 0) save in
   `MockPasses`. Dev: +200 TRAIT SHARDS, +20 COPIES ALL, GIVE FOILS.
+Playtest pass (2026-10-23, user's plan; built in the cloud, headless tests + luau-lsp only, not yet seen in Studio):
+- Homage retheme, display strings only (ids unchanged): boss titles Nine-Tailed Calamity / Galactic Tyrant / Six
+  Paths Sovereign / Multiverse Titan; Rook "Wolf Fist Brawler", Kaito "Ascended Golden Warrior" (not "Saiyan", a
+  trademarked term), Akane "Lightning Copy Blade", Raijen "Autonomous God State", Aurelia "Nine-Tails Sovereign";
+  bonds Martial Oath, Shadow and Mist, Thunder Rhythm, Rival Tempest, Pride & Lightning, Celestial Gambit, Sky
+  Sovereigns, Cosmic Supremacy. Names stay original.
+- Surge window: the client sends `Roll(mode, early)`; a tap made while the cooldown ran is Early and never PERFECT
+  (`RollBoost.IsPerfect`), it gets the plain surge. Perfect = a clean tap after the gold ring lights.
+- Raid dropout: a leaver's unearned share (`Raid.PoolAfterLeave`) leaves the pool (it can clear the raid);
+  hitters keep their damage, and if the raid clears while they're gone their payout goes by ProfileStore message
+  (`DataService.SendMessage` / `SetMessageHandler`, `RollService.RaidRewardsOffline`) into their save on next join,
+  with a "While you were away" toast.
+- Kenji's path (`Tutorial.luau`, `TutorialService`, remotes Tutorial / TutorialState, `UI/Tutorial`): 6 quests in
+  order, each CLAIMed: roll 5 / fill 4+4 / beat Kurogane Normal / a Trait Master roll / condense 10 Roll Packs
+  (Kenji tops the player up to 10 when it opens, `Supply`) / a Stagger finished by a counter element (Engine
+  `CounterStaggers`) -> title "Apprentice". Saved as `Tutorial` { Step, Flags, Supplied }; flags count whenever they
+  happen (`TutorialService.Note` from TraitService, RollService Condense, BattleService). Tracker banner above the
+  menu (tap = claim when ready, else KENJI'S PATH); talking to Kenji opens the path until it's done, then tips.
+  Titles: `Titles` set + `Settings.Title` (worn: name tags, profiles).
+- HUD regroup: top bar = Shards, Trait Shards, Rolls (luck + ODDS under it). The menu is 4 categories, each a
+  popover: BATTLE (Bosses, Tower, Raid, Cost = boss screen with Cost Challenge on), SQUAD (Deck, Index, Traits,
+  Stats), HUB (Kenji, Quests = GIFTS, Fusion, Bag incl. alchemy, Wheel, Travel), STORE (Passes, Shards = Shard
+  Shop, Totem, Codes), + DEV in TestMode. Item badges add up on their category. The left column (tracker + menu)
+  scales with the screen (`layoutLeft`, ~0.6 on a phone); the Momentum line goes short on narrow docks.
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
@@ -290,7 +314,7 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
   touches the folders in `default.project.json`, never the map. Save/publish the place from Studio.
 - Never `rojo build` over the place you open in Studio: a built place has no map (it gets the fallback hub).
   `rojo build default.project.json -o AnimeCardRoll-Test.rbxlx` is only for a throwaway script test.
-- Rojo and the `luau` CLI are installed via rokit (`~/.rokit/bin`, pinned in `rokit.toml`); luau-lsp is not installed yet.
+- Rojo and the `luau` CLI are installed via rokit (`~/.rokit/bin`, pinned in `rokit.toml`); luau-lsp isn't in rokit yet: in a cloud session download the release binary (1.70.1 worked) and rojo 7.7.1 into the scratchpad. The type check below ran clean (0 errors) on 2026-10-23; keep it clean.
 - Type check (needs luau-lsp): `rojo sourcemap default.project.json --include-non-scripts -o sourcemap.json` then
   `luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions @roblox=tests/defs/globalTypes.d.luau --ignore "**/ProfileStore.luau" src/`
 - UI property names check (props set through `Kit.new` aren't type checked): `python tests/check_props.py tests/defs/globalTypes.d.luau src`

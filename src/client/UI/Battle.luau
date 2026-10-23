@@ -2161,7 +2161,7 @@ local function setSpeedLabel()
 	speedButton.Label.TextTransparency = if current and current.SpeedUnlocked then 0 else 0.5
 end
 
-local function begin(start, bossId: string, difficulty: string)
+local function begin(start, bossId: string, difficulty: string?)
 	-- A tower floor fights a boss's echo (start.Tower: Tower.FloorAt): its model, moves and backdrop.
 	-- A raid run fights the server's Colossus (start.Raid): the boss's model and moves, alone and huge.
 	local tower = start.Tower
@@ -2270,7 +2270,7 @@ local function begin(start, bossId: string, difficulty: string)
 		bossChip.BackgroundColor3 = if tower.Guardian then Theme.Color.Gold else Color3.fromRGB(40, 170, 165)
 	else
 		bossName.Text = `{icon}{string.upper(boss.Name)}  <font color="#A8A2C8">{boss.Title}</font>`
-		bossChip.Label.Text = string.upper(difficulty)
+		bossChip.Label.Text = string.upper(difficulty or "Normal")
 		bossChip.BackgroundColor3 = if diffIndex == 3 then Theme.Color.Danger elseif diffIndex == 2 then Theme.Color.Roll else Theme.Color.Quick
 	end
 	bossHpFill.Size = UDim2.fromScale(1, 1)

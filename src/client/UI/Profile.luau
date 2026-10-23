@@ -127,7 +127,8 @@ local function draw(data, isMe: boolean)
 
 	local name = line(1, data.DisplayName, Theme.Color.Text, 34, Theme.Font.Display)
 	Kit.textStroke(Color3.new(0, 0, 0), 2, 0.1).Parent = name
-	line(2, `@{data.Name}   ·   <font color="#FFC42E">Level {data.Level}</font>`, Theme.Color.Muted, 18)
+	local title = if (data.Title or "") ~= "" then `   ·   <font color="#50E6C8">« {data.Title} »</font>` else ""
+	line(2, `@{data.Name}   ·   <font color="#FFC42E">Level {data.Level}</font>{title}`, Theme.Color.Muted, 18)
 
 	-- Stat tiles, three to a row.
 	local stats = Kit.new("Frame", {

@@ -232,7 +232,7 @@ function Tower.GuardsAt(floor: number): { string }
 			table.insert(pool, g)
 		end
 	end
-	local picked, warder, roles = {}, nil, {}
+	local picked, warder, roles = {}, nil, {} :: { [string]: boolean }
 	local salt = 10
 	while #picked + (if warder then 1 else 0) < 3 and salt < 60 do
 		local g = pool[hash(floor, salt) % #pool + 1]

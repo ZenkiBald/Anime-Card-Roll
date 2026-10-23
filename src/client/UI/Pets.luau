@@ -198,10 +198,11 @@ local function watch(character: Model)
 			if animator then
 				local animation = Instance.new("Animation")
 				animation.AnimationId = SIT[humanoid.RigType] or SIT[Enum.HumanoidRigType.R15]
-				sitTrack = animator:LoadAnimation(animation)
-				sitTrack.Priority = Enum.AnimationPriority.Action
-				sitTrack.Looped = true
-				sitTrack:Play(0.2)
+				local track = animator:LoadAnimation(animation)
+				track.Priority = Enum.AnimationPriority.Action
+				track.Looped = true
+				track:Play(0.2)
+				sitTrack = track
 			end
 		end
 		refresh()

@@ -100,7 +100,7 @@ end
 -- The best foil a card has found ({ aura = true, ... }), or "standard".
 function Foils.Best(found: { [string]: boolean }?): string
 	local best = "standard"
-	for id, has in found or {} do
+	for id, has in (found or {}) :: { [string]: boolean } do
 		if has and Foils.ById[id] and Foils.Index(id) > Foils.Index(best) then
 			best = id
 		end

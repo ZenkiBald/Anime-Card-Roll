@@ -52,7 +52,7 @@ function MetaService.Grant(data, bundle: Meta.Bundle, player: Player?)
 		end
 	end
 	-- Artifacts: new ones arrive at level 1, duplicates level them up, and past max they melt into Shards.
-	for id, count in bundle.Artifacts or {} do
+	for id, count in (bundle.Artifacts or {}) :: { [string]: number } do
 		local artifact = Items.ArtifactById[id]
 		if artifact and count > 0 then
 			for _ = 1, count do
@@ -74,7 +74,7 @@ function MetaService.Grant(data, bundle: Meta.Bundle, player: Player?)
 			end
 		end
 	end
-	for id, count in bundle.Packs or {} do
+	for id, count in (bundle.Packs or {}) :: { [string]: number } do
 		if Packs.ById[id] and count > 0 then
 			data.Packs[id] = (data.Packs[id] or 0) + count
 		end

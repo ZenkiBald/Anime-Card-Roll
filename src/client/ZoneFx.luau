@@ -124,10 +124,12 @@ local function petalStep(dt: number)
 	local character = Players.LocalPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local want = if colors and root and not State.InBattle then (if Theme.FxLow then 14 else 36) else 0
-	if petalFolder == nil then
-		petalFolder = Instance.new("Folder")
-		petalFolder.Name = "Petals"
-		petalFolder.Parent = workspace
+	local folder = petalFolder
+	if folder == nil then
+		folder = Instance.new("Folder")
+		folder.Name = "Petals"
+		folder.Parent = workspace
+		petalFolder = folder
 	end
 	while #petals < want do
 		local part = Instance.new("Part")
@@ -139,13 +141,16 @@ local function petalStep(dt: number)
 		part.CanTouch = false
 		part.CastShadow = false
 		part.Material = Enum.Material.SmoothPlastic
-		part.Parent = petalFolder
+		part.Parent = folder
 		local petal = { Part = part }
 		respawnPetal(petal, root.Position, colors, false)
 		table.insert(petals, petal)
 	end
 	while #petals > want do
-		table.remove(petals).Part:Destroy()
+		local last = table.remove(petals)
+		if last then
+			last.Part:Destroy()
+		end
 	end
 	for _, petal in petals do
 		petal.Phase += dt

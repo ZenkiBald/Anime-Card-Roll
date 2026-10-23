@@ -101,7 +101,7 @@ local list: { Boss } = {
 		World = 1,
 		WorldName = "Ember Village",
 		Name = "Kurogane",
-		Title = "the Ash Ronin",
+		Title = "Nine-Tailed Calamity",
 		Glyph = "KG",
 		Accent = Color3.fromRGB(255, 104, 56),
 		Deep = Color3.fromRGB(70, 22, 14),
@@ -128,7 +128,7 @@ local list: { Boss } = {
 		World = 2,
 		WorldName = "Frostfang Peaks",
 		Name = "Rimeveil",
-		Title = "the Glacier Queen",
+		Title = "Galactic Tyrant",
 		Glyph = "RV",
 		Accent = Color3.fromRGB(120, 210, 255),
 		Deep = Color3.fromRGB(12, 30, 62),
@@ -154,8 +154,8 @@ local list: { Boss } = {
 		Element = "Void",
 		World = 3,
 		WorldName = "Neon Abyss",
-		Name = "Null Emperor Vex",
-		Title = "the Void Tyrant",
+		Name = "Vex",
+		Title = "Six Paths Sovereign",
 		Glyph = "VX",
 		Accent = Color3.fromRGB(220, 70, 255),
 		Deep = Color3.fromRGB(26, 8, 44),
@@ -183,7 +183,7 @@ local list: { Boss } = {
 		World = 4,
 		WorldName = "Stormspire Isle",
 		Name = "Tenrai",
-		Title = "the Storm Sovereign",
+		Title = "Multiverse Titan",
 		Glyph = "TR",
 		Accent = Color3.fromRGB(255, 222, 70),
 		Deep = Color3.fromRGB(16, 20, 44),
@@ -232,7 +232,7 @@ local function guard(id: string, name: string, icon: string, role: string, world
 		DEF = base.DEF,
 		Moves = moves,
 	}
-	for key, value in extra or {} do
+	for key, value in (extra or {}) :: { [string]: any } do
 		(g :: any)[key] = value
 	end
 	return g :: GuardType
@@ -240,7 +240,7 @@ end
 
 -- Every Mender heals the most hurt enemy for 1.2% of the leader's HP every other action and rallies
 -- the squad every 5th; every Warder taunts and cuts the leader's damage taken by 30%.
-local function mender(spell: string, rally: string, hit: string)
+local function mender(spell: string, rally: string, hit: string): { Move }
 	return {
 		{ Name = rally, Target = "Ally", Pct = 0, Every = 5, Rally = { Amount = 0.15, Turns = 2 } },
 		{ Name = spell, Target = "Ally", Pct = 0, Every = 2, Heal = 0.012 },

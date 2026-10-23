@@ -18,6 +18,8 @@ local State = {
 		AutoActive = false,
 		Playtime = 0,
 		Unlocked = { QuickRoll = true, AutoRoll = true },
+		Momentum = nil :: any, -- { Count, Speed, Luck, Paused } (RollService)
+		UntilSurge = 25,
 	},
 	Decks = { Active = 1, Presets = {} }, -- presets: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} },
@@ -48,6 +50,10 @@ local State = {
 		BaseLuck = 1,
 		Luck = 1,
 		Cooldown = 1.2,
+		TraitShards = 0,
+		Gear = { Artifacts = {}, Worn = {} } :: any,
+		Favorite = nil :: any,
+		Volume = nil :: any,
 	},
 	MetaAt = os.clock(), -- when Meta arrived; timers count down from here
 	InBattle = false,
