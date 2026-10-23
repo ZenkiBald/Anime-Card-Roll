@@ -36,6 +36,9 @@ local TIPS = {
 	"Stay a while! Playtime gifts unlock the longer you play this session.",
 	"Long reveal? Tap SKIP to jump straight to the card.",
 	"The Infinite Tower never ends: every floor is a new foe, and every 10th a Guardian with artifacts.",
+	"Every boss fights with three guards. Tap an enemy to focus fire: take out the Mender before it heals!",
+	"A Warder taunts your cards and shields its leader. Kill it, or tap the leader to hit past it.",
+	"You win the moment the leader falls, even with guards still standing.",
 }
 
 local animated = {} -- [Model] = { Base, Phase }

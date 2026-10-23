@@ -2,7 +2,7 @@
 -- The 18 starter cards from the concept doc, plus the World 4 (Stormspire Isle) cards. All characters are original.
 -- Adding a card = adding one entry here (plus art later). No other code changes.
 --
--- Attack cards (front row) have ATK and HP: they deal the damage and take the boss's hits.
+-- Attack cards (front row) have ATK and HP: they deal the damage and take the enemies' hits.
 -- Support cards (back row) have PWR only: no HP, never hit, never KO'd. They cast heals, shields,
 -- buffs, debuffs and chip damage, and each casts its Basic once as the fight opens.
 -- Stats stay within +-10% of their tier's base, so rarity always decides power.
@@ -12,11 +12,13 @@
 --   Damage  Pct per hit, Hits, IgnoreDef                Burn    Pct per turn, Turns, Chance
 --   Heal    Pct                                         Shield  Pct (lasts Config.Battle.ShieldTurns)
 --   Buff    Stat ATK | Crit | CritDamage | SPD | Guard (less damage taken), Amount, Turns (nil = whole battle)
---   Debuff  boss Stat DEF | ATK | SPD | Vuln (takes more damage), Amount, Turns (nil = whole battle)
+--   Debuff  enemy Stat DEF | ATK | SPD | Vuln (takes more damage), Amount, Turns (nil = whole battle)
 --   Energy  Amount, ResetSkill                          Cleanse Amount (burns/freezes removed per card)
 --   Taunt   Turns                                       Revive  Pct of max HP
---   Evade   Hits (boss hits that miss)
--- Target: Boss (default for Damage/Burn/Debuff) | Self | Lowest | Attack | All | Random.
+--   Evade   Hits (enemy hits that miss)
+-- Target: the enemy side for Damage/Burn/Debuff: nil = the current target (the player's focus, else a
+--   taunting guard, else the weakest enemy) | Enemies (every enemy) | RandomEnemy (each hit picks again).
+--   The player's side for the rest: Self | Lowest | Attack | All | Random.
 --   Heals, shields, cleanses and evades only reach Attack cards (Support cards have no HP).
 -- When (Passive only): BossAbove50 | SelfBelow50 | OnAct | OnHit; nil = always on.
 -- Secret signatures are the only coded mechanics: Kind = Eclipse | DawnOath.
@@ -132,7 +134,7 @@ local list: { Card } = {
 			PropColor = Color3.fromRGB(200, 60, 70),
 		},
 		Accent = Color3.fromRGB(120, 140, 170),
-		Abilities = { ability("Basic", "Twin Kunai", "2 hits x 50% ATK", { { Kind = "Damage", Pct = 0.5, Hits = 2 } }) },
+		Abilities = { ability("Basic", "Twin Kunai", "2 hits x 50% ATK on random enemies", { { Kind = "Damage", Pct = 0.5, Hits = 2, Target = "RandomEnemy" } }) },
 	},
 	{
 		Id = "tomo",
@@ -158,7 +160,7 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(255, 160, 70),
 		Abilities = {
 			ability("Basic", "Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Passive", "Opening Cut", "+15% damage while the boss is above 50% HP", {
+			ability("Passive", "Opening Cut", "+15% damage while the enemy leader is above 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.15, When = "BossAbove50" },
 			}),
 		},
@@ -245,7 +247,7 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(230, 60, 70),
 		Abilities = {
 			ability("Basic", "Thrust", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Piercing Spiral", "Every 3 actions: 250% ATK + boss DEF -15% for 2 turns", {
+			ability("Skill", "Piercing Spiral", "Every 3 actions: 250% ATK + target DEF -15% for 2 turns", {
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 2 },
 				{ Kind = "Damage", Pct = 2.5 },
 			}, 3),
@@ -283,8 +285,8 @@ local list: { Card } = {
 			ability("Passive", "Cornered Dragon", "+20% ATK below 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
 			}),
-			ability("Ultimate", "Thousand Dragon Cut", "8 hits x 90% ATK", {
-				{ Kind = "Damage", Pct = 0.9, Hits = 8 },
+			ability("Ultimate", "Thousand Dragon Cut", "8 hits x 90% ATK on random enemies", {
+				{ Kind = "Damage", Pct = 0.9, Hits = 8, Target = "RandomEnemy" },
 			}),
 		},
 	},
@@ -314,10 +316,10 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(150, 110, 255),
 		Abilities = {
 			ability("Basic", "Star Bolt", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
-			ability("Skill", "Comet Rain", "Every 3 actions: 4 hits x 100% ATK", {
-				{ Kind = "Damage", Pct = 1, Hits = 4 },
+			ability("Skill", "Comet Rain", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
+				{ Kind = "Damage", Pct = 1, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
-			ability("Ultimate", "Meteor Requiem", "900% ATK + boss takes +25% damage for 3 turns", {
+			ability("Ultimate", "Meteor Requiem", "900% ATK + the target takes +25% damage for 3 turns", {
 				{ Kind = "Damage", Pct = 9 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.25, Turns = 3 },
 			}),
@@ -353,7 +355,7 @@ local list: { Card } = {
 		Abilities = {
 			ability("Basic", "Shadow Edge", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
 			ability("Skill", "Umbra Cross", "Every 3 actions: 400% ATK", { { Kind = "Damage", Pct = 4 } }, 3),
-			ability("Ultimate", "Black Sun", "1,500% ATK, ignores shields and DEF", {
+			ability("Ultimate", "Black Sun", "1,500% ATK, ignores DEF and Warders", {
 				{ Kind = "Damage", Pct = 15, IgnoreDef = true },
 			}),
 			ability("Signature", "Eclipse", "Every 5th action, he acts again at once", {
@@ -471,11 +473,11 @@ local list: { Card } = {
 		},
 		Accent = Color3.fromRGB(150, 170, 200),
 		Abilities = {
-			ability("Basic", "Mist Veil", "60% PWR damage + boss -10% ATK for 1 turn", {
+			ability("Basic", "Mist Veil", "60% PWR damage + target -10% ATK for 1 turn", {
 				{ Kind = "Damage", Pct = 0.6 },
 				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 1 },
 			}),
-			ability("Passive", "Ghost Step", "The first boss hit on each Attack card misses", {
+			ability("Passive", "Ghost Step", "The first enemy hit on each Attack card misses", {
 				{ Kind = "Evade", Hits = 1, Target = "Attack" },
 			}),
 		},
@@ -618,7 +620,7 @@ local list: { Card } = {
 				{ Kind = "Revive", Pct = 0.4 },
 				{ Kind = "Heal", Pct = 2, Target = "All" },
 			}),
-			ability("Aura", "Slow Clock", "Boss -15% SPD", { { Kind = "Debuff", Stat = "SPD", Amount = 0.15 } }),
+			ability("Aura", "Slow Clock", "Every enemy -15% SPD", { { Kind = "Debuff", Stat = "SPD", Amount = 0.15, Target = "Enemies" } }),
 		},
 	},
 	{
@@ -689,8 +691,8 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(110, 220, 170),
 		Abilities = {
 			ability("Basic", "Wind Cut", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Cyclone", "Every 3 actions: 2 hits x 120% ATK + this card +20% SPD for 2 turns", {
-				{ Kind = "Damage", Pct = 1.2, Hits = 2 },
+			ability("Skill", "Cyclone", "Every 3 actions: 2 hits x 70% ATK on every enemy + this card +20% SPD for 2 turns", {
+				{ Kind = "Damage", Pct = 0.7, Hits = 2, Target = "Enemies" },
 				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2, Target = "Self" },
 			}, 3),
 		},
@@ -725,7 +727,7 @@ local list: { Card } = {
 				{ Kind = "Cleanse", Amount = 2, Target = "All" },
 				{ Kind = "Heal", Pct = 0.6, Target = "All" },
 			}, 3),
-			ability("Passive", "Calm Skies", "Boss -8% ATK", { { Kind = "Debuff", Stat = "ATK", Amount = 0.08 } }),
+			ability("Passive", "Calm Skies", "Every enemy -8% ATK", { { Kind = "Debuff", Stat = "ATK", Amount = 0.08, Target = "Enemies" } }),
 		},
 	},
 	{
@@ -753,12 +755,12 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(250, 210, 90),
 		Abilities = {
 			ability("Basic", "Lance Strike", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Thunder Dive", "Every 3 actions: 280% ATK + the boss takes 10% more damage for 2 turns", {
+			ability("Skill", "Thunder Dive", "Every 3 actions: 280% ATK + the target takes 10% more damage for 2 turns", {
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.1, Turns = 2 },
 				{ Kind = "Damage", Pct = 2.8 },
 			}, 3),
 			ability("Passive", "Sky Sight", "+15% crit chance", { { Kind = "Buff", Stat = "Crit", Amount = 0.15 } }),
-			ability("Ultimate", "Skyfall Lance", "5 hits x 140% ATK, ignoring boss DEF", {
+			ability("Ultimate", "Skyfall Lance", "5 hits x 140% ATK, ignoring DEF and Warders", {
 				{ Kind = "Damage", Pct = 1.4, Hits = 5, IgnoreDef = true },
 			}),
 		},
@@ -791,11 +793,11 @@ local list: { Card } = {
 			ability("Basic", "Static Ward", "Shield the most hurt Attack card 180% PWR", {
 				{ Kind = "Shield", Pct = 1.8, Target = "Lowest" },
 			}),
-			ability("Skill", "Stormcall", "Every 3 actions: 200% PWR to the boss + all Attack cards +15% crit for 2 turns", {
-				{ Kind = "Damage", Pct = 2 },
+			ability("Skill", "Stormcall", "Every 3 actions: 100% PWR to every enemy + all Attack cards +15% crit for 2 turns", {
+				{ Kind = "Damage", Pct = 1, Target = "Enemies" },
 				{ Kind = "Buff", Stat = "Crit", Amount = 0.15, Turns = 2, Target = "Attack" },
 			}, 3),
-			ability("Ultimate", "Eye of the Storm", "All Attack cards dodge the next 2 boss hits + 40 energy each", {
+			ability("Ultimate", "Eye of the Storm", "All Attack cards dodge the next 2 enemy hits + 40 energy each", {
 				{ Kind = "Evade", Hits = 2, Target = "All" },
 				{ Kind = "Energy", Amount = 40, Target = "Attack" },
 			}),

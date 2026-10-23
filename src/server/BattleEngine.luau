@@ -1,18 +1,25 @@
 --!nonstrict
--- The battle engine: up to 8 cards against one boss on action timers.
--- A pure simulation with no Roblox services: BattleService steps it in real time and
+-- The battle engine: up to 8 cards against an enemy squad (the leader and its three guards) on
+-- action timers. A pure simulation with no Roblox services: BattleService steps it in real time and
 -- streams its events to the client, and tests/battle_test.luau runs whole fights headless.
 --
--- Rules (design doc, "Battle system"):
---   * Every card and the boss has an action bar that fills at its SPD; a SPD 100 bar fills once
+-- Rules (design doc, "Battle system", made 4v4 on 2026-10-23):
+--   * Every card and every enemy has an action bar that fills at its SPD; a SPD 100 bar fills once
 --     per turn (Config.Battle.TurnSeconds). A full bar means it acts. Ties go to the leftmost card.
 --   * A card's action is its Skill when the cooldown is ready, otherwise its Basic.
---   * Attack cards (front row) have HP and take every boss hit. Support cards (back row) have no HP:
+--   * Attack cards (front row) have HP and take every enemy hit. Support cards (back row) have no HP:
 --     they can't be hit or KO'd, and each casts its Basic once as the fight opens.
+--   * The enemy side is the leader ("Boss": a world boss, or a tower echo) and three guards (G1-G3,
+--     Bosses.GuardTypes): Strikers hit hard, Hexers burn / freeze / slow, Menders heal the squad and
+--     rally it, Warders taunt and shield the leader (Protect). Guards can be KO'd; the leader can't be
+--     helped once it falls.
+--   * Cards hit the player's focus target (SetFocus, tapped on screen) when it's alive, otherwise a
+--     taunting guard, otherwise the enemy with the least HP left. Abilities with Target "Enemies" hit
+--     every enemy, "RandomEnemy" picks again for each hit.
 --   * Ultimates cost 100 energy (+20 per action, +10 per hit taken); fired by UseUltimate or AutoUlt.
---   * Big boss moves show a warning first. At 50% HP the boss adds its phase-2 move; at 20% it enrages.
---   * Win at boss 0 HP. Lose when every Attack card is KO'd or the timer runs out.
---   * Damage = ATK x Skill% x (1 + sum of buffs) x Crit x (1 - boss DEF).
+--   * Big enemy moves show a warning first. At 50% HP the leader adds its phase-2 move; at 20% it enrages.
+--   * Win when the leader falls. Lose when every Attack card is KO'd or the timer runs out.
+--   * Damage = ATK x Skill% x (1 + sum of buffs) x Crit x (1 - target DEF) x (1 - Protect on the leader).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
@@ -33,11 +40,18 @@ export type UnitSpec = {
 	Border: string?,
 	Gear: { { Stat: string, Amount: number } }?, -- the accessory's effects (Items.CardEffects)
 }
--- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the boss's DEF / SPD:
+-- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the leader's DEF / SPD:
 -- the Infinite Tower (Tower.luau) fights a boss's moves at stats scaled to the floor. Difficulty still
--- picks which moves are in (MinDifficulty).
+-- picks which moves are in (MinDifficulty). Guards (optional) replaces the boss's own guard ids.
 export type Stats = { HP: number, ATK: number, WarnSeconds: number, DEF: number?, SPD: number? }
-export type Setup = { Units: { UnitSpec }, BossId: string, Difficulty: string, Rng: Random?, Stats: Stats? }
+export type Setup = {
+	Units: { UnitSpec },
+	BossId: string,
+	Difficulty: string,
+	Rng: Random?,
+	Stats: Stats?,
+	Guards: { string }?,
+}
 
 -- Effects that only make sense on a card with HP.
 local HP_ONLY = { Heal = true, Shield = true, Cleanse = true, Evade = true, Revive = true }
@@ -108,6 +122,40 @@ local function newUnit(spec: UnitSpec)
 	return unit
 end
 
+-- One enemy: the leader (a boss) or a guard. Both share every field the engine reads.
+local function newEnemy(id: string, order: number, props)
+	local enemy = {
+		Id = id,
+		Order = order,
+		Type = "Enemy",
+		Leader = props.Leader == true,
+		Def = props.Def,
+		Name = props.Name,
+		Moves = props.Moves,
+		MaxHP = math.max(1, round(props.HP)),
+		ATK = props.ATK,
+		DEF = math.min(B.MaxDEF, props.DEF),
+		SPD = props.SPD,
+		Taunt = props.Taunt == true,
+		Protect = props.Protect or 0,
+		Gauge = 0,
+		Alive = true,
+		Actions = 0,
+		PhaseActions = 0,
+		Phase = 1,
+		Enraged = false,
+		BonusATK = 0, -- from stolen buffs (leader)
+		Barrier = 0,
+		Pending = nil, -- { Move, Target, Left } while a warned move winds up
+		Debuffs = {}, -- [source key] = { Stat, Amount, Left }: from the player's cards
+		Buffs = {}, -- [source key] = { Stat, Amount, Left }: from a Mender's Rally
+		Burns = {},
+		Dealt = 0,
+	}
+	enemy.HP = enemy.MaxHP
+	return enemy
+end
+
 function Engine.new(setup: Setup)
 	local def = Bosses.Get(setup.BossId)
 	assert(def, `Unknown boss {setup.BossId}`)
@@ -120,6 +168,7 @@ function Engine.new(setup: Setup)
 	self.Over = false
 	self.Result = nil
 	self.AutoUlt = false
+	self.Focus = nil -- the enemy id the player tapped
 	self.Events = {}
 	self.Opened = false
 	self.Slot = nil -- the slot of the ability being cast (Basic | Skill | Ultimate | Opening)
@@ -128,39 +177,48 @@ function Engine.new(setup: Setup)
 	self.Difficulty = setup.Difficulty
 	self.DifficultyIndex = Bosses.DifficultyIndex(setup.Difficulty)
 
-	local moves = {}
-	for _, move in def.Moves do
-		if move.MinDifficulty == nil or Bosses.DifficultyIndex(move.MinDifficulty) <= self.DifficultyIndex then
-			table.insert(moves, move)
+	local function movesFor(list)
+		local moves = {}
+		for _, move in list do
+			if move.MinDifficulty == nil or Bosses.DifficultyIndex(move.MinDifficulty) <= self.DifficultyIndex then
+				table.insert(moves, move)
+			end
 		end
+		return moves
 	end
 
-	self.Boss = {
-		Id = "Boss",
-		Order = 99,
-		Type = "Boss",
+	local leaderHP, leaderATK = difficulty.HP, difficulty.ATK
+	self.Boss = newEnemy("Boss", 100, {
+		Leader = true,
 		Def = def,
-		Moves = moves,
-		MaxHP = difficulty.HP,
-		ATK = difficulty.ATK,
-		DEF = math.min(B.MaxDEF, def.DEF + (setup.Stats and setup.Stats.DEF or 0)),
+		Name = def.Name,
+		Moves = movesFor(def.Moves),
+		HP = leaderHP,
+		ATK = leaderATK,
+		DEF = def.DEF + (setup.Stats and setup.Stats.DEF or 0),
 		SPD = def.SPD + (setup.Stats and setup.Stats.SPD or 0),
-		Gauge = 0,
-		Alive = true,
-		Actions = 0,
-		PhaseActions = 0,
-		Phase = 1,
-		Enraged = false,
-		BonusATK = 0, -- from stolen buffs
-		Barrier = 0,
-		Pending = nil, -- { Move, Target, Left } while a warned move winds up
-		Debuffs = {}, -- [source key] = { Stat, Amount, Left }
-		Burns = {},
-	}
-	self.Boss.HP = self.Boss.MaxHP
+	})
+	self.Enemies = { self.Boss }
+	self.ById = { Boss = self.Boss }
+	for i, guardId in setup.Guards or def.Guards or {} do
+		local g = Bosses.GuardTypes[guardId]
+		assert(g, `Unknown guard {guardId}`)
+		local enemy = newEnemy(`G{i}`, 100 + i, {
+			Def = g,
+			Name = g.Name,
+			Moves = movesFor(g.Moves),
+			HP = leaderHP * g.HP,
+			ATK = leaderATK * g.ATK,
+			DEF = g.DEF,
+			SPD = g.SPD,
+			Taunt = g.Taunt,
+			Protect = g.Protect,
+		})
+		table.insert(self.Enemies, enemy)
+		self.ById[enemy.Id] = enemy
+	end
 
 	self.Allies = {}
-	self.ById = { Boss = self.Boss }
 	for _, spec in setup.Units do
 		local unit = newUnit(spec)
 		table.insert(self.Allies, unit)
@@ -229,6 +287,20 @@ function Engine:Forfeit()
 	self:Finish("Forfeit")
 end
 
+-- The player's target: an enemy id (it must be alive), or nil to let the cards pick.
+function Engine:SetFocus(id: unknown): boolean
+	if id == nil then
+		self.Focus = nil
+		return true
+	end
+	local enemy = if type(id) == "string" then self.ById[id] else nil
+	if enemy == nil or enemy.Type ~= "Enemy" or not enemy.Alive or self.Over then
+		return false
+	end
+	self.Focus = id
+	return true
+end
+
 -- Stats ---------------------------------------------------------------------------
 
 function Engine:Buff(unit, stat: string): number
@@ -246,23 +318,40 @@ function Engine:Buff(unit, stat: string): number
 	return total
 end
 
-function Engine:BossDebuff(stat: string): number
-	return sumStat(self.Boss.Debuffs, stat)
+function Engine:EnemyDebuff(enemy, stat: string): number
+	return sumStat(enemy.Debuffs, stat)
 end
 
-function Engine:BossDEF(): number
-	return math.clamp(self.Boss.DEF - self:BossDebuff("DEF"), 0, B.MaxDEF)
+function Engine:EnemyDEF(enemy): number
+	return math.clamp(enemy.DEF - self:EnemyDebuff(enemy, "DEF"), 0, B.MaxDEF)
 end
 
-function Engine:BossATK(): number
-	local boss = self.Boss
-	local factor = 1 + (if boss.Enraged then B.EnrageATK else 0) + boss.BonusATK - self:BossDebuff("ATK")
-	return boss.ATK * math.max(0.1, factor)
+function Engine:EnemyATK(enemy): number
+	local factor = 1
+		+ (if enemy.Enraged then B.EnrageATK else 0)
+		+ enemy.BonusATK
+		+ sumStat(enemy.Buffs, "ATK")
+		- self:EnemyDebuff(enemy, "ATK")
+	return enemy.ATK * math.max(0.1, factor)
+end
+
+-- How much less damage the leader takes while a Warder stands (the strongest one counts).
+function Engine:Protection(enemy): number
+	if not enemy.Leader then
+		return 0
+	end
+	local best = 0
+	for _, other in self.Enemies do
+		if other.Alive and other ~= enemy then
+			best = math.max(best, other.Protect)
+		end
+	end
+	return best
 end
 
 function Engine:Speed(unit): number
-	if unit == self.Boss then
-		return unit.SPD * math.max(0.2, 1 - self:BossDebuff("SPD"))
+	if unit.Type == "Enemy" then
+		return unit.SPD * math.max(0.2, 1 - self:EnemyDebuff(unit, "SPD"))
 	end
 	return unit.SPD * math.max(0.2, 1 + self:Buff(unit, "SPD"))
 end
@@ -294,6 +383,48 @@ function Engine:Alive(filter: string?)
 	return list
 end
 
+function Engine:AliveEnemies()
+	local list = {}
+	for _, enemy in self.Enemies do
+		if enemy.Alive then
+			table.insert(list, enemy)
+		end
+	end
+	return list
+end
+
+-- Who the cards hit: the player's focus, else a taunting guard, else whoever has the least HP left.
+function Engine:CardTarget()
+	local focus = self.Focus and self.ById[self.Focus]
+	if focus and focus.Alive then
+		return focus
+	end
+	local best = nil
+	for _, enemy in self.Enemies do
+		if enemy.Alive then
+			if enemy.Taunt then
+				return enemy
+			end
+			if best == nil or enemy.HP < best.HP then
+				best = enemy
+			end
+		end
+	end
+	return best
+end
+
+-- The enemies an effect on the enemy side reaches.
+function Engine:EnemyTargets(target: string?)
+	if target == "Enemies" then
+		return self:AliveEnemies()
+	elseif target == "RandomEnemy" then
+		local alive = self:AliveEnemies()
+		return if #alive > 0 then { alive[self.Rng:NextInteger(1, #alive)] } else {}
+	end
+	local enemy = self:CardTarget()
+	return if enemy then { enemy } else {}
+end
+
 local function lowest(list)
 	local best, bestRatio = nil, math.huge
 	for _, unit in list do
@@ -305,7 +436,7 @@ local function lowest(list)
 	return best
 end
 
--- Who an effect reaches. Heals, shields, cleanses and evades only reach Attack cards.
+-- Who an effect on the player's side reaches. Heals, shields, cleanses and evades only reach Attack cards.
 function Engine:Targets(source, target: string, kind: string?)
 	local hpOnly = kind ~= nil and HP_ONLY[kind] == true
 	if target == "Self" then
@@ -343,26 +474,24 @@ end
 
 -- Damage ----------------------------------------------------------------------------
 
-function Engine:BreakBarrier()
-	local boss = self.Boss
-	boss.Barrier = 0
-	boss.Debuffs["Boss:Broken"] = { Stat = "Vuln", Amount = B.BreakVuln, Left = turns(B.BreakTurns) }
-	self:Emit({ K = "Break" })
+function Engine:BreakBarrier(enemy)
+	enemy.Barrier = 0
+	enemy.Debuffs["Boss:Broken"] = { Stat = "Vuln", Amount = B.BreakVuln, Left = turns(B.BreakTurns) }
+	self:Emit({ K = "Break", T = enemy.Id })
 end
 
--- A boss barrier soaks Skill / Ultimate damage and lets only a little of anything else through.
-function Engine:ThroughBarrier(amount: number, burst: boolean): number
-	local boss = self.Boss
-	if boss.Barrier <= 0 then
+-- A barrier soaks Skill / Ultimate damage and lets only a little of anything else through.
+function Engine:ThroughBarrier(enemy, amount: number, burst: boolean): number
+	if enemy.Barrier <= 0 then
 		return amount
 	end
 	if not burst then
 		return round(amount * B.BarrierLeak)
 	end
-	local absorbed = math.min(boss.Barrier, amount)
-	boss.Barrier -= absorbed
-	if boss.Barrier <= 0 then
-		self:BreakBarrier()
+	local absorbed = math.min(enemy.Barrier, amount)
+	enemy.Barrier -= absorbed
+	if enemy.Barrier <= 0 then
+		self:BreakBarrier(enemy)
 	end
 	return amount - absorbed
 end
@@ -389,24 +518,46 @@ function Engine:StealBuffs()
 	self:Emit({ K = "Steal", A = stolen, Stat = steal })
 end
 
-function Engine:DamageBoss(source, amount: number, crit: boolean, kind: string)
-	local boss = self.Boss
-	if self.Over then
+function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: string)
+	if self.Over or not enemy.Alive then
 		return
 	end
-	boss.HP = math.max(0, boss.HP - amount)
-	source.Dealt += amount
-	self:Emit({ K = kind, U = source.Id, T = "Boss", A = amount, C = crit or nil, Bl = if boss.Barrier > 0 then true else nil })
+	enemy.HP = math.max(0, enemy.HP - amount)
+	if source then
+		source.Dealt += amount
+	end
+	self:Emit({
+		K = kind,
+		U = if source then source.Id else nil,
+		T = enemy.Id,
+		A = amount,
+		C = crit or nil,
+		Bl = if enemy.Barrier > 0 then true else nil,
+	})
 
-	if boss.HP <= 0 then
-		self:Finish("Win")
+	if enemy.HP <= 0 then
+		if enemy.Leader then
+			self:Finish("Win")
+			return
+		end
+		enemy.Alive = false
+		enemy.Pending = nil
+		enemy.Burns = {}
+		enemy.Gauge = 0
+		self:Emit({ K = "KO", T = enemy.Id })
+		if self.Focus == enemy.Id then
+			self.Focus = nil
+		end
 		return
 	end
-	if boss.Phase == 1 and boss.HP <= boss.MaxHP * B.PhaseAt then
-		boss.Phase = 2
-		boss.PhaseActions = 0
+	if not enemy.Leader then
+		return
+	end
+	if enemy.Phase == 1 and enemy.HP <= enemy.MaxHP * B.PhaseAt then
+		enemy.Phase = 2
+		enemy.PhaseActions = 0
 		local added = {}
-		for _, move in boss.Moves do
+		for _, move in enemy.Moves do
 			if move.Phase == 2 then
 				table.insert(added, move.Name)
 			end
@@ -414,36 +565,37 @@ function Engine:DamageBoss(source, amount: number, crit: boolean, kind: string)
 		self:Emit({ K = "Phase", N = table.concat(added, ", ") })
 		self:StealBuffs()
 	end
-	if not boss.Enraged and boss.HP <= boss.MaxHP * B.EnrageAt then
-		boss.Enraged = true
+	if not enemy.Enraged and enemy.HP <= enemy.MaxHP * B.EnrageAt then
+		enemy.Enraged = true
 		self:Emit({ K = "Enrage" })
 		self:StealBuffs()
 	end
 end
 
-function Engine:HitBoss(unit, pct: number, ignoreDef: boolean?)
-	local buffs = self:Buff(unit, "ATK") + self:BossDebuff("Vuln")
+function Engine:HitEnemy(unit, enemy, pct: number, ignoreDef: boolean?)
+	local buffs = self:Buff(unit, "ATK") + self:EnemyDebuff(enemy, "Vuln")
 	local crit = self.Rng:NextNumber() < B.CritChance + self:Buff(unit, "Crit")
 	local critMult = if crit then B.CritDamage + self:Buff(unit, "CritDamage") else 1
-	local def = if ignoreDef then 0 else self:BossDEF()
-	local amount = math.max(1, round(unit.Main * pct * (1 + buffs) * critMult * (1 - def)))
+	local def = if ignoreDef then 0 else self:EnemyDEF(enemy)
+	local protect = if ignoreDef then 0 else self:Protection(enemy)
+	local amount = math.max(1, round(unit.Main * pct * (1 + buffs) * critMult * (1 - def) * (1 - protect)))
 	local burst = self.Slot == "Skill" or self.Slot == "Ultimate"
-	amount = if ignoreDef then amount else self:ThroughBarrier(amount, burst)
-	self:DamageBoss(unit, amount, crit, "Hit")
+	amount = if ignoreDef then amount else self:ThroughBarrier(enemy, amount, burst)
+	self:DamageEnemy(enemy, unit, amount, crit, "Hit")
 end
 
-function Engine:DamageAlly(target, amount: number, kind: string)
+function Engine:DamageAlly(target, amount: number, kind: string, sourceId: string?)
 	if not target.Alive or not target.HasHP or self.Over then
 		return
 	end
 	if target.Invuln > 0 then
-		self:Emit({ K = kind, U = "Boss", T = target.Id, A = 0 })
+		self:Emit({ K = kind, U = sourceId, T = target.Id, A = 0 })
 		return
 	end
 	local absorbed = math.min(target.Shield, amount)
 	target.Shield -= absorbed
 	target.HP -= amount - absorbed
-	self:Emit({ K = kind, U = "Boss", T = target.Id, A = amount, Sh = if absorbed > 0 then absorbed else nil })
+	self:Emit({ K = kind, U = sourceId, T = target.Id, A = amount, Sh = if absorbed > 0 then absorbed else nil })
 
 	if target.HP > 0 then
 		return
@@ -470,18 +622,18 @@ function Engine:DamageAlly(target, amount: number, kind: string)
 	end
 end
 
-function Engine:HitAlly(target, move)
+function Engine:HitAlly(enemy, target, move)
 	if not target.Alive then
 		return
 	end
 	if target.Evades > 0 then
 		target.Evades -= 1
-		self:Emit({ K = "Miss", T = target.Id })
+		self:Emit({ K = "Miss", U = enemy.Id, T = target.Id })
 		return
 	end
-	local atk = self:BossATK()
+	local atk = self:EnemyATK(enemy)
 	local amount = math.max(1, round(atk * move.Pct * (1 - math.min(0.8, self:Buff(target, "Guard")))))
-	self:DamageAlly(target, amount, "Hit")
+	self:DamageAlly(target, amount, "Hit", enemy.Id)
 	if not target.Alive then
 		return
 	end
@@ -491,6 +643,7 @@ function Engine:HitAlly(target, move)
 			Damage = math.max(1, round(atk * move.Burn.Pct)),
 			Ticks = move.Burn.Turns,
 			Timer = B.TurnSeconds,
+			Source = enemy.Id,
 		})
 	end
 	if move.Freeze and not target.Frozen then
@@ -507,10 +660,12 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 	local rng = self.Rng
 	if kind == "Damage" then
 		for _ = 1, effect.Hits or 1 do
-			if self.Over then
-				return
+			for _, enemy in self:EnemyTargets(effect.Target) do
+				if self.Over then
+					return
+				end
+				self:HitEnemy(unit, enemy, effect.Pct, effect.IgnoreDef)
 			end
-			self:HitBoss(unit, effect.Pct, effect.IgnoreDef)
 		end
 		for _, passive in unit.Passives do
 			if passive.When == "OnHit" then
@@ -519,13 +674,15 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 		end
 	elseif kind == "Burn" then
 		if effect.Chance == nil or rng:NextNumber() < effect.Chance then
-			table.insert(self.Boss.Burns, {
-				Damage = math.max(1, round(unit.Main * effect.Pct)),
-				Ticks = effect.Turns or 3,
-				Timer = B.TurnSeconds,
-				Source = unit,
-			})
-			self:Emit({ K = "Burned", U = unit.Id, T = "Boss" })
+			for _, enemy in self:EnemyTargets(effect.Target) do
+				table.insert(enemy.Burns, {
+					Damage = math.max(1, round(unit.Main * effect.Pct)),
+					Ticks = effect.Turns or 3,
+					Timer = B.TurnSeconds,
+					Source = unit,
+				})
+				self:Emit({ K = "Burned", U = unit.Id, T = enemy.Id })
+			end
 		end
 	elseif kind == "Heal" then
 		for _, target in self:Targets(unit, effect.Target or "Lowest", kind) do
@@ -557,9 +714,11 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 		end
 	elseif kind == "Debuff" then
 		local key = `{unit.Id}:{abilityName or "Passive"}:{effect.Stat}`
-		self.Boss.Debuffs[key] = { Stat = effect.Stat, Amount = effect.Amount, Left = turns(effect.Turns) }
-		if not quiet then
-			self:Emit({ K = "Debuff", U = unit.Id, T = "Boss", Stat = effect.Stat, A = effect.Amount })
+		for _, enemy in self:EnemyTargets(effect.Target) do
+			enemy.Debuffs[key] = { Stat = effect.Stat, Amount = effect.Amount, Left = turns(effect.Turns) }
+			if not quiet then
+				self:Emit({ K = "Debuff", U = unit.Id, T = enemy.Id, Stat = effect.Stat, A = effect.Amount })
+			end
 		end
 	elseif kind == "Energy" then
 		local targets = self:Targets(unit, effect.Target or "All", kind)
@@ -651,7 +810,8 @@ function Engine:CardAct(unit)
 		end
 	end
 	if ability then
-		self:Emit({ K = "Act", U = unit.Id, Ab = slot, N = ability.Name })
+		local target = self:CardTarget()
+		self:Emit({ K = "Act", U = unit.Id, Ab = slot, N = ability.Name, T = if target then target.Id else nil })
 		self:RunAbility(unit, ability, slot)
 	end
 	if self.Over then
@@ -669,16 +829,15 @@ function Engine:CardAct(unit)
 	end
 end
 
-function Engine:ChooseMove()
-	local boss = self.Boss
-	local moves = boss.Moves
+function Engine:ChooseMove(enemy)
+	local moves = enemy.Moves
 	for _, move in moves do
 		local phase = move.Phase or 1
-		if phase <= boss.Phase then
+		if phase <= enemy.Phase then
 			if move.Every == nil then
 				return move
 			end
-			local count = if phase >= 2 then boss.PhaseActions else boss.Actions
+			local count = if phase >= 2 then enemy.PhaseActions else enemy.Actions
 			if count % move.Every == 0 then
 				return move
 			end
@@ -687,7 +846,7 @@ function Engine:ChooseMove()
 	return moves[#moves]
 end
 
--- Single-target pick: the taunting card, else a random Attack card.
+-- Single-target pick on the player's side: the taunting card, else a random Attack card.
 function Engine:PickTarget()
 	local front = self:Alive("Attack")
 	for _, unit in front do
@@ -701,32 +860,60 @@ function Engine:PickTarget()
 	return front[self.Rng:NextInteger(1, #front)]
 end
 
-function Engine:BossAct()
-	local boss = self.Boss
-	boss.Actions += 1
-	if boss.Phase >= 2 then
-		boss.PhaseActions += 1
+function Engine:EnemyAct(enemy)
+	enemy.Actions += 1
+	if enemy.Phase >= 2 then
+		enemy.PhaseActions += 1
 	end
-	local move = self:ChooseMove()
+	local move = self:ChooseMove(enemy)
 	local target = if move.Target == "Single" then self:PickTarget() else nil
 	if move.Warn then
-		boss.Pending = { Move = move, Target = target, Left = self.WarnSeconds }
-		local marked = if target then { target.Id } elseif move.Target == "Self" then {} else ids(self:Alive("Attack"))
-		self:Emit({ K = "Warn", N = move.Name, T = marked, S = self.WarnSeconds })
+		enemy.Pending = { Move = move, Target = target, Left = self.WarnSeconds }
+		local marked = if target then { target.Id } elseif move.Target == "Self" or move.Target == "Ally" then {} else ids(self:Alive("Attack"))
+		self:Emit({ K = "Warn", U = enemy.Id, N = move.Name, T = marked, S = self.WarnSeconds })
 	else
-		self:BossStrike(move, target)
+		self:EnemyStrike(enemy, move, target)
 	end
 end
 
-function Engine:BossStrike(move, target)
-	local boss = self.Boss
-	self:Emit({ K = "Act", U = "Boss", Ab = if move.Warn then "Skill" else "Basic", N = move.Name })
+-- A Mender's support move: heal the most hurt enemy, or rally the squad.
+function Engine:EnemySupport(enemy, move)
+	if move.Heal then
+		local hurt, ratio = nil, 1
+		for _, other in self:AliveEnemies() do
+			local r = other.HP / other.MaxHP
+			if r < ratio then
+				hurt, ratio = other, r
+			end
+		end
+		if hurt then
+			local healed = math.min(round(self.Boss.MaxHP * move.Heal), hurt.MaxHP - hurt.HP)
+			hurt.HP += healed
+			self:Emit({ K = "EnemyHeal", U = enemy.Id, T = hurt.Id, A = healed })
+		end
+	end
+	if move.Rally then
+		for _, other in self:AliveEnemies() do
+			other.Buffs[`Rally:{enemy.Id}`] = { Stat = "ATK", Amount = move.Rally.Amount, Left = turns(move.Rally.Turns) }
+		end
+		self:Emit({ K = "Rally", U = enemy.Id, A = move.Rally.Amount })
+	end
+end
+
+function Engine:EnemyStrike(enemy, move, target)
+	if not enemy.Alive then
+		return
+	end
+	self:Emit({ K = "Act", U = enemy.Id, Ab = if move.Warn then "Skill" else "Basic", N = move.Name })
 
 	if move.Target == "Self" then
 		if move.Barrier then
-			boss.Barrier = round(boss.MaxHP * move.Barrier)
-			self:Emit({ K = "Barrier", A = boss.Barrier })
+			enemy.Barrier = round(enemy.MaxHP * move.Barrier)
+			self:Emit({ K = "Barrier", U = enemy.Id, A = enemy.Barrier })
 		end
+		return
+	elseif move.Target == "Ally" then
+		self:EnemySupport(enemy, move)
 		return
 	end
 
@@ -762,14 +949,14 @@ function Engine:BossStrike(move, target)
 		if self.Over then
 			return
 		end
-		self:HitAlly(unit, move)
+		self:HitAlly(enemy, unit, move)
 	end
 
 	if move.Slow and not self.Over then
 		for _, unit in self:Alive() do
 			unit.Buffs["Boss:Slow"] = { Stat = "SPD", Amount = -move.Slow.Amount, Left = turns(move.Slow.Turns) }
 		end
-		self:Emit({ K = "Slow", A = move.Slow.Amount })
+		self:Emit({ K = "Slow", U = enemy.Id, A = move.Slow.Amount })
 	end
 end
 
@@ -777,7 +964,7 @@ end
 
 function Engine:CanUltimate(unit): boolean
 	return unit ~= nil
-		and unit ~= self.Boss
+		and unit.Type ~= "Enemy"
 		and unit.Alive
 		and unit.Ultimate ~= nil
 		and unit.Energy >= B.UltimateCost
@@ -790,7 +977,8 @@ function Engine:UseUltimate(id: string): (boolean, string?)
 		return false, "NotReady"
 	end
 	unit.Energy = 0
-	self:Emit({ K = "Act", U = unit.Id, Ab = "Ultimate", N = unit.Ultimate.Name })
+	local target = self:CardTarget()
+	self:Emit({ K = "Act", U = unit.Id, Ab = "Ultimate", N = unit.Ultimate.Name, T = if target then target.Id else nil })
 	self:RunAbility(unit, unit.Ultimate, "Ultimate")
 	return true, nil
 end
@@ -840,7 +1028,6 @@ function Engine:Step(dt: number)
 		end
 	end
 	self.Time += dt
-	local boss = self.Boss
 
 	-- Durations and damage over time.
 	for _, unit in self.Allies do
@@ -855,25 +1042,36 @@ function Engine:Step(dt: number)
 				end
 			end
 			tickBurns(unit.Burns, dt, function(burn)
-				self:DamageAlly(unit, burn.Damage, "Burn")
+				self:DamageAlly(unit, burn.Damage, "Burn", burn.Source)
 			end)
 		end
 	end
-	tickTimers(boss.Debuffs, dt)
-	tickBurns(boss.Burns, dt, function(burn)
-		self:DamageBoss(burn.Source, self:ThroughBarrier(burn.Damage, false), false, "Burn")
-	end)
+	for _, enemy in self.Enemies do
+		if enemy.Alive then
+			tickTimers(enemy.Debuffs, dt)
+			tickTimers(enemy.Buffs, dt)
+			tickBurns(enemy.Burns, dt, function(burn)
+				local amount = round(burn.Damage * (1 - self:Protection(enemy)))
+				self:DamageEnemy(enemy, burn.Source, self:ThroughBarrier(enemy, amount, false), false, "Burn")
+			end)
+		end
+	end
 	if self.Over then
 		return
 	end
 
-	-- A warned boss move lands when its warning runs out.
-	if boss.Pending then
-		boss.Pending.Left -= dt
-		if boss.Pending.Left <= 0 then
-			local pending = boss.Pending
-			boss.Pending = nil
-			self:BossStrike(pending.Move, pending.Target)
+	-- A warned move lands when its warning runs out.
+	for _, enemy in self.Enemies do
+		local pending = enemy.Pending
+		if enemy.Alive and pending then
+			pending.Left -= dt
+			if pending.Left <= 0 then
+				enemy.Pending = nil
+				self:EnemyStrike(enemy, pending.Move, pending.Target)
+				if self.Over then
+					return
+				end
+			end
 		end
 	end
 
@@ -887,10 +1085,12 @@ function Engine:Step(dt: number)
 			end
 		end
 	end
-	if boss.Pending == nil then
-		boss.Gauge += self:Speed(boss) * dt / (100 * B.TurnSeconds)
-		if boss.Gauge >= 1 then
-			table.insert(ready, boss)
+	for _, enemy in self.Enemies do
+		if enemy.Alive and enemy.Pending == nil then
+			enemy.Gauge += self:Speed(enemy) * dt / (100 * B.TurnSeconds)
+			if enemy.Gauge >= 1 then
+				table.insert(ready, enemy)
+			end
 		end
 	end
 	table.sort(ready, function(a, b)
@@ -905,8 +1105,8 @@ function Engine:Step(dt: number)
 		end
 		if unit.Alive and unit.Gauge >= 1 then
 			unit.Gauge -= 1
-			if unit == boss then
-				self:BossAct()
+			if unit.Type == "Enemy" then
+				self:EnemyAct(unit)
 			elseif unit.Frozen then
 				unit.Frozen = false
 				self:Emit({ K = "Thaw", U = unit.Id })
@@ -943,11 +1143,27 @@ function Engine:Info()
 			Ultimate = if unit.Ultimate then unit.Ultimate.Name else nil,
 		})
 	end
+	local enemies = {}
+	for _, enemy in self.Enemies do
+		table.insert(enemies, {
+			Id = enemy.Id,
+			Leader = enemy.Leader,
+			GuardId = if enemy.Leader then nil else enemy.Def.Id,
+			Name = enemy.Name,
+			Icon = if enemy.Leader then nil else enemy.Def.Icon,
+			Role = if enemy.Leader then "Leader" else enemy.Def.Role,
+			MaxHP = enemy.MaxHP,
+			ATK = round(enemy.ATK),
+			Taunt = enemy.Taunt or nil,
+			Protect = if enemy.Protect > 0 then enemy.Protect else nil,
+		})
+	end
 	local boss = self.Boss
 	return {
 		BossId = self.BossId,
 		Difficulty = self.Difficulty,
 		Boss = { MaxHP = boss.MaxHP, ATK = round(boss.ATK), DEF = boss.DEF, SPD = boss.SPD },
+		Enemies = enemies,
 		Allies = allies,
 		TimeLimit = B.TimeLimit,
 		UltimateCost = B.UltimateCost,
@@ -959,8 +1175,9 @@ local function gauge(value: number): number
 end
 
 -- Live numbers for every unit. Card flags: B burning, Z frozen, T taunt, U buffed, S slowed,
--- G guarded, I invulnerable. Boss flags: D DEF down, A ATK down, S slowed, V takes more damage,
--- B burning, E enraged, W winding up, R barrier up. Support cards send no HP.
+-- G guarded, I invulnerable. Enemy flags: D DEF down, A ATK down, S slowed, V takes more damage,
+-- B burning, E enraged, W winding up, R barrier up, X rallied (ATK up), P protected by a Warder.
+-- Support cards send no HP. Fo is the player's focus target.
 function Engine:Snapshot()
 	local units = {}
 	for _, unit in self.Allies do
@@ -1007,35 +1224,42 @@ function Engine:Snapshot()
 			F = flags,
 		}
 	end
-	local boss = self.Boss
-	local flags = ""
-	for _, stat in { "DEF", "ATK", "SPD", "Vuln" } do
-		for _, debuff in boss.Debuffs do
-			if debuff.Stat == stat and debuff.Left ~= math.huge then
-				flags ..= if stat == "DEF" then "D" elseif stat == "ATK" then "A" elseif stat == "SPD" then "S" else "V"
-				break
+	for _, enemy in self.Enemies do
+		local flags = ""
+		for _, stat in { "DEF", "ATK", "SPD", "Vuln" } do
+			for _, debuff in enemy.Debuffs do
+				if debuff.Stat == stat and debuff.Left ~= math.huge then
+					flags ..= if stat == "DEF" then "D" elseif stat == "ATK" then "A" elseif stat == "SPD" then "S" else "V"
+					break
+				end
 			end
 		end
+		if #enemy.Burns > 0 then
+			flags ..= "B"
+		end
+		if enemy.Enraged then
+			flags ..= "E"
+		end
+		if enemy.Pending then
+			flags ..= "W"
+		end
+		if enemy.Barrier > 0 then
+			flags ..= "R"
+		end
+		if next(enemy.Buffs) ~= nil then
+			flags ..= "X"
+		end
+		if enemy.Alive and self:Protection(enemy) > 0 then
+			flags ..= "P"
+		end
+		units[enemy.Id] = {
+			H = round(enemy.HP),
+			G = if not enemy.Alive then 0 elseif enemy.Pending then 1 else gauge(enemy.Gauge),
+			F = flags,
+			Bar = if enemy.Barrier > 0 then enemy.Barrier else nil,
+		}
 	end
-	if #boss.Burns > 0 then
-		flags ..= "B"
-	end
-	if boss.Enraged then
-		flags ..= "E"
-	end
-	if boss.Pending then
-		flags ..= "W"
-	end
-	if boss.Barrier > 0 then
-		flags ..= "R"
-	end
-	units.Boss = {
-		H = round(boss.HP),
-		G = if boss.Pending then 1 else gauge(boss.Gauge),
-		F = flags,
-		Bar = if boss.Barrier > 0 then boss.Barrier else nil,
-	}
-	return { T = math.floor(self.Time * 10) / 10, U = units }
+	return { T = math.floor(self.Time * 10) / 10, U = units, Fo = self.Focus }
 end
 
 -- End-of-fight numbers for the results screen.
@@ -1044,11 +1268,19 @@ function Engine:Summary()
 	for _, unit in self.Allies do
 		dealt[unit.Id] = { Dealt = unit.Dealt, Healed = unit.Healed, Alive = unit.Alive }
 	end
+	local guardsDown = 0
+	for _, enemy in self.Enemies do
+		if not enemy.Leader and not enemy.Alive then
+			guardsDown += 1
+		end
+	end
 	return {
 		Result = self.Result,
 		Time = math.floor(self.Time * 10) / 10,
 		BossHP = round(self.Boss.HP),
 		BossMaxHP = self.Boss.MaxHP,
+		GuardsDown = guardsDown,
+		Guards = #self.Enemies - 1,
 		Units = dealt,
 	}
 end

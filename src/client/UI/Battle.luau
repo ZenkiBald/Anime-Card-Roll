@@ -69,6 +69,10 @@ local intro: Frame
 local results: Frame
 
 local tiles = {} -- [unitId] = tile table (see makeTile)
+local enemyTiles = {} -- [guard id] = guard tile table (see makeGuardTile)
+local guardSlots = {} -- the three places guards stand: left, right, in front
+local leaderFocus: Frame -- the TARGET marker over the leader
+local enemyNames = {} -- [enemy id] = name, for callouts
 local current = nil -- the fight on screen
 local lastSnap = nil
 local calloutToken = 0
@@ -100,6 +104,14 @@ local BOSS_STATUS = {
 	E = "ENRAGED",
 	W = "CHARGING",
 	R = "BARRIER",
+	X = "RALLIED",
+	P = "PROTECTED",
+}
+local ROLE_TEXT = {
+	Striker = "STRIKER · hits hard",
+	Hexer = "HEXER · burns, freezes, slows",
+	Mender = "MENDER · heals the squad",
+	Warder = "WARDER · taunts, shields the leader",
 }
 
 local function clock(seconds: number): string
@@ -814,6 +826,190 @@ local function makeTile(unit, order: number)
 	return slot
 end
 
+-- Enemy squad ---------------------------------------------------------------------------------
+
+-- Focus fire: tap an enemy to make every card hit it (tap it again to let the cards pick). The server
+-- checks the target; the screen marks it at once and the next snapshot confirms.
+local function showFocus(id: string?)
+	if current then
+		current.Focus = id
+	end
+	leaderFocus.Visible = id == "Boss"
+	for gid, tile in enemyTiles do
+		tile.Focus.Visible = gid == id
+	end
+end
+
+local function setFocus(id: string)
+	if current == nil or current.Ended then
+		return
+	end
+	local new = if current.Focus == id then nil else id
+	showFocus(new)
+	current.FocusAt = os.clock() -- the next snapshot may still have the old target
+	Sfx.Play("Click", if new then 1.2 else 0.9)
+	Remotes.BattleInput:FireServer("Target", new)
+end
+
+-- A guard: icon, name, role, HP and action bars; tap to focus it.
+local function makeGuardTile(enemy, slot: Frame)
+	local g = Bosses.GuardTypes[enemy.GuardId]
+	local color = if g then g.Color else Theme.Color.Danger
+	local button = Kit.new("TextButton", {
+		Name = enemy.Id,
+		Size = UDim2.fromScale(1, 1),
+		AutoButtonColor = false,
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		Parent = slot,
+	}, {
+		Kit.corner(UDim.new(0.14, 0)),
+		Kit.gradient(ColorSequence.new(color:Lerp(Color3.new(0, 0, 0), 0.45), color:Lerp(Color3.new(0, 0, 0), 0.8)), 90),
+		Kit.stroke(color, 2, 0.1),
+	})
+	local scale = Kit.new("UIScale", { Scale = 1, Parent = button })
+	local icon = Kit.label({
+		Name = "Icon",
+		Text = enemy.Icon or "?",
+		Font = Theme.Font.Display,
+		Position = UDim2.fromScale(0.03, 0.06),
+		Size = UDim2.fromScale(0.3, 0.46),
+		Parent = button,
+	}, 40)
+	Kit.label({
+		Name = "GuardName",
+		Text = string.upper(enemy.Name),
+		Font = Theme.Font.Heavy,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromScale(0.34, 0.06),
+		Size = UDim2.fromScale(0.64, 0.22),
+		Parent = button,
+	}, 15)
+	Kit.label({
+		Name = "Role",
+		Text = ROLE_TEXT[enemy.Role] or enemy.Role,
+		Font = Theme.Font.Bold,
+		TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.4),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromScale(0.34, 0.29),
+		Size = UDim2.fromScale(0.64, 0.17),
+		Parent = button,
+	}, 11)
+	local holder = Kit.new("Frame", {
+		Name = "Bars",
+		Position = UDim2.fromScale(0.05, 0.54),
+		Size = UDim2.fromScale(0.9, 0.42),
+		BackgroundTransparency = 1,
+		Parent = button,
+	})
+	local hpTrack, hpFill, hpTrail = bar(holder, "HP", 0, 0.42, Color3.new(1, 1, 1), true)
+	hpFill.Size = UDim2.fromScale(1, 1)
+	Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 170, 70), Color3.fromRGB(220, 50, 60)), 0).Parent = hpFill
+	local hpText = Kit.label({
+		Name = "HpText",
+		Text = Kit.commas(enemy.MaxHP),
+		Font = Theme.Font.Heavy,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 4,
+		Parent = hpTrack,
+	}, 12)
+	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.25).Parent = hpText
+	local _, gaugeFill = bar(holder, "Action", 0.5, 0.14, Theme.Color.Danger)
+	local status = Kit.label({
+		Name = "Status",
+		Text = "",
+		Font = Theme.Font.Heavy,
+		TextColor3 = Theme.Color.Support,
+		Position = UDim2.fromScale(0, 0.68),
+		Size = UDim2.fromScale(1, 0.32),
+		Parent = holder,
+	}, 11)
+	local flash = Kit.new("Frame", {
+		Name = "Flash",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 9,
+		Parent = button,
+	}, { Kit.corner(UDim.new(0.14, 0)) })
+	local focus = Kit.new("Frame", {
+		Name = "Focus",
+		Size = UDim2.new(1, 8, 1, 8),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 10,
+		Parent = button,
+	}, { Kit.corner(UDim.new(0.16, 0)) })
+	local focusStroke = Kit.stroke(Theme.Color.Gold, 3, 0)
+	focusStroke.Parent = focus
+	pulseForever(focusStroke, { Transparency = 0.6, Thickness = 5 }, 0.4)
+	local focusLabel = Kit.label({
+		Text = "🎯 TARGET",
+		Font = Theme.Font.Display,
+		TextColor3 = Theme.Color.Gold,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -2),
+		Size = UDim2.new(0.9, 0, 0, 18),
+		ZIndex = 11,
+		Parent = focus,
+	}, 15)
+	Kit.textStroke(Color3.new(0, 0, 0), 2, 0.1).Parent = focusLabel
+	local warn = Kit.new("Frame", {
+		Name = "Warn",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Theme.Color.Danger,
+		BackgroundTransparency = 0.75,
+		Visible = false,
+		ZIndex = 12,
+		Parent = button,
+	}, { Kit.corner(UDim.new(0.14, 0)) })
+	local ko = Kit.new("Frame", {
+		Name = "KO",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(10, 8, 14),
+		BackgroundTransparency = 0.3,
+		Visible = false,
+		ZIndex = 15,
+		Parent = button,
+	}, { Kit.corner(UDim.new(0.14, 0)) })
+	Kit.label({
+		Text = "DOWN",
+		Font = Theme.Font.Display,
+		TextColor3 = Theme.Color.Gold,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.7, 0.5),
+		ZIndex = 16,
+		Parent = ko,
+	}, 30)
+	local tile = {
+		Card = button,
+		Scale = scale,
+		Icon = icon,
+		HpFill = hpFill,
+		HpTrail = hpTrail,
+		HpText = hpText,
+		Gauge = gaugeFill,
+		Status = status,
+		Flash = flash,
+		Focus = focus,
+		Warn = warn,
+		Ko = ko,
+		MaxHP = enemy.MaxHP,
+		Color = color,
+		Name = enemy.Name,
+	}
+	enemyTiles[enemy.Id] = tile
+	button.Activated:Connect(function()
+		if not ko.Visible then
+			setFocus(enemy.Id)
+		end
+	end)
+	return tile
+end
+
 -- Snapshots -------------------------------------------------------------------------------
 
 local function flagWords(flags: string, names): string
@@ -844,6 +1040,17 @@ local function applySnapshot(snap)
 			barrierRing.Visible = barrier > 0
 			Kit.tween(bossGauge, 0.15, { Size = UDim2.fromScale(s.G, 1) }, Enum.EasingStyle.Linear)
 			bossStatus.Text = flagWords(s.F, BOSS_STATUS)
+		elseif enemyTiles[id] then
+			local tile = enemyTiles[id]
+			setHp(tile.HpFill, tile.HpTrail, s.H / tile.MaxHP)
+			tile.HpText.Text = if (s.Bar or 0) > 0 then `{Kit.commas(s.H)} · BARRIER` else Kit.commas(s.H)
+			Kit.tween(tile.Gauge, 0.15, { Size = UDim2.fromScale(s.G, 1) }, Enum.EasingStyle.Linear)
+			tile.Status.Text = flagWords(s.F, BOSS_STATUS)
+			local down = s.H <= 0
+			if tile.Ko.Visible ~= down then
+				tile.Ko.Visible = down
+				tile.Focus.Visible = false
+			end
 		else
 			local tile = tiles[id]
 			if tile then
@@ -883,15 +1090,25 @@ local function applySnapshot(snap)
 			end
 		end
 	end
+	if snap.Fo ~= current.Focus and (current.FocusAt == nil or os.clock() - current.FocusAt > 0.5) then
+		showFocus(snap.Fo)
+	end
 	timerLabel.Text = clock(current.Info.TimeLimit - snap.T)
 	timerLabel.TextColor3 = if current.Info.TimeLimit - snap.T <= 30 then Theme.Color.Danger else Theme.Color.Text
 end
 
 -- Events ------------------------------------------------------------------------------------
 
-local function targetFrame(id: string): GuiObject?
+local function targetFrame(id: string?): GuiObject?
+	if id == nil then
+		return nil
+	end
 	if id == "Boss" then
 		return bossHolder
+	end
+	local guard = enemyTiles[id]
+	if guard then
+		return guard.Card
 	end
 	local tile = tiles[id]
 	return if tile then tile.Card else nil
@@ -907,9 +1124,15 @@ local function showWarning(event)
 		end
 	end
 	local seconds = event.S / math.max(1, current.Speed)
-	warnLabel.Text = `{string.upper(event.N)} INCOMING`
+	local guard = enemyTiles[event.U]
+	warnLabel.Text = if guard then `{string.upper(guard.Name)}: {string.upper(event.N)} INCOMING` else `{string.upper(event.N)} INCOMING`
 	warnBanner.Visible = true
-	if bossView then
+	if guard then
+		guard.Warn.Visible = true
+		task.delay(seconds, function()
+			guard.Warn.Visible = false
+		end)
+	elseif bossView then
 		bossView:Flash(Color3.fromRGB(255, 120, 120), seconds)
 	end
 	task.delay(seconds, function()
@@ -942,10 +1165,26 @@ local function playEvent(event)
 			end
 			return
 		end
+		local guard = enemyTiles[event.U]
+		if guard then
+			-- A guard lunges down at the cards; its big moves get a callout.
+			guard.Card.Position = UDim2.fromScale(0, 0)
+			Kit.tween(guard.Card, 0.08, { Position = UDim2.fromOffset(0, 10) }, Enum.EasingStyle.Quad).Completed:Connect(function()
+				Kit.tween(guard.Card, 0.18, { Position = UDim2.fromScale(0, 0) }, Enum.EasingStyle.Back)
+			end)
+			if event.Ab == "Skill" then
+				callout(`{string.upper(guard.Name)}: {string.upper(event.N)}!`, guard.Color, 1.1)
+				Sfx.Play("HeavyHit", 1)
+			else
+				Sfx.Play("Whoosh", 0.85)
+			end
+			return
+		end
 		local tile = tiles[event.U]
 		if tile == nil then
 			return
 		end
+		local aim = targetFrame(event.T) or bossHolder
 		if event.Ab == "Ultimate" then
 			cutIn(tile.CardId, event.N)
 			Effects.Flash(gui, tile.TierColor, 0.45, 0.55)
@@ -953,7 +1192,7 @@ local function playEvent(event)
 			bump(tile.Scale, 0.15)
 			if tile.IsAttack then
 				for i = 1, 3 do
-					task.delay(i * 0.05, bolt, tile.Card, bossHolder, tile.TierColor, 10)
+					task.delay(i * 0.05, bolt, tile.Card, aim, tile.TierColor, 10)
 				end
 			end
 		elseif tile.IsAttack then
@@ -962,11 +1201,11 @@ local function playEvent(event)
 			Kit.tween(tile.Card, 0.08, { Position = UDim2.new(0.5, 0, 0.5, -12) }, Enum.EasingStyle.Quad).Completed:Connect(function()
 				Kit.tween(tile.Card, 0.18, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
 			end)
-			bolt(tile.Card, bossHolder, tile.Accent, if event.Ab == "Skill" then 9 else 6)
+			bolt(tile.Card, aim, tile.Accent, if event.Ab == "Skill" then 9 else 6)
 			Sfx.Play("Whoosh", if event.Ab == "Skill" then 1.05 else 1.25 + math.random() * 0.15)
 			if event.Ab == "Skill" then
 				castTag(tile, event.N, "Skill")
-				task.delay(0.06, bolt, tile.Card, bossHolder, tile.TierColor, 9)
+				task.delay(0.06, bolt, tile.Card, aim, tile.TierColor, 9)
 			end
 		else
 			-- Support: a soft glow and a lift as it casts.
@@ -1005,6 +1244,20 @@ local function playEvent(event)
 				elseif math.random() < 0.5 then
 					Effects.Sparks(bossHolder, spark, 4, 0.5)
 				end
+			end
+		elseif enemyTiles[event.T] then
+			local guard = enemyTiles[event.T]
+			local color = if kind == "Burn" then Theme.Color.Roll
+				elseif event.Bl then SHIELD_COLOR
+				elseif event.C then Theme.Color.Gold
+				else Color3.new(1, 1, 1)
+			float(guard.Card, if event.C then `{Kit.commas(event.A)}!` else Kit.commas(event.A), color, event.C)
+			if kind == "Hit" then
+				Sfx.Play("Hit", 1.05 + math.random() * 0.2)
+				guard.Flash.BackgroundColor3 = Color3.new(1, 1, 1)
+				guard.Flash.BackgroundTransparency = 0.5
+				Kit.tween(guard.Flash, 0.2, { BackgroundTransparency = 1 })
+				bump(guard.Scale, if event.C then 0.1 else 0.04)
 			end
 		else
 			local tile = tiles[event.T]
@@ -1052,7 +1305,7 @@ local function playEvent(event)
 	elseif kind == "Debuff" then
 		local label = if event.Stat == "Vuln" then "DMG TAKEN" else event.Stat
 		local sign = if event.Stat == "Vuln" then "+" else "-"
-		float(bossHolder, `{label} {sign}{math.floor(event.A * 100 + 0.5)}%`, Theme.Color.Support)
+		float(targetFrame(event.T) or bossHolder, `{label} {sign}{math.floor(event.A * 100 + 0.5)}%`, Theme.Color.Support)
 	elseif kind == "Energy" then
 		for _, id in event.T or {} do
 			local tile = tiles[id]
@@ -1066,11 +1319,30 @@ local function playEvent(event)
 		float(targetFrame(event.T), "MISS", Theme.Color.Muted, true)
 	elseif kind == "KO" then
 		local tile = tiles[event.T]
+		local guard = enemyTiles[event.T]
 		if tile then
 			float(tile.Card, "KO!", Theme.Color.Danger, true)
 			shakeCard(tile, 10)
 			Sfx.Play("KO")
+		elseif guard then
+			guard.Ko.Visible = true
+			guard.Focus.Visible = false
+			if current.Focus == event.T then
+				current.Focus = nil
+			end
+			float(guard.Card, "DOWN!", Theme.Color.Gold, true)
+			callout(`{string.upper(guard.Name)} DOWN!`, Theme.Color.Gold, 1.2)
+			Effects.Sparks(guard.Card, guard.Color, 18, 0.8)
+			Sfx.Play("HeavyHit", 1.2)
 		end
+	elseif kind == "EnemyHeal" then
+		if event.A > 0 then
+			float(targetFrame(event.T), `+{Kit.commas(event.A)}`, Theme.Color.Quick)
+			Sfx.Play("Heal", 0.8)
+		end
+	elseif kind == "Rally" then
+		local name = enemyNames[event.U] or "THE SQUAD"
+		callout(`{string.upper(name)} RALLIES! +{math.floor(event.A * 100 + 0.5)}% ATK`, Theme.Color.Danger, 1.4)
 	elseif kind == "Revive" then
 		local tile = tiles[event.T]
 		if tile then
@@ -1155,7 +1427,7 @@ local function playBatch(events)
 			shooter = if tile and tile.IsAttack then event.U else nil
 		end
 		local delay = math.max(0, group - 1) * spacing
-		if (event.K == "Hit" or event.K == "Burned") and event.T == "Boss" and event.U == shooter then
+		if (event.K == "Hit" or event.K == "Burned") and (event.T == "Boss" or enemyTiles[event.T] ~= nil) and event.U == shooter then
 			delay += BOLT_TIME
 		end
 		if delay > 0 then
@@ -1520,6 +1792,9 @@ local function showResults(summary)
 		Sfx.Play("Defeat")
 		local left = summary.BossHP and summary.BossMaxHP and math.floor(summary.BossHP / summary.BossMaxHP * 100 + 0.5)
 		stat("BOSS HP LEFT", `{left or "?"}%`, Theme.Color.Danger)
+		if summary.Guards and summary.Guards > 0 then
+			stat("GUARDS DOWN", `{summary.GuardsDown or 0}/{summary.Guards}`, Theme.Color.Gold)
+		end
 		stat("TIME", timeText, Theme.Color.Auto)
 		line("Roll for stronger cards, tune your deck, then try again.", Theme.Color.Muted, 17, Theme.Font.Bold)
 	end
@@ -1779,6 +2054,11 @@ local function begin(start, bossId: string, difficulty: string)
 	}
 	State.InBattle = true
 	table.clear(tiles)
+	table.clear(enemyTiles)
+	table.clear(enemyNames)
+	for _, slot in guardSlots do
+		clearChildren(slot)
+	end
 	table.clear(ultTapped)
 	clearChildren(frontRow)
 	clearChildren(backRow)
@@ -1816,6 +2096,21 @@ local function begin(start, bossId: string, difficulty: string)
 	end
 	barrierRing.Visible = false
 
+	-- The enemy squad: the leader in 3D in the middle, its guards as tiles around it.
+	local guardIndex = 0
+	for _, enemy in start.Info.Enemies or {} do
+		enemyNames[enemy.Id] = enemy.Name
+		if not enemy.Leader then
+			guardIndex += 1
+			local slot = guardSlots[guardIndex]
+			if slot then
+				makeGuardTile(enemy, slot)
+			end
+		end
+	end
+	enemyNames.Boss = current.BossName
+	showFocus(nil)
+
 	for i, unit in start.Info.Allies do
 		current.CardOf[unit.Id] = unit.CardId
 		local tile = makeTile(unit, i)
@@ -1846,6 +2141,11 @@ local function begin(start, bossId: string, difficulty: string)
 	gui.Enabled = true
 	hooks.OnStart()
 	playIntro(boss, subtitle, start.DeckPower or 0, start.Intro or 2)
+	task.delay((start.Intro or 2) + 0.3, function()
+		if current and not current.Ended and current.Focus == nil then
+			hint("Tap an enemy to focus every attack on it")
+		end
+	end)
 end
 
 function startFight(bossId: string, difficulty: string?)
@@ -1871,6 +2171,10 @@ function exit()
 	current = nil
 	lastSnap = nil
 	State.InBattle = false
+	table.clear(enemyTiles)
+	for _, slot in guardSlots do
+		clearChildren(slot)
+	end
 	gui.Enabled = false
 	results.Visible = false
 	if bossView then
@@ -2121,6 +2425,60 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	local barrierStroke = Kit.stroke(Color3.fromRGB(230, 150, 255), 3, 0.1)
 	barrierStroke.Parent = barrierRing
 	pulseForever(barrierStroke, { Transparency = 0.6, Thickness = 6 }, 0.6)
+
+	-- Tap the leader to focus it; a gold TARGET marker shows over it while it's the target.
+	local leaderButton = Kit.new("TextButton", {
+		Name = "Tap",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "",
+		ZIndex = 6,
+		Parent = bossHolder,
+	})
+	leaderButton.Activated:Connect(function()
+		setFocus("Boss")
+	end)
+	leaderFocus = Kit.new("Frame", {
+		Name = "Focus",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1.05, 1.05),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 4,
+		Parent = bossHolder,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	local leaderStroke = Kit.stroke(Theme.Color.Gold, 3, 0.2)
+	leaderStroke.Parent = leaderFocus
+	pulseForever(leaderStroke, { Transparency = 0.7, Thickness = 5 }, 0.4)
+	local leaderLabel = Kit.label({
+		Text = "🎯 TARGET",
+		Font = Theme.Font.Display,
+		TextColor3 = Theme.Color.Gold,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.02),
+		Size = UDim2.new(0.6, 0, 0, 20),
+		ZIndex = 5,
+		Parent = leaderFocus,
+	}, 18)
+	Kit.textStroke(Color3.new(0, 0, 0), 2, 0.1).Parent = leaderLabel
+
+	-- Where the three guards stand: left and right of the leader, and in front of it on the platform
+	-- (a Warder, when the squad has one, is listed last so it stands in front).
+	for i, at in { Vector2.new(0.22, 0.3), Vector2.new(0.78, 0.3), Vector2.new(0.5, 0.47) } do
+		guardSlots[i] = Kit.new("Frame", {
+			Name = `Guard{i}`,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(at.X, at.Y),
+			Size = UDim2.fromScale(0.2, 0.13),
+			BackgroundTransparency = 1,
+			ZIndex = 6,
+			Parent = stage,
+		}, {
+			Kit.aspect(1.7, Enum.DominantAxis.Height),
+			Kit.new("UISizeConstraint", { MaxSize = Vector2.new(220, 130) }),
+		})
+	end
 
 	calloutLabel = Kit.label({
 		Name = "Callout",

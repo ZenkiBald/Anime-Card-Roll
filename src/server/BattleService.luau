@@ -1,6 +1,6 @@
 --!nonstrict
 -- Boss fights run here, on the server, in real time. The client only asks (start, fire an
--- Ultimate, toggle Auto, change speed, give up) and animates the events streamed back.
+-- Ultimate, pick a target, toggle Auto, change speed, give up) and animates the events streamed back.
 -- BattleStart(Tower.Id) fights the player's next Infinite Tower floor (Tower.luau) instead of a boss.
 
 local Players = game:GetService("Players")
@@ -224,7 +224,14 @@ local function start(player: Player, bossId: unknown, difficulty: unknown)
 		return { Ok = false, Reason = "NoAttack" }
 	end
 
-	local battle = Engine.new({ Units = deckUnits(data, deck), BossId = boss.Id, Difficulty = difficulty, Rng = Random.new(), Stats = stats })
+	local battle = Engine.new({
+		Units = deckUnits(data, deck),
+		BossId = boss.Id,
+		Difficulty = difficulty,
+		Rng = Random.new(),
+		Stats = stats,
+		Guards = floor and floor.Guards,
+	})
 	battle.AutoUlt = data.Settings.AutoUlt == true
 	local speed = if speedAllowed(data, data.Settings.BattleSpeed) then data.Settings.BattleSpeed else 1
 	local state = { Engine = battle, Speed = speed, Started = false, Floor = floor and floor.Floor }
@@ -280,6 +287,11 @@ function BattleService.Start()
 			-- The engine checks the card is alive, has an Ultimate and 100 energy.
 			if type(value) == "string" and state.Started then
 				state.Engine:UseUltimate(value)
+			end
+		elseif action == "Target" then
+			-- Focus fire: an enemy id (the engine checks it's a living enemy) or nil to let cards pick.
+			if value == nil or type(value) == "string" then
+				state.Engine:SetFocus(value)
 			end
 		elseif action == "Forfeit" then
 			state.Engine:Forfeit()

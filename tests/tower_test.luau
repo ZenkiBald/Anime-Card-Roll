@@ -103,6 +103,7 @@ local function campaign(fl, deck, owned, n)
 			Difficulty = fl.Difficulty,
 			Rng = Random.new(seed * 7919),
 			Stats = { HP = fl.HP, ATK = fl.ATK, WarnSeconds = fl.WarnSeconds, DEF = fl.DEF, SPD = fl.SPD },
+			Guards = fl.Guards,
 		})
 		battle.AutoUlt = true
 		while not battle.Over do

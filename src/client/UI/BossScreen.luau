@@ -179,6 +179,18 @@ local function setShowcase(boss, floor)
 	view:SetTint(if locked then Color3.fromRGB(60, 56, 80) else Color3.new(1, 1, 1))
 end
 
+-- "GUARDS  🗡️ Ash Ashigaru · Striker   🔥 Ember Monk · Mender ..." for a squad's guard ids.
+local function guardLine(ids: { string }): string
+	local parts = {}
+	for _, id in ids do
+		local g = Bosses.GuardTypes[id]
+		if g then
+			table.insert(parts, `{g.Icon} <font color="#{g.Color:ToHex()}"><b>{g.Name}</b></font> · {g.Role}`)
+		end
+	end
+	return "GUARDS   " .. table.concat(parts, "    ")
+end
+
 local function towerOpen(): boolean
 	return not Config.Unlocks.Enabled or cleared()[Tower.UnlockAfter] == true
 end
@@ -316,6 +328,7 @@ local function buildTower()
 		Theme.Font.Heavy
 	)
 	text(foe, 2, `{boss.Name}'s moves ({floor.Difficulty} set): {boss.Mechanic}`, Theme.Color.Text, 16, Theme.Font.Bold)
+	text(foe, 4, guardLine(floor.Guards), Theme.Color.Text, 15, Theme.Font.Heavy)
 	local affix = floor.Affix and Tower.AffixById[floor.Affix]
 	if affix then
 		text(foe, 3, `{affix.Icon} <b>{string.upper(affix.Name)}</b>: {affix.Text}`, Color3.fromRGB(255, 170, 230), 17, Theme.Font.Heavy)
@@ -409,6 +422,7 @@ local function build()
 	buildTabs()
 
 	text(body, 1, boss.Mechanic, Theme.Color.Muted, 18, Theme.Font.Bold)
+	text(body, 1, guardLine(boss.Guards), Theme.Color.Text, 16, Theme.Font.Heavy)
 
 	-- Difficulty: cleared ones get a tick, locked ones say what opens them.
 	local diffRow = row(2, 38)

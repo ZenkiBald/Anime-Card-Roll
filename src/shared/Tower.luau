@@ -54,7 +54,7 @@ Tower.Enemies = {
 Tower.Affixes = {
 	{ Id = "swift", Name = "Swift", Icon = "💨", Text = "+15 SPD, -12% ATK", SPD = 15, ATK = 0.88 },
 	{ Id = "armored", Name = "Armored", Icon = "🛡️", Text = "+10% DEF, -12% HP", DEF = 0.1, HP = 0.88 },
-	{ Id = "brutal", Name = "Brutal", Icon = "💢", Text = "+25% ATK, -15% HP", ATK = 1.25, HP = 0.85 },
+	{ Id = "brutal", Name = "Brutal", Icon = "💢", Text = "+20% ATK, -15% HP", ATK = 1.2, HP = 0.85 },
 	{ Id = "colossal", Name = "Colossal", Icon = "⛰️", Text = "+20% HP, -15% ATK", HP = 1.2, ATK = 0.85 },
 } :: { Affix }
 
@@ -64,25 +64,26 @@ Tower.GuardianEvery = 10 -- floor 10, 20, 30 ...: a Guardian
 Tower.GuardianPower = 1.15 -- its recommended power over the floor's
 
 -- The curve: recommended Deck Power at floor 1 and its growth per floor, without end. HP and ATK come
--- from Points: the boss HP / ATK that a deck of that power beats in about 70 s (measured with the battle
--- simulator against the fixture decks, then smoothed so neither ever drops as power grows), joined in
+-- from Points: the leader HP / ATK (guards are shares of it) that a deck of that power beats in about 70 s
+-- (measured with the battle simulator against the fixture decks and the floor's guards, then smoothed so
+-- neither ever drops as power grows), joined in
 -- log space between points and carried on past the last one by the Beyond exponents.
 Tower.Curve = {
 	Power = 9000,
 	Growth = 1.068, -- about 2x every 10 floors; floor 48 is about Tenrai Nightmare
 	Points = {
-		{ Power = 9000, HP = 13500, ATK = 95 },
-		{ Power = 12000, HP = 19000, ATK = 118 },
-		{ Power = 18000, HP = 26000, ATK = 142 },
-		{ Power = 24000, HP = 48000, ATK = 250 },
-		{ Power = 28500, HP = 58000, ATK = 330 },
-		{ Power = 43000, HP = 175000, ATK = 430 },
-		{ Power = 55000, HP = 250000, ATK = 580 },
-		{ Power = 74500, HP = 620000, ATK = 740 },
-		{ Power = 99500, HP = 1250000, ATK = 1000 },
-		{ Power = 137000, HP = 1850000, ATK = 3600 },
-		{ Power = 171000, HP = 2350000, ATK = 4500 },
-		{ Power = 203000, HP = 2750000, ATK = 5800 },
+		{ Power = 9000, HP = 11000, ATK = 85 },
+		{ Power = 12000, HP = 14500, ATK = 105 },
+		{ Power = 18000, HP = 18500, ATK = 115 },
+		{ Power = 24000, HP = 36000, ATK = 240 },
+		{ Power = 28500, HP = 43000, ATK = 320 },
+		{ Power = 43000, HP = 135000, ATK = 440 },
+		{ Power = 55000, HP = 175000, ATK = 480 },
+		{ Power = 74500, HP = 450000, ATK = 700 },
+		{ Power = 99500, HP = 1050000, ATK = 1000 },
+		{ Power = 137000, HP = 1400000, ATK = 2600 },
+		{ Power = 171000, HP = 1800000, ATK = 3300 },
+		{ Power = 203000, HP = 2000000, ATK = 4000 },
 	},
 	Beyond = { HP = 1.3, ATK = 1.3 }, -- past the last point: HP x (power / last) ^ 1.3
 }
@@ -106,6 +107,7 @@ export type Floor = {
 	Name: string,
 	Guardian: boolean,
 	Affix: string?, -- Tower.AffixById key
+	Guards: { string }, -- three Bosses.GuardTypes ids standing with the echo (a Warder last, in front)
 	Difficulty: string, -- which boss moves are in: Normal | Hard | Nightmare
 	Recommended: number,
 	HP: number,
@@ -190,6 +192,42 @@ function Tower.Pick(floor: number): (Enemy, Affix?)
 	return enemy, affix
 end
 
+-- The floor's three guards: drawn (seeded) from the guards of every world whose echo the floor can
+-- roll, at most one Warder and one Mender, the Warder last (it stands in front).
+function Tower.GuardsAt(floor: number): { string }
+	local maxWorld = 1
+	for _, enemy in Tower.Enemies do
+		if floor >= enemy.MinFloor then
+			maxWorld = math.max(maxWorld, (Bosses.Get(enemy.Boss) :: any).World)
+		end
+	end
+	local pool = {}
+	for _, g in Bosses.GuardList do
+		if g.World <= maxWorld then
+			table.insert(pool, g)
+		end
+	end
+	local picked, warder, roles = {}, nil, {}
+	local salt = 10
+	while #picked + (if warder then 1 else 0) < 3 and salt < 60 do
+		local g = pool[hash(floor, salt) % #pool + 1]
+		salt += 1
+		local taken = (warder and warder.Id == g.Id) or table.find(picked, g.Id) ~= nil
+		if not taken then
+			if g.Role == "Warder" then
+				warder = warder or g
+			elseif g.Role ~= "Mender" or not roles.Mender then
+				roles[g.Role] = true
+				table.insert(picked, g.Id)
+			end
+		end
+	end
+	if warder then
+		table.insert(picked, warder.Id)
+	end
+	return picked
+end
+
 -- Everything about a floor's fight. `enemy` / `affix` override the pick (tests); pass false for no affix.
 function Tower.FloorAt(floor: number, enemy: Enemy?, affix: (Affix | false)?): Floor
 	floor = math.max(1, math.floor(floor))
@@ -205,6 +243,7 @@ function Tower.FloorAt(floor: number, enemy: Enemy?, affix: (Affix | false)?): F
 		Name = if Tower.IsGuardian(floor) then `{e.Name} Guardian` else e.Name,
 		Guardian = Tower.IsGuardian(floor),
 		Affix = a and a.Id,
+		Guards = Tower.GuardsAt(floor),
 		Difficulty = difficulty,
 		Recommended = recommended,
 		HP = math.floor(hp * e.HP * (a and a.HP or 1) / 100 + 0.5) * 100,

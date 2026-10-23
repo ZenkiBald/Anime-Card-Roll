@@ -45,9 +45,10 @@ check(allBad, "malformed decks are refused")
 
 -- 2. Engine rules ----------------------------------------------------------------------
 do
-	-- Damage formula: Rook's first hit = 110 ATK x 100% x (1 - 10% DEF), or x1.5 on a crit.
+	-- Damage formula: Rook's first hit = 110 ATK x 100% x (1 - target DEF), or x1.5 on a crit. His
+	-- first target is Kurogane's Warder (the Ironclad taunts, 15% DEF): 94, or 140 on a crit.
 	local deck = F.deck({ "rook" }, {})
-	local _, events = F.fight("kurogane", "Normal", deck, starterOwned, 3)
+	local battle, events = F.fight("kurogane", "Normal", deck, starterOwned, 3)
 	local first
 	for _, e in events do
 		if e.K == "Hit" and e.U == "A1" then
@@ -55,7 +56,9 @@ do
 			break
 		end
 	end
-	check(first ~= nil and (first.A == 99 or (first.C and first.A == 149)), `damage formula (Rook's first hit {first and first.A})`)
+	local def = first and battle.ById[first.T].DEF or 0
+	local plain, crit = math.floor(110 * (1 - def) + 0.5), math.floor(110 * 1.5 * (1 - def) + 0.5)
+	check(first ~= nil and first.T == "G3" and (first.A == plain or (first.C and first.A == crit)), `damage formula (Rook's first hit {first and first.A} on {first and first.T})`)
 end
 
 do
@@ -180,6 +183,53 @@ do
 	local nightmare = Engine.new({ Units = F.units(starter, starterOwned), BossId = "kurogane", Difficulty = "Nightmare" })
 	check(#hard.Boss.Moves == #normal.Boss.Moves + 1, "Hard adds an extra boss move")
 	check(nightmare.WarnSeconds < normal.WarnSeconds, "Nightmare warnings are shorter")
+end
+
+-- 3b. Squads (4v4) ----------------------------------------------------------------------------
+do
+	-- Every boss brings three guards; a Warder taunts the cards and shields the leader.
+	local b = Engine.new({ Units = F.units(starter, starterOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(4) })
+	check(#b.Enemies == 4 and b.ById.G1 and b.ById.G3.Taunt, "Kurogane fights with three guards, the Ironclad (a Warder) in front")
+	check(b:CardTarget() == b.ById.G3, "with no target picked, cards hit the taunting Warder first")
+	check(b:SetFocus("Boss") and b:CardTarget() == b.Boss, "tapping the leader focuses every card on it")
+	check(not b:SetFocus("A1") and not b:SetFocus("Nope") and not b:SetFocus(7), "focus refuses cards, unknown ids and junk")
+	check(b:Protection(b.Boss) > 0 and b:Protection(b.ById.G1) == 0, "a standing Warder protects only the leader")
+	b.ById.G3.Alive = false
+	check(b:Protection(b.Boss) == 0, "with the Warder down the leader loses its protection")
+	b:SetFocus(nil)
+	check(b:CardTarget() ~= b.Boss, "without a Warder or a focus, cards pick the weakest enemy (a guard before the leader)")
+end
+
+do
+	-- The fight is won when the leader falls, guards or not; downed guards stay down.
+	local b = Engine.new({ Units = F.units(starter, starterOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(4) })
+	b:DamageEnemy(b.ById.G1, b.ById.A1, b.ById.G1.MaxHP, false, "Hit")
+	check(not b.ById.G1.Alive and not b.Over, "a guard at 0 HP is down and the fight goes on")
+	check(not b:SetFocus("G1"), "a downed guard can't be targeted")
+	b:DamageEnemy(b.Boss, b.ById.A1, b.Boss.MaxHP, false, "Hit")
+	check(b.Over and b.Result == "Win", "the leader falling wins the fight")
+end
+
+do
+	-- Menders heal the squad; area attacks hit every enemy.
+	local fx = F.FIGHTS[1]
+	local deck, owned = F.fixtureDeck(fx)
+	local _, events = F.fight(fx.Boss, fx.Difficulty, deck, owned, 11)
+	local healed, rallied = false, false
+	for _, e in events do
+		healed = healed or (e.K == "EnemyHeal" and e.A > 0)
+		rallied = rallied or e.K == "Rally"
+	end
+	check(healed and rallied, "the Ember Monk heals hurt enemies and rallies the squad")
+	local b = Engine.new({ Units = F.units(F.deck({ "hayate" }, {}), F.own({ "hayate" })), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(1) })
+	b:RunAbility(b.ById.A1, b.ById.A1.Skill, "Skill")
+	local hit = {}
+	for _, e in b:TakeEvents() do
+		if e.K == "Hit" and e.U == "A1" then
+			hit[e.T] = true
+		end
+	end
+	check(hit.Boss and hit.G1 and hit.G2 and hit.G3, "Hayate's Cyclone hits every enemy")
 end
 
 -- 4. Progression and rewards ------------------------------------------------------------------

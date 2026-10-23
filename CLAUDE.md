@@ -74,8 +74,19 @@ tickets `RollBank["<floor>|<luck x 100>"] = count` (`Rewards.TicketKey` / `BankG
 keeps its boss luck; the player's luck at opening multiplies on top (cap 5x), so saving them for a potion or
 LUCKY STORM pays. The BAG badge counts them. Fusion panel: `busy` now always clears (pcall + panel close), the
 old lock-after-one-fusion bug.
-Planned next: 4v4 squad battles (user picked: enemy squad of boss + 3 guards, auto with tap-to-target); traits
-rolled onto cards. Keep it SMALL: rarity still wins.
+4v4 squads (2026-10-23, user's pick; built in the cloud, headless tests only, not yet seen in Studio): every
+fight is the leader (the boss, or the tower's echo; engine id "Boss") + 3 guards (G1-G3) from
+`Bosses.GuardTypes` (12, three themed per boss in `boss.Guards`; HP / ATK are shares of the leader's).
+Roles: Striker (hits hard), Hexer (burn / freeze / slow), Mender (heals 1.2% of the leader's HP every other
+action, Rally +15% ATK every 5th; moves with Target "Ally"), Warder (Taunt + Protect: the leader takes 30% less
+while it stands; listed last so it stands in front). Win = the leader falls. Cards hit the focus target
+(BattleInput "Target", `Engine:SetFocus`; tap an enemy, tap again to clear), else a taunting guard, else the
+enemy with the least HP. Card effects can target "Enemies" (Hayate's Cyclone, Amaya's Stormcall, Orin / Amane
+debuffs) or "RandomEnemy" (Kaede, Noa's Comet Rain, Kaito's Ultimate). Tower floors draw 3 guards
+(`Tower.GuardsAt`, seeded, at most one Warder / Mender). Boss HP / ATK and `Tower.Curve.Points` were retuned for
+squads (about 75 s, about 1 card KO'd). Client: guard tiles left / right / in front of the leader, gold TARGET
+marker, guard callouts and KO ("DOWN!"), GUARDS DOWN on the result panel, guard line on the BATTLE screen.
+Planned next: traits rolled onto cards. Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
 refreshed every 60 s.

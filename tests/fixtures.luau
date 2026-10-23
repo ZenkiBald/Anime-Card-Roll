@@ -82,7 +82,7 @@ function Fixtures.campaign(bossId, difficulty, deck, owned, n)
 			table.insert(times, battle.Time)
 		end
 		for _, e in events do
-			if e.K == "KO" then
+			if e.K == "KO" and string.sub(e.T, 1, 1) == "A" then -- the player's cards, not guards
 				kos += 1
 			end
 		end
