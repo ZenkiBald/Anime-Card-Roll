@@ -27,6 +27,7 @@ local Fusion = require(UI.Fusion)
 local Title = require(UI.Title)
 local Pets = require(UI.Pets)
 local Wheel = require(UI.Wheel)
+local PlayerList = require(UI.PlayerList)
 local Dash = require(script.Parent.Dash)
 local Followers = require(script.Parent.Followers)
 local OddsPanel = require(UI.OddsPanel)
@@ -198,6 +199,8 @@ Pets.Init(playerGui, function(text)
 	Hud.Hint(text)
 end)
 Wheel.Init(playerGui)
+PlayerList.SetHidden("Title", Title.IsOpen())
+PlayerList.Init(playerGui)
 Dash.Start(Title.IsOpen)
 Followers.Start()
 DeckBuilder.Init(playerGui)
@@ -229,6 +232,7 @@ end)
 Battle.Init(playerGui, {
 	OnStart = function()
 		Hud.SetBattleMode(true)
+		PlayerList.SetHidden("Battle", true)
 		Sfx.SetMusicOverride("Battle")
 		if controls then
 			controls:Disable()
@@ -236,6 +240,7 @@ Battle.Init(playerGui, {
 	end,
 	OnEnd = function()
 		Hud.SetBattleMode(false)
+		PlayerList.SetHidden("Battle", false)
 		Sfx.SetMusicOverride(nil)
 		if controls then
 			controls:Enable()
@@ -292,14 +297,17 @@ Hud.Init(playerGui, {
 State.Changed:Connect(function()
 	Hud.Refresh()
 end)
-Reveal.OnBusy = Hud.SetRevealMode
+Reveal.OnBusy = function(on: boolean)
+	Hud.SetRevealMode(on)
+	PlayerList.SetHidden("Reveal", on)
+end
 
 -- Red badges: rewards ready in GIFTS and INDEX, potions to use in the BAG, stat points to spend.
 Hud.SetBadgeSource(function()
 	return {
 		GIFTS = MetaClient.GiftsClaimable(),
 		INDEX = MetaClient.IndexClaimable(),
-		BAG = MetaClient.PotionCount() + MetaClient.BankCount(),
+		BAG = MetaClient.PotionCount() + MetaClient.PackCount(),
 		STATS = State.Meta.StatPoints or 0,
 	}
 end)
@@ -340,6 +348,7 @@ end
 Hud.SetVisible(not Title.IsOpen())
 Title.Ready(function()
 	Hud.SetVisible(true)
+	PlayerList.SetHidden("Title", false)
 	if State.Meta.Daily and State.Meta.Daily.CanClaim then
 		task.delay(0.8, function()
 			Hud.Hint(`Daily reward ready: day {State.Meta.Daily.Day} of 7. Open GIFTS!`)

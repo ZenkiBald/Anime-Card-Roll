@@ -20,7 +20,7 @@ local State = {
 	Decks = { Active = 1, Presets = {} }, -- presets: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} },
 	Tower = 0, -- highest Infinite Tower floor cleared
-	RollBank = {}, -- saved reward rolls: Rewards.TicketKey -> count
+	Packs = {}, -- Roll Packs held: Packs.luau id -> count
 	Battle = { AutoUlt = false, Speed = 1 },
 	-- Long-term progression (MetaService.State): potions, upgrades, Index claims, daily, gifts, milestones,
 	-- daily quests ({ Day, ResetIn, List = { { Id, Progress, Claimed } } }), level and stat points.
@@ -71,8 +71,8 @@ function State.ApplyFull(full)
 	if full.Tower then
 		State.Tower = full.Tower
 	end
-	if full.RollBank then
-		State.RollBank = full.RollBank
+	if full.Packs then
+		State.Packs = full.Packs
 	end
 	if full.Mount then
 		State.Mount = full.Mount -- the mount ridden last (PETS remembers it)
@@ -92,6 +92,9 @@ function State.ApplyMeta(meta)
 	State.Summary.Shards = meta.Shards
 	State.Summary.Luck = meta.Luck
 	State.Summary.Cooldown = meta.Cooldown
+	if meta.Packs then
+		State.Packs = meta.Packs
+	end
 	changed:Fire("meta")
 end
 
@@ -176,9 +179,9 @@ function State.ApplyProgress(progress)
 	changed:Fire("progress")
 end
 
-function State.ApplyBank(bank)
-	State.RollBank = bank or {}
-	changed:Fire("bank")
+function State.ApplyPacks(packs)
+	State.Packs = packs or {}
+	changed:Fire("packs")
 end
 
 function State.ApplyTower(floor: number)

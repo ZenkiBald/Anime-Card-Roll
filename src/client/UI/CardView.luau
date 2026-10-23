@@ -1,7 +1,7 @@
 --!nonstrict
--- Draws a card: rarity frame, a sunburst portrait with the character's 3D chibi art
--- (CardArt.luau, from Card.Look), name ribbon, stars and stats. Cards not found yet show the
--- character as a dark silhouette.
+-- Draws a card, full-art: the character (an uploaded illustration, Card.Image, or the 3D chibi figure
+-- from CardArt.luau) fills the card on a sunburst in the rarity colour, with chips, the big name, the
+-- headline ability, tags and DMG / HP on top of it. Cards not found yet show a dark silhouette.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -10,6 +10,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rarity = require(Shared.Rarity)
 local Cards = require(Shared.Cards)
 local CardArt = require(Shared.CardArt)
+
+local Borders = require(Shared.Borders)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -90,7 +92,95 @@ function CardView.Art(cardId: string, owned: boolean, animate: boolean?): GuiObj
 	return viewport
 end
 
+-- "130.01K" / "1.25M" for the stat footer.
+local function short(n: number): string
+	if n >= 1e6 then
+		return string.format("%.2fM", n / 1e6)
+	elseif n >= 1e4 then
+		return string.format("%.2fK", n / 1e3)
+	end
+	return Kit.commas(n)
+end
+
+-- The ability that headlines the card: its Ultimate, else its Skill, else its Basic.
+local function headline(card)
+	return Cards.Ability(card, "Ultimate") or Cards.Ability(card, "Skill") or Cards.Ability(card, "Basic")
+end
+
+local SLOT_ICON = { Ultimate = "💥", Skill = "⚡", Basic = "🗡️", Passive = "🍃", Aura = "✨", Signature = "👑" }
+
+-- A small rounded chip (rarity, border, stars, tags): `width` is a share of the row.
+local function chip(parent: Instance, order: number, text: string, color: Color3, width: number, textColor: Color3?)
+	local frame = Kit.new("Frame", {
+		Name = "Chip",
+		LayoutOrder = order,
+		Size = UDim2.fromScale(width, 1),
+		BackgroundColor3 = color,
+		ZIndex = 5,
+		Parent = parent,
+	}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(Color3.new(0, 0, 0), 1.5, 0.45) })
+	local label = Kit.label({
+		Text = text,
+		Font = Theme.Font.Heavy,
+		TextColor3 = textColor or Color3.new(1, 1, 1),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.86, 0.78),
+		ZIndex = 6,
+		Parent = frame,
+	}, 18)
+	if textColor == nil then
+		Kit.textStroke(Color3.new(0, 0, 0), 1.2, 0.3).Parent = label
+	end
+	return frame
+end
+
+local function row(parent: Instance, name: string, y: number, height: number, wraps: boolean?): Frame
+	return Kit.new("Frame", {
+		Name = name,
+		Position = UDim2.fromScale(0.04, y),
+		Size = UDim2.fromScale(0.92, height),
+		BackgroundTransparency = 1,
+		ZIndex = 5,
+		Parent = parent,
+	}, {
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0.015, 0),
+			Wraps = wraps == true,
+		}),
+	})
+end
+
+-- A dark fade over the art so text on it stays readable (top or bottom of the card).
+local function shade(parent: Instance, top: boolean, height: number)
+	Kit.new("Frame", {
+		Name = if top then "TopShade" else "BottomShade",
+		AnchorPoint = Vector2.new(0, if top then 0 else 1),
+		Position = UDim2.fromScale(0, if top then 0 else 1),
+		Size = UDim2.fromScale(1, height),
+		BackgroundColor3 = Color3.fromRGB(6, 4, 14),
+		BorderSizePixel = 0,
+		ZIndex = 3,
+		Parent = parent,
+	}, {
+		Kit.new("UIGradient", {
+			Rotation = if top then 90 else -90,
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.05),
+				NumberSequenceKeypoint.new(0.55, 0.55),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		}),
+	})
+end
+
 -- Returns the card Frame. Size/position it from outside; it keeps a 0.72 width:height ratio.
+-- Full-art layout: the character fills the card; chips (rarity, border, stars, fusion) and the big
+-- name sit on top, the headline ability bar, tag chips and the DMG / HP footer at the bottom.
+-- Compact (grid tiles) keeps the art, the rarity chip, stars and the name.
 function CardView.new(cardId: string, opts: Options?): Frame
 	local options = opts or {}
 	local card = Cards.Get(cardId)
@@ -100,17 +190,21 @@ function CardView.new(cardId: string, opts: Options?): Frame
 	local owned = options.Owned ~= false
 	local stars = options.Stars or 0
 	local compact = options.Compact == true
+	local border = options.Border or "Normal"
 
 	local frame = Kit.new("Frame", {
 		Name = "Card_" .. card.Id,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Size = UDim2.fromScale(1, 1),
 	}, {
-		Kit.corner(UDim.new(0.07, 0)),
+		Kit.corner(UDim.new(0.05, 0)),
 		Kit.aspect(0.72, Enum.DominantAxis.Height),
 		Kit.gradient(
-			ColorSequence.new(tier.Dark:Lerp(Color3.new(1, 1, 1), 0.14), tier.Dark:Lerp(Color3.new(0, 0, 0), 0.45)),
-			90
+			ColorSequence.new(
+				if owned then card.Accent:Lerp(tier.Dark, 0.35) else Color3.fromRGB(44, 42, 58),
+				if owned then tier.Dark:Lerp(Color3.new(0, 0, 0), 0.4) else Color3.fromRGB(12, 10, 20)
+			),
+			120
 		),
 	})
 
@@ -125,54 +219,31 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		Effects.Spin(strokeGradient, 120)
 	end
 
-	-- Thin inner border.
-	Kit.new("Frame", {
-		Name = "Inner",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.94, 0.955),
-		BackgroundTransparency = 1,
-		Parent = frame,
-	}, { Kit.corner(UDim.new(0.06, 0)), Kit.stroke(tier.Color, 1, 0.55) })
-
-	-- Portrait.
-	local portraitHeight = if compact then 0.7 else 0.6
+	-- The art fills the card: sunburst and halo in the rarity colour, the character over them.
 	local portrait = Kit.new("Frame", {
 		Name = "Portrait",
-		Position = UDim2.fromScale(0.06, 0.045),
-		Size = UDim2.fromScale(0.88, portraitHeight),
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
 		ClipsDescendants = true,
 		Parent = frame,
-	}, {
-		Kit.corner(UDim.new(0.08, 0)),
-		Kit.gradient(
-			ColorSequence.new(
-				if owned then card.Accent:Lerp(Color3.new(1, 1, 1), 0.15) else Color3.fromRGB(44, 42, 58),
-				if owned then tier.Dark else Color3.fromRGB(16, 14, 24)
-			),
-			120
-		),
-	})
-
-	-- Sunburst behind the character.
+	}, { Kit.corner(UDim.new(0.05, 0)) })
 	local burst = Kit.new("Frame", {
 		Name = "Burst",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.55),
-		Size = UDim2.fromScale(1.6, 1.6),
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromScale(1.9, 1.9),
 		BackgroundTransparency = 1,
 		Parent = portrait,
 	}, { Kit.aspect(1, Enum.DominantAxis.Width) })
-	for i = 1, 8 do
+	for i = 1, 10 do
 		Kit.new("Frame", {
 			Name = "Ray",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.09, 1),
-			Rotation = (i - 1) * 22.5,
+			Size = UDim2.fromScale(0.07, 1),
+			Rotation = (i - 1) * 18,
 			BackgroundColor3 = tier.Color,
-			BackgroundTransparency = if owned then 0.82 else 0.94,
+			BackgroundTransparency = if owned then 0.84 else 0.95,
 			BorderSizePixel = 0,
 			Parent = burst,
 		})
@@ -180,18 +251,25 @@ function CardView.new(cardId: string, opts: Options?): Frame
 	Kit.new("Frame", {
 		Name = "Halo",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.85, 0.85),
+		Position = UDim2.fromScale(0.5, 0.42),
+		Size = UDim2.fromScale(0.95, 0.95),
 		BackgroundColor3 = tier.Color,
-		BackgroundTransparency = if owned then 0.72 else 0.92,
+		BackgroundTransparency = if owned then 0.74 else 0.92,
 		Parent = portrait,
 	}, {
 		Kit.corner(UDim.new(1, 0)),
 		Kit.aspect(1, Enum.DominantAxis.Width),
 	})
-
 	local art = CardView.Art(card.Id, owned, options.Animate)
 	if art then
+		if card.Image then
+			art.Size = UDim2.fromScale(1, 1) -- an illustration fills the whole card
+		else
+			-- The 3D figure, framed large and a little high so the footer doesn't cover its feet.
+			art.AnchorPoint = Vector2.new(0.5, 0.5)
+			art.Position = UDim2.fromScale(0.5, if compact then 0.5 else 0.44)
+			art.Size = UDim2.fromScale(1.25, if compact then 1 else 0.9)
+		end
 		art.Parent = portrait
 	end
 	if art == nil or not owned then
@@ -202,181 +280,159 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			TextColor3 = Color3.new(1, 1, 1),
 			TextTransparency = if owned then 0.05 else 0.25,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.52),
-			Size = UDim2.fromScale(0.6, if art then 0.36 else 0.5),
+			Position = UDim2.fromScale(0.5, 0.45),
+			Size = UDim2.fromScale(0.6, if art then 0.3 else 0.4),
 			ZIndex = 3,
 			Parent = portrait,
 		}, 120)
 	end
+	shade(frame, true, if compact then 0.3 else 0.3)
+	shade(frame, false, if compact then 0.38 else 0.48)
 
-	-- Type badge (top-left) and rarity mark (top-right).
-	local typeBadge = Kit.new("Frame", {
-		Name = "TypeBadge",
-		Position = UDim2.fromScale(0.04, 0.04),
-		Size = UDim2.fromScale(0.22, 0.22),
-		BackgroundColor3 = if card.Type == "Attack" then Theme.Color.Attack else Theme.Color.Support,
-		ZIndex = 4,
-		Parent = portrait,
-	}, {
-		Kit.corner(UDim.new(1, 0)),
-		Kit.aspect(1, Enum.DominantAxis.Width),
-		Kit.stroke(Color3.new(1, 1, 1), 1.5, 0.3),
-	})
-	Kit.label({
-		Text = if card.Type == "Attack" then "⚔️" else "✨",
-		Font = Theme.Font.Heavy,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.72, 0.72),
-		ZIndex = 5,
-		Parent = typeBadge,
-	}, 22)
-
+	-- Chips along the top: rarity, border, stars, fusion.
+	local chips = row(frame, "Chips", 0.025, if compact then 0.1 else 0.06)
 	if compact then
-		Kit.new("Frame", {
-			Name = "Gem",
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.86, 0.12),
-			Size = UDim2.fromScale(0.13, 0.13),
-			Rotation = 45,
-			BackgroundColor3 = tier.Color,
-			ZIndex = 4,
-			Parent = portrait,
-		}, {
-			Kit.aspect(1, Enum.DominantAxis.Width),
-			Kit.stroke(Color3.new(1, 1, 1), 1.5, 0.2),
-		})
+		chip(chips, 1, string.upper(string.sub(rarity, 1, 1)), tier.Color, 0.2, Color3.fromRGB(16, 10, 30))
+		if (options.Fusion or 0) > 0 and owned then
+			chip(chips, 2, "🔥", Color3.fromRGB(255, 138, 61), 0.2)
+		end
 	else
-		local pill = Kit.new("Frame", {
-			Name = "RarityPill",
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.fromScale(0.96, 0.04),
-			Size = UDim2.fromScale(0.5, 0.12),
-			BackgroundColor3 = Color3.new(0, 0, 0),
-			BackgroundTransparency = 0.3,
-			ZIndex = 4,
-			Parent = portrait,
-		}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(tier.Color, 1.5, 0.2) })
-		Kit.label({
-			Text = string.upper(rarity),
-			Font = Theme.Font.Heavy,
-			TextColor3 = tier.Color,
-			Size = UDim2.fromScale(0.9, 0.8),
-			Position = UDim2.fromScale(0.05, 0.1),
-			ZIndex = 5,
-			Parent = pill,
-		}, 16)
-	end
-	-- Fused cards carry a flame tag under the rarity mark.
-	if (options.Fusion or 0) > 0 and owned then
-		local tag = Kit.new("Frame", {
-			Name = "Fused",
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.fromScale(0.96, if compact then 0.22 else 0.18),
-			Size = UDim2.fromScale(if compact then 0.42 else 0.4, if compact then 0.13 else 0.1),
-			BackgroundColor3 = Color3.fromRGB(255, 138, 61),
-			ZIndex = 4,
-			Parent = portrait,
-		}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(Color3.new(1, 1, 1), 1.5, 0.2) })
-		local fusedLabel = Kit.label({
-			Text = if options.Fusion == 1 then "FUSED" else `FUSED x{options.Fusion}`,
-			Font = Theme.Font.Heavy,
-			Size = UDim2.fromScale(0.9, 0.8),
-			Position = UDim2.fromScale(0.05, 0.1),
-			ZIndex = 5,
-			Parent = tag,
-		}, 16)
-		Kit.textStroke(Color3.fromRGB(110, 40, 0), 1.5, 0).Parent = fusedLabel
+		chip(chips, 1, rarity, tier.Color, 0.32, Color3.fromRGB(16, 10, 30))
+		if owned and border ~= "Normal" then
+			local b = Borders.Get(border)
+			chip(chips, 2, b.Name, b.Color, 0.26, Color3.fromRGB(16, 10, 30))
+		end
+		if owned then
+			chip(chips, 3, `★{stars}`, Color3.fromRGB(70, 70, 90), 0.16, if stars > 0 then Theme.Color.Gold else nil)
+		end
+		if (options.Fusion or 0) > 0 and owned then
+			chip(chips, 4, if options.Fusion == 1 then "FUSED" else `FUSED x{options.Fusion}`, Color3.fromRGB(255, 138, 61), 0.26)
+		end
 	end
 
-	-- Stars along the bottom of the portrait.
-	if owned then
-		local starLabel = Kit.label({
-			Name = "Stars",
-			Text = starText(stars),
-			Font = Theme.Font.Heavy,
-			TextColor3 = Theme.Color.Gold,
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.fromScale(0.5, 0.98),
-			Size = UDim2.fromScale(0.8, 0.13),
-			ZIndex = 4,
-			Parent = portrait,
-		}, 22)
-		Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = starLabel
-	end
-
-	-- Name ribbon.
-	local nameTop = portraitHeight + 0.06
-	local ribbon = Kit.new("Frame", {
-		Name = "Ribbon",
-		Position = UDim2.fromScale(0.04, nameTop),
-		Size = UDim2.fromScale(0.92, if compact then 0.17 else 0.12),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Parent = frame,
-	}, {
-		Kit.corner(UDim.new(0.3, 0)),
-		Kit.gradient(
-			ColorSequence.new({
-				ColorSequenceKeypoint.new(0, tier.Dark),
-				ColorSequenceKeypoint.new(0.5, if owned then tier.Color:Lerp(tier.Dark, 0.35) else Color3.fromRGB(50, 48, 64)),
-				ColorSequenceKeypoint.new(1, tier.Dark),
-			}),
-			0
-		),
-	})
+	-- The name, big, under the chips (at the bottom on compact tiles).
 	local nameLabel = Kit.label({
 		Name = "CardName",
 		Text = if owned or not compact then card.Name else "???",
-		Font = Theme.Font.Heavy,
-		TextColor3 = if owned then Theme.Color.Text else Theme.Color.Muted,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.92, 0.78),
-		Parent = ribbon,
-	}, if compact then 18 else 30)
-	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.35).Parent = nameLabel
+		Font = Theme.Font.Display,
+		TextColor3 = if owned then Color3.new(1, 1, 1) else Theme.Color.Muted,
+		TextXAlignment = if compact then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left,
+		Position = if compact then UDim2.fromScale(0.05, 0.8) else UDim2.fromScale(0.05, 0.095),
+		Size = if compact then UDim2.fromScale(0.9, 0.13) else UDim2.fromScale(0.9, 0.095),
+		ZIndex = 5,
+		Parent = frame,
+	}, if compact then 22 else 40)
+	Kit.textStroke(Color3.new(0, 0, 0), if compact then 1.5 else 2.5, 0.05).Parent = nameLabel
 
-	if not compact then
+	if compact then
+		if owned then
+			local starLabel = Kit.label({
+				Name = "Stars",
+				Text = starText(stars),
+				Font = Theme.Font.Heavy,
+				TextColor3 = Theme.Color.Gold,
+				Position = UDim2.fromScale(0.1, 0.7),
+				Size = UDim2.fromScale(0.8, 0.09),
+				ZIndex = 5,
+				Parent = frame,
+			}, 16)
+			Kit.textStroke(Color3.new(0, 0, 0), 1.2, 0.2).Parent = starLabel
+		end
+	else
 		Kit.label({
 			Name = "CardTitle",
-			Text = card.Title,
-			Font = Theme.Font.Medium,
-			TextColor3 = Theme.Color.Muted,
-			Position = UDim2.fromScale(0.06, nameTop + 0.13),
-			Size = UDim2.fromScale(0.88, 0.065),
-			Parent = frame,
-		}, 20)
-		local main = Cards.Stat(card, card.Main, stars, options.Fusion, options.Border)
-		local stats = if card.Type == "Attack"
-			then `⚔️ {Kit.commas(main)}   ❤️ {Kit.commas(Cards.Stat(card, card.HP or 0, stars, options.Fusion, options.Border))}   ⚡ {card.SPD}`
-			else `✨ {Kit.commas(main)} PWR   ⚡ {card.SPD}`
-		local chip = Kit.new("Frame", {
-			Name = "Stats",
-			Position = UDim2.fromScale(0.08, nameTop + 0.205),
-			Size = UDim2.fromScale(0.84, 0.075),
-			BackgroundColor3 = Color3.new(0, 0, 0),
-			BackgroundTransparency = 0.55,
-			Parent = frame,
-		}, { Kit.corner(UDim.new(0.5, 0)) })
-		Kit.label({
-			Text = stats,
+			Text = if owned then card.Title else "Not found yet",
 			Font = Theme.Font.Bold,
-			TextColor3 = Theme.Color.Text,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.92, 0.8),
-			Parent = chip,
-		}, 20)
+			TextColor3 = Color3.fromRGB(220, 214, 245),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.fromScale(0.05, 0.19),
+			Size = UDim2.fromScale(0.9, 0.045),
+			ZIndex = 5,
+			Parent = frame,
+		}, 18)
+
+		local ability = headline(card)
+		if owned and ability then
+			-- The headline ability on a dark glass bar.
+			local bar = Kit.new("Frame", {
+				Name = "AbilityBar",
+				Position = UDim2.fromScale(0.04, 0.655),
+				Size = UDim2.fromScale(0.92, 0.085),
+				BackgroundColor3 = Color3.fromRGB(30, 26, 60),
+				BackgroundTransparency = 0.25,
+				ZIndex = 5,
+				Parent = frame,
+			}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(tier.Color:Lerp(Color3.new(1, 1, 1), 0.3), 1.5, 0.45) })
+			Kit.label({
+				Text = SLOT_ICON[ability.Slot] or "✦",
+				Font = Theme.Font.Heavy,
+				Position = UDim2.fromScale(0.03, 0.12),
+				Size = UDim2.fromScale(0.12, 0.76),
+				ZIndex = 6,
+				Parent = bar,
+			}, 28)
+			local abilityName = Kit.label({
+				Text = ability.Name,
+				Font = Theme.Font.Display,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Position = UDim2.fromScale(0.17, 0.14),
+				Size = UDim2.fromScale(0.78, 0.72),
+				ZIndex = 6,
+				Parent = bar,
+			}, 30)
+			Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.3).Parent = abilityName
+
+			-- Tag chips: the card's role and its always-on abilities.
+			local tags = row(frame, "Tags", 0.755, 0.13, true)
+			local tagList = { if card.Type == "Attack" then "⚔️ Attack" else "✨ Support" }
+			for _, a in card.Abilities do
+				if (a.Slot == "Passive" or a.Slot == "Aura" or a.Slot == "Signature") and #tagList < 4 then
+					table.insert(tagList, `{SLOT_ICON[a.Slot]} {a.Name}`)
+				end
+			end
+			for i, tagText in tagList do
+				local tag = chip(tags, i, tagText, Color3.fromRGB(230, 228, 245), 0.45, Color3.fromRGB(26, 20, 50))
+				tag.Size = UDim2.new(0.45, 0, 0.44, 0)
+			end
+		end
+
+		-- Footer: DMG (ATK) and HP for Attack cards, PWR and SPD for Support cards.
+		if owned then
+			local main = Cards.Stat(card, card.Main, stars, options.Fusion, options.Border)
+			local leftText, leftColor, rightText, rightColor
+			if card.Type == "Attack" then
+				leftText, leftColor = `DMG {short(main)}`, Color3.fromRGB(255, 70, 70)
+				rightText = `HP {short(Cards.Stat(card, card.HP or 0, stars, options.Fusion, options.Border))}`
+				rightColor = Color3.fromRGB(90, 230, 110)
+			else
+				leftText, leftColor = `PWR {short(main)}`, Color3.fromRGB(110, 200, 255)
+				rightText, rightColor = `SPD {card.SPD}`, Color3.fromRGB(255, 220, 110)
+			end
+			for i, info in { { leftText, leftColor }, { rightText, rightColor } } do
+				local stat = Kit.label({
+					Name = if i == 1 then "StatLeft" else "StatRight",
+					Text = info[1],
+					Font = Theme.Font.Display,
+					TextColor3 = info[2],
+					TextXAlignment = if i == 1 then Enum.TextXAlignment.Left else Enum.TextXAlignment.Right,
+					Position = UDim2.fromScale(if i == 1 then 0.05 else 0.5, 0.9),
+					Size = UDim2.fromScale(0.45, 0.075),
+					ZIndex = 5,
+					Parent = frame,
+				}, 30)
+				Kit.textStroke(Color3.new(0, 0, 0), 2, 0.1).Parent = stat
+			end
+		end
 	end
 
 	-- Uploaded rarity frame art, over everything but the foil, then the border (Gold / Rainbow / Secret).
 	Skin.Frame(frame, rarity, 7)
 	if owned then
 		BorderFx.Apply(frame, options.Border, {
-			Corner = UDim.new(0.07, 0),
+			Corner = UDim.new(0.05, 0),
 			ZIndex = 8,
 			Spin = options.Animate,
-			Tag = not compact,
+			Tag = false, -- the border has its own chip at the top now
 			Thickness = if compact then 3 else nil,
 		})
 	end
@@ -390,7 +446,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			BackgroundTransparency = 0,
 			ZIndex = 8,
 			Parent = frame,
-		}, { Kit.corner(UDim.new(0.07, 0)) })
+		}, { Kit.corner(UDim.new(0.05, 0)) })
 		Kit.new("UIGradient", {
 			Name = "ShineGradient",
 			Rotation = 25,

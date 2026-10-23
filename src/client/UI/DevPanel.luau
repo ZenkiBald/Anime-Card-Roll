@@ -245,7 +245,7 @@ function DevPanel.Init(playerGui: Instance)
 	end)
 
 	-- Infinite Tower: jump 10 floors up (no rewards) to try the high floors, or start again from floor 1.
-	local towerRow = section(list, 13, "INFINITE TOWER")
+	local towerRow = section(list, 13, "INFINITE TOWER · PACKS")
 	local towerUp = Kit.button("+10 FLOORS", Color3.fromRGB(40, 170, 165), Color3.fromRGB(16, 90, 90), {
 		LayoutOrder = 1,
 		Size = UDim2.fromOffset(150, 36),
@@ -253,6 +253,14 @@ function DevPanel.Init(playerGui: Instance)
 	})
 	towerUp.Activated:Connect(function()
 		devCall("TowerUp")
+	end)
+	local givePacks = Kit.button("GIVE PACKS", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
+		LayoutOrder = 3,
+		Size = UDim2.fromOffset(150, 36),
+		Parent = towerRow,
+	})
+	givePacks.Activated:Connect(function()
+		devCall("GivePacks") -- 5 x 10, 2 x 100, 1 x 1000 rolls
 	end)
 	local towerReset = Kit.button("TOWER TO FLOOR 1", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), {
 		LayoutOrder = 2,

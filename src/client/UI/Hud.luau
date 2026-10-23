@@ -1,13 +1,16 @@
 --!nonstrict
--- Main screen: the three roll buttons bottom-middle with running potions and stats above them,
--- the icon menu on the left (red badges when something is ready to claim), the SETTINGS gear top
--- right, the Auto Roll feed on the right, the server announcement banner and reward toasts.
--- Bottom corners stay clear for Roblox's mobile thumbstick and jump button.
+-- Main screen: the three roll buttons bottom-middle with the pity counter over ROLL, the icon menu
+-- on the left (red badges when something is ready to claim), the SETTINGS gear top right (the server
+-- list, UI/PlayerList, sits beside it), the Auto Roll feed on the right, running potions as tiles in
+-- the bottom-right corner, the server announcement banner and reward toasts.
+-- The bottom-left corner stays clear for Roblox's mobile thumbstick; on touch screens the potion
+-- tiles sit above the jump button.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rarity = require(Shared.Rarity)
+local Odds = require(Shared.Odds)
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
@@ -34,6 +37,7 @@ local shownValues = {} -- [key] = last number shown, to pop the chip when it cha
 local hiddenBy = { Battle = false, Reveal = false }
 local autoStopButton: any
 local boostRow: Frame
+local pityLabel: TextLabel
 local hintLabel: TextLabel
 local feed: Frame
 local banner: any
@@ -46,6 +50,7 @@ local eventPill: any
 local menuButtons = {} -- [name] = button (children read by name)
 local locks = {} -- [feature] = overlay frame
 local feedOrder = 0
+local FEED_Y = 0.6 -- the Auto Roll feed's centre: below the server list, above the potion tiles
 local bannerToken = 0
 local hintToken = 0
 local toastToken = 0
@@ -256,6 +261,7 @@ local function applyHidden()
 	topBar.Visible = not hidden
 	settingsButton.Visible = not hidden
 	petsButton.Visible = not hidden
+	boostRow.Visible = not hidden
 	levelBar.Visible = not hidden
 	eventPill.Visible = not hidden
 end
@@ -341,6 +347,19 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Parent = cooldownBar,
 	}, { Kit.corner(UDim.new(1, 0)) })
 
+	-- Over ROLL: rolls left until the next guaranteed Legendary (pity), like "251/300".
+	pityLabel = Kit.label({
+		Name = "Pity",
+		Text = "",
+		RichText = true,
+		Font = Theme.Font.Display,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -2),
+		Size = UDim2.new(1, 0, 0.28, 0),
+		Parent = rollButton,
+	}, 20)
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.1).Parent = pityLabel
+
 	quickButton = Kit.new("TextButton", {
 		Name = "QuickRoll",
 		LayoutOrder = 3,
@@ -413,20 +432,25 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTopBar)
 	fitTopBar()
 
-	-- Running potions, above the stats.
+	-- Running potions: square tiles (icon + time left) in the bottom-right corner, filling right to
+	-- left, above the jump button on touch screens.
+	local touch = game:GetService("UserInputService").TouchEnabled
 	boostRow = Kit.new("Frame", {
 		Name = "Boosts",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, -0.34, -12),
-		Size = UDim2.fromScale(1, 0.26),
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -12, 1, if touch then -130 else -12),
+		Size = UDim2.fromOffset(4 * 70, 2 * 70),
 		BackgroundTransparency = 1,
-		Parent = dock,
+		Parent = gui,
 	}, {
-		Kit.new("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Kit.new("UIGridLayout", {
+			CellSize = UDim2.fromOffset(64, 64),
+			CellPadding = UDim2.fromOffset(6, 6),
+			FillDirectionMaxCells = 4,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			VerticalAlignment = Enum.VerticalAlignment.Bottom,
+			StartCorner = Enum.StartCorner.BottomRight,
 			SortOrder = Enum.SortOrder.LayoutOrder,
-			Padding = UDim.new(0, 6),
 		}),
 	})
 
@@ -567,8 +591,8 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	feed = Kit.new("Frame", {
 		Name = "Feed",
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -12, 0.42, 0),
-		Size = UDim2.fromScale(0.22, 0.42),
+		Position = UDim2.new(1, -12, FEED_Y, 0),
+		Size = UDim2.fromScale(0.22, 0.34),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
@@ -877,6 +901,10 @@ function Hud.Refresh()
 	setCurrency("Rolls", Kit.commas(s.TotalRolls), s.TotalRolls)
 	autoStopButton.Label.Text = if s.AutoStop == "Never" then "STOP: NEVER" else `STOP: {string.upper(s.AutoStop)}+`
 	rollButton.Sub.Text = string.format("%.2gs", State.Cooldown())
+	if s.Pity then
+		local _, legendaryLeft = Odds.PityRemaining(s.Pity)
+		pityLabel.Text = `<font color="#FFC42E">LEGENDARY</font> {Config.Pity.Legendary - legendaryLeft}/{Config.Pity.Legendary}`
+	end
 	Hud.SetAuto(s.AutoActive)
 	Hud.RefreshLevel()
 
@@ -896,7 +924,7 @@ function Hud.Refresh()
 	Hud.RefreshBadges()
 end
 
--- Chips for running potions: icon + time left.
+-- Tiles for running potions: the potion's icon and its time left.
 function Hud.RefreshBoosts()
 	local wanted = {}
 	for i, potion in Meta.Potions do
@@ -905,37 +933,51 @@ function Hud.RefreshBoosts()
 			wanted[potion.Id] = { Potion = potion, Left = left, Order = i }
 		end
 	end
-	for _, chip in boostRow:GetChildren() do
-		if chip:IsA("GuiObject") and wanted[chip.Name] == nil then
-			chip:Destroy()
+	for _, tile in boostRow:GetChildren() do
+		if tile:IsA("GuiObject") and wanted[tile.Name] == nil then
+			tile:Destroy()
 		end
 	end
 	for id, info in wanted do
-		local chip = boostRow:FindFirstChild(id)
-		if chip == nil then
-			chip = Kit.new("Frame", {
+		local tile = boostRow:FindFirstChild(id)
+		if tile == nil then
+			tile = Kit.new("Frame", {
 				Name = id,
 				LayoutOrder = info.Order,
-				Size = UDim2.new(0, 88, 1, 0),
-				BackgroundColor3 = Theme.Color.Panel,
-				BackgroundTransparency = 0.1,
+				BackgroundColor3 = Color3.new(1, 1, 1),
 				Parent = boostRow,
-			}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(info.Potion.Color, 2, 0) })
+			}, {
+				Kit.corner(UDim.new(0.2, 0)),
+				Kit.gradient(ColorSequence.new(info.Potion.Color:Lerp(Theme.Color.Panel, 0.5), Theme.Color.Panel), 90),
+				Kit.stroke(info.Potion.Color, 2, 0),
+			})
 			Kit.label({
+				Name = "Icon",
+				Text = info.Potion.Icon,
+				Font = Theme.Font.Heavy,
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.fromScale(0.5, 0.06),
+				Size = UDim2.fromScale(0.7, 0.55),
+				Parent = tile,
+			}, 32)
+			local text = Kit.label({
 				Name = "Text",
 				Text = "",
-				Font = Theme.Font.Heavy,
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.fromScale(0.9, 0.7),
-				Parent = chip,
+				Font = Theme.Font.Display,
+				AnchorPoint = Vector2.new(0.5, 1),
+				Position = UDim2.fromScale(0.5, 0.96),
+				Size = UDim2.fromScale(0.92, 0.32),
+				Parent = tile,
 			}, 16)
-			local scale = Kit.new("UIScale", { Scale = 0.3, Parent = chip })
+			Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = text
+			local scale = Kit.new("UIScale", { Scale = 0.3, Parent = tile })
 			Kit.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
 		end
 		local seconds = math.ceil(info.Left)
-		chip.Text.Text = string.format("%s %d:%02d", info.Potion.Icon, seconds // 60, seconds % 60)
-		chip.Text.TextColor3 = if seconds <= 15 then Theme.Color.Danger else Theme.Color.Text
+		tile.Text.Text = if seconds >= 3600
+			then string.format("%dh %dm", seconds // 3600, (seconds % 3600) // 60)
+			else string.format("%d:%02d", seconds // 60, seconds % 60)
+		tile.Text.TextColor3 = if seconds <= 15 then Theme.Color.Danger else Theme.Color.Text
 	end
 end
 
@@ -974,8 +1016,8 @@ function Hud.SetBattleMode(on: boolean)
 		feed.Size = UDim2.fromScale(0.18, 0.36)
 	else
 		feed.AnchorPoint = Vector2.new(1, 0.5)
-		feed.Position = UDim2.new(1, -12, 0.42, 0)
-		feed.Size = UDim2.fromScale(0.22, 0.42)
+		feed.Position = UDim2.new(1, -12, FEED_Y, 0)
+		feed.Size = UDim2.fromScale(0.22, 0.34)
 	end
 end
 

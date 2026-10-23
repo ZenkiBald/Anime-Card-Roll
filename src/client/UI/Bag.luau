@@ -1,5 +1,5 @@
 --!nonstrict
--- BAG: everything you carry, in tabs. ROLLS: saved reward rolls to open (BagRolls.luau). POTIONS: what
+-- BAG: everything you carry, in tabs. PACKS: Roll Packs to open (BagPacks.luau). POTIONS: what
 -- you own, what's running (with timers), and USE / BUY buttons. ARTIFACTS and ACCESSORIES (boss drops)
 -- live in BagGear.luau.
 -- The server checks every use and purchase (MetaService).
@@ -15,7 +15,7 @@ local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
 local Controls = require(script.Parent.Controls)
 local BagGear = require(script.Parent.BagGear)
-local BagRolls = require(script.Parent.BagRolls)
+local BagPacks = require(script.Parent.BagPacks)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
@@ -208,7 +208,7 @@ local function potionCard(parent: Instance, potion, order: number)
 end
 
 local TABS = {
-	{ Name = "ROLLS", Color = Color3.fromRGB(255, 160, 60) },
+	{ Name = "PACKS", Color = Color3.fromRGB(255, 160, 60) },
 	{ Name = "POTIONS", Color = Color3.fromRGB(86, 214, 138) },
 	{ Name = "ARTIFACTS", Color = Color3.fromRGB(255, 196, 46) },
 	{ Name = "ACCESSORIES", Color = Color3.fromRGB(176, 92, 255) },
@@ -224,7 +224,7 @@ local function showTab(name: string)
 	end
 	Potions.Refresh()
 	BagGear.Refresh()
-	BagRolls.Refresh()
+	BagPacks.Refresh()
 end
 
 local function gearPage(name: string): Frame
@@ -271,8 +271,8 @@ function Bag.Init(playerGui: Instance)
 	pages.POTIONS = potionPage
 	pages.ARTIFACTS = gearPage("ARTIFACTS")
 	pages.ACCESSORIES = gearPage("ACCESSORIES")
-	pages.ROLLS = gearPage("ROLLS")
-	BagRolls.Init(pages.ROLLS, function(text)
+	pages.PACKS = gearPage("PACKS")
+	BagPacks.Init(pages.PACKS, function(text)
 		hint(text)
 	end)
 	BagGear.Init(pages.ARTIFACTS, pages.ACCESSORIES, function(text)
@@ -349,9 +349,9 @@ function Bag.Toggle()
 	modal:Toggle()
 end
 
--- Opens the BAG on its ROLLS tab (saved reward rolls).
-function Bag.OpenRolls()
-	currentTab = "ROLLS"
+-- Opens the BAG on its PACKS tab.
+function Bag.OpenPacks()
+	currentTab = "PACKS"
 	modal:Open()
 end
 

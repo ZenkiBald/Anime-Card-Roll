@@ -16,7 +16,11 @@ local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Rarity = require(Shared.Rarity)
 
+local Deck = require(Shared.Deck)
+local Borders = require(Shared.Borders)
+
 local DataService = require(script.Parent.DataService)
+local DeckService = require(script.Parent.DeckService)
 
 local LeaderboardService = {}
 
@@ -120,6 +124,9 @@ local BOARDS: { Board } = {
 }
 
 -- Player list ----------------------------------------------------------------------------------
+-- Besides leaderstats, every player carries attributes for the in-game server list (UI/PlayerList):
+-- Fav / FavFusion / FavBorder (their favourite card, else their rarest), Power (active Deck Power),
+-- Rolls and Level.
 
 local function addStats(player: Player)
 	local folder = Instance.new("Folder")
@@ -140,6 +147,27 @@ local function updateStats()
 			(folder :: any).Rolls.Value = profile.Data.TotalRolls;
 			(folder :: any).Level.Value = profile.Data.Level;
 			(folder :: any).Floor.Value = profile.Data.Tower.Floor
+			local data = profile.Data
+			local fav = data.Settings.Favorite
+			if fav == nil or fav == "" or data.Cards[fav] == nil then
+				-- No favourite yet: the rarest card owned.
+				fav = ""
+				local best = 0
+				for id, entry in data.Cards do
+					local card = Cards.Get(id)
+					local index = if card then Rarity.Index(Cards.FusedRarity(card, entry.Fusion)) else 0
+					if index > best then
+						best, fav = index, id
+					end
+				end
+			end
+			local entry = data.Cards[fav]
+			player:SetAttribute("Fav", fav)
+			player:SetAttribute("FavFusion", entry and entry.Fusion or 0)
+			player:SetAttribute("FavBorder", entry and Borders.Best(entry.Borders) or "Normal")
+			player:SetAttribute("Power", Deck.Power(DeckService.Active(data), data.Cards))
+			player:SetAttribute("Rolls", data.TotalRolls)
+			player:SetAttribute("Level", data.Level)
 		end
 	end
 end

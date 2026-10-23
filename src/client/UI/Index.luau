@@ -170,6 +170,23 @@ local function showDetail(card)
 		if best ~= "Normal" then
 			line(`Wearing {best}: +{math.floor(Borders.Get(best).Bonus * 100 + 0.5)}% stats`, Theme.Font.Bold, Borders.Get(best).Color, 18, 15)
 		end
+		-- FAVOURITE: this card becomes your picture in the server list and on your name tag.
+		order += 1
+		local isFav = State.Meta.Favorite == card.Id
+		local fav = Kit.button(if isFav then "★ YOUR FAVOURITE" else "☆ SET AS FAVOURITE", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
+			LayoutOrder = order,
+			Size = UDim2.new(0, 230, 0, 40),
+			ZIndex = 22,
+			Parent = right,
+		})
+		fav.Activated:Connect(function()
+			local want = if State.Meta.Favorite == card.Id then "" else card.Id
+			local result = MetaClient.Call("SetFavorite", want)
+			if result.Ok then
+				Sfx.Play("Upgrade", 1.3)
+				fav.Label.Text = if want ~= "" then "★ YOUR FAVOURITE" else "☆ SET AS FAVOURITE"
+			end
+		end)
 		order = Abilities.List(card, right, order, "big")
 	else
 		line("Keep rolling to discover this card and its abilities!", Theme.Font.Bold, Theme.Color.Muted, 20, 16)

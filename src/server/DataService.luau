@@ -22,7 +22,8 @@ local TEMPLATE = {
 	Shards = 0,
 	Pity = { Epic = 0, Legendary = 0 },
 	Playtime = 0, -- seconds, saved when the player leaves
-	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup" },
+	-- Favorite: the card shown as the player's picture in the server list and on their name tag ("" = none).
+	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "" },
 	Decks = { Active = 1, Presets = presets }, -- each preset: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} }, -- keyed by Bosses.FightKey, e.g. "kurogane:Normal"
 	-- Long-term progression (Meta.luau): potions owned / seconds left running (ticks only while online),
@@ -46,8 +47,8 @@ local TEMPLATE = {
 	Wheel = { Spins = 1, Progress = 0 },
 	-- Infinite Tower (Tower.luau): the highest floor cleared; the next fight is Floor + 1.
 	Tower = { Floor = 0 },
-	-- Saved reward rolls from boss and tower wins (Rewards.TicketKey -> count), opened from the BAG.
-	RollBank = {},
+	-- Roll Packs from boss and tower wins (Packs.luau id -> count), opened from the BAG.
+	Packs = {},
 }
 
 -- Test saves live in their own store so launch data starts clean.
@@ -138,6 +139,18 @@ local function onPlayerAdded(player: Player)
 
 	profile:AddUserId(player.UserId) -- GDPR compliance
 	profile:Reconcile() -- fill in fields added to TEMPLATE after this save was made
+	-- Saves from the short-lived roll bank (rarity tickets) get their tickets back as Roll Packs.
+	local bank = profile.Data.RollBank
+	if type(bank) == "table" then
+		local tickets = 0
+		for _, count in bank do
+			tickets += if type(count) == "number" then count else 0
+		end
+		if tickets > 0 then
+			profile.Data.Packs["10"] = (profile.Data.Packs["10"] or 0) + math.ceil(tickets / 10)
+		end
+		profile.Data.RollBank = nil
+	end
 
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil

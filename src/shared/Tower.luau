@@ -9,15 +9,16 @@
 --     player on every server, so the screen can preview it and a retry faces the same fight.
 --   * From AffixFrom up, a floor may roll an affix: a fair trade (more of one stat, less of another) that
 --     changes how the fight plays, not how hard it is. Every GuardianEvery floors a Guardian stands
---     guard: stronger, with a full boss reward on top.
+--     guard: stronger, with more Shards, a sure potion and better gear odds.
 --   * Recommended power grows by Growth per floor, without end; HP / ATK follow the same curve the world
 --     bosses are tuned on. tests/tower_test.luau checks a deck at a floor's recommended power wins it.
---   * The floor's reward score D (= floor x DPerFloor, World 1 Normal = 1) drives the reward rolls,
---     luck and floor rarity (Rewards.For) and the gear drops (Items.RollDrops, boosted on Guardians).
+--   * Every floor pays Shards, XP and a roll for gear (Items.RollDrops at D = floor x DPerFloor, World 1
+--     Normal = 1, boosted on Guardians); some floors also drop Roll Packs (Packs.ForFloor).
 -- A new enemy or affix is one entry below.
 
 local Bosses = require(script.Parent.Bosses)
 local Rewards = require(script.Parent.Rewards)
+local Packs = require(script.Parent.Packs)
 local Items = require(script.Parent.Items)
 
 local Tower = {}
@@ -94,7 +95,6 @@ Tower.HardFrom = 15
 Tower.NightmareFrom = 30
 
 Tower.DPerFloor = 0.25 -- reward score D = floor x 0.25 (floor 4 pays like World 1 Normal)
-Tower.Rolls = 2 -- reward rolls on an ordinary floor (at the floor's luck and floor rarity)
 Tower.ShardsBase = 20 -- Shards = 20 + 5 x floor, x3 on a Guardian
 Tower.ShardsPerFloor = 5
 Tower.GuardianShards = 3
@@ -119,10 +119,7 @@ export type Floor = {
 
 export type Reward = {
 	D: number,
-	Rolls: number,
-	Luck: number,
-	Floor: string, -- rarity floor of the reward rolls
-	Bonus: string?, -- Guardians: one extra card of at least this rarity
+	Packs: { [string]: number }?, -- Roll Packs this floor drops (Packs.ForFloor)
 	Shards: number,
 	Potion: string?, -- Guardians: a sure potion
 	DropBoost: number,
@@ -262,10 +259,7 @@ function Tower.Reward(floor: number): Reward
 	local shards = Tower.ShardsBase + Tower.ShardsPerFloor * floor
 	return {
 		D = d,
-		Rolls = if guardian then base.Rolls else Tower.Rolls,
-		Luck = base.Luck,
-		Floor = base.Floor,
-		Bonus = if guardian then base.Bonus else nil,
+		Packs = Packs.ForFloor(floor),
 		Shards = if guardian then shards * Tower.GuardianShards else shards,
 		Potion = if guardian then base.Potion else nil,
 		DropBoost = if guardian then Tower.GuardianDropBoost else Tower.DropBoost,

@@ -70,26 +70,33 @@ check(poolOk, "every floor's enemy is a real boss from its pool (MinFloor) with 
 check(allSeen and allAffixes, "every enemy and every affix shows up in the first 120 floors")
 check(not guardianAffix and not earlyAffix, `affixes start at floor {Tower.AffixFrom} and never land on a Guardian`)
 
--- 2. Rewards -----------------------------------------------------------------------------------
+-- 2. Rewards ---------------------------------------------------------------------------------------
+local Packs = MODULES.Packs
 local rewardsOk = true
 local lastShards = 0
 for floor = 1, 120 do
 	local r = Tower.Reward(floor)
 	local acc, art = Tower.DropChances(floor)
-	if r.Rolls < 1 or r.Rolls % 1 ~= 0 or Rarity.Get(r.Floor) == nil or acc > 1 or art > 1 or art <= 0 then
+	if acc > 1 or art > 1 or art <= 0 then
 		rewardsOk = false
 	end
+	for id, count in r.Packs or {} do
+		rewardsOk = rewardsOk and Packs.ById[id] ~= nil and count >= 1
+	end
 	if Tower.IsGuardian(floor) then
-		local base = MODULES.Rewards.For(r.D)
-		rewardsOk = rewardsOk and r.Rolls == base.Rolls and r.Bonus ~= nil and r.Potion ~= nil and Meta.PotionById[r.Potion] ~= nil
-		rewardsOk = rewardsOk and art > Items.ArtifactChance(r.D)
+		rewardsOk = rewardsOk and r.Potion ~= nil and Meta.PotionById[r.Potion] ~= nil and art > Items.ArtifactChance(r.D) and r.Packs ~= nil
 	else
-		rewardsOk = rewardsOk and r.Shards > lastShards and r.Bonus == nil and r.Potion == nil
+		rewardsOk = rewardsOk and r.Shards > lastShards and r.Potion == nil
 		lastShards = r.Shards
 	end
 end
-check(rewardsOk, "floor rewards: Shards grow every floor; Guardians pay a full boss reward, a bonus card, a potion and better artifact odds")
+check(rewardsOk, "floor rewards: Shards grow every floor; Guardians pay a potion, packs and better artifact odds")
 check(Tower.Reward(48).D == 12 and Tower.Reward(4).D == 1, "reward score: floor 4 pays like World 1 Normal, floor 48 like World 4 Nightmare")
+check(Packs.ForFloor(1) == nil and Packs.ForFloor(5)["10"] == 1 and Packs.ForFloor(10)["10"] == 2, "every 5th floor drops a Roll Pack, Guardians two")
+check(Packs.ForFloor(25)["100"] == 1 and Packs.ForFloor(100)["1000"] == 1, "floor 25 drops a Big Roll Pack, floor 100 a Mega Roll Pack")
+check(Packs.NextFloorWith(26, "100") == 50 and Packs.NextFloorWith(1, "1000") == 100, "the next floor with a pack size is found")
+check(Packs.ForBoss(1, false)["10"] == 1 and Packs.ForBoss(1, true)["10"] == 2 and Packs.ForBoss(12, false)["10"] == 3, "boss wins drop Roll Packs, +1 on a first clear")
+check(Packs.Count({ ["10"] = 2, ["100"] = 1, junk = 5 }) == 3, "pack counts ignore unknown ids")
 local q = Meta.QuestById.tower
 check(q ~= nil and q.Stat == "TowerFloors", "a daily quest counts tower floors")
 
@@ -175,17 +182,4 @@ do
 	local deck, owned = F.fixtureDeck(F.FIGHTS[1])
 	local rate = campaign(Tower.FloorAt(30, Tower.Enemies[1], false), deck, owned, 10)
 	check(rate == 0, "a World 1 deck can't climb to floor 30")
-end
-
--- 4. Roll bank ----------------------------------------------------------------------------------
-do
-	local Rewards = MODULES.Rewards
-	local key = Rewards.TicketKey("Rare", 2.4)
-	local floor, luck = Rewards.ParseTicket(key)
-	check(key == "Rare|240" and floor == "Rare" and near(luck, 2.4), "a saved roll keeps its rarity floor and boss luck")
-	check(Rewards.ParseTicket("Nope|100") == nil and Rewards.ParseTicket("Rare") == nil, "bad ticket keys are ignored")
-	local groups = Rewards.BankGroups({ ["Rare|240"] = 3, ["Rare|310"] = 2, ["Epic|400"] = 1, ["Uncommon|135"] = 0 })
-	check(#groups == 2 and groups[1].Floor == "Epic" and groups[2].Count == 5 and groups[2].Keys[1] == "Rare|310",
-		"the bank groups by floor, rarest first, best luck first")
-	check(Rewards.BankCount({ ["Rare|240"] = 3, ["Epic|400"] = 2 }) == 5, "the bank counts every saved roll")
 end

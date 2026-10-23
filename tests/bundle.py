@@ -12,6 +12,7 @@ modules = [
     ("Deck", root / "src" / "shared"),
     ("Bosses", root / "src" / "shared"),
     ("Rewards", root / "src" / "shared"),
+    ("Packs", root / "src" / "shared"),
     ("Items", root / "src" / "shared"),
     ("Meta", root / "src" / "shared"),
     ("Tower", root / "src" / "shared"),

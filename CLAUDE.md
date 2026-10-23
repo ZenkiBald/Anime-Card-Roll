@@ -68,11 +68,13 @@ on the result panel, a tower gate in town at the map's `Tower` marker (falls bac
 FLOOR board beside it, Floor in the player list, a daily quest (TowerFloors), dev +10 FLOORS / TOWER TO FLOOR 1.
 Opens after `Tower.UnlockAfter` (Kurogane Normal) when unlock rules are on. `tests/tower_test.luau` checks it.
 Auto-climb: after a tower win the next floor starts after a 4 s countdown (AUTO CLIMB toggle on the result panel).
-Roll bank (2026-10-23, user's call): boss and tower reward rolls are no longer rolled on the spot; they're saved as
-tickets `RollBank["<floor>|<luck x 100>"] = count` (`Rewards.TicketKey` / `BankGroups`) and opened from BAG > ROLLS
-(`UI/BagRolls`, `OpenRolls` remote, up to `Rewards.MaxOpen` per press) or OPEN NOW on the result panel. A ticket
-keeps its boss luck; the player's luck at opening multiplies on top (cap 5x), so saving them for a potion or
-LUCKY STORM pays. The BAG badge counts them. Fusion panel: `busy` now always clears (pcall + panel close), the
+Roll Packs (2026-10-23, user's call; replaced the short-lived rarity-ticket roll bank, old tickets convert to
+Roll Packs on load): `Packs.luau` (Roll Pack 10 / Big 100 / Mega 1000 rolls, no rarity of their own). Boss wins
+drop `Packs.ForBoss(d, firstClear)` Roll Packs; tower floors drop on every 5th (Guardians 2, floor 25s a Big, 100s a
+Mega, `Packs.ForFloor`); daily days 3 / 7 and roll milestones 500 / 2500 / 25000 grant packs too (`Bundle.Packs`).
+Saved as `Packs[id] = count`; `OpenPack` remote opens one at the player's luck at that moment (batched rolls:
+one AddXP, only the best pull announced; returns the rarest `Packs.ShowCards` for the flip reveal + counts per
+rarity). BAG > PACKS (`UI/BagPacks`, `UI/PackOpen`), OPEN on the battle result panel. The BAG badge counts them. Fusion panel: `busy` now always clears (pcall + panel close), the
 old lock-after-one-fusion bug.
 4v4 squads (2026-10-23, user's pick; built in the cloud, headless tests only, not yet seen in Studio): every
 fight is the leader (the boss, or the tower's echo; engine id "Boss") + 3 guards (G1-G3) from
@@ -86,7 +88,15 @@ debuffs) or "RandomEnemy" (Kaede, Noa's Comet Rain, Kaito's Ultimate). Tower flo
 (`Tower.GuardsAt`, seeded, at most one Warder / Mender). Boss HP / ATK and `Tower.Curve.Points` were retuned for
 squads (about 75 s, about 1 card KO'd). Client: guard tiles left / right / in front of the leader, gold TARGET
 marker, guard callouts and KO ("DOWN!"), GUARDS DOWN on the result panel, guard line on the BATTLE screen.
-Planned next: traits rolled onto cards. Keep it SMALL: rarity still wins.
+Favourite card + server list (2026-10-23): Index detail "SET AS FAVOURITE" (MetaService "SetFavorite",
+`Settings.Favorite`); LeaderboardService sets player attributes Fav / FavFusion / FavBorder (favourite, else rarest),
+Power (active Deck Power), Rolls, Level every 2 s; `UI/PlayerList` (top right, left of the gear, "›" folds it) lists
+everyone strongest first with their favourite card as picture; Roblox's player list is off. Name tags show the
+favourite. New card look (`CardView`, user's reference): full-art, chips (rarity, border, stars, fused), big name,
+headline ability bar (Ultimate > Skill > Basic), tag chips (type + passives), DMG / HP (PWR / SPD) footer.
+HUD: running potions are tiles bottom right (above the jump button on touch), legendary pity counter over ROLL,
+Auto Roll feed lower right. Test tools: GIVE PACKS.
+Planned next: traits rolled onto cards; AI card illustrations (user) to replace the chibi figures. Keep it SMALL: rarity still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,
 refreshed every 60 s.
@@ -199,6 +209,6 @@ portrait in cards, tiles and battle; cards without one keep the 3D figure).
 - Type check (needs luau-lsp): `rojo sourcemap default.project.json --include-non-scripts -o sourcemap.json` then
   `luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions @roblox=tests/defs/globalTypes.d.luau --ignore "**/ProfileStore.luau" src/`
 - UI property names check (props set through `Kit.new` aren't type checked): `python tests/check_props.py tests/defs/globalTypes.d.luau src`
-- Odds / pity / card stat / progression / deck / battle / tower tests (needs the `luau` CLI): `python tests/bundle.py` then `luau tests/bundle_out.luau`
+- Odds / pity / card stat / progression / deck / battle / tower / pack tests (needs the `luau` CLI): `python tests/bundle.py` then `luau tests/bundle_out.luau`
 
 Tool versions are pinned in `rokit.toml` (`rokit install`).

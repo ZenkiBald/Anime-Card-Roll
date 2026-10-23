@@ -6,12 +6,14 @@
 
 local Config = require(script.Parent.Config)
 local Items = require(script.Parent.Items)
+local Packs = require(script.Parent.Packs)
 
 export type Bundle = {
 	Shards: number?,
 	Potions: { [string]: number }?,
 	Artifacts: { [string]: number }?, -- Items.luau ids
 	Accessories: { [string]: number }?,
+	Packs: { [string]: number }?, -- Roll Packs (Packs.luau ids)
 }
 
 export type Potion = {
@@ -136,11 +138,11 @@ Meta.IndexRewards = {
 Meta.Daily = {
 	{ Shards = 20 },
 	{ Potions = { luck = 1 } },
-	{ Shards = 50 },
+	{ Shards = 50, Packs = { ["10"] = 1 } },
 	{ Potions = { speed = 2 } },
 	{ Shards = 100, Potions = { luck = 1 } },
 	{ Potions = { superluck = 1 } },
-	{ Shards = 250, Potions = { mythic = 1 } },
+	{ Shards = 250, Potions = { mythic = 1 }, Packs = { ["10"] = 3 } },
 } :: { Bundle }
 
 -- Free gifts for time spent in this server session.
@@ -163,12 +165,12 @@ Meta.Milestones = {
 	{ Rolls = 50, Reward = { Shards = 20 } },
 	{ Rolls = 100, Reward = { Potions = { luck = 2 } } },
 	{ Rolls = 250, Reward = { Shards = 60, Potions = { speed = 2 } } },
-	{ Rolls = 500, Reward = { Potions = { superluck = 1 } } },
+	{ Rolls = 500, Reward = { Potions = { superluck = 1 }, Packs = { ["10"] = 2 } } },
 	{ Rolls = 1000, Reward = { Shards = 200, Potions = { superluck = 1 } } },
-	{ Rolls = 2500, Reward = { Potions = { mythic = 1 } } },
+	{ Rolls = 2500, Reward = { Potions = { mythic = 1 }, Packs = { ["100"] = 1 } } },
 	{ Rolls = 5000, Reward = { Shards = 600, Potions = { mythic = 1 } } },
 	{ Rolls = 10000, Reward = { Shards = 1500, Potions = { mythic = 2 } } },
-	{ Rolls = 25000, Reward = { Shards = 4000, Potions = { mythic = 4 } } },
+	{ Rolls = 25000, Reward = { Shards = 4000, Potions = { mythic = 4 }, Packs = { ["1000"] = 1 } } },
 } :: { Milestone }
 
 -- Daily quests: each day every player gets QuestsPerDay of these, picked from the day and their user
@@ -480,6 +482,10 @@ function Meta.Describe(bundle: Bundle): string
 		if accessory then
 			table.insert(parts, `{accessory.Icon} {accessory.Name}`)
 		end
+	end
+	local packs = Packs.Describe(bundle.Packs)
+	if packs ~= "" then
+		table.insert(parts, packs)
 	end
 	return table.concat(parts, "  ")
 end

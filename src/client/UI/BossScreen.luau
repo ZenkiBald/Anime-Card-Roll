@@ -16,6 +16,7 @@ local Rewards = require(Shared.Rewards)
 local Meta = require(Shared.Meta)
 local Items = require(Shared.Items)
 local Tower = require(Shared.Tower)
+local Packs = require(Shared.Packs)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -349,20 +350,18 @@ local function buildTower()
 	)
 
 	local reward = Tower.Reward(floorNo)
-	local rarity = Rarity.Get(reward.Floor)
 	local rewardBox = box(5, Theme.Color.Gold)
 	text(rewardBox, 1, if floor.Guardian then "GUARDIAN REWARDS" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
-	text(
-		rewardBox,
-		2,
-		`<b>{reward.Rolls}</b> reward rolls (saved to your BAG)  ·  <b>{string.format("%.2f", reward.Luck)}x</b> boss luck  ·  every card <font color="#{rarity.Color:ToHex()}"><b>{reward.Floor}</b></font> or better`,
-		Theme.Color.Text,
-		18
-	)
-	local extras = `+💎{reward.Shards} Shards`
-	if reward.Bonus then
-		extras ..= `  ·  +1 <font color="#{Rarity.Get(reward.Bonus).Color:ToHex()}"><b>{reward.Bonus}</b></font> card`
+	if reward.Packs then
+		text(rewardBox, 2, `<b>{Packs.Describe(reward.Packs)}</b>  (saved to your BAG, opened at your luck)`, Theme.Color.Gold, 18)
+	else
+		local nextFloor = floorNo + 1
+		while Packs.ForFloor(nextFloor) == nil do
+			nextFloor += 1
+		end
+		text(rewardBox, 2, `No pack on this floor · next: <b>{Packs.Describe(Packs.ForFloor(nextFloor))}</b> on floor {nextFloor}`, Theme.Color.Text, 17)
 	end
+	local extras = `+💎{reward.Shards} Shards`
 	if reward.Potion then
 		local potion = Meta.PotionById[reward.Potion]
 		extras ..= `  ·  {potion.Icon} {potion.Name}`
@@ -383,7 +382,7 @@ local function buildTower()
 		text(
 			rewardBox,
 			5,
-			`Next Guardian: floor {guardian} · artifact {math.floor(guardianArtifact * 100 + 0.5)}%, a sure potion and a bonus card`,
+			`Next Guardian: floor {guardian} · artifact {math.floor(guardianArtifact * 100 + 0.5)}%, a sure potion and 2 Roll Packs`,
 			Theme.Color.Gold,
 			16,
 			Theme.Font.Heavy
@@ -477,15 +476,13 @@ local function build()
 
 	-- Rewards preview.
 	local reward = Rewards.For(fight.D)
-	local floor = Rarity.Get(reward.Floor)
-	local bonus = Rarity.Get(reward.Bonus)
 	local rewardBox = box(5, Theme.Color.Gold)
 	text(rewardBox, 1, "WIN REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
 	text(
 		rewardBox,
 		2,
-		`<b>{reward.Rolls}</b> reward rolls (saved to your BAG)  ·  <b>{string.format("%.2f", reward.Luck)}x</b> boss luck  ·  every card <font color="#{floor.Color:ToHex()}"><b>{reward.Floor}</b></font> or better`,
-		Theme.Color.Text,
+		`<b>{Packs.Describe(Packs.ForBoss(fight.D, false))}</b>  (saved to your BAG, opened at your luck)`,
+		Theme.Color.Gold,
 		18
 	)
 	local dropPotion = Meta.PotionById[reward.Potion]
@@ -519,7 +516,7 @@ local function build()
 		text(
 			rewardBox,
 			5,
-			`FIRST CLEAR BONUS: +1 <font color="#{bonus.Color:ToHex()}"><b>{reward.Bonus}</b></font> or better card`,
+			"FIRST CLEAR BONUS: +1 Roll Pack",
 			Theme.Color.Text,
 			17,
 			Theme.Font.Heavy

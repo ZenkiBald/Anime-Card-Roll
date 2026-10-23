@@ -116,6 +116,11 @@ local function refresh(player: Player)
 	end
 	local data = profile.Data
 	local card, rarity = rarest(data)
+	-- A favourite card, when the player has picked one, stands in for the rarest.
+	local favorite = Cards.Get(data.Settings.Favorite or "")
+	if favorite and data.Cards[favorite.Id] then
+		card, rarity = favorite.Name, Cards.FusedRarity(favorite, data.Cards[favorite.Id].Fusion)
+	end
 	local parts = { `<font color="#FFC42E">Lv {data.Level}</font>` }
 	if card and rarity then
 		table.insert(parts, `<font color="#{Rarity.Get(rarity).Color:ToHex()}">{string.upper(rarity)}</font> {card}`)

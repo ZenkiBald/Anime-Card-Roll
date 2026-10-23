@@ -25,7 +25,8 @@ local Effects = require(script.Parent.Effects)
 local ModelView = require(script.Parent.ModelView)
 local CardView = require(script.Parent.CardView)
 local RewardReveal = require(script.Parent.RewardReveal)
-local RollBank = require(script.Parent.RollBank)
+local PackOpen = require(script.Parent.PackOpen)
+local Packs = require(Shared.Packs)
 local Abilities = require(script.Parent.Abilities)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
@@ -1596,10 +1597,11 @@ local function showResults(summary)
 	}
 	local title = titles[summary.Result] or titles.Lose
 	local rewards = summary.Rewards
-	-- Reward rolls are saved to the roll bank (RollBank); the panel shows them and can open them now.
-	local hasRewards = rewards ~= nil and (rewards.Banked or 0) > 0
-	if rewards and rewards.Bank then
-		State.ApplyBank(rewards.Bank)
+	-- Wins pay Shards and gear at once and drop Roll Packs (boss wins, some tower floors) into the BAG;
+	-- the panel shows them and can open one now.
+	local hasRewards = rewards ~= nil
+	if rewards and rewards.Packs then
+		State.ApplyPacks(rewards.Packs)
 	end
 
 	-- Kit panel: the same purple panel art and slanted title banner as every other screen.
@@ -1761,10 +1763,10 @@ local function showResults(summary)
 		end
 		stat("TIME", timeText, Theme.Color.Auto)
 		if hasRewards then
-			local floor = rewards.Floor and Rarity.Get(rewards.Floor)
-			local floorText = if floor then `<font color="#{floor.Color:ToHex()}">{rewards.Floor}+</font> cards` else nil
-			stat("REWARD ROLLS", `+{rewards.Banked}`, Theme.Color.Gold, nil, floorText)
-			stat("BOSS LUCK", string.format("%.2fx", rewards.BossLuck or 1), Theme.Color.Quick, "Luck", "x your luck")
+			local packCount = Packs.Count(rewards.NewPacks)
+			if packCount > 0 then
+				stat("ROLL PACKS", `+{packCount}`, Theme.Color.Gold, nil, "saved to BAG")
+			end
 			local bundle = rewards.Bundle
 			if bundle and bundle.Shards and bundle.Shards > 0 then
 				local potions = if bundle.Potions then Meta.Describe({ Potions = bundle.Potions }) else ""
@@ -1896,71 +1898,68 @@ local function showResults(summary)
 			BackgroundTransparency = 1,
 			Parent = box,
 		})
-		-- The saved rolls as a big ticket, with OPEN NOW to roll them here (or keep them for a luck potion).
-		local floorTier = Rarity.Get(rewards.Floor)
+		-- The packs this win dropped, with OPEN NOW for the biggest one (or keep them for a luck boost).
+		local biggest = nil
+		for _, pack in Packs.List do
+			if rewards.NewPacks and (rewards.NewPacks[pack.Id] or 0) > 0 then
+				biggest = pack
+			end
+		end
 		local ticket = Kit.tile({
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.38),
 			Size = UDim2.fromScale(0.8, 0.5),
 			Parent = area,
-		}, floorTier.Color)
+		}, if biggest then biggest.Color else Theme.Color.TileEdge)
 		local count = Kit.label({
-			Text = `🎟️ {rewards.Banked} REWARD ROLLS`,
+			Text = if biggest then Packs.Describe(rewards.NewPacks) else "NO PACK ON THIS FLOOR",
 			Font = Theme.Font.Display,
-			TextColor3 = Theme.Color.Gold,
+			TextColor3 = if biggest then Theme.Color.Gold else Theme.Color.Muted,
+			TextWrapped = true,
 			Position = UDim2.fromScale(0.05, 0.08),
-			Size = UDim2.fromScale(0.9, 0.36),
+			Size = UDim2.fromScale(0.9, 0.4),
 			Parent = ticket,
-		}, 40)
+		}, 34)
 		Kit.textStroke(Color3.fromRGB(70, 40, 0), 2, 0).Parent = count
-		local bonusText = if rewards.BonusFloor then ` + 1 <font color="#{Rarity.Get(rewards.BonusFloor).Color:ToHex()}">{rewards.BonusFloor}+</font> bonus` else ""
+		local nextText = ""
+		if tower then
+			local nextFloor = tower.Floor + 1
+			while Packs.ForFloor(nextFloor) == nil do
+				nextFloor += 1
+			end
+			nextText = `Next pack: floor {nextFloor} ({Packs.Describe(Packs.ForFloor(nextFloor))}).  `
+		end
 		Kit.label({
-			Text = `Every card <font color="#{floorTier.Color:ToHex()}"><b>{rewards.Floor}</b></font> or better{bonusText}  ·  {string.format("%.2f", rewards.BossLuck or 1)}x boss luck`,
-			RichText = true,
-			Font = Theme.Font.Heavy,
-			Position = UDim2.fromScale(0.05, 0.48),
-			Size = UDim2.fromScale(0.9, 0.2),
-			Parent = ticket,
-		}, 20)
-		Kit.label({
-			Text = "Saved to BAG › ROLLS. Your own luck counts when you open them: save them for a luck potion or LUCKY STORM!",
+			Text = nextText .. "Packs wait in BAG › PACKS and roll at your luck when opened: save them for a luck potion or LUCKY STORM!",
 			Font = Theme.Font.Bold,
 			TextColor3 = Theme.Color.Muted,
 			TextWrapped = true,
-			Position = UDim2.fromScale(0.05, 0.7),
-			Size = UDim2.fromScale(0.9, 0.24),
+			Position = UDim2.fromScale(0.05, 0.52),
+			Size = UDim2.fromScale(0.9, 0.42),
 			Parent = ticket,
-		}, 15)
-		local openNow = Kit.button("OPEN NOW", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0.7),
-			Size = UDim2.fromOffset(200, 50),
-			Parent = area,
-		})
-		openNow.Activated:Connect(function()
-			current.StopClimb = true
-			openNow.Visible = false
-			-- The ticket's floor first, then the bonus card's.
-			local opened = {}
-			for _, floor in { rewards.Floor, rewards.BonusFloor } do
-				local want = if floor == rewards.BonusFloor and floor ~= rewards.Floor then 1 else rewards.Banked - (if rewards.BonusFloor then 1 else 0)
-				local result, message = RollBank.Open(floor, want)
-				if result then
-					for _, r in result.Results do
-						table.insert(opened, r)
+		}, 16)
+		if biggest then
+			local openNow = Kit.button(`OPEN {string.upper(biggest.Name)}`, Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.fromScale(0.5, 0.7),
+				Size = UDim2.fromOffset(260, 50),
+				Parent = area,
+			})
+			openNow.Activated:Connect(function()
+				current.StopClimb = true
+				openNow.Visible = false
+				local result, message = PackOpen.Open(biggest.Id)
+				if result and area.Parent then
+					ticket:Destroy()
+					PackOpen.Play(area, result)
+				else
+					openNow.Visible = true
+					if message then
+						hint(message)
 					end
-					opened.Summary = result.Summary
-				elseif message then
-					hint(message)
 				end
-			end
-			if #opened > 0 and area.Parent then
-				ticket:Destroy()
-				RewardReveal.Play(area, { Results = opened, Summary = opened.Summary })
-			else
-				openNow.Visible = true
-			end
-		end)
+			end)
+		end
 	end
 
 	local back = Kit.button("BACK TO HUB", Theme.Color.Auto, Theme.Color.AutoDeep, {

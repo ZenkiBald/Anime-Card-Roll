@@ -116,10 +116,10 @@ function MetaClient.GiftsClaimable(): number
 	return n
 end
 
--- Saved reward rolls waiting in the BAG (its red badge counts them with the potions).
-function MetaClient.BankCount(): number
+-- Roll Packs waiting in the BAG (its red badge counts them with the potions).
+function MetaClient.PackCount(): number
 	local n = 0
-	for _, count in (State.RollBank or {}) :: { [string]: number } do
+	for _, count in (State.Packs or {}) :: { [string]: number } do
 		n += count
 	end
 	return n

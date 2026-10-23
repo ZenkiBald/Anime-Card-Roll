@@ -13,6 +13,7 @@ local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Rarity = require(Shared.Rarity)
 local Items = require(Shared.Items)
+local Packs = require(Shared.Packs)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -61,6 +62,11 @@ function MetaService.Grant(data, bundle: Meta.Bundle)
 			if Meta.PotionById[id] and count > 0 then
 				data.Potions.Inventory[id] = (data.Potions.Inventory[id] or 0) + count
 			end
+		end
+	end
+	for id, count in bundle.Packs or {} do
+		if Packs.ById[id] and count > 0 then
+			data.Packs[id] = (data.Packs[id] or 0) + count
 		end
 	end
 	return bundle
@@ -222,6 +228,8 @@ function MetaService.State(player: Player, data)
 		StatPoints = Meta.StatPoints(data.Level) - Meta.StatsSpent(data.Stats),
 		Gear = data.Gear,
 		Wheel = { Spins = data.Wheel.Spins, Progress = data.Wheel.Progress },
+		Favorite = data.Settings.Favorite,
+		Packs = data.Packs, -- gifts, quests and milestones can grant Roll Packs
 	}
 end
 
@@ -338,6 +346,13 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 			return false, "BadRequest"
 		end
 		data.Settings[if action == "SetMusic" then "Music" else "Effects"] = arg
+		return true
+	elseif action == "SetFavorite" then
+		-- An owned card becomes the player's picture (server list, name tag); "" clears it.
+		if arg ~= "" and (type(arg) ~= "string" or data.Cards[arg] == nil) then
+			return false, "BadRequest"
+		end
+		data.Settings.Favorite = arg
 		return true
 	elseif action == "ClaimQuest" then
 		local quest = type(arg) == "string" and Meta.QuestById[arg]
