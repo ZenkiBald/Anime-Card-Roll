@@ -59,6 +59,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   rows), the Surge talisman's three states and shiver, the wax-seal ROLL, recessed AUTO / QUICK, no cyan trims left.
 - [ ] Art direction phase 2: panel frames and tabs on every screen, the deck screen (wells, tethers, cost meter,
   synergy tags, AUTO-BUILD / CLEAR), sunken dropdowns, the STORE crests and R$ buttons.
+- [ ] Density pass: card tiles without stats (rarity number still on them), BAG plaques and crests and the 2 x 2 OPEN
+  seals, BOSS SCOUT trays and chips, the sunken boss well, vermilion tab underlines everywhere.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

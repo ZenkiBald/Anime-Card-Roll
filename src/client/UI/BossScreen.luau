@@ -28,9 +28,10 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
-local Skin = require(script.Parent.Skin)
 local ModelView = require(script.Parent.ModelView)
 local ElementUi = require(script.Parent.ElementUi)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
+local C = UITheme.Colors
 local ElementGuide = require(script.Parent.ElementGuide)
 local CardView = require(script.Parent.CardView)
 local State = require(script.Parent.Parent.State)
@@ -83,34 +84,51 @@ local function hint(text: string)
 	end)
 end
 
+-- A tab along the top: the picked one is a raised Urushi plate with a 2 px vermilion underline, the rest
+-- bare ghost text (`color` is the tab's own accent, a thin mark under its label).
 local function pill(parent: Instance, text: string, order: number, width: number, color: Color3, on: boolean, locked: boolean): TextButton
 	local button = Kit.new("TextButton", {
 		Name = text,
 		LayoutOrder = order,
 		Size = UDim2.new(0, width, 1, 0),
 		AutoButtonColor = false,
-		BackgroundColor3 = if on then color else Theme.Color.PanelLight,
-		BackgroundTransparency = if locked then 0.55 else 0,
+		BackgroundColor3 = C.UrushiRaised,
+		BackgroundTransparency = if on then 0 else 1,
 		Text = "",
 		Parent = parent,
-	}, { Kit.corner(UDim.new(0.5, 0)) })
+	}, { Kit.corner(UDim.new(0, 4)) })
 	if on then
-		Skin.Apply(button, Skin.ButtonFor(color)) -- the picked one gets the glossy kit art
-	else
-		Kit.stroke(Color3.fromRGB(90, 170, 220), 2, 0.4).Parent = button
+		Kit.stroke(C.TamahaganeSlate, 1.5, 0).Parent = button
+		Kit.new("Frame", {
+			Name = "Underline",
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.fromScale(0.5, 1),
+			Size = UDim2.new(1, 0, 0, 2),
+			BorderSizePixel = 0,
+			BackgroundColor3 = C.VermilionWax,
+			Parent = button,
+		})
 	end
-	local label = Kit.label({
+	Kit.new("Frame", {
+		Name = "Accent",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -5),
+		Size = UDim2.new(0, 14, 0, 2),
+		BorderSizePixel = 0,
+		BackgroundColor3 = color,
+		BackgroundTransparency = if locked then 0.7 else 0.2,
+		Parent = button,
+	})
+	Kit.label({
 		Text = text,
 		Font = if on then Theme.Font.Display else Theme.Font.Heavy,
-		TextTransparency = if locked then 0.45 else 0,
+		TextColor3 = if on then C.WashiParchment else C.WashiGhost,
+		TextTransparency = if locked then 0.5 else 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.88, 0.62),
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromScale(0.88, 0.56),
 		Parent = button,
 	}, 17)
-	if on then
-		Kit.textStroke(Color3.fromRGB(13, 17, 27), 1.5, 0.1).Parent = label
-	end
 	Kit.pressable(button)
 	return button
 end
@@ -154,12 +172,12 @@ local function box(order: number, color: Color3): Frame
 		LayoutOrder = order,
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = Theme.Color.PanelLight,
-		BackgroundTransparency = 0.25,
+		BackgroundColor3 = C.UrushiRaised,
+		BackgroundTransparency = 0,
 		Parent = body,
 	}, {
-		Kit.corner(UDim.new(0, 12)),
-		Kit.stroke(color, 1.5, 0.5),
+		Kit.corner(UDim.new(0, 6)),
+		Kit.stroke(color:Lerp(C.TamahaganeSlate, 0.6), 1.5, 0),
 		Kit.padding(10),
 		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) }),
 	})
@@ -169,7 +187,7 @@ local refresh
 
 -- `floor` (Tower.FloorAt) shows the boss as that tower floor's echo; `raidName` as the raid's Colossus.
 local function setShowcase(boss, floor, raidName: string?)
-	showcaseGradient.Color = ColorSequence.new(boss.Accent:Lerp(Color3.new(0, 0, 0), 0.25), boss.Deep)
+	showcaseGradient.Color = ColorSequence.new(boss.Accent:Lerp(C.UrushiInset, 0.8), C.UrushiInset) -- a sunken well, a breath of the boss's colour
 	local affix = floor and floor.Affix and Tower.AffixById[floor.Affix]
 	showcaseName.Text = string.upper(if raidName then raidName elseif floor then floor.Name else boss.Name)
 	showcaseTitle.Text = if affix then `{affix.Icon} {affix.Name}: {affix.Text}` else `{Elements.Label(boss.Element)} · {boss.Title}`
@@ -257,27 +275,98 @@ end
 
 -- SCOUT: the squad's elements and what beats them, how the active deck lines up against the leader,
 -- the deck's synergies and bonds, and COUNTER-BUILD for this fight (`target`: boss id, Tower.Id, Raid.Id).
+-- A horizontal tray inside a box (badges and chips, wrapping).
+local function tray(parent: Instance, order: number, height: number): Frame
+	return Kit.new("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, height),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		Parent = parent,
+	}, {
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 6),
+			Wraps = true,
+		}),
+	})
+end
+
+-- A small chip: a raised (or sunken) Urushi plate with a thin edge, sized to what's inside.
+local function chip(parent: Instance, order: number, edge: Color3, sunken: boolean?): Frame
+	return Kit.new("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(0, 0, 0, 30),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = if sunken then C.UrushiInset else C.UrushiRaised:Lerp(C.TamahaganeSlate, 0.25),
+		Parent = parent,
+	}, {
+		Kit.corner(UDim.new(0, 4)),
+		Kit.stroke(edge, 1, 0),
+		Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 8) }),
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 4),
+		}),
+	})
+end
+
+local function chipText(parent: Instance, order: number, value: string, color: Color3, size: number?)
+	return Kit.label({
+		LayoutOrder = order,
+		Text = value,
+		RichText = true,
+		Font = Theme.Font.Heavy,
+		TextColor3 = color,
+		TextScaled = false,
+		TextSize = size or 14,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.new(0, 0, 1, 0),
+		Parent = parent,
+	}, size or 14)
+end
+
+-- SCOUT: visual trays. The leader's element crest and the counter crests with a +30% DMG tag; the guards
+-- as unit chips (role, element, name); how the active deck lines up; the deck's synergies and bonds as
+-- tags; and COUNTER-BUILD for this fight (`target`: boss id, Tower.Id, Raid.Id).
 local function scoutBox(order: number, leaderId: string, guards: { string }, deck, target: string)
 	local leader = Bosses.Get(leaderId)
 	local scout = box(order, SCOUT_COLOR)
-	text(scout, 1, "SCOUT", SCOUT_COLOR, 18, Theme.Font.Heavy)
-	text(
-		scout,
-		2,
-		`Leader {ElementUi.Rich(leader.Element)}   ·   beat it with <b>{ElementUi.RichList(Elements.Counters(leader.Element))}</b> (+30% damage)`,
-		Theme.Color.Text,
-		16,
-		Theme.Font.Heavy
-	)
+	text(scout, 1, "SCOUT", C.WashiParchment, 18, Theme.Font.Display)
+
+	-- Leader and weakness.
+	local weakness = tray(scout, 2, 40)
+	local leaderChip = chip(weakness, 1, ElementUi.Color(leader.Element))
+	leaderChip.Size = UDim2.new(0, 0, 0, 38)
+	ElementUi.Badge(leader.Element, { LayoutOrder = 1, Size = UDim2.fromOffset(30, 30), Parent = leaderChip })
+	chipText(leaderChip, 2, `LEADER · <b>{string.upper(leader.Element)}</b>`, C.WashiParchment, 15)
+	chipText(weakness, 2, "beaten by", C.WashiGhost, 14)
+	for i, counter in Elements.Counters(leader.Element) do
+		local counterChip = chip(weakness, 2 + i, ElementUi.Color(counter))
+		counterChip.Size = UDim2.new(0, 0, 0, 38)
+		ElementUi.Badge(counter, { LayoutOrder = 1, Size = UDim2.fromOffset(30, 30), Parent = counterChip })
+		chipText(counterChip, 2, string.upper(counter), C.WashiParchment, 15)
+	end
+	local bonus = chip(weakness, 20, Theme.Color.Gold, true)
+	chipText(bonus, 1, "+30% DMG", Theme.Color.Gold, 15)
+
+	-- Guards: one unit chip each.
 	if #guards > 0 then
-		local parts = {}
-		for _, id in guards do
+		local guardTray = tray(scout, 3, 32)
+		chipText(guardTray, 0, "GUARDS", C.WashiGhost, 13)
+		for i, id in guards do
 			local g = Bosses.GuardTypes[id]
 			if g then
-				table.insert(parts, `{g.Icon} {g.Role} {ElementUi.Rich(g.Element)}`)
+				local unit = chip(guardTray, i, C.TamahaganeSlate, true)
+				ElementUi.RoleBadge(g.Role, { LayoutOrder = 1, Size = UDim2.fromOffset(24, 24), Parent = unit })
+				ElementUi.Badge(g.Element, { LayoutOrder = 2, Size = UDim2.fromOffset(24, 24), Parent = unit })
+				chipText(unit, 3, g.Name, C.WashiParchment, 13)
 			end
 		end
-		text(scout, 3, "Guards   " .. table.concat(parts, "    "), Theme.Color.Text, 15, Theme.Font.Bold)
 	end
 
 	local strong, weak, hurt, ids = 0, 0, 0, {}
@@ -298,25 +387,32 @@ local function scoutBox(order: number, leaderId: string, guards: { string }, dec
 			end
 		end
 	end
-	local deckLine = `Your deck vs the leader:  <font color="#56D68A"><b>{strong} strong</b></font>  ·  <font color="#FF7846"><b>{weak} weak</b></font>`
+	local deckLine = `YOUR DECK  <font color="#56D68A"><b>{strong} strong</b></font>  ·  <font color="#FF7846"><b>{weak} weak</b></font>`
 	if hurt > 0 then
-		deckLine ..= `  ·  {hurt} Attack card{if hurt == 1 then "" else "s"} take +30% from it`
+		deckLine ..= `  ·  {hurt} Attack card{if hurt == 1 then "" else "s"} take +30%`
 	end
-	text(scout, 4, deckLine, Theme.Color.Text, 16, Theme.Font.Heavy)
+	text(scout, 4, deckLine, C.WashiGhost, 14, Theme.Font.Heavy)
 
-	local synergies = Elements.ActiveSynergies(Deck.Elements(deck))
-	local lines = {}
-	for _, active in synergies do
+	-- Synergies and bonds as tags.
+	local tags = tray(scout, 5, 30)
+	local count = 0
+	for _, active in Elements.ActiveSynergies(Deck.Elements(deck)) do
 		local element = Elements.Get(active.Synergy.Element)
-		table.insert(lines, `{element and element.Icon or ""} <b>{string.upper(active.Synergy.Name)}</b> ({active.Count}): {active.Tier.Text}`)
+		count += 1
+		local t = chip(tags, count, element and element.Color or C.TamahaganeSlate)
+		if element then
+			ElementUi.Badge(element.Id, { LayoutOrder = 1, Size = UDim2.fromOffset(22, 22), Parent = t })
+		end
+		chipText(t, 2, `{string.upper(active.Synergy.Name)} ({active.Count})`, C.WashiParchment, 13)
 	end
 	for _, bond in Elements.ActiveBonds(ids) do
-		table.insert(lines, `🤝 <b>{string.upper(bond.Name)}</b>: Dual Ultimate when the leader drops to half`)
+		count += 1
+		local t = chip(tags, count, Theme.Color.Gold)
+		chipText(t, 1, `🤝 {string.upper(bond.Name)}`, Theme.Color.Gold, 13)
 	end
-	if #lines == 0 then
-		table.insert(lines, "No synergy yet: 2 cards of one element switch one on (4 for a bigger one)")
+	if count == 0 then
+		chipText(tags, 1, "No synergy yet: 2 cards of one element switch one on", C.WashiGhost, 13)
 	end
-	text(scout, 5, table.concat(lines, "\n"), Color3.fromRGB(255, 214, 150), 15, Theme.Font.Bold)
 
 	local buttons = Kit.new("Frame", {
 		LayoutOrder = 6,
@@ -326,12 +422,12 @@ local function scoutBox(order: number, leaderId: string, guards: { string }, dec
 	}, {
 		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
 	})
-	local counter = Kit.button("COUNTER-BUILD", Color3.fromRGB(90, 160, 255), Color3.fromRGB(30, 60, 140), {
+	local counter = Kit.button("COUNTER-BUILD", C.VermilionHover, C.VermilionWax, {
 		LayoutOrder = 1,
 		Size = UDim2.new(0, 220, 1, 0),
 		Parent = buttons,
 	})
-	local guide = Kit.button("HOW ELEMENTS WORK", Theme.Color.PanelLight, Theme.Color.Panel, {
+	local guide = Kit.button("HOW ELEMENTS WORK", C.TamahaganeSlate, C.UrushiBase, {
 		LayoutOrder = 2,
 		Size = UDim2.new(0, 220, 1, 0),
 		Parent = buttons,
@@ -968,9 +1064,30 @@ function BossScreen.Init(playerGui: Instance, bossActions: Actions)
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		ClipsDescendants = true,
 		Parent = modal.Body,
-	}, { Kit.corner(UDim.new(0, 16)) })
-	showcaseGradient = Kit.gradient(ColorSequence.new(Color3.fromRGB(80, 40, 30), Color3.fromRGB(20, 12, 20)), 90)
+	}, { Kit.corner(UDim.new(0, 6)), Kit.stroke(C.TamahaganeSlate, 2, 0) })
+	showcaseGradient = Kit.gradient(ColorSequence.new(C.UrushiRaised, C.UrushiInset), 90)
 	showcaseGradient.Parent = showcase
+	-- A dark vignette around the edges so the model pops (two crossed fades over the well, under the model).
+	for _, rotation in { 0, 90 } do
+		Kit.new("Frame", {
+			Name = "Vignette",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Color3.new(0, 0, 0),
+			BorderSizePixel = 0,
+			ZIndex = 1,
+			Parent = showcase,
+		}, {
+			Kit.new("UIGradient", {
+				Rotation = rotation,
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.35),
+					NumberSequenceKeypoint.new(0.25, 1),
+					NumberSequenceKeypoint.new(0.75, 1),
+					NumberSequenceKeypoint.new(1, 0.35),
+				}),
+			}),
+		})
+	end
 	Kit.new("Frame", {
 		Name = "Floor",
 		AnchorPoint = Vector2.new(0.5, 0.5),

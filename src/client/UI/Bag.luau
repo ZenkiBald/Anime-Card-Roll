@@ -17,6 +17,8 @@ local Packs = require(Shared.Packs)
 local Rarity = require(Shared.Rarity)
 
 local Kit = require(script.Parent.Kit)
+local IconBadge = require(script.Parent.Components.IconBadge)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
 local Controls = require(script.Parent.Controls)
@@ -184,9 +186,32 @@ local function subText(entry): (string, Color3)
 	return "", Theme.Color.Text
 end
 
--- One square tile: dark glass tinted by the item's colour, the icon in the middle, rarity badge, count.
+-- A relic plaque's frame by rarity (no letter badges: the frame says it): bronze Rare, purple Epic,
+-- gold Legendary, cosmic crimson Mythic (a two-tone sweep).
+local RELIC_FRAME = {
+	Rare = { Color = Color3.fromRGB(176, 141, 87), Thickness = 1.5 },
+	Epic = { Color = Color3.fromRGB(150, 80, 220), Thickness = 2 },
+	Legendary = { Color = Color3.fromRGB(255, 200, 60), Thickness = 2.5 },
+	Mythic = { Color = Color3.fromRGB(220, 30, 70), Thickness = 3, Sweep = Color3.fromRGB(120, 40, 220) },
+}
+
+-- What sits in a tile's diamond crest: a pack's roll count (a sealed chest of 10 / 100 / 1K rolls), else
+-- the item's own glyph.
+local function crestOf(entry): string
+	if entry.Kind == "Pack" then
+		local rolls = entry.Item.Rolls
+		return if rolls >= 1000 then `{rolls // 1000}K` else tostring(rolls)
+	end
+	return entry.Icon
+end
+
+-- One square tile: an Urushi plaque framed in the item's colour (a relic's by rarity), its crest in a
+-- diamond IconBadge, the count top-right and a short tag along the bottom.
 local function tile(entry, order: number)
 	local held = entry.Count > 0 or entry.Worn == true or entry.Running == true
+	local C = UITheme.Colors
+	local frame = if entry.Rarity then RELIC_FRAME[entry.Rarity] else nil
+	local edge = if frame then frame.Color else entry.Color
 	local button = Kit.new("TextButton", {
 		Name = entry.Key,
 		LayoutOrder = order,
@@ -195,47 +220,36 @@ local function tile(entry, order: number)
 		Text = "",
 		Parent = grid,
 	}, {
-		Kit.corner(UDim.new(0.14, 0)),
-		Kit.gradient(ColorSequence.new(entry.Color:Lerp(Color3.fromRGB(7, 9, 14), 0.62), Color3.fromRGB(16, 10, 30)), 90),
+		Kit.corner(UDim.new(0, 6)),
+		Kit.gradient(ColorSequence.new(C.UrushiRaised, C.UrushiBase:Lerp(edge, 0.08)), 90),
 	})
-	local stroke = Kit.stroke(entry.Color, if entry.Key == selectedKey then 4 else 2.5, if held then 0 else 0.5)
+	local stroke = Kit.stroke(edge, if entry.Key == selectedKey then 3.5 elseif frame then frame.Thickness else 1.5, if held then 0 else 0.55)
 	stroke.Parent = button
-	if entry.Rarity == "Mythic" or entry.Rarity == "Secret" then
-		Kit.gradient(Rarity.Gradient(entry.Rarity), 45).Parent = stroke
+	if frame and frame.Sweep then
+		Kit.gradient(ColorSequence.new(frame.Color, frame.Sweep), 45).Parent = stroke
 	end
-	Kit.label({
+	local crest = IconBadge.new({
 		Name = "Icon",
-		Text = entry.Icon,
-		Font = Theme.Font.Heavy,
-		TextTransparency = if held then 0 else 0.55,
+		IconAsset = crestOf(entry),
+		GlowColor = edge,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.62, 0.56),
+		Position = UDim2.fromScale(0.5, 0.48),
+		Size = UDim2.fromScale(0.64, 0.64),
+		ZIndex = 2,
 		Parent = button,
-	}, 60)
-	if entry.Rarity then
-		local badge = Kit.new("Frame", {
-			Name = "Badge",
-			Position = UDim2.fromScale(0.07, 0.07),
-			Size = UDim2.fromScale(0.24, 0.24),
-			BackgroundColor3 = entry.Color,
-			ZIndex = 3,
-			Parent = button,
-		}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Color3.new(1, 1, 1), 1.5, 0.2) })
-		local letter = Kit.label({
-			Text = string.sub(entry.Rarity, 1, 1),
-			Font = Theme.Font.Display,
-			Size = UDim2.fromScale(1, 1),
-			ZIndex = 4,
-			Parent = badge,
-		}, 18)
-		Kit.textStroke(Color3.new(0, 0, 0), 1.2, 0.2).Parent = letter
+	})
+	if not held then
+		for _, d in crest:GetDescendants() do
+			if d:IsA("TextLabel") then
+				d.TextTransparency = 0.55
+			end
+		end
 	end
 	local count = Kit.label({
 		Name = "Count",
 		Text = `x{Kit.commas(entry.Count)}`,
 		Font = Theme.Font.Display,
-		TextColor3 = if entry.Count > 0 then Color3.new(1, 1, 1) else Theme.Color.Muted,
+		TextColor3 = if entry.Count > 0 then UITheme.Colors.WashiParchment else UITheme.Colors.WashiGhost,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(0.94, 0.06),
@@ -417,10 +431,18 @@ local function showDetail(entry)
 		Parent = detail,
 	}, {
 		Kit.corner(UDim.new(0, 16)),
-		Kit.gradient(ColorSequence.new(entry.Color:Lerp(Color3.fromRGB(7, 9, 14), 0.5), Color3.fromRGB(16, 10, 30)), 90),
+		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiRaised, UITheme.Colors.UrushiInset), 90),
 		Kit.stroke(entry.Color, 3, 0),
 	})
-	Kit.label({ Text = entry.Icon, Font = Theme.Font.Heavy, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.5, 0.8), Parent = big }, 80)
+	IconBadge.new({
+		IconAsset = crestOf(entry),
+		GlowColor = entry.Color,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.9, 0.9),
+		DominantAxis = Enum.DominantAxis.Height,
+		Parent = big,
+	})
 	local name = detailText(2, string.upper(entry.Name), entry.Color, 24, Theme.Font.Display)
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = name
 	local kindName = KIND_NAME[entry.Kind] or entry.Kind
@@ -446,7 +468,7 @@ local function showDetail(entry)
 		-- a go). Packs open while Auto Roll runs too.
 		local function opener(row: Frame, label: string, count: number | string, order: number)
 			local enough = if count == "all" then entry.Count > 0 else entry.Count >= (count :: number)
-			action(row, label, Theme.Color.Gold, GOLD_DEEP, order, enough, function()
+			action(row, label, UITheme.Colors.VermilionHover, UITheme.Colors.VermilionWax, order, enough, function()
 				if (State.Packs[item.Id] or 0) <= 0 then
 					hint("Beat bosses and every 5th tower floor for packs")
 				elseif not enough then
@@ -456,10 +478,13 @@ local function showDetail(entry)
 				end
 			end)
 		end
+		-- A compact 2 x 2 grid of seals.
 		local row = actionRow(6)
+		row.Size = UDim2.new(1, 0, 0, 38)
 		opener(row, "OPEN 1", 1, 1)
 		opener(row, "OPEN 5", 5, 2)
 		local row2 = actionRow(7)
+		row2.Size = UDim2.new(1, 0, 0, 38)
 		opener(row2, "OPEN 10", 10, 1)
 		opener(row2, `OPEN ALL ({Kit.commas(entry.Count)})`, "all", 2)
 		-- Condensing and infusing are done in town, at Hoshi's PACK ALCHEMY.

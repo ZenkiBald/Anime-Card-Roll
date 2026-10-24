@@ -570,7 +570,7 @@ local function drawInspector()
 	ElementUi.RoleBadge(card.Role, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
 	text({
 		-- The battle numbers first (the tooltip has the title, element and role), then the tier.
-		Text = `{Kit.statsText(card, own.Stars, best, Awaken.Level(own), true)}   <font color="#{border.Color:ToHex()}">{Borders.Label(best)}</font>`,
+		Text = `{Kit.statsText(card, own.Stars, best, Awaken.Level(own), true)}   <font color="#{border.Color:ToHex()}">{Borders.Label(best)} · rarity {Kit.commas(Cards.Rarity(card.Id, best))}</font>`,
 		Font = Theme.Font.Heavy,
 		TextColor3 = Theme.Color.Muted,
 		Position = UDim2.fromOffset(0, 24),

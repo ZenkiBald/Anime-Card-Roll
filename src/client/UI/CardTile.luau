@@ -1,9 +1,9 @@
 --!nonstrict
 -- Square card tile for the deck, Vault and Index grids, in the Dark Feudal look: an Urushi lacquer chassis
 -- framed by its border tier (UITheme.BorderTiers: bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void
--- 3 px; the border IS the tier), the art in the middle, and along the bottom the name and copies, one
--- compact stat line, and big, the card's rarity number at its border (Cards.Rarity, a round number like
--- 7,500,000) in the tier's colour. Stars are small parchment diamonds (they are stats, +5% each, not
+-- 3 px; the border IS the tier), the art in the middle, and along the bottom the name and copies, then the
+-- card's rarity number at its border (Cards.Rarity, a round number like 7,500,000) in the tier's colour.
+-- No combat stats on the tile: they live in the deck screen's inspector and the tooltip. Stars are small parchment diamonds (they are stats, +5% each, not
 -- the tier); element and role sit in diamond IconBadges top-right. Size it from outside.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -35,23 +35,13 @@ export type Options = {
 	Selected: boolean?,
 	Spin: boolean?, -- spin a Secret card's border (only for a few tiles at once)
 	Border: string?, -- the card's best border (Borders.luau): the tier and its frame
-	Stats: boolean?, -- show the compact stat line
+	Stats: boolean?, -- ignored: stats moved to the inspector / tooltip (kept so callers don't break)
 	Awaken: number?, -- the card's Awakening node, for those stats
 }
 
 local function outlined(label: TextLabel, thickness: number?)
 	Kit.textStroke(Color3.fromRGB(6, 7, 11), thickness or 2, 0).Parent = label
 	return label
-end
-
--- "⚔ 45.7K  ❤ 91.3K" (Attack) or "✦ 27.9K PWR" (Support): one short line in parchment tones.
-local function statLine(card, stars: number, border: string, awaken: number?): string
-	local main = Kit.short(Cards.Stat(card, card.Main, stars, border, awaken))
-	if card.Type == "Attack" then
-		local hp = Kit.short(Cards.Stat(card, card.HP or 0, stars, border, awaken))
-		return `<font color="#E8907A">⚔ {main}</font>  <font color="#8FD4A8">❤ {hp}</font>`
-	end
-	return `<font color="#9CC8E6">✦ {main}</font> <font color="#{C.WashiGhost:ToHex()}">PWR</font>`
 end
 
 function CardTile.new(cardId: string, opts: Options?): TextButton
@@ -173,8 +163,8 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Font = Theme.Font.Display,
 		TextColor3 = if owned then C.WashiParchment else C.WashiGhost,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromScale(0.07, 0.56),
-		Size = UDim2.fromScale(if owned and options.Copies then 0.6 else 0.86, 0.12),
+		Position = UDim2.fromScale(0.07, 0.64),
+		Size = UDim2.fromScale(if owned and options.Copies then 0.6 else 0.86, 0.13),
 		ZIndex = 5,
 		Parent = button,
 	}, 15), 1.5)
@@ -186,23 +176,11 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 			TextColor3 = C.WashiGhost,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.fromScale(0.93, 0.56),
-			Size = UDim2.fromScale(0.3, 0.12),
+			Position = UDim2.fromScale(0.93, 0.64),
+			Size = UDim2.fromScale(0.3, 0.13),
 			ZIndex = 5,
 			Parent = button,
 		}, 14), 1.2)
-	end
-	if owned and options.Stats then
-		outlined(Kit.label({
-			Name = "Stats",
-			Text = statLine(card, options.Stars or 0, borderId, options.Awaken),
-			RichText = true,
-			Font = Theme.Font.Heavy,
-			Position = UDim2.fromScale(0.05, 0.68),
-			Size = UDim2.fromScale(0.9, 0.12),
-			ZIndex = 5,
-			Parent = button,
-		}, 13), 1.2)
 	end
 	local rarity = if owned then Cards.Rarity(cardId, borderId) else 0
 	outlined(Kit.label({
@@ -212,10 +190,10 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		TextColor3 = if borderId == "Normal" then C.WashiParchment else tier.Color:Lerp(Color3.new(1, 1, 1), 0.2),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -4),
-		Size = UDim2.fromScale(0.92, 0.17),
+		Size = UDim2.fromScale(0.92, 0.15),
 		ZIndex = 5,
 		Parent = button,
-	}, 22), 2)
+	}, 18), 2)
 
 	-- Stars (top-left): up to five small parchment diamonds, filled for each star.
 	if owned and (options.Stars or 0) > 0 then

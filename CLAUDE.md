@@ -86,11 +86,15 @@ charges spirit blue, shivers void purple for the last 4 rolls, and seals gold wh
 reads UNLEASH SURGE!); AUTO / QUICK are recessed and light their bezel when on. Panels (`Modal`) are Urushi with a 2 px
 steel edge, a vermilion banner slash and underline, tabs with a vermilion underline when active; `Controls` dropdowns
 and search are sunken wells. The deck screen has sunken empty slots, spirit-blue Slot Link tethers (gold for a bond), a
-sunken Cost Challenge meter and synergy / bond tags; AUTO-BUILD is the vermilion seal. The STORE uses diamond crests
-(monograms, no emoji) and solid vermilion R$ buttons. Components: `JuicyButton` (sheen, spring, sounds, CanvasGroup
-content; roll console + battle pods) and `IconBadge` (diamond badges for element / role / currency). Card portraits use
-the 2D `Image` when set, else an element-lit bust (the user is making the illustrations: `art/CARD_ART_PROMPTS.md`, PNGs
-in `art/cards/<cardId>.png`).
+sunken Cost Challenge meter and synergy / bond tags; AUTO-BUILD is the vermilion seal. Card tiles carry no combat stats
+(frame, art, star diamonds, element / role crests, name, xN and the rarity number); stats live in the deck inspector and
+the tooltip. BAG plaques are framed by relic rarity (bronze / purple / gold / cosmic crimson) with diamond crests (packs
+show their roll count). BOSS SCOUT is trays: leader and counter crests with +30% DMG, guard unit chips, synergy / bond
+tags; the boss well is sunken with a vignette; every tab strip uses the vermilion underline. The STORE uses diamond
+crests (monograms, no emoji) and solid vermilion R$ buttons. Components: `JuicyButton` (sheen, spring, sounds,
+CanvasGroup content; roll console + battle pods) and `IconBadge` (diamond badges for element / role / currency). Card
+portraits use the 2D `Image` when set, else an element-lit bust (the user is making the illustrations:
+`art/CARD_ART_PROMPTS.md`, PNGs in `art/cards/<cardId>.png`).
 
 ## Layout (Rojo project, `default.project.json`)
 

@@ -166,17 +166,21 @@ function Controls.Tab(parent: Instance, text: string, color: Color3, order: numb
 	local bar = Kit.new("Frame", {
 		Name = "Bar",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -1),
-		Size = UDim2.new(1, -8, 0, 2),
+		Position = UDim2.new(0.5, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 2),
 		BorderSizePixel = 0,
-		BackgroundColor3 = color,
+		BackgroundColor3 = UITheme.Colors.VermilionWax,
 		Parent = button,
 	})
+	button.UIGradient.Enabled = false -- tabs are flat: a raised plate when on, bare text when off
+	button.BackgroundColor3 = UITheme.Colors.UrushiRaised
 	Kit.pressable(button)
+	local _ = color -- the tab's colour is kept for callers; the active mark is the vermilion underline
 	local function set(on: boolean)
 		bar.Visible = on
-		button.UIStroke.Color = if on then color else Theme.Color.Line
-		label.TextColor3 = if on then Theme.Color.Text else Theme.Color.Muted
+		button.BackgroundTransparency = if on then 0 else 1
+		button.UIStroke.Transparency = if on then 0 else 1
+		label.TextColor3 = if on then UITheme.Colors.WashiParchment else UITheme.Colors.WashiGhost
 	end
 	return button, set
 end
