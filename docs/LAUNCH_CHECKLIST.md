@@ -51,6 +51,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 - [ ] Fusion (single and FUSE ALL), packs during Auto Roll, OPEN 1 / 5 / 10 / ALL, a tower run ending on a loss (and on leaving mid-fight),
   the PAGODA tab and a milestone, the QUICK toggle.
 - [ ] Drawn ✕ / ▾ glyphs, element-lit portraits, NPC plates at distance, name tags above hats.
+- [ ] The 2026-10-24 playtest fixes: SUPPORT OPENING! after FIGHT!, the focus hint above the card rows, cast tags
+  across the card middle, Vault tiles (DMG / HP on two lines, the ✓ under the stars), the neutral cost pill, the
+  ODDS panel's plain rarity numbers, the rarity chip on cards, Trait Master AUTO and its trait chips.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

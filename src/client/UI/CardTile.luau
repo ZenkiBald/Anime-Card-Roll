@@ -187,12 +187,13 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 			Text = Kit.statsText(card, options.Stars or 0, options.Border, options.Awaken),
 			RichText = true,
 			Font = Theme.Font.Heavy,
+			TextWrapped = true, -- DMG over HP on a narrow tile instead of squashed onto one line
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 0.83, -2),
-			Size = UDim2.fromScale(0.96, 0.12),
+			Size = UDim2.fromScale(0.96, 0.2),
 			ZIndex = 5,
 			Parent = button,
-		}, 13), 1.5)
+		}, 14), 1.5)
 	end
 
 	-- Stars (top-left): the only badge; the border says the tier.
@@ -241,10 +242,11 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	end
 
 	if options.InDeck then
+		-- Under the stars on the left, clear of the copies (right) and the DMG / HP lines (bottom).
 		local check = Kit.new("Frame", {
 			Name = "InDeck",
-			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -4, 0.8, 0),
+			AnchorPoint = Vector2.new(0, 0),
+			Position = UDim2.fromScale(0.05, 0.26),
 			Size = UDim2.fromScale(0.22, 0.22),
 			BackgroundColor3 = Theme.Color.Quick,
 			ZIndex = 6,

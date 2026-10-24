@@ -87,6 +87,7 @@ local enemyNames = {} -- [enemy id] = name, for callouts
 local current = nil -- the fight on screen
 local lastSnap = nil
 local calloutToken = 0
+local introUntil = 0 -- os.clock() when the intro's FIGHT! has gone: callouts wait for it
 local hintToken = 0
 local warnToken = 0
 local trailTokens = {} -- [fill] = number
@@ -147,6 +148,12 @@ local function hint(text: string)
 end
 
 local function callout(text: string, color: Color3, seconds: number?)
+	local wait = introUntil - os.clock()
+	if wait > 0 then
+		-- FIGHT! is still on screen (e.g. SUPPORT OPENING! at the first tick): show it right after.
+		task.delay(wait, callout, text, color, seconds)
+		return
+	end
 	calloutToken += 1
 	local token = calloutToken
 	calloutLabel.Text = text
@@ -206,8 +213,9 @@ local function elementMark(flag: number?): string
 	return if flag == 1 then " ▲" elseif flag == -1 then " ▼" else ""
 end
 
--- A pill along a card's top edge naming the ability it just used, in its slot's colour (SKILL blue ...).
--- It stays inside its own card, so a Support's tag never lands on the Attack card above it.
+-- A pill across the middle of a card naming the ability it just used, in its slot's colour (SKILL blue
+-- ...). It sits over the art, clear of the card's name and stats, and stays inside its own card, so a
+-- Support's tag never lands on the Attack card above it.
 local function castTag(tile, name: string, slot: string)
 	local info = Abilities.Slots[slot] or Abilities.Slots.Skill
 	local old = tile.Slot:FindFirstChild("CastTag")
@@ -216,8 +224,8 @@ local function castTag(tile, name: string, slot: string)
 	end
 	local tag = Kit.new("Frame", {
 		Name = "CastTag",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 2),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(0.86, 0, 0, 20),
 		BackgroundColor3 = info.Color:Lerp(Color3.new(0, 0, 0), 0.35),
 		ZIndex = 30,
@@ -1730,6 +1738,7 @@ end
 -- Intro ------------------------------------------------------------------------------------------
 
 local function playIntro(boss, subtitle: string, deckPower: number, seconds: number, extras: string?)
+	introUntil = os.clock() + math.max(0.6, seconds - 0.7) + 1.3
 	for _, child in intro:GetChildren() do
 		if child:IsA("GuiObject") then
 			child:Destroy()
@@ -3064,7 +3073,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		TextColor3 = Theme.Color.Gold,
 		TextTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.22),
+		Position = UDim2.fromScale(0.5, 0.72), -- above the card rows, clear of the boss's name plate
 		Size = UDim2.fromScale(0.6, 0.05),
 		ZIndex = 30,
 		Parent = stage,

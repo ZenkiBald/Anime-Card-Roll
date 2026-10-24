@@ -2,9 +2,9 @@
 -- DECK (the SQUAD panel's first tab), in two halves.
 --   Left, FORMATION: 4v4 SQUAD: four paired rows, the frontline Attack card of slot N on the left and
 --   the backline Support card of slot N on the right, joined by its Slot Link (🔗; a pulsing BOND ACTIVE
---   when the pair is one of Elements.Bonds). Footer: Deck Power, the Cost Challenge pill (✓ VALID /
---   ⚠️ EXCEEDS LIMIT), active synergies and bonds, and AUTO-BUILD (COUNTER-BUILD when opened for a
---   fight) / CLEAR / PRESET ▾, plus ▲ ▼ ✕ for the picked slot.
+--   when the pair is one of Elements.Bonds). Footer: Deck Power, the Cost Challenge pill (✓ READY, or a
+--   neutral "over the cap": it only matters for the Cost Challenge), active synergies and bonds, and
+--   AUTO-BUILD (COUNTER-BUILD when opened for a fight) / CLEAR / PRESET ▾, plus ▲ ▼ ✕ for the picked slot.
 --   Right, CARD VAULT: filter chips (★5, GOLD, RAINBOW, SECRET borders), Type / Sort / Element dropdowns,
 --   the owned cards grid (search in the panel header), and the inspector for the picked card: name,
 --   archetype, element, both trait slots, the Awakening track, EQUIP TO SLOT and VISIT TRAIT MASTER
@@ -45,7 +45,6 @@ local CRIMSON = Color3.fromRGB(255, 70, 90)
 local CYAN = Color3.fromRGB(60, 220, 255)
 local ROW_COLORS = { Attack = CRIMSON, Support = CYAN }
 local GOOD = Color3.fromRGB(70, 224, 150)
-local BAD = Color3.fromRGB(255, 70, 90)
 
 local REASONS = {
 	Duplicate = "That card is already in the deck",
@@ -632,11 +631,12 @@ local function drawCost()
 	clear(costPill)
 	local cost = Deck.Cost(working, State.Cards)
 	local ok = cost <= Config.Deck.CostCap
-	local color = if ok then GOOD else BAD
+	-- Neutral when over: the cap only matters for the optional Cost Challenge, every other fight is fine.
+	local color = if ok then GOOD else Theme.Color.Muted
 	costPill.BackgroundColor3 = color:Lerp(Color3.new(0, 0, 0), 0.78)
 	costPill.UIStroke.Color = color
 	text({
-		Text = if ok then `✓ COST: {cost}/{Config.Deck.CostCap} VALID` else `⚠️ COST: {cost}/{Config.Deck.CostCap} EXCEEDS LIMIT`,
+		Text = if ok then `✓ COST {cost}/{Config.Deck.CostCap} · COST CHALLENGE READY` else `COST {cost}/{Config.Deck.CostCap} · over the Cost Challenge cap`,
 		TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.2),
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Size = UDim2.fromScale(1, 1),
