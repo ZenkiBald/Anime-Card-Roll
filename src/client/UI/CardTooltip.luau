@@ -192,6 +192,8 @@ local function build(cardId: string, border: string): Frame?
 	local roleInfo = UITheme.Roles[role]
 	chip(ElementUi.RoleBadge(role, { Size = UDim2.fromOffset(28, 28), ZIndex = 52 }), `  {string.upper(role or "")}`, if roleInfo then roleInfo.Color else UITheme.Colors.TextMuted, 3)
 	line(badge(Borders.Label(border), tier.Color), Theme.Font.Heavy, UITheme.Colors.WashiParchment, 13)
+	-- The rarity number at this border: how many pulls it takes (Cards.Rarity).
+	line(`RARITY <font color="#{tier.Color:Lerp(Color3.new(1, 1, 1), 0.25):ToHex()}"><b>{Kit.commas(Cards.Rarity(card.Id, border))}</b></font>`, Theme.Font.Heavy, UITheme.Colors.WashiParchment, 14)
 	-- The card's battle numbers at its stars, border and Awakening.
 	local own = State.Cards[card.Id]
 	local stars = if own then own.Stars else 0

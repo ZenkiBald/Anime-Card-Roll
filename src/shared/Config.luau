@@ -34,9 +34,10 @@ Config.StarBonus = 0.05 -- +5% stats per star
 -- border (Base -> Gold -> Rainbow -> Secret).
 Config.FusionCopies = 100
 
--- Auto Roll stops by itself when it pulls this rarity or better.
-Config.AutoStopOptions = { "Gold", "Rainbow", "Secret", "Never" } -- the border Auto Roll stops at
-Config.DefaultAutoStop = "Rainbow"
+-- Auto Roll never stops by itself (user's call, 2026-10-24: players want to pull every second). A
+-- Rainbow / Secret border or a Demon Seal pulled on Auto holds the next roll this long, so its full reveal
+-- plays, then rolling carries on.
+Config.AutoBigRevealHold = 6
 
 -- Music / Effects volume steps in SETTINGS (saved per player).
 Config.VolumeSteps = { 0, 0.25, 0.5, 0.75, 1 }

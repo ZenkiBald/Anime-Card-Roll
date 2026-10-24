@@ -735,6 +735,22 @@ function Cards.PullChances(pool: { Card }, element: string?, elementWeight: numb
 	return chances
 end
 
+-- A card's rarity number at one border: how many pulls one of it takes on average (1 / (its pull chance
+-- x the border's chance)) at 1x luck, over the full pool (boss cards included), so the number is the
+-- same for everyone. Shown as a plain number ("48,579"), never "1 in": the big ones are the flex.
+local fullChances: { [string]: number }? = nil
+function Cards.Rarity(cardId: string, border: string?): number
+	if fullChances == nil then
+		fullChances = Cards.PullChances(list)
+	end
+	local pull = (fullChances :: { [string]: number })[cardId] or 0
+	local chance = Borders.Chances()[border or "Normal"] or 0
+	if pull <= 0 or chance <= 0 then
+		return 0
+	end
+	return math.max(1, math.floor(1 / (pull * chance) + 0.5))
+end
+
 -- The boss card a boss unlocks, if any.
 function Cards.ForBoss(bossId: string): Card?
 	for _, card in list do

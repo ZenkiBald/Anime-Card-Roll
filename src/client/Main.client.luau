@@ -190,19 +190,10 @@ local function toggleAuto()
 	autoWanted = on
 	State.Summary.AutoActive = on -- optimistic; the server confirms with each result
 	Hud.SetAuto(on)
-	Remotes.SetAuto:FireServer(on, State.Summary.AutoStop)
+	Remotes.SetAuto:FireServer(on)
 	if on then
 		Hud.Hint("Auto Roll on")
 	end
-end
-
-local function cycleAutoStop()
-	local options = Config.AutoStopOptions
-	local index = table.find(options, State.Summary.AutoStop) or 1
-	State.Summary.AutoStop = options[index % #options + 1]
-	-- Tell the server without changing whether Auto Roll is running.
-	Remotes.SetAuto:FireServer(nil, State.Summary.AutoStop)
-	Hud.Refresh()
 end
 
 Remotes.AutoResult.OnClientEvent:Connect(function(result)
@@ -221,9 +212,6 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 		Hud.Hint(REASONS[result.Reason] or "Auto Roll stopped")
 		return
 	end
-	if result.Stopped then
-		autoWanted = false
-	end
 	-- A result already on its way when the player switched Auto Roll off must not switch it back on.
 	result.Summary.AutoActive = autoWanted
 	lastRollAt = os.clock()
@@ -234,12 +222,9 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 	if State.InBattle then
 		return -- during a fight Auto Roll results only go to the feed
 	end
-	if result.Stopped then
-		Hud.Hint(`Auto Roll stopped: a {string.upper(Borders.Get(result.Border).Name)} border!`)
-		Reveal.Full(result)
-	else
-		Reveal.Quick(result)
-	end
+	-- Auto Roll never stops: a Rainbow / Secret pull plays its full reveal (Reveal.Quick hands it over)
+	-- while the server holds the next roll for it, then rolling carries on.
+	Reveal.Quick(result)
 end)
 
 Remotes.Announce.OnClientEvent:Connect(function(playerName: string, cardId: string, borderId: string?, foilId: string?)
@@ -382,7 +367,6 @@ Hud.Init(playerGui, {
 	end,
 	OnQuick = toggleQuick,
 	OnAuto = toggleAuto,
-	OnAutoStop = cycleAutoStop,
 	-- Six direct buttons. Fusion, alchemy, the wheel and traits are only at their NPCs in town.
 	OnBattle = BossScreen.Toggle,
 	OnBag = Bag.Toggle,

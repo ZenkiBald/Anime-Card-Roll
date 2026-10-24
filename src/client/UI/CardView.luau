@@ -1,7 +1,8 @@
 --!nonstrict
 -- Draws a card, full-art: the character's 2D illustration (Card.Image) fills the card, framed only by its
 -- border (the tier: Base / Gold / Rainbow / Secret) and an element glow, with stars, the big name, the
--- headline ability, tags and DMG / HP on top of it. No rarity badges: the frame says the tier.
+-- headline ability, tags and DMG / HP on top of it. No rarity badges: the frame says the tier, and the
+-- rarity number chip (Cards.Rarity: how many pulls it takes, e.g. "48,579") says how rare it is.
 -- Cards without an illustration yet show an element-lit bust (CardView.Portrait, used by every card
 -- slot); cards not found yet show a dark silhouette.
 
@@ -401,6 +402,12 @@ function CardView.new(cardId: string, opts: Options?): Frame
 	local chips = row(frame, "Chips", 0.025, if compact then 0.1 else 0.06)
 	if owned and stars > 0 then
 		chip(chips, 1, `★{stars}`, Color3.fromRGB(16, 19, 28), if compact then 0.3 else 0.16, Theme.Color.Gold)
+	end
+	-- The rarity number: how many pulls this card at this border takes (Cards.Rarity), in the border's colour.
+	local rarity = if owned then Cards.Rarity(card.Id, border) else 0
+	if rarity > 0 then
+		local rarityChip = chip(chips, 2, Kit.commas(rarity), Color3.fromRGB(10, 12, 19), if compact then 0.42 else 0.3, tier.Color:Lerp(Color3.new(1, 1, 1), 0.25))
+		rarityChip.Name = "Rarity"
 	end
 
 	-- Element badge: top-right on compact tiles, beside the name on full cards.

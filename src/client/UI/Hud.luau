@@ -41,7 +41,6 @@ local topBar: any -- children read by name
 local currency = {} -- [key] = chip (children read by name)
 local shownValues = {} -- [key] = last number shown, to pop the chip when it changes
 local hiddenBy = { Battle = false, Reveal = false }
-local autoStopButton: any
 local boostRow: Frame
 local hintLabel: TextLabel
 local feed: Frame
@@ -331,7 +330,6 @@ export type Handlers = {
 	OnRoll: () -> (),
 	OnQuick: () -> (),
 	OnAuto: () -> (),
-	OnAutoStop: () -> (),
 	OnBattle: () -> (),
 	OnBag: () -> (),
 	OnSquad: () -> (),
@@ -422,7 +420,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	quickButton.Activated:Connect(handlers.OnQuick)
 	autoButton.Activated:Connect(handlers.OnAuto)
 
-	-- Just above the AUTO button: what Auto Roll stops at (tap to change) ---------------------
+	-- Above the roll console: the Momentum header (Auto Roll never stops: it rolls until switched off) ---
 	local row = Kit.new("Frame", {
 		Name = "InfoRow",
 		AnchorPoint = Vector2.new(0, 1),
@@ -431,12 +429,6 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		BackgroundTransparency = 1,
 		Parent = dock,
 	})
-	autoStopButton = Kit.button("", Theme.Color.Auto, Theme.Color.AutoDeep, {
-		Name = "AutoStop",
-		Size = UDim2.fromScale(0.29, 1),
-		Parent = row,
-	})
-	autoStopButton.Activated:Connect(handlers.OnAutoStop)
 	-- Urushi mini-header on top of the roll console: Momentum text, and a 2 px bar filling to the cap.
 	local momentumHeader = Kit.new("Frame", {
 		Name = "MomentumHeader",
@@ -1085,7 +1077,6 @@ function Hud.Refresh()
 	Hud.RefreshMomentum()
 	setCurrency("Rolls", Kit.commas(s.TotalRolls), s.TotalRolls)
 	currency.Rolls.Odds.Text = `🍀 {string.format("%.2f", State.Luck())}x · ODDS ›`
-	autoStopButton.Label.Text = if s.AutoStop == "Never" then "STOP: NEVER" else `STOP: {string.upper(s.AutoStop)}+`
 	rollButton.Sub.Text = string.format("%.2gs", State.Cooldown())
 	Hud.SetAuto(s.AutoActive)
 	Hud.SetQuick(State.Meta.QuickRoll == true)

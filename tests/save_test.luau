@@ -1,7 +1,6 @@
 -- Old saves brought up to date on load (src/server/SaveMigration.luau): nothing a player owned is lost,
 -- the per-border copy piles add up to the card's total, and running it twice changes nothing.
 local SaveMigration = MODULES.SaveMigration
-local Config = MODULES.Config
 
 local function deepCopy(t)
 	if type(t) ~= "table" then
@@ -85,7 +84,7 @@ check(sumsOk, "every card's per-border piles add up to its total copies")
 
 check(data.Shards == 1000 + 4 * SaveMigration.AccessoryRefund and data.Gear.Accessories == nil and data.Gear.Cards == nil, "every accessory (bagged or worn) is refunded as Shards")
 check(data.Pity == nil, "pity counters go")
-check(data.Settings.AutoStop == Config.DefaultAutoStop, "an old rarity Auto Roll stop goes back to the default")
+check(data.Settings.AutoStop == nil, "the Auto Roll stop setting goes (Auto Roll never stops)")
 check(data.RollBank == nil and data.Packs["10"] == 1 + 3, "21 bank tickets come back as 3 Roll Packs, on top of the packs held")
 
 -- Running it again on the migrated save changes nothing.
@@ -93,10 +92,10 @@ local again = deepCopy(data)
 SaveMigration.Migrate(again)
 check(same(again, data), "migrating twice changes nothing")
 
--- A valid stop stays; junk values don't crash it.
+-- Junk values don't crash it.
 local kept = { Cards = { x = { Copies = "lots", Fusion = "two" } }, Settings = { AutoStop = "Gold" } }
 local ok = pcall(SaveMigration.Migrate, kept)
-check(ok and kept.Settings.AutoStop == "Gold" and kept.Cards.x.BorderCopies.Normal >= 1, "junk card fields don't crash it, and a valid stop stays")
+check(ok and kept.Settings.AutoStop == nil and kept.Cards.x.BorderCopies.Normal >= 1, "junk card fields don't crash it")
 
 -- The Infinite Tower became a run: the old highest floor is the best run, the run starts at floor 1; a
 -- save left mid-fight loses that run.

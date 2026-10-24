@@ -27,6 +27,12 @@ local borderRows = {} -- [border id] = { Chance, OneIn }
 local cardRows = {} -- [card id] = { Chance, OneIn }
 local surgeRows = {} -- [border id] = { Chance = standard surge, OneIn = perfect surge }
 local surgeTitle: TextLabel
+-- "2.50%  ·  40" (the rarity number: how many rolls it takes), or just the percent for a common outcome.
+local function percentAndRarity(pct: number): string
+	local rarity = Odds.FormatRarity(pct)
+	return if rarity == "" then Odds.FormatPercent(pct) else `{Odds.FormatPercent(pct)}  ·  {rarity}`
+end
+
 local borderTitle: TextLabel
 local luckLabel: TextLabel
 local function refresh()
@@ -35,7 +41,7 @@ local function refresh()
 	local chances = Odds.Chances(luck, boost)
 	for id, row in borderRows do
 		row.Chance.Text = Odds.FormatPercent(chances[id])
-		row.OneIn.Text = Odds.FormatOneIn(chances[id])
+		row.OneIn.Text = Odds.FormatRarity(chances[id])
 	end
 	luckLabel.Text = string.format("Luck %.2fx   ·   every roll is pure luck", luck)
 	borderTitle.Text = if boost > 0
@@ -57,7 +63,7 @@ local function refresh()
 	for id, row in cardRows do
 		local chance = pull[id]
 		row.Chance.Text = if chance then Odds.FormatPercent(chance * 100) else "🔒"
-		row.OneIn.Text = if chance then Odds.FormatOneIn(chance * 100) else "beat its boss on Normal"
+		row.OneIn.Text = if chance then Odds.FormatRarity(chance * 100) else "beat its boss on Normal"
 	end
 end
 
@@ -242,7 +248,7 @@ function OddsPanel.Init(playerGui: Instance)
 			Parent = row,
 		}, 16)
 		Kit.label({
-			Text = `{Odds.FormatPercent(foilChances[foil.Id] * 100)}  ·  {Odds.FormatOneIn(foilChances[foil.Id] * 100)}`,
+			Text = percentAndRarity(foilChances[foil.Id] * 100),
 			Font = Theme.Font.Heavy,
 			TextColor3 = Theme.Color.Muted,
 			TextXAlignment = Enum.TextXAlignment.Right,
@@ -285,7 +291,7 @@ function OddsPanel.Init(playerGui: Instance)
 			Parent = row,
 		}, 16)
 		Kit.label({
-			Text = `{Odds.FormatPercent(traitChances[trait.Id] * 100)}  ·  {Odds.FormatOneIn(traitChances[trait.Id] * 100)}`,
+			Text = percentAndRarity(traitChances[trait.Id] * 100),
 			Font = Theme.Font.Heavy,
 			TextColor3 = Theme.Color.Muted,
 			TextXAlignment = Enum.TextXAlignment.Right,

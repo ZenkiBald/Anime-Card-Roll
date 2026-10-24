@@ -133,6 +133,24 @@ check(Borders.Get("Normal").Name == "Base", "the Normal save key shows as Base")
 check(Cards.Cost("Normal") == 2 and Cards.Cost("Secret") == 8, "Deck Cost by border: Base 2 ... Secret 8")
 
 -- 9. Display formatting.
-check(Odds.FormatOneIn(0.02) == "1 in 5,000", "1 in N formatting (Rainbow = 1 in 5,000)")
-check(Odds.FormatOneIn(0.0002) == "1 in 500,000", "1 in N formatting (Secret = 1 in 500,000)")
+check(Odds.FormatRarity(0.02) == "5,000" and Odds.FormatRarity(0.0002) == "500,000", "rarity numbers: Rainbow 5,000, Secret 500,000 (plain numbers, no \"1 in\")")
+check(Odds.FormatRarity(99.48) == "" and Odds.FormatRarity(20) == "5.0" and Odds.FormatRarity(0) == "-", "the Base border shows no number; small and zero chances format cleanly")
 check(Odds.FormatPercent(0.01) == "0.0100%", "small percentages keep 4 decimals")
+
+-- Rarity numbers: 1 / (card pull chance x border chance) at 1x luck, over the full pool.
+do
+	local Cards = MODULES.Cards
+	local ok, minBase, maxSecret = true, math.huge, 0
+	for _, card in Cards.List do
+		local base, gold, rainbow, secret = Cards.Rarity(card.Id, "Normal"), Cards.Rarity(card.Id, "Gold"), Cards.Rarity(card.Id, "Rainbow"), Cards.Rarity(card.Id, "Secret")
+		ok = ok and base >= 1 and gold > base and rainbow > gold and secret > rainbow
+		minBase = math.min(minBase, base)
+		maxSecret = math.max(maxSecret, secret)
+	end
+	check(ok, "every card's rarity number grows with its border")
+	check(minBase >= 2 and maxSecret > 1e7, `rarity numbers run from {minBase} (a common Base card) past 10,000,000 (a rare Secret)`)
+	check(Cards.Rarity("nobody", "Gold") == 0, "an unknown card has no rarity number")
+	local c = Cards.List[1]
+	local expected = 1 / (Cards.PullChances(Cards.List)[c.Id] * Borders.Chances().Gold)
+	check(math.abs(Cards.Rarity(c.Id, "Gold") - expected) <= 0.5, "the rarity number is 1 / (pull chance x border chance)")
+end

@@ -146,7 +146,13 @@ local function showDetail(card)
 	local pullChance = Cards.PullChances(Cards.Pool(State.Progress.Cleared))[card.Id]
 	if pullChance then
 		local chance = pullChance * 100
-		line(`Chance per roll: <b>{Odds.FormatPercent(chance)}</b> ({Odds.FormatOneIn(chance)}), any border`, Theme.Font.Bold, Theme.Color.Support, 18, 15)
+		line(`Chance per roll: <b>{Odds.FormatPercent(chance)}</b>, any border`, Theme.Font.Bold, Theme.Color.Support, 18, 15)
+		-- Its rarity number at each border (Cards.Rarity: pulls it takes at 1x luck).
+		local parts = {}
+		for _, b in Borders.List do
+			table.insert(parts, `<font color="#{b.Color:ToHex()}">{b.Name}</font> <b>{Kit.commas(Cards.Rarity(card.Id, b.Id))}</b>`)
+		end
+		line(`RARITY  {table.concat(parts, "   ")}`, Theme.Font.Heavy, Theme.Color.Text, 18, 15)
 	elseif card.Boss then
 		line(`🔒 Beat {string.upper(card.Boss)} on Normal to add this card to the roll pool`, Theme.Font.Bold, Theme.Color.Support, 18, 15)
 	end
@@ -394,7 +400,7 @@ local function section(rarity: string, order: number)
 		Parent = header,
 	}, 26), 2)
 	Controls.Outlined(Kit.label({
-		Text = `{Odds.FormatPercent(chance)}{if rarity == "Normal" then "" else `  ·  {Odds.FormatOneIn(chance)}`}  ·  {found}/{#pool} found{if rarity == "Normal" then "" else ` at {tier.Name}`}`,
+		Text = `{Odds.FormatPercent(chance)}{if rarity == "Normal" then "" else `  ·  {Odds.FormatRarity(chance)}`}  ·  {found}/{#pool} found{if rarity == "Normal" then "" else ` at {tier.Name}`}`,
 		Font = Theme.Font.Heavy,
 		TextColor3 = Color3.fromRGB(223, 235, 255),
 		TextXAlignment = Enum.TextXAlignment.Left,

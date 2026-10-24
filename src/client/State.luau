@@ -14,7 +14,6 @@ local State = {
 		TotalRolls = 0,
 		Shards = 0,
 		Luck = 1,
-		AutoStop = "Rainbow",
 		AutoActive = false,
 		Playtime = 0,
 		Unlocked = { QuickRoll = true, AutoRoll = true },

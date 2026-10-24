@@ -20,17 +20,20 @@ tower gate and leaderboards. Town services only work beside their NPC (server `N
 from 160 studs. TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
 double jump. Twilight lighting (`LightingSetup`), zone music and moods (`ZoneFx`).
 
-**Rolling.** The server owns every roll. Each pull picks a card by its `Weight` from the pool (`Cards.Pool`; a boss's own
-card joins after that boss's first Normal clear) and rolls its **border**, which is the tier:
-Base ("Normal" in saves) 1x / Gold 4x / Rainbow 16x / Secret 64x stats, base odds 1 in 200 / 5,000 / 500,000 (rare on purpose: story bosses are beaten with Base + Gold, Rainbow
-and Secret are the tower chase).
-Luck raises each special border by luck ^ 0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped
-at 50% together). Total luck = base (upgrades, stat points, level, Index rewards, Momentum, artifacts) x potion x
-event / Raid Luck / Totem / VIP, capped at 25x (`Meta.TotalLuck`). Pure luck: no pity. Every pull also rolls a foil
-(Aura / Golden Ki / Demon Seal, battle-only). ROLL (R), QUICK toggle (T: ROLL plays the short reveal, saved), AUTO (E;
-stops on a chosen border). Momentum chain: +1% speed / +0.01x luck per 10 rolls, max 500, breaks after 30 s idle.
-Overcharge Surge every 25th roll (`TotalRolls % 25`): 5x border odds, or 3 cards at 6x on a perfect tap; HUD meter binds
-to `SurgeProgress`. Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET BORDER {Card}!".
+**Rolling.** The server owns every roll. Each pull picks a card by its `Weight` from the pool (`Cards.Pool`; a boss's
+own card joins after that boss's first Normal clear) and rolls its **border**, which is the tier: Base ("Normal" in
+saves) 1x / Gold 4x / Rainbow 16x / Secret 64x stats, base odds 1 in 200 / 5,000 / 500,000 (rare on purpose: story
+bosses are beaten with Base + Gold, Rainbow and Secret are the tower chase). Luck raises each special border by luck ^
+0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped at 50% together). Total luck = base
+(upgrades, stat points, level, Index rewards, Momentum, artifacts) x potion x event / Raid Luck / Totem / VIP, capped at
+25x (`Meta.TotalLuck`). Pure luck: no pity. Every card shows its **rarity number** per border (`Cards.Rarity`: 1 / (pull
+chance x border chance) at 1x luck, a plain number like "48,579", never "1 in"; `Odds.FormatRarity` for the ODDS panel).
+Every pull also rolls a foil (Aura / Golden Ki / Demon Seal, battle-only). ROLL (R), QUICK toggle (T: ROLL plays the
+short reveal, saved), AUTO (E; never stops by itself: a Rainbow+ pull or Demon Seal holds the next roll
+`Config.AutoBigRevealHold` s for its full reveal, then it rolls on). Momentum chain: +1% speed / +0.01x luck per 10
+rolls, max 500, breaks after 30 s idle. Overcharge Surge every 25th roll (`TotalRolls % 25`): 5x border odds, or 3 cards
+at 6x on a perfect tap; HUD meter binds to `SurgeProgress`. Rainbow+ pulls are announced; a Secret gets "[SERVER]
+{Player} rolled a SECRET BORDER {Card}!".
 
 **Cards.** 22 cards + 4 boss cards (original characters only). Every card sits on one stat line (ATK ~500 +-10%,
 HP = 2 x ATK; Support PWR ~300, no HP), so the border decides power. Each has an `Element`, a `Role` (Striker / Hexer /

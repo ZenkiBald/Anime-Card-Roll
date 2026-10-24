@@ -7,7 +7,7 @@
 --   * Borders became the tiers (no card rarities): each card gets per-border copy counts (BorderCopies).
 --     Its old copies are Base copies, minus one for each special border it had found (that pull was the
 --     border); an old rarity fusion becomes Gold copies. The card's total Copies always equals the sum.
---   * Auto Roll stops that are no longer an option (old rarities) go back to the default.
+--   * Auto Roll no longer stops by itself: the saved stop setting goes.
 --   * The short-lived roll bank (rarity tickets) comes back as Roll Packs (10 tickets a pack, rounded up).
 --   * The Infinite Tower became a run: the old highest floor stays as the best run (Tower.Floor) and the
 --     run starts at floor 1. A save that loads mid-fight (Tower.Live set: the player left, or the server
@@ -15,7 +15,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
-local Config = require(Shared.Config)
 local Borders = require(Shared.Borders)
 
 local SaveMigration = {}
@@ -91,9 +90,9 @@ function SaveMigration.Migrate(data: any): { string }
 		table.insert(done, `border copies: {cards} cards`)
 	end
 	local settings = data.Settings
-	if type(settings) == "table" and not table.find(Config.AutoStopOptions, settings.AutoStop) then
-		settings.AutoStop = Config.DefaultAutoStop
-		table.insert(done, "auto stop reset")
+	if type(settings) == "table" and settings.AutoStop ~= nil then
+		settings.AutoStop = nil
+		table.insert(done, "auto stop removed")
 	end
 	-- The roll bank's tickets come back as Roll Packs.
 	local bank = data.RollBank

@@ -669,6 +669,9 @@ function Reveal.Quick(result)
 		Reveal.Full(result) -- any Rainbow / Secret border always gets the full show
 		return
 	end
+	if running then
+		return -- a full reveal is on screen: the pull still lands in the feed, without a pop over it
+	end
 
 	toastOrder += 1
 	local slot = Kit.new("Frame", {

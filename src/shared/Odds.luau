@@ -35,18 +35,21 @@ function Odds.FormatPercent(pct: number): string
 	return string.format("%.4f%%", pct)
 end
 
--- "1 in 1,111"
-function Odds.FormatOneIn(pct: number): string
+-- The rarity number for a chance in percent: how many tries it takes on average, as a plain number
+-- ("5,000", never "1 in 5,000": the user's call, the big ones are the flex). "" for anything more common
+-- than 1 in 1.5 (the Base border), "-" for a zero chance.
+function Odds.FormatRarity(pct: number): string
 	if pct <= 0 then
 		return "-"
 	end
 	local n = 100 / pct
-	if n < 10 then
-		return string.format("1 in %.1f", n)
+	if n < 1.5 then
+		return ""
+	elseif n < 10 then
+		return string.format("%.1f", n)
 	end
 	local whole = tostring(math.floor(n + 0.5))
-	local withCommas = whole:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
-	return "1 in " .. withCommas
+	return (whole:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
 end
 
 return Odds

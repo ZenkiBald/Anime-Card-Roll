@@ -91,7 +91,6 @@ local function summary(player: Player, data)
 		UntilSurge = RollBoost.UntilSurge(data.TotalRolls),
 		SurgeProgress = RollBoost.SurgeProgress(data.TotalRolls), -- 0-24: the surge meter (TotalRolls % 25)
 		IsSurgeRoll = RollBoost.IsSurgeRoll(data.TotalRolls), -- the last roll was a surge
-		AutoStop = data.Settings.AutoStop,
 		AutoActive = autoActive[player] == true,
 		Playtime = DataService.Playtime(player),
 		Unlocked = {
@@ -455,23 +454,15 @@ local function startAuto(player: Player)
 			-- Surges on Auto are plain, unless the Auto Roll pass hits them perfectly.
 			local result = rollClick(player, profile, MonetizationService.Perk(player, "AutoRoll", true), false)
 
-			local stopAt = profile.Data.Settings.AutoStop
-			-- A NEW Rainbow or Secret border (or Demon Seal) always stops Auto Roll, so its reveal can play.
-			local hitStop = false
+			-- Auto Roll never stops: a Rainbow / Secret border or a Demon Seal holds the next roll while its
+			-- full reveal plays (Config.AutoBigRevealHold), then rolling carries on.
+			local big = false
 			for _, r in { result, table.unpack(result.Extra or {}) } do
-				local bigBorder = r.NewBorder and Borders.Index(r.Border) >= Borders.Index("Rainbow")
-				local bigFoil = r.NewFoil and r.Foil == "demon"
-				hitStop = hitStop or (stopAt ~= "Never" and Borders.Index(r.Border) >= Borders.Index(stopAt)) or bigBorder or bigFoil
+				big = big or Borders.Index(r.Border) >= Borders.Index("Rainbow") or r.Foil == "demon"
 			end
-			if hitStop then
-				stopAuto(player)
-				result.Summary.AutoActive = false
-			end
-			result.Stopped = hitStop
 			Remotes.AutoResult:FireClient(player, result)
-
-			if hitStop then
-				break
+			if big then
+				task.wait(Config.AutoBigRevealHold)
 			end
 		end
 		if autoGeneration[player] == generation then
@@ -646,13 +637,10 @@ function RollService.Start()
 		return { Ok = true, Made = made, Packs = held, Meta = MetaService.State(player, data), Summary = summary(player, data) }
 	end
 
-	Remotes.SetAuto.OnServerEvent:Connect(function(player: Player, on: unknown, autoStop: unknown)
+	Remotes.SetAuto.OnServerEvent:Connect(function(player: Player, on: unknown)
 		local profile = DataService.Get(player)
 		if profile == nil then
 			return
-		end
-		if type(autoStop) == "string" and table.find(Config.AutoStopOptions, autoStop) then
-			profile.Data.Settings.AutoStop = autoStop
 		end
 		if on == true then
 			if not isUnlocked(player, profile.Data, "AutoRoll") then
