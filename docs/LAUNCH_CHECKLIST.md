@@ -3,19 +3,11 @@
 Everything that has to change between "testing in Studio" and "public game", in order. Items marked **code** are edits in
 this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator Dashboard settings.
 
-## 1. Decide first (balance)
+## 1. Balance decisions
 
-- [ ] **Fusion luck has no limit of its own.** Every fusion adds +0.05x permanent base luck, and roughly every 100 rolls
-  make one fusion, so luck climbs about +1.5x per hour of rolling (1.2 s cooldown), +2.25x with full Momentum and up to
-  +13.5x with the fastest cooldown plus Triple Roll. A dedicated player reaches the 25x luck cap within a day or two.
-  At the cap: Gold 10.4%, Rainbow 1.3%, Secret 1 in 4,000 (base: 1.5%, 0.099%, 1 in 100,000). After that, every
-  other luck source does nothing for them, including VIP and the Luck Totem, which they paid for.
-  Options (one line in `src/server/MetaService.luau` `BaseLuck`, or `src/shared/Awaken.luau`):
-  - **A. Count only the first fusion of each card at each border** (26 cards x 3 steps: at most +3.9x). Ties luck to
-    collecting, like the Index rewards. *(recommended)*
-  - B. Cap fusion luck at a fixed total (for example +2x).
-  - C. Diminishing returns (for example +0.05 x 0.97^n per fusion, which tops out near +1.7x).
-  - D. Keep it, and accept that luck stops mattering for veterans.
+- [x] **Fusion luck removed** (user's call, 2026-10-24). Fusions used to add +0.05x permanent luck each, which had no limit
+  of its own and reached the 25x luck cap within a day or two of heavy rolling. Now a fusion pays the better card and
+  25 Trait Shards only.
 
 ## 2. Code switches
 

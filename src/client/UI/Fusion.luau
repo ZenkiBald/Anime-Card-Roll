@@ -1,7 +1,7 @@
 --!nonstrict
 -- FUSION (talk to Hoshi the Fusion Master in town): border fusion only. Config.FusionCopies (100) copies of
 -- one card at one border fuse into 1 copy at the next border (Base -> Gold -> Rainbow -> Secret; Awakening
--- node 5: +25 Trait Shards and +0.05x luck each). Left: your cards with their copy progress, ready ones first.
+-- node 5: +25 Trait Shards each). Left: your cards with their copy progress, ready ones first.
 -- Right: the picked card at its fusing border and at the next, and the FUSE button. FUSE ALL (above the
 -- list) fuses every card that can, cascading up the borders. The server does the
 -- fusing (FusionService); this screen asks and plays the fusion.
@@ -266,7 +266,7 @@ local function fuse(cardId: string)
 	end
 	-- Awakening node 5: Trait Shards now, and permanent base luck.
 	local granted = result.Granted and result.Granted.TraitShards or Awaken.FusionTraitShards
-	hint(`✴️ AWAKENING 5: +🧬{granted} Trait Shards · +{Awaken.FusionLuck}x permanent luck`)
+	hint(`✴️ AWAKENING 5: +🧬{granted} Trait Shards`)
 	fusionToken += 1
 	local token = fusionToken
 	local played, err = pcall(playFusion, cardId, before, result.Card, result.From or from, result.Border or Borders.Next(from), token)
@@ -303,7 +303,7 @@ local function fuseAll()
 	local shards = result.Granted and result.Granted.TraitShards or 0
 	Sfx.Sting("Rainbow")
 	Effects.Flash(detail, FIRE, 0.5, 0)
-	hint(`🔥 FUSED x{result.Fused} · +🧬{shards} Trait Shards · +{string.format("%.2f", Awaken.FusionLuck * result.Fused)}x luck`)
+	hint(`🔥 FUSED x{result.Fused} · +🧬{shards} Trait Shards`)
 	drawGrid()
 end
 

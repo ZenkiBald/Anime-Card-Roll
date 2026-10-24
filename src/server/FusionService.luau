@@ -3,7 +3,7 @@
 -- it at the next border (Base -> Gold -> Rainbow -> Secret). The card wears its best border, so Deck
 -- Power, the battle engine and every screen pick the new tier up from the save (Cards[id].BorderCopies /
 -- Borders). Fusing is Awakening node 5 (Awaken.luau): it pays Awaken.FusionTraitShards, and every fusion
--- adds Awaken.FusionLuck permanent base luck (MetaService.BaseLuck counts them in Cards[id].Fusion).
+-- is counted in Cards[id].Fusion. Fusions give no luck (the 4x card is the reward).
 -- Fuse remote: (cardId, border) = fuse 100 of that border; ("ALL") = FUSE ALL; only beside Hoshi (NpcRange).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

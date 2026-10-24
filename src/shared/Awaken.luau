@@ -6,7 +6,7 @@
 --   2 (40 copies)   +15% Skill and Ultimate damage (battle)
 --   3 (60 copies)   the card's bonds (Elements.luau) hit for 400% instead of 300%
 --   4 (80 copies)   opens trait slot 2 at the Trait Master (Traits.Slot2Node)
---   5 (100 copies)  fuse into the next border at Hoshi: +0.05x permanent base luck and 25 Trait Shards, every fusion
+--   5 (100 copies)  fuse into the next border at Hoshi (4x the stats) and 25 Trait Shards, every fusion
 -- Stars come first (the first 5 duplicates). Node 1's +10% keeps "the border always wins": 5 stars x node 1
 -- is 1.25 x 1.1 = 1.375, far under the next border's 4x (odds_test checks).
 
@@ -18,7 +18,6 @@ Awaken.Every = 20
 Awaken.StatBonus = 0.1 -- node 1
 Awaken.SkillBonus = 0.15 -- node 2
 Awaken.BondPct = 4 -- node 3: the bond's Pct (Elements.Bonds use 3)
-Awaken.FusionLuck = 0.05 -- node 5: permanent base luck per fusion
 Awaken.FusionTraitShards = 25 -- node 5: Trait Shards per fusion
 
 Awaken.Nodes = {
@@ -26,7 +25,7 @@ Awaken.Nodes = {
 	{ Node = 2, Copies = 40, Name = "Awakened Technique", Text = "+15% Skill and Ultimate damage" },
 	{ Node = 3, Copies = 60, Name = "Awakened Bond", Text = "Its bond combo hits for 400% instead of 300%" },
 	{ Node = 4, Copies = 80, Name = "Awakened Soul", Text = "Opens trait slot 2 at the Trait Master" },
-	{ Node = 5, Copies = 100, Name = "Border Fusion", Text = "Fuse 100 copies into the next border at Hoshi: +0.05x base luck and 25 Trait Shards" },
+	{ Node = 5, Copies = 100, Name = "Border Fusion", Text = "Fuse 100 copies into the next border at Hoshi (4x stats) and 25 Trait Shards" },
 } :: { Node }
 
 -- The node a card has from its copies right now (1-4; node 5 is reached by fusing).

@@ -15,7 +15,6 @@ local Meta = require(Shared.Meta)
 local Items = require(Shared.Items)
 local Packs = require(Shared.Packs)
 local Raid = require(Shared.Raid)
-local Awaken = require(Shared.Awaken)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -95,13 +94,9 @@ function MetaService.BaseLuck(player: Player, data): number
 	if devLuck[player] then
 		return devLuck[player]
 	end
-	-- Extra: every fusion's Awakening luck, and the Momentum chain.
-	local fusions = 0
-	for _, entry in data.Cards do
-		fusions += entry.Fusion or 0
-	end
+	-- Extra: the Momentum chain. (Fusions give no luck: the 4x card is the reward; user's call 2026-10-24.)
 	local _, momentumLuck = Momentum.Bonus(player)
-	return Meta.BaseLuck(data.Upgrades, data.IndexClaimed, data.Stats, data.Level, data.Gear, fusions * Awaken.FusionLuck + momentumLuck)
+	return Meta.BaseLuck(data.Upgrades, data.IndexClaimed, data.Stats, data.Level, data.Gear, momentumLuck)
 end
 
 -- Server events -----------------------------------------------------------------------------------
