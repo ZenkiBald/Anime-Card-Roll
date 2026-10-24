@@ -4,17 +4,20 @@ local Cards = MODULES.Cards
 local Deck = MODULES.Deck
 local Engine = MODULES.BattleEngine
 local Borders = MODULES.Borders
+local Awaken = MODULES.Awaken
 
 local Fixtures = {}
 
--- `borders` (optional) maps card ids to the border (tier) they wear; the rest are Base.
-function Fixtures.own(ids, stars, borders)
+-- `borders` (optional) maps card ids to the border (tier) they wear; the rest are Base. `awaken`: every card's
+-- Awakening node (0-4).
+function Fixtures.own(ids, stars, borders, awaken)
 	local owned = {}
 	for _, id in ids do
 		local border = borders and borders[id] or "Normal"
 		owned[id] = {
 			Copies = 1,
 			Stars = stars or 0,
+			Awaken = if (awaken or 0) > 0 then awaken else nil,
 			Borders = if border ~= "Normal" then { [border] = true } else nil,
 			BorderCopies = { [border] = 1 },
 		}
@@ -46,7 +49,17 @@ function Fixtures.units(deck, owned)
 	for _, row in { "Attack", "Support" } do
 		for i, id in deck[row] do
 			if id ~= "" then
-				table.insert(list, { Id = `{string.sub(row, 1, 1)}{i}`, CardId = id, Stars = owned[id].Stars, Border = Borders.Best(owned[id].Borders) })
+				-- Awakening as the server applies it: stats and bonds by node, and the node's battle effects.
+				local node = owned[id].Awaken or 0
+				local effects = Awaken.Effects(node)
+				table.insert(list, {
+					Id = `{string.sub(row, 1, 1)}{i}`,
+					CardId = id,
+					Stars = owned[id].Stars,
+					Border = Borders.Best(owned[id].Borders),
+					Awaken = node,
+					Trait = if #effects > 0 then effects else nil,
+				})
 			end
 		end
 	end
@@ -98,9 +111,10 @@ function Fixtures.campaign(bossId, difficulty, deck, owned, n)
 	return wins / n, times, kos / n
 end
 
--- A deck at about the recommended power for each fight, built the way a player would get there: World 1
--- on Base cards, World 2 brings in Gold borders, World 3 is all Gold, World 4 adds Rainbow borders.
--- `Borders` maps card ids to their border (the rest are Base).
+-- A deck at about the recommended power for each fight, built the way a player would get there without
+-- chasing Rainbow / Secret (those are for the towers): World 1 on Base cards, World 2 brings in Gold borders
+-- (from luck or fusing 100 copies), World 3 is all Gold, World 4 is all Gold at 5 stars, Awakening up to node 3.
+-- `Borders` maps card ids to their border (the rest are Base); `Awaken` is every card's Awakening node.
 Fixtures.FIGHTS = {
 	{ Boss = "kurogane", Difficulty = "Normal", Stars = 0,
 		Attack = { "tomo", "mirai", "rook", "kaede" }, Support = { "ibuki", "hana", "goro" } },
@@ -118,14 +132,14 @@ Fixtures.FIGHTS = {
 		Attack = { "kaito", "akane", "sora", "tomo" }, Support = { "luna", "tetsu", "yume", "suzu" } },
 	{ Boss = "vex", Difficulty = "Hard", Stars = 5, Borders = { noa = "Gold", kaito = "Gold", akane = "Gold", sora = "Gold", orin = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
 		Attack = { "noa", "kaito", "akane", "sora" }, Support = { "orin", "luna", "tetsu", "yume" } },
-	{ Boss = "vex", Difficulty = "Nightmare", Stars = 5, Borders = { raijen = "Rainbow", noa = "Gold", kaito = "Gold", akane = "Gold", orin = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
+	{ Boss = "vex", Difficulty = "Nightmare", Stars = 5, Awaken = 1, Borders = { raijen = "Gold", noa = "Gold", kaito = "Gold", akane = "Gold", orin = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
 		Attack = { "raijen", "noa", "kaito", "akane" }, Support = { "orin", "luna", "tetsu", "yume" } },
-	-- World 4: Amane's cleanse answers Thunderclap; Rainbow borders join.
-	{ Boss = "tenrai", Difficulty = "Normal", Stars = 0, Borders = { raijen = "Rainbow", noa = "Rainbow", kaito = "Gold", tsubasa = "Gold", aurelia = "Rainbow", amaya = "Rainbow", orin = "Gold", amane = "Gold" },
+	-- World 4: Amane's cleanse answers Thunderclap; all Gold at 5 stars, Awakening climbs.
+	{ Boss = "tenrai", Difficulty = "Normal", Stars = 5, Awaken = 1, Borders = { raijen = "Gold", noa = "Gold", kaito = "Gold", tsubasa = "Gold", aurelia = "Gold", amaya = "Gold", orin = "Gold", amane = "Gold" },
 		Attack = { "raijen", "noa", "kaito", "tsubasa" }, Support = { "aurelia", "amaya", "orin", "amane" } },
-	{ Boss = "tenrai", Difficulty = "Hard", Stars = 5, Borders = { raijen = "Rainbow", noa = "Rainbow", kaito = "Gold", tsubasa = "Gold", aurelia = "Rainbow", amaya = "Rainbow", orin = "Gold", amane = "Gold" },
+	{ Boss = "tenrai", Difficulty = "Hard", Stars = 5, Awaken = 2, Borders = { raijen = "Gold", noa = "Gold", kaito = "Gold", tsubasa = "Gold", aurelia = "Gold", amaya = "Gold", orin = "Gold", amane = "Gold" },
 		Attack = { "raijen", "noa", "kaito", "tsubasa" }, Support = { "aurelia", "amaya", "orin", "amane" } },
-	{ Boss = "tenrai", Difficulty = "Nightmare", Stars = 5, Borders = { raijen = "Rainbow", noa = "Rainbow", kaito = "Rainbow", tsubasa = "Gold", aurelia = "Rainbow", amaya = "Rainbow", orin = "Gold", amane = "Gold" },
+	{ Boss = "tenrai", Difficulty = "Nightmare", Stars = 5, Awaken = 3, Borders = { raijen = "Gold", noa = "Gold", kaito = "Gold", tsubasa = "Gold", aurelia = "Gold", amaya = "Gold", orin = "Gold", amane = "Gold" },
 		Attack = { "raijen", "noa", "kaito", "tsubasa" }, Support = { "aurelia", "amaya", "orin", "amane" } },
 }
 
@@ -134,7 +148,7 @@ function Fixtures.fixtureDeck(fixture)
 	for _, id in fixture.Support do
 		table.insert(ids, id)
 	end
-	local owned = Fixtures.own(ids, fixture.Stars, fixture.Borders)
+	local owned = Fixtures.own(ids, fixture.Stars, fixture.Borders, fixture.Awaken)
 	return Fixtures.deck(fixture.Attack, fixture.Support), owned
 end
 

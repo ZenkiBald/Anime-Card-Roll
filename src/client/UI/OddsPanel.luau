@@ -307,7 +307,7 @@ function OddsPanel.Init(playerGui: Instance)
 		Text = "Rolls are free and pure luck (no pity). Every pull picks a card by its pull weight, then rolls its border (the tier: "
 			.. `Base 1x / Gold 4x / Rainbow 16x / Secret 64x stats). Luck raises the rarer borders most, up to {Config.Roll.LuckCap}x; Base `
 			.. "always keeps at least half. An infused Mega Pack weighs its element x1.5. Every pull also rolls a foil on its own; a card "
-			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (10x border odds; 3 cards at 12x when hit perfectly). 100 copies "
+			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (5x border odds; 3 cards at 6x when hit perfectly). 100 copies "
 			.. "at one border fuse into 1 at the next (Hoshi). Traits are rolled at the Trait Master. Probabilities are rounded, so the "
 			.. "displayed values may not add up to exactly 100%.",
 		Parent = scroll,

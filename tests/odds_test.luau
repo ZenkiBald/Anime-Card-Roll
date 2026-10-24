@@ -13,13 +13,13 @@ local function sum(t)
 	return s
 end
 
--- 1. Base border odds: 98.4 / 1.5 / 0.099 / 0.001.
+-- 1. Base border odds: 99.4798 / 0.5 / 0.02 / 0.0002.
 local base = Odds.Chances(1)
-check(near(base.Gold, 1.5, 1e-9) and near(base.Rainbow, 0.099, 1e-9) and near(base.Secret, 0.001, 1e-9) and near(base.Normal, 98.4, 1e-9), "1x border odds = 98.4 / 1.5 / 0.099 / 0.001")
+check(near(base.Gold, 0.5, 1e-9) and near(base.Rainbow, 0.02, 1e-9) and near(base.Secret, 0.0002, 1e-9) and near(base.Normal, 99.4798, 1e-9), "1x border odds = Gold 1/200, Rainbow 1/5,000, Secret 1/500,000")
 
 -- 2. Luck: each special border's chance is base x luck ^ its exponent (Gold 0.6, Rainbow 0.8, Secret 1).
 local two = Odds.Chances(2)
-check(near(two.Gold, 1.5 * 2 ^ 0.6, 1e-9) and near(two.Rainbow, 0.099 * 2 ^ 0.8, 1e-9) and near(two.Secret, 0.002, 1e-9), "2x luck weights every border by luck ^ its exponent")
+check(near(two.Gold, 0.5 * 2 ^ 0.6, 1e-9) and near(two.Rainbow, 0.02 * 2 ^ 0.8, 1e-9) and near(two.Secret, 0.0004, 1e-9), "2x luck weights every border by luck ^ its exponent")
 check(two.Secret / base.Secret > two.Gold / base.Gold, "the rarest borders gain the most from luck")
 
 -- 3. Every combination sums to 100 and never goes negative; Base never drops under half.
@@ -133,6 +133,6 @@ check(Borders.Get("Normal").Name == "Base", "the Normal save key shows as Base")
 check(Cards.Cost("Normal") == 2 and Cards.Cost("Secret") == 8, "Deck Cost by border: Base 2 ... Secret 8")
 
 -- 9. Display formatting.
-check(Odds.FormatOneIn(0.099) == "1 in 1,010", "1 in N formatting (Rainbow = 1 in 1,010)")
-check(Odds.FormatOneIn(0.001) == "1 in 100,000", "1 in N formatting (Secret = 1 in 100,000)")
+check(Odds.FormatOneIn(0.02) == "1 in 5,000", "1 in N formatting (Rainbow = 1 in 5,000)")
+check(Odds.FormatOneIn(0.0002) == "1 in 500,000", "1 in N formatting (Secret = 1 in 500,000)")
 check(Odds.FormatPercent(0.01) == "0.0100%", "small percentages keep 4 decimals")

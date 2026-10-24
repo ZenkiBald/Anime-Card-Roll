@@ -1,7 +1,8 @@
 --!strict
 -- Card borders ARE the tiers. Every pull rolls a card (Cards.Pool / Weight) and, on its own, a border:
--- Base 98.4%, Gold 1.5% (1 in 66.7), Rainbow 0.099% (1 in 1,010), Secret 0.001% (1 in 100,000) at 1x
--- luck. The border multiplies the card's stats by its Multiplier (1x / 4x / 16x / 64x: constant 4x
+-- Base 99.48%, Gold 0.5% (1/200), Rainbow 0.02% (1/5,000), Secret 0.0002% (1/500,000) at 1x luck: rare
+-- on purpose (user's call 2026-10-24). Story bosses are beatable with Base + Gold (Gold also comes from
+-- fusing 100 copies); Rainbow and Secret are the chase for the towers. The border multiplies the card's stats by its Multiplier (1x / 4x / 16x / 64x: constant 4x
 -- steps), so a better border always wins (5 stars + Awakening node 1 are only 1.375x).
 -- Luck raises the special borders by luck ^ LuckExponent, and the Border Chance stat / artifacts, surges
 -- and infused packs multiply them; Base takes what's left.
@@ -54,7 +55,7 @@ Borders.List = {
 		Ladder = 4,
 		Sting = "Epic",
 		Dark = Color3.fromRGB(96, 64, 8),
-		OneIn = 1 / 0.015,
+		OneIn = 200,
 		LuckExponent = 0.6,
 		Multiplier = 4,
 		Cost = 4,
@@ -72,7 +73,7 @@ Borders.List = {
 		Ladder = 6,
 		Sting = "Mythic",
 		Dark = Color3.fromRGB(70, 22, 80),
-		OneIn = 1 / 0.00099,
+		OneIn = 5000,
 		LuckExponent = 0.8,
 		Multiplier = 16,
 		Cost = 6,
@@ -93,7 +94,7 @@ Borders.List = {
 		Ladder = 7,
 		Sting = "Secret",
 		Dark = Color3.fromRGB(14, 12, 24),
-		OneIn = 100000,
+		OneIn = 500000,
 		LuckExponent = 1,
 		Multiplier = 64,
 		Cost = 8,

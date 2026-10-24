@@ -7,11 +7,11 @@
 --     (boss, tower or raid), so fighting never costs a streak. Session only (not saved).
 --   * Overcharge Surge: every 25th roll (TotalRolls % 25 == 0, by lifetime rolls) is a surge. No pity: a
 --     surge only multiplies the special border odds (Gold / Rainbow / Secret; Base takes the rest).
---       - Standard (Auto Roll, a late tap): 10x border odds (Gold ~15%, Rainbow ~1%, Secret 1 in 10,000 at
+--       - Standard (Auto Roll, a late tap): 5x border odds (Gold 2.5%, Rainbow 0.1%, Secret 1 in 100,000 at
 --         1x luck) and 1.5x foil odds.
 --       - By hand, a clean tap inside the Surge window (the PerfectWindow seconds after the cooldown is
 --         ready and the surge ring lights up), or on Auto with the Auto Roll pass: a PERFECT surge rolls
---         3 cards at once, all with 12x border odds and 2x foil odds. A late tap, or one
+--         3 cards at once, all with 6x border odds and 2x foil odds. A late tap, or one
 --         made while the cooldown was still running (an Early input, queued by the client), gets the
 --         plain surge.
 
@@ -28,9 +28,9 @@ RollBoost.Momentum = {
 RollBoost.Surge = {
 	Every = 25,
 	PerfectWindow = 1.5,
-	BorderMult = 10, -- standard surge: x border odds
+	BorderMult = 5, -- standard surge: x border odds
 	FoilMult = 1.5,
-	PerfectBorderMult = 12, -- perfect surge: every card
+	PerfectBorderMult = 6, -- perfect surge: every card
 	PerfectFoilMult = 2,
 	PerfectCards = 3,
 }

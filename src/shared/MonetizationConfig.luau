@@ -49,7 +49,7 @@ MonetizationConfig.Passes = {
 		Color = Color3.fromRGB(86, 214, 138),
 		Perks = {
 			{ Text = "Auto Roll open from the start" },
-			{ Text = "Auto Roll hits every Overcharge Surge perfectly (3 cards at 12x border odds)", Random = true },
+			{ Text = "Auto Roll hits every Overcharge Surge perfectly (3 cards at 6x border odds)", Random = true },
 		},
 	},
 	{

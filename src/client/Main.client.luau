@@ -158,9 +158,9 @@ function showExtras(result)
 	end
 	if result.Surge == "Perfect" then
 		Sfx.Sting("Epic", true)
-		Hud.Hint(`⚡ PERFECT OVERCHARGE SURGE! {1 + #(result.Extra or {})} cards at 12x border odds`)
+		Hud.Hint(`⚡ PERFECT OVERCHARGE SURGE! {1 + #(result.Extra or {})} cards at 6x border odds`)
 	elseif result.Surge == "Plain" then
-		Hud.Hint("⚡ OVERCHARGE SURGE! 10x border odds (tap inside the surge window for a perfect one)")
+		Hud.Hint("⚡ OVERCHARGE SURGE! 5x border odds (tap inside the surge window for a perfect one)")
 	elseif result.Extra then
 		Hud.Hint(`🎴 TRIPLE ROLL: +{#result.Extra} cards`)
 	end
