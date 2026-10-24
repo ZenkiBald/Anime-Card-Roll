@@ -4,8 +4,10 @@
 -- buttons. A roll spins through trait names, lands, and asks KEEP OLD or APPLY NEW; a Legendary or Mythic
 -- roll flashes gold / red and holds the buttons for a moment so it isn't tapped away. The server rolls
 -- (TraitService) and keeps an unchosen roll as the card's Pending, so leaving never loses it.
--- AUTO ROLL: tick the traits you want (STOPS ON); AUTO rolls the chosen slot until one lands (up to
--- Traits.AutoMax rolls a tap) and applies it, or keeps the old trait when none did.
+-- AUTO ROLL › opens its own view (drawAuto): pick the slot, tick the traits to stop on (big tiles with
+-- icon, name, tier and effect; quick picks MYTHIC ONLY / LEGENDARY + / EPIC + / CLEAR), see the chance a
+-- roll and the cost, START. It rolls up to Traits.AutoMax a tap and applies the first ticked trait that
+-- lands, or keeps the old trait; the result stays on the stage.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -53,6 +55,8 @@ local busy = false
 local hintToken = 0
 local lockSlot = 1 -- LOCK & ROLL keeps this slot
 local autoSlot = 1 -- AUTO ROLL rolls this slot
+local autoView = false -- the detail panel shows AUTO ROLL (drawAuto) instead of the card
+local lastAuto: { Title: string, Color: Color3, Detail: string }? = nil -- the last run's result, kept on the stage
 local targets: { [string]: boolean } = {} -- AUTO ROLL stops on these (for the session)
 for _, trait in Traits.List do
 	targets[trait.Id] = trait.Tier == "Mythic" -- the default: stop on a Mythic
@@ -235,13 +239,18 @@ local function playAuto(stage: Frame, result, done: () -> ())
 			Sfx.Sting(if Traits.TierIndex(hit.Id) >= 4 then "Mythic" elseif big then "Legendary" else "Epic", true)
 			task.wait(BIG_PAUSE)
 		else
+			label.Text = "NO HIT"
+			label.TextColor3 = Theme.Color.Muted
 			count.Text = `No ticked trait in {#rolled} rolls · 🧬{result.Spent} spent · the old trait stays`
 			Sfx.Play("Reward", 0.9)
 			task.wait(0.6)
 		end
+		lastAuto = { Title = label.Text, Color = label.TextColor3, Detail = count.Text }
 		done()
 	end)
 end
+
+local drawAuto -- below
 
 local function drawDetail()
 	clear(detail)
@@ -252,6 +261,11 @@ local function drawDetail()
 		line(detail, 1, "Pick a card on the left.", Theme.Color.Muted, 18)
 		return
 	end
+	if autoView and not entry.Pending then
+		drawAuto(id, entry, card)
+		return
+	end
+	autoView = false
 	local view = CardView.new(card.Id, {
 		Owned = true,
 		Stars = entry.Stars,
@@ -283,51 +297,6 @@ local function drawDetail()
 		Theme.Color.Muted,
 		14
 	)
-	-- AUTO ROLL's targets: tap a trait to tick it; AUTO stops when one lands.
-	if not slotOpen(entry, 2) then
-		autoSlot = 1
-	end
-	line(info, 5, `AUTO ROLL STOPS ON <font color="#8C88A8">(tap to tick · rolls slot {autoSlot})</font>`, TEAL, 15, Theme.Font.Heavy)
-	local picks = Kit.new("Frame", {
-		LayoutOrder = 6,
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-		Parent = info,
-	}, {
-		Kit.new("UIGridLayout", {
-			CellSize = UDim2.new(0.25, -4, 0, 26),
-			CellPadding = UDim2.fromOffset(4, 4),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	})
-	for i, trait in Traits.List do
-		local color = Rarity.Get(trait.Tier).Color
-		local on = targets[trait.Id] == true
-		local pick = Kit.new("TextButton", {
-			LayoutOrder = i,
-			AutoButtonColor = false,
-			Text = `{trait.Icon} {trait.Name}`,
-			Font = Theme.Font.Heavy,
-			TextScaled = true,
-			TextColor3 = if on then Color3.fromRGB(12, 12, 18) else color,
-			BackgroundColor3 = if on then color else Color3.fromRGB(14, 24, 30),
-			Parent = picks,
-		}, {
-			Kit.corner(UDim.new(0.5, 0)),
-			Kit.stroke(color, 1.5, if on then 0 else 0.4),
-			Kit.new("UITextSizeConstraint", { MaxTextSize = 14 }),
-			Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4) }),
-		})
-		pick.Activated:Connect(function()
-			if busy then
-				return
-			end
-			targets[trait.Id] = not targets[trait.Id]
-			drawDetail()
-		end)
-	end
-
 	-- The stage: the roll animation, then the choice.
 	local stage = Kit.new("Frame", {
 		Name = "Stage",
@@ -441,20 +410,243 @@ local function drawDetail()
 	local lock = button(`LOCK {lockSlot} & ROLL · 🧬{Traits.LockCost}`, Theme.Color.Gold, Color3.fromRGB(150, 100, 10), 3, 0.24, function()
 		roll("LockRoll", lockSlot)
 	end)
-	-- AUTO ROLL: up to Traits.AutoMax rolls of the auto slot, stopping on a ticked trait.
-	button(`AUTO SLOT {autoSlot} · up to {Traits.AutoMax}`, Color3.fromRGB(255, 120, 220), Color3.fromRGB(120, 30, 100), 4, 0.24, function()
-		local list = {}
+	-- AUTO ROLL opens its own view (drawAuto).
+	button("AUTO ROLL ›", Color3.fromRGB(255, 120, 220), Color3.fromRGB(120, 30, 100), 4, 0.24, function()
+		autoView = true
+		drawDetail()
+	end)
+	if not slotOpen(entry, 2) then
+		Kit.dim(slot2, true)
+		Kit.dim(lock, true)
+	else
+		-- Right-click / long tap isn't universal: one small button flips the lock and the auto slot.
+		local flip = Kit.button("⇄", Theme.Color.PanelLight, Theme.Color.Panel, { LayoutOrder = 5, Size = UDim2.new(0.08, -8, 0.9, 0), Parent = buttons })
+		flip.Activated:Connect(function()
+			lockSlot = if lockSlot == 1 then 2 else 1
+			drawDetail()
+		end)
+	end
+end
+
+-- AUTO ROLL's own view: which slot, which traits to stop on (big readable tiles), what it costs and the
+-- chance per roll, then START. The run plays big in the middle (playAuto).
+local PINK = Color3.fromRGB(255, 120, 220)
+
+function drawAuto(id: string, entry, card)
+	if not slotOpen(entry, autoSlot) then
+		autoSlot = 1
+	end
+	local list = Kit.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Parent = detail,
+	}, { Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }) })
+
+	-- Header: back, title, Trait Shards.
+	local header = Kit.new("Frame", { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, Parent = list })
+	local back = Kit.button("‹ BACK", Theme.Color.PanelLight, Theme.Color.Panel, { Size = UDim2.fromOffset(110, 38), Parent = header })
+	back.Activated:Connect(function()
+		if not busy then
+			autoView = false
+			drawDetail()
+		end
+	end)
+	Kit.label({
+		Text = `AUTO ROLL · <b>{string.upper(card.Name)}</b>`,
+		RichText = true,
+		Font = Theme.Font.Display,
+		TextColor3 = PINK,
+		Position = UDim2.new(0, 120, 0, 0),
+		Size = UDim2.new(1, -300, 1, 0),
+		Parent = header,
+	}, 26)
+	Kit.label({
+		Text = `🧬 {Kit.commas(State.Summary.TraitShards or 0)}`,
+		Font = Theme.Font.Display,
+		TextColor3 = TEAL,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.new(0, 170, 1, 0),
+		Parent = header,
+	}, 24)
+
+	-- Slot picker: each slot with the trait it holds now.
+	local slots = Kit.new("Frame", { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1, Parent = list }, {
+		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
+	})
+	for slot = 1, 2 do
+		local open = slotOpen(entry, slot)
+		local current = Traits.Get(if slot == 2 then entry.Trait2 else entry.Trait)
+		local on = autoSlot == slot
+		local b = Kit.button(
+			if not open then `SLOT {slot} · 🔒 node {Traits.Slot2Node}` elseif current then `SLOT {slot} · now {current.Icon} {current.Name}` else `SLOT {slot} · empty`,
+			if on then TEAL else Theme.Color.PanelLight,
+			if on then TEAL_DEEP else Theme.Color.Panel,
+			{ LayoutOrder = slot, Size = UDim2.new(0.5, -4, 1, 0), Parent = slots }
+		)
+		Kit.dim(b, not open)
+		b.Activated:Connect(function()
+			if open and not busy then
+				autoSlot = slot
+				drawDetail()
+			end
+		end)
+	end
+
+	-- Quick picks.
+	local quick = Kit.new("Frame", { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, Parent = list }, {
+		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center }),
+	})
+	Kit.label({ Text = "STOP ON:", Font = Theme.Font.Heavy, TextColor3 = Theme.Color.Muted, LayoutOrder = 0, Size = UDim2.new(0, 90, 1, 0), Parent = quick }, 16)
+	local function pickTiers(minTier: number?)
+		for _, trait in Traits.List do
+			targets[trait.Id] = minTier ~= nil and Traits.TierIndex(trait.Id) >= minTier
+		end
+		drawDetail()
+	end
+	for i, info in { { "MYTHIC ONLY", 4 }, { "LEGENDARY +", 3 }, { "EPIC +", 2 }, { "CLEAR", nil } } do
+		local b = Kit.button(info[1], Theme.Color.PanelLight, Theme.Color.Panel, { LayoutOrder = i, Size = UDim2.new(0, 132, 1, 0), Parent = quick })
+		b.Activated:Connect(function()
+			if not busy then
+				pickTiers(info[2])
+			end
+		end)
+	end
+
+	-- The trait tiles: icon, name, tier and what it does; ticked ones glow in their tier colour.
+	local grid = Kit.new("ScrollingFrame", {
+		LayoutOrder = 4,
+		Size = UDim2.new(1, 0, 1, -330),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 6,
+		ScrollBarImageColor3 = PINK,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		Parent = list,
+	}, {
+		Kit.new("UIGridLayout", {
+			CellSize = UDim2.new(1 / 3, -8, 0, 64),
+			CellPadding = UDim2.fromOffset(8, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		Kit.new("UIPadding", { PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 2) }),
+	})
+	for i, trait in Traits.List do
+		local color = Rarity.Get(trait.Tier).Color
+		local on = targets[trait.Id] == true
+		local tileButton = Kit.new("TextButton", {
+			LayoutOrder = i,
+			AutoButtonColor = false,
+			Text = "",
+			BackgroundColor3 = if on then color:Lerp(Color3.new(0, 0, 0), 0.35) else Color3.fromRGB(14, 20, 28),
+			Parent = grid,
+		}, { Kit.corner(UDim.new(0, 12)), Kit.stroke(color, if on then 3 else 1.5, if on then 0 else 0.5) })
+		Kit.label({ Text = trait.Icon, Font = Theme.Font.Heavy, Position = UDim2.fromOffset(6, 8), Size = UDim2.fromOffset(44, 48), Parent = tileButton }, 34)
+		local name = Kit.label({
+			Text = `{if on then "✓ " else ""}{string.upper(trait.Name)}  <font size="13" color="#{color:ToHex()}">{string.upper(trait.Tier)}</font>`,
+			RichText = true,
+			Font = Theme.Font.Display,
+			TextColor3 = Color3.new(1, 1, 1),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.new(0, 54, 0, 6),
+			Size = UDim2.new(1, -60, 0, 26),
+			Parent = tileButton,
+		}, 20)
+		Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = name
+		Kit.label({
+			Text = Traits.Text(trait.Id),
+			Font = Theme.Font.Bold,
+			TextColor3 = Color3.fromRGB(215, 222, 235),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextWrapped = true,
+			Position = UDim2.new(0, 54, 0, 32),
+			Size = UDim2.new(1, -60, 0, 26),
+			Parent = tileButton,
+		}, 14)
+		tileButton.Activated:Connect(function()
+			if not busy then
+				targets[trait.Id] = not targets[trait.Id]
+				drawDetail()
+			end
+		end)
+	end
+
+	-- The run's stage, big.
+	local stage = Kit.new("Frame", {
+		Name = "Stage",
+		LayoutOrder = 5,
+		Size = UDim2.new(1, 0, 0, 96),
+		BackgroundColor3 = Color3.fromRGB(10, 26, 30),
+		BackgroundTransparency = 0.2,
+		ClipsDescendants = true,
+		Parent = list,
+	}, { Kit.corner(UDim.new(0, 14)), Kit.stroke(PINK, 2, 0.3) })
+	local shown = lastAuto
+	Kit.label({
+		Text = if shown then shown.Title else "Tick the traits you want, then START",
+		Font = Theme.Font.Display,
+		TextColor3 = if shown then shown.Color else Theme.Color.Muted,
+		Size = UDim2.fromScale(1, 0.62),
+		Parent = stage,
+	}, if shown then 34 else 22)
+	Kit.label({
+		Text = if shown then shown.Detail else "AUTO keeps rolling until one lands, then applies it. No hit keeps the old trait.",
+		Font = Theme.Font.Heavy,
+		TextColor3 = Theme.Color.Muted,
+		Position = UDim2.fromScale(0, 0.62),
+		Size = UDim2.fromScale(1, 0.32),
+		Parent = stage,
+	}, 16)
+
+	-- Footer: the odds and cost, and START.
+	local chances = Traits.Chances()
+	local chance, ticked = 0, 0
+	for traitId, on in targets do
+		if on then
+			chance += chances[traitId] or 0
+			ticked += 1
+		end
+	end
+	local shards = State.Summary.TraitShards or 0
+	local rolls = math.min(Traits.AutoMax, math.floor(shards / Traits.RollCost))
+	local footer = Kit.new("Frame", { LayoutOrder = 6, Size = UDim2.new(1, 0, 0, 56), BackgroundTransparency = 1, Parent = list })
+	Kit.label({
+		Text = if ticked == 0
+			then "Tick at least one trait above."
+			else `Stops on <b>{ticked}</b> trait{if ticked == 1 then "" else "s"} · <b>{string.format("%.2f", chance * 100)}%</b> a roll (about <b>{Kit.commas(math.ceil(1 / chance))}</b> rolls)\nThis tap: up to <b>{rolls}</b> rolls = 🧬<b>{Kit.commas(rolls * Traits.RollCost)}</b> (🧬{Traits.RollCost} each, the rest stays)`,
+		RichText = true,
+		Font = Theme.Font.Bold,
+		TextColor3 = Theme.Color.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextWrapped = true,
+		Size = UDim2.new(1, -230, 1, 0),
+		Parent = footer,
+	}, 16)
+	local start = Kit.button(`START · SLOT {autoSlot}`, PINK, Color3.fromRGB(120, 30, 100), {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.new(0, 220, 1, 0),
+		Parent = footer,
+	})
+	Kit.dim(start, ticked == 0 or rolls < 1)
+	start.Activated:Connect(function()
+		if busy then
+			return
+		end
+		local picked = {}
 		for traitId, on in targets do
 			if on then
-				table.insert(list, traitId)
+				table.insert(picked, traitId)
 			end
 		end
-		if #list == 0 then
+		if #picked == 0 then
 			hint(REASONS.NoTargets)
 			return
 		end
 		busy = true
-		local result = call("AutoRoll", id, { Slot = autoSlot, Targets = list })
+		local result = call("AutoRoll", id, { Slot = autoSlot, Targets = picked })
 		if result == nil then
 			busy = false
 			return
@@ -467,18 +659,6 @@ local function drawDetail()
 			end
 		end)
 	end)
-	if not slotOpen(entry, 2) then
-		Kit.dim(slot2, true)
-		Kit.dim(lock, true)
-	else
-		-- Right-click / long tap isn't universal: one small button flips the lock and the auto slot.
-		local flip = Kit.button("⇄", Theme.Color.PanelLight, Theme.Color.Panel, { LayoutOrder = 5, Size = UDim2.new(0.08, -8, 0.9, 0), Parent = buttons })
-		flip.Activated:Connect(function()
-			lockSlot = if lockSlot == 1 then 2 else 1
-			autoSlot = if lockSlot == 1 then 2 else 1 -- AUTO rolls the slot LOCK & ROLL would roll
-			drawDetail()
-		end)
-	end
 end
 
 function drawGrid()
@@ -530,6 +710,9 @@ function drawGrid()
 		tile.Activated:Connect(function()
 			if busy then
 				return
+			end
+			if selectedId ~= card.Id then
+				lastAuto = nil
 			end
 			selectedId = card.Id
 			drawGrid()

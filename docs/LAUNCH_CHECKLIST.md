@@ -53,7 +53,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 - [ ] Drawn ✕ / ▾ glyphs, element-lit portraits, NPC plates at distance, name tags above hats.
 - [ ] The 2026-10-24 playtest fixes: SUPPORT OPENING! after FIGHT!, the focus hint above the card rows, cast tags
   across the card middle, Vault tiles (DMG / HP on two lines, the ✓ under the stars), the neutral cost pill, the
-  ODDS panel's plain rarity numbers, the rarity chip on cards, Trait Master AUTO and its trait chips.
+  ODDS panel's round rarity numbers, the rarity chip on cards and the rarity number on tiles, the
+  Trait Master's AUTO ROLL view, the BAG's RELICS / ARTIFACTS tabs and the Pagoda's floor 100 artifact.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)
