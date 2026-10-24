@@ -223,7 +223,7 @@ function DevPanel.Init(playerGui: Instance)
 		devCall("AddXP")
 	end)
 
-	-- Infinite Tower: jump 10 floors up (no rewards) to try the high floors, or start again from floor 1.
+	-- Towers: jump 10 floors up the run and the Pagoda (no rewards) to try the high floors, or start both again.
 	local towerRow = section(list, 13, "INFINITE TOWER · PACKS")
 	local towerUp = Kit.button("+10 FLOORS", Color3.fromRGB(40, 170, 165), Color3.fromRGB(16, 90, 90), {
 		LayoutOrder = 1,

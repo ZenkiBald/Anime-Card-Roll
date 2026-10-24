@@ -25,7 +25,7 @@ local State = {
 	},
 	Decks = { Active = 1, Presets = {} }, -- presets: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} },
-	Tower = 0, -- highest Infinite Tower floor cleared
+	Tower = { Best = 0, Run = 0, Pagoda = 0 }, -- Infinite Tower best run and run now, Pagoda floors cleared
 	Packs = {}, -- Roll Packs held: Packs.luau id -> count
 	Battle = { AutoUlt = false, Speed = 1 },
 	Store = { Passes = {}, Restricted = true, Mock = false }, -- MonetizationService.State
@@ -83,7 +83,7 @@ function State.ApplyFull(full)
 	if full.Battle then
 		State.Battle = full.Battle
 	end
-	if full.Tower then
+	if type(full.Tower) == "table" then
 		State.Tower = full.Tower
 	end
 	if full.Packs then
@@ -260,8 +260,8 @@ function State.ApplyRaid(raid)
 	changed:Fire("raid")
 end
 
-function State.ApplyTower(floor: number)
-	State.Tower = floor
+function State.ApplyTower(tower: { Best: number, Run: number, Pagoda: number })
+	State.Tower = tower
 	changed:Fire("progress")
 end
 

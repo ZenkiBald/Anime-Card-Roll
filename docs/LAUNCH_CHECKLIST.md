@@ -15,7 +15,7 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   - moves saves to the live store `PlayerData_1` (test saves in `PlayerData_Test_1` do NOT carry over: every live
     player starts fresh, testers included);
   - moves leaderboards to the live `LB_*_1` stores;
-  - turns the unlock rules on (Quick Roll after 20 rolls + 3 min, Auto Roll after 50 rolls + 10 min, the tower after
+  - turns the unlock rules on (Quick Roll after 20 rolls + 3 min, Auto Roll after 50 rolls + 10 min, the towers after
     Kurogane Normal, 2x battle speed after its unlock fight);
   - hides the DEV panel and makes the server refuse every dev tool and mock purchase (`DevAccess`).
 - [ ] **code** `src/shared/MonetizationConfig.luau`: paste the real ids from the Creator Dashboard over the 0s:
@@ -48,7 +48,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 - [ ] Arena: camera clipping into terrain (Frostfang), the front guard's panel vs the card dock, the glow behind Tenrai.
 - [ ] Battle pods and the Surge meter use CanvasGroups: check sharpness and frame rate on a low-end phone.
-- [ ] Fusion (single and FUSE ALL), packs during Auto Roll, OPEN 1 / 5 / 10 / ALL, tower replays, the QUICK toggle.
+- [ ] Fusion (single and FUSE ALL), packs during Auto Roll, OPEN 1 / 5 / 10 / ALL, a tower run ending on a loss (and on leaving mid-fight),
+  the PAGODA tab and a milestone, the QUICK toggle.
 - [ ] Drawn ✕ / ▾ glyphs, element-lit portraits, NPC plates at distance, name tags above hats.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 

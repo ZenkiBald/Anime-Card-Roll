@@ -1,8 +1,8 @@
 --!nonstrict
 -- Boss fights run here, on the server, in real time. The client only asks (start, fire an
 -- Ultimate, pick a target, toggle Auto, change speed, give up) and animates the events streamed back.
--- BattleStart(Tower.Id, nil, { Floor = n }?) fights an Infinite Tower floor (Tower.luau; the next one, or a
--- cleared one again) instead of a boss,
+-- BattleStart(Tower.Id) fights the next floor of the player's Infinite Tower run (Tower.luau; a loss ends
+-- the run) and BattleStart(Tower.PagodaId) the next Hundred-Floor Pagoda floor, instead of a boss, both
 -- with the day's tower mutator on; BattleStart(Raid.Id) runs a raid run against the server's Colossus
 -- (Raid.luau, RaidService): its damage goes into the shared pool as it lands. A boss fight can be a
 -- Cost Challenge (BattleStart's 3rd argument { Cost = true }): the deck's cost must be at most
@@ -56,7 +56,7 @@ end
 -- Pays boss and tower rewards; set by Main.server to RollService.RewardRolls / TowerRewards
 -- (RollService needs this module).
 local rewardRolls: ((player: Player, d: number, firstClear: boolean, costChallenge: boolean?) -> any)? = nil
-local towerRewards: ((player: Player, floor: number, replay: boolean) -> any)? = nil
+local towerRewards: ((player: Player, floor: number, mode: string, record: boolean) -> any)? = nil
 
 function BattleService.SetRewardHandler(handler, towerHandler)
 	rewardRolls = handler
@@ -65,6 +65,11 @@ end
 
 function BattleService.TowerOpen(data): boolean
 	return not Config.Unlocks.Enabled or data.Progress.Cleared[Tower.UnlockAfter] == true
+end
+
+-- Both towers' progress, for the client: { Best, Run, Pagoda }.
+function BattleService.TowerState(data)
+	return { Best = data.Tower.Floor, Run = data.Tower.Run, Pagoda = data.Pagoda.Floor }
 end
 
 -- Fights are staged in 3D at the boss's own spot in its world (the client's Arena). With streaming on,
@@ -100,21 +105,44 @@ local function recordResult(player: Player, state)
 		record.SpeedUnlocked = speedAllowed(data, 2)
 		return record
 	end
+	if state.Floor and state.Mode == Tower.PagodaId then
+		-- A Pagoda floor: a win clears it for good (milestones and floor 100's title come with the pay);
+		-- a loss changes nothing.
+		if battle.Result == "Win" and state.Floor == data.Pagoda.Floor + 1 then
+			data.Pagoda.Floor = state.Floor
+			record.FirstClear = true
+			local milestone = Tower.PagodaMilestones[state.Floor]
+			if milestone and milestone.Title then
+				data.Titles[milestone.Title] = true
+				data.Settings.Title = milestone.Title -- the Pagoda's crown is worn at once (name tag, profile)
+			end
+			MetaService.Track(player, "TowerFloors")
+			MetaService.AddXP(player, data, math.ceil(Meta.XP.BossWinPerD * Tower.PagodaReward(state.Floor).D))
+		end
+		record.Progress = data.Progress
+		record.Tower = BattleService.TowerState(data)
+		record.SpeedUnlocked = speedAllowed(data, 2)
+		return record
+	end
 	if state.Floor then
-		-- A tower floor: winning the next floor moves the player up one (a first clear, full pay); a
-		-- floor already cleared can be fought again (a replay, Tower.Reward(floor, true): no packs or
-		-- sure potion, the rest pays again).
-		if battle.Result == "Win" then
-			record.FirstClear = state.Floor == data.Tower.Floor + 1
+		-- An Infinite Tower floor: a win climbs the run one floor (a floor above the best run is a record:
+		-- its Guardian bonuses pay); a loss or GIVE UP ends the run.
+		data.Tower.Live = nil
+		if battle.Result == "Win" and state.Floor == data.Tower.Run + 1 then
+			data.Tower.Run = state.Floor
+			record.FirstClear = state.Floor > data.Tower.Floor -- a record floor
 			if record.FirstClear then
 				data.Tower.Floor = state.Floor
 				record.NewBest = true
-				MetaService.Track(player, "TowerFloors")
 			end
+			MetaService.Track(player, "TowerFloors")
 			MetaService.AddXP(player, data, math.ceil(Meta.XP.BossWinPerD * Tower.Reward(state.Floor).D))
+		elseif battle.Result ~= "Win" then
+			record.RunEnded = data.Tower.Run -- floors this run climbed
+			data.Tower.Run = 0
 		end
 		record.Progress = data.Progress
-		record.Tower = data.Tower.Floor
+		record.Tower = BattleService.TowerState(data)
 		record.SpeedUnlocked = speedAllowed(data, 2)
 		return record
 	end
@@ -193,6 +221,8 @@ local function run(player: Player, state)
 		summary.Progress = record.Progress
 		summary.Tower = record.Tower
 		summary.Floor = state.Floor
+		summary.Mode = state.Mode
+		summary.RunEnded = record.RunEnded
 		summary.SpeedUnlocked = record.SpeedUnlocked
 		if state.Raid then
 			summary.Raid = { Dealt = state.Raid.Reported, Name = state.Raid.Name, State = RaidService.Public() }
@@ -202,9 +232,8 @@ local function run(player: Player, state)
 			-- paid by RaidService when the raid ends
 		elseif state.Floor then
 			if battle.Result == "Win" and towerRewards then
-				summary.Rewards = towerRewards(player, state.Floor, not record.FirstClear)
+				summary.Rewards = towerRewards(player, state.Floor, state.Mode, record.FirstClear)
 			end
-			summary.Replay = not record.FirstClear
 		elseif battle.Result == "Win" and rewardRolls and boss then
 			summary.Rewards = rewardRolls(player, boss.Difficulties[battle.Difficulty].D, record.FirstClear, state.Cost)
 			summary.CostChallenge = state.Cost
@@ -269,7 +298,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	if type(bossId) ~= "string" then
 		return { Ok = false, Reason = "BadRequest" }
 	end
-	local isTower = bossId == Tower.Id
+	local isTower = bossId == Tower.Id or bossId == Tower.PagodaId
 	local isRaid = bossId == Raid.Id
 	local boss = Bosses.Get(bossId)
 	if not isTower and not isRaid and (boss == nil or type(difficulty) ~= "string" or boss.Difficulties[difficulty] == nil) then
@@ -284,8 +313,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	end
 	local data = profile.Data
 
-	-- The tower fights the floor above the player's best, or (options.Floor) any floor already cleared
-	-- to replay it; the server checks the choice.
+	-- The Infinite Tower fights the next floor of the run, the Pagoda its next floor.
 	local floor = nil
 	local stats = nil
 	local mutator = nil
@@ -298,13 +326,14 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		if not BattleService.TowerOpen(data) then
 			return { Ok = false, Reason = "Locked" }
 		end
-		local next = data.Tower.Floor + 1
-		local pick = if type(options) == "table" then (options :: any).Floor else nil
-		local want = if type(pick) == "number" and pick == pick then math.floor(pick) else next
-		if want < 1 or want > next then
-			return { Ok = false, Reason = "BadRequest" }
+		if bossId == Tower.PagodaId then
+			if data.Pagoda.Floor >= Tower.Pagoda.Floors then
+				return { Ok = false, Reason = "Conquered" }
+			end
+			floor = Tower.FloorAt(data.Pagoda.Floor + 1, nil, nil, Tower.PagodaId)
+		else
+			floor = Tower.FloorAt(data.Tower.Run + 1)
 		end
-		floor = Tower.FloorAt(want)
 		local devMutator = ReplicatedStorage:GetAttribute("DevMutator")
 		mutator = Tower.MutatorToday(Meta.DayNumber(os.time()), if Config.TestMode and type(devMutator) == "string" then devMutator else nil)
 		boss = Bosses.Get(floor.Boss)
@@ -351,10 +380,14 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		Speed = speed,
 		Started = false,
 		Floor = floor and floor.Floor,
+		Mode = floor and floor.Mode,
 		Cost = cost or nil,
 		Raid = if raid then { Index = raid.Index, Name = raid.Name, Reported = 0 } else nil,
 	}
 	active[player] = state
+	if floor and floor.Mode == Tower.Id then
+		data.Tower.Live = floor.Floor -- leaving before it ends loses the run (SaveMigration)
+	end
 	setArenaFocus(player, boss.Id)
 	task.spawn(run, player, state)
 

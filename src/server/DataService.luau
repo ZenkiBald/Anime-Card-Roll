@@ -48,8 +48,12 @@ local TEMPLATE = {
 	Gear = { Artifacts = {}, Worn = {} },
 	-- Lucky Wheel: banked free spins and seconds played toward the next one.
 	Wheel = { Spins = 1, Progress = 0 },
-	-- Infinite Tower (Tower.luau): the highest floor cleared; the next fight is Floor + 1.
-	Tower = { Floor = 0 },
+	-- Infinite Tower (Tower.luau): the best run (Floor, on the leaderboard) and the run going now (Run:
+	-- floors cleared; the next fight is Run + 1). Live is the floor being fought: a save that loads with
+	-- it set was left mid-fight, so SaveMigration ends that run.
+	Tower = { Floor = 0, Run = 0 },
+	-- The Hundred-Floor Pagoda: floors cleared (kept; the next fight is Floor + 1, done at 100).
+	Pagoda = { Floor = 0 },
 	-- Roll Packs from boss and tower wins (Packs.luau id -> count), opened from the BAG.
 	Packs = {},
 	-- Redeem codes already used (CODES, Codes.luau): CODE -> true.

@@ -183,15 +183,92 @@ do
 	check(rate == 0, "a World 1 deck can't climb to floor 30")
 end
 
--- Replays: a cleared floor fought again pays its Shards, Trait Shards and artifact roll, but no Roll Packs
--- or sure potion (those are first clear only).
+-- Runs: every floor of an Infinite Tower run pays its Shards, Trait Shards, artifact roll and packs; a
+-- Guardian's bonuses (x3 Shards, sure potion, x4 artifact odds, Trait Shard bundle) only on a record floor.
 do
-	local first, again = Tower.Reward(10), Tower.Reward(10, true)
-	check(next(again.Packs or {}) == nil and again.Potion == nil, "a replayed floor drops no Roll Packs or sure potion")
+	local record, again = Tower.Reward(10, true), Tower.Reward(10, false)
+	check(again.Potion == nil and record.Potion ~= nil, "a Guardian below the best run pays no sure potion")
 	local plain = Tower.Reward(11) -- an ordinary floor next to it
-	check(first.DropBoost > again.DropBoost and again.DropBoost == plain.DropBoost and again.Shards < first.Shards, "a replayed Guardian pays like an ordinary floor (no x3 Shards or x4 artifact odds)")
-	check(again.D == first.D and again.TraitShards < first.TraitShards, "a replayed Guardian keeps its artifact tier but not the Guardian Trait Shards")
-	local ordinary, ordinaryAgain = Tower.Reward(12), Tower.Reward(12, true)
-	check(ordinaryAgain.Shards == ordinary.Shards and ordinaryAgain.TraitShards == ordinary.TraitShards and ordinaryAgain.DropBoost == ordinary.DropBoost, "a replayed ordinary floor pays the same Shards, Trait Shards and artifact odds")
-	check(first.Packs ~= nil and next(first.Packs) ~= nil, "a first clear of a Guardian floor still drops its packs")
+	check(record.DropBoost > again.DropBoost and again.DropBoost == plain.DropBoost and again.Shards < record.Shards, "a Guardian below the best run pays like an ordinary floor (no x3 Shards or x4 artifact odds)")
+	check(again.D == record.D and again.TraitShards < record.TraitShards, "it keeps its artifact tier but not the Guardian Trait Shards")
+	local ordinary, ordinaryAgain = Tower.Reward(12, true), Tower.Reward(12, false)
+	check(ordinaryAgain.Shards == ordinary.Shards and ordinaryAgain.TraitShards == ordinary.TraitShards and ordinaryAgain.DropBoost == ordinary.DropBoost, "an ordinary floor pays the same on every run")
+	check(again.Packs ~= nil and again.Packs["10"] == 2 and Tower.Reward(25, false).Packs["100"] == 1, "run milestones drop their Roll Packs on every run")
+end
+
+-- 4. The Hundred-Floor Pagoda -------------------------------------------------------------------
+local P = Tower.PagodaId
+do
+	local differs, climbs = false, true
+	for floor = 1, Tower.Pagoda.Floors do
+		local a, b = Tower.FloorAt(floor, nil, nil, P), Tower.FloorAt(floor)
+		differs = differs or a.Boss ~= b.Boss or a.Affix ~= b.Affix
+		if floor > 1 and not Tower.IsGuardian(floor) and not Tower.IsGuardian(floor - 1) then
+			climbs = climbs and Tower.Recommended(floor, P) > Tower.Recommended(floor - 1, P)
+		end
+		climbs = climbs and a.Mode == P and b.Mode == Tower.Id
+	end
+	check(differs and climbs, "the Pagoda has its own floors, climbing every floor")
+	check(Tower.Recommended(50, P) < Tower.Recommended(50) and Tower.Recommended(100, P) > 4e6, "the Pagoda climbs slower than the Infinite Tower, to a full Secret deck's fight at floor 100")
+	local milestonesOk = true
+	for _, at in { 25, 50, 75, 100 } do
+		local m = Tower.PagodaMilestones[at]
+		local r = Tower.PagodaReward(at)
+		milestonesOk = milestonesOk and m ~= nil and r.Milestone == m and table.find(Items.ItemRarities, m.Artifact) ~= nil
+			and Items.PickOfRarity(m.Artifact, 0.5) ~= nil and r.TraitShards >= m.TraitShards and r.Shards > m.Shards
+	end
+	check(milestonesOk, "floors 25 / 50 / 75 / 100 pay their milestone: packs, Shards, Trait Shards and a sure artifact")
+	local top = Tower.PagodaMilestones[100]
+	check(top.Artifact == "Mythic" and top.Title == Tower.Pagoda.Title and Tower.NextMilestone(99) == 100 and Tower.NextMilestone(100) == nil, "floor 100 pays a Mythic artifact and the Pagoda's title")
+	check(Tower.PagodaReward(37).Packs == nil and Tower.PagodaReward(40).Packs["10"] == 2, "Pagoda packs drop only on Guardians and milestones")
+	local payOk = true
+	for floor = 2, Tower.Pagoda.Floors do
+		payOk = payOk and Tower.PagodaReward(floor).D >= Tower.PagodaReward(floor - 1).D
+	end
+	check(payOk, "a Pagoda floor pays like the Infinite Tower floor of the same power (never less higher up)")
+end
+
+-- Tuning past the story: Rainbow and Secret decks (the World 4 lineup, 5 stars) beat the Pagoda floor at
+-- their power, up to floor 100's Guardian for a Secret deck at Awakening 3.
+do
+	local t = F.FIGHTS[10]
+	local function chase(border, awaken)
+		local b = {}
+		for _, id in t.Attack do
+			b[id] = border
+		end
+		for _, id in t.Support do
+			b[id] = border
+		end
+		return F.fixtureDeck({ Attack = t.Attack, Support = t.Support, Stars = 5, Awaken = awaken, Borders = b })
+	end
+	local function nearest(power)
+		local best, gap = 1, math.huge
+		for floor = 1, Tower.Pagoda.Floors do
+			local rec = Tower.Recommended(floor, P)
+			if not Tower.IsGuardian(floor) and math.abs(rec - power) < gap then
+				best, gap = floor, math.abs(rec - power)
+			end
+		end
+		return best
+	end
+	for _, case in { { "Rainbow", 1 }, { "Secret", 1 } } do
+		local deck, owned = chase(case[1], case[2])
+		local power = Deck.Power(deck, owned)
+		local floor = nearest(power)
+		local worst, slowest, line = 1, 0, ""
+		for _, enemy in Tower.Enemies do
+			local rate, median = campaign(Tower.FloorAt(floor, enemy, false, P), deck, owned, 12)
+			worst, slowest = math.min(worst, rate), math.max(slowest, median)
+			line ..= string.format(" %s %d%% %.0fs", enemy.Name, rate * 100, median)
+		end
+		print(string.format("   %s deck %7d -> pagoda %3d (rec %7d):%s", case[1], power, floor, Tower.Recommended(floor, P), line))
+		check(worst >= 0.9 and slowest <= 100, `Pagoda floor {floor}: a {case[1]} deck at its power beats every enemy (90%+, median under 100 s)`)
+	end
+	local deck, owned = chase("Secret", 3)
+	local worst = 1
+	for _, enemy in Tower.Enemies do
+		worst = math.min(worst, (campaign(Tower.FloorAt(100, enemy, false, P), deck, owned, 12)))
+	end
+	check(worst >= 0.9, "a full Secret deck (5 stars, Awakening 3) beats the Pagoda's floor 100 Guardian")
 end

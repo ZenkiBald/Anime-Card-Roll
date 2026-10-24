@@ -107,7 +107,7 @@ local BOARDS: { Board } = {
 	{
 		Id = "TowerFloor",
 		Title = "HIGHEST FLOOR",
-		Sub = "Infinite Tower",
+		Sub = "Infinite Tower · best run",
 		Color = Color3.fromRGB(90, 230, 220),
 		Ascending = false,
 		At = "BoardSpot",

@@ -106,6 +106,7 @@ local REASONS = {
 	TooCostly = "Your deck costs too much for the Cost Challenge",
 	Closed = "The raid isn't open right now",
 	Cleared = "This raid is already cleared",
+	Conquered = "You've conquered all 100 floors of the Pagoda!",
 }
 
 local BOSS_STATUS = {
@@ -2002,7 +2003,9 @@ local function showResults(summary)
 	local timeText = string.format("%d:%04.1f", summary.Time // 60, summary.Time % 60)
 	local tower = current.Tower
 	line(
-		if current.Raid then `{current.BossName} · Server raid` elseif tower then `{current.BossName} · Floor {tower.Floor}` else `{current.BossName} · {current.Difficulty}`,
+		if current.Raid then `{current.BossName} · Server raid`
+			elseif tower then `{current.BossName} · {if tower.Mode == Tower.PagodaId then "Pagoda" else "Tower"} floor {tower.Floor}`
+			else `{current.BossName} · {current.Difficulty}`,
 		Theme.Color.Text,
 		24,
 		Theme.Font.Heavy
@@ -2037,6 +2040,9 @@ local function showResults(summary)
 		local notes = {}
 		if tower then
 			table.insert(notes, `Floor {tower.Floor} cleared!`)
+			if summary.NewBest and tower.Mode ~= Tower.PagodaId then
+				table.insert(notes, "NEW BEST RUN!")
+			end
 		elseif summary.FirstClear then
 			table.insert(notes, "First clear!")
 		end
@@ -2048,6 +2054,17 @@ local function showResults(summary)
 		end
 		if #notes > 0 then
 			line(table.concat(notes, "  ·  "), Theme.Color.Gold, 20)
+		end
+		-- A Pagoda milestone (floors 25 / 50 / 75 / 100): its sure artifact and title.
+		local milestone = hasRewards and rewards.Milestone
+		if milestone then
+			line(
+				if tower.Floor >= Tower.Pagoda.Floors then `🏯 PAGODA CONQUERED! « {milestone.Title} »` else `🏯 PAGODA MILESTONE · FLOOR {tower.Floor}`,
+				Color3.fromRGB(255, 140, 90),
+				26,
+				Theme.Font.Display
+			)
+			Effects.Sparks(panel, Color3.fromRGB(255, 140, 90), 30, 1)
 		end
 		-- A first Normal clear adds the boss's own card to the roll pool.
 		local unlocked = summary.CardUnlocked and Cards.Get(summary.CardUnlocked)
@@ -2097,7 +2114,14 @@ local function showResults(summary)
 			stat("GUARDS DOWN", `{summary.GuardsDown or 0}/{summary.Guards}`, Theme.Color.Gold)
 		end
 		stat("TIME", timeText, Theme.Color.Auto)
-		line("Roll for stronger cards, tune your deck, then try again.", Theme.Color.Muted, 17, Theme.Font.Bold)
+		if tower and tower.Mode == Tower.Id then
+			-- The Infinite Tower: one loss ends the run.
+			local best = if summary.Tower then summary.Tower.Best else State.Tower.Best
+			line(`RUN OVER · {summary.RunEnded or 0} floor{if summary.RunEnded == 1 then "" else "s"} climbed · best run: floor {best}`, Theme.Color.Danger, 22, Theme.Font.Heavy)
+			line("The next run starts at floor 1. Roll for stronger cards and climb higher!", Theme.Color.Muted, 17, Theme.Font.Bold)
+		else
+			line("Roll for stronger cards, tune your deck, then try again.", Theme.Color.Muted, 17, Theme.Font.Bold)
+		end
 	end
 
 	-- Damage dealt by each card, biggest first, as small bars.
@@ -2221,7 +2245,12 @@ local function showResults(summary)
 		}, 34)
 		Kit.textStroke(Color3.fromRGB(70, 40, 0), 2, 0).Parent = count
 		local nextText = ""
-		if tower then
+		if tower and tower.Mode == Tower.PagodaId then
+			local nextMilestone = Tower.NextMilestone(tower.Floor)
+			if nextMilestone then
+				nextText = `Next milestone: floor {nextMilestone}.  `
+			end
+		elseif tower then
 			local nextFloor = tower.Floor + 1
 			while Packs.ForFloor(nextFloor) == nil do
 				nextFloor += 1
@@ -2269,29 +2298,32 @@ local function showResults(summary)
 	back.Activated:Connect(function()
 		exit()
 	end)
-	-- In the tower, a win moves on to the next floor and a loss retries the same one.
+	-- In the towers, a win moves on to the next floor; a loss starts a new Infinite Tower run (from floor
+	-- 1) or tries the Pagoda floor again. The Pagoda's last floor has no next.
 	local raidOpen = current.Raid ~= nil and State.Raid ~= nil and State.Raid.Open
+	local pagoda = tower ~= nil and tower.Mode == Tower.PagodaId
+	local conquered = pagoda and summary.Result == "Win" and tower.Floor >= Tower.Pagoda.Floors
 	local againText = if current.Raid then (if raidOpen then "RUN AGAIN" else "RAID OVER")
 		elseif tower == nil then "FIGHT AGAIN"
+		elseif conquered then "CONQUERED"
 		elseif summary.Result == "Win" then "NEXT FLOOR"
-		else "TRY AGAIN"
+		elseif pagoda then "TRY AGAIN"
+		else "NEW RUN · FLOOR 1"
 	local again = Kit.button(againText, Theme.Color.Roll, Theme.Color.RollDeep, {
 		LayoutOrder = 2,
 		Size = UDim2.new(0, 210, 1, 0),
 		Parent = buttons,
 	})
-	if current.Raid and not raidOpen then
+	if (current.Raid and not raidOpen) or conquered then
 		Kit.dim(again, true)
 	end
-	local bossId, difficulty = if current.Raid then Raid.Id elseif tower then Tower.Id else current.BossId, current.Difficulty
+	local bossId, difficulty = if current.Raid then Raid.Id elseif tower then tower.Mode else current.BossId, current.Difficulty
 	local function goAgain()
-		-- Tower: a win goes up a floor from the one just fought (a replay climbs on from there too), a loss
-		-- tries the same floor again.
-		local options = current.Options
-		if tower then
-			local fought = summary.Floor or tower.Floor
-			options = { Floor = if summary.Result == "Win" then fought + 1 else fought }
+		if conquered then
+			return
 		end
+		-- The server picks a tower's floor (the run's or the Pagoda's next).
+		local options = if tower then nil else current.Options
 		local ok, message = startFight(bossId, difficulty, options)
 		if not ok and message then
 			hint(message)
@@ -2303,7 +2335,7 @@ local function showResults(summary)
 	end)
 	-- Auto-climb: after a tower win the next floor starts by itself after a short countdown, unless the
 	-- player opens their rolls, leaves, or switches it off.
-	if tower and summary.Result == "Win" then
+	if tower and summary.Result == "Win" and not conquered then
 		local auto = Kit.button(if autoClimb then "AUTO CLIMB: ON" else "AUTO CLIMB: OFF", Theme.Color.PanelLight, Theme.Color.Panel, {
 			LayoutOrder = 3,
 			Size = UDim2.new(0, 190, 1, 0),
@@ -2471,7 +2503,7 @@ local function begin(start, bossId: string, difficulty: string?)
 	elseif tower then
 		local affix = tower.Affix and Tower.AffixById[tower.Affix]
 		local mutator = start.Mutator and Tower.MutatorById[start.Mutator]
-		subtitle = `Infinite Tower · Floor {tower.Floor}`
+		subtitle = `{if tower.Mode == Tower.PagodaId then Tower.Pagoda.Name else "Infinite Tower"} · Floor {tower.Floor}`
 			.. (if affix then ` · {string.upper(affix.Name)}` else "")
 			.. (if mutator then ` · {mutator.Icon} {string.upper(mutator.Name)}` else "")
 		bossName.Text = `{icon}{string.upper(tower.Name)}  <font color="#A8A2C8">{if affix then `{affix.Icon} {affix.Name}` else boss.Title}</font>`
@@ -3011,7 +3043,9 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		end
 		if not armed then
 			armed = true
-			forfeitButton.Label.Text = "TAP AGAIN"
+			-- Giving up in the Infinite Tower ends the run: say so before the second tap.
+			local run = current.Tower ~= nil and current.Tower.Mode == Tower.Id
+			forfeitButton.Label.Text = if run then "TAP AGAIN · RUN ENDS" else "TAP AGAIN"
 			task.delay(2.5, function()
 				armed = false
 				forfeitButton.Label.Text = "GIVE UP"
@@ -3093,8 +3127,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 end
 
 -- Starts a fight. Returns false and a message when the server refuses.
--- bossId is a boss id, or Tower.Id for a tower floor (options.Floor, else the next; difficulty is ignored).
-function Battle.Start(bossId: string, difficulty: string?, options: { Cost: boolean?, Floor: number? }?): (boolean, string?)
+-- bossId is a boss id, or Tower.Id / Tower.PagodaId for that tower's next floor (difficulty is ignored).
+function Battle.Start(bossId: string, difficulty: string?, options: { Cost: boolean? }?): (boolean, string?)
 	return startFight(bossId, difficulty, options)
 end
 

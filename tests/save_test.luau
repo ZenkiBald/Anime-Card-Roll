@@ -97,3 +97,17 @@ check(same(again, data), "migrating twice changes nothing")
 local kept = { Cards = { x = { Copies = "lots", Fusion = "two" } }, Settings = { AutoStop = "Gold" } }
 local ok = pcall(SaveMigration.Migrate, kept)
 check(ok and kept.Settings.AutoStop == "Gold" and kept.Cards.x.BorderCopies.Normal >= 1, "junk card fields don't crash it, and a valid stop stays")
+
+-- The Infinite Tower became a run: the old highest floor is the best run, the run starts at floor 1; a
+-- save left mid-fight loses that run.
+do
+	local old = { Cards = {}, Tower = { Floor = 37 } }
+	SaveMigration.Migrate(old)
+	check(old.Tower.Floor == 37 and old.Tower.Run == 0, "an old tower floor becomes the best run, and the run starts at floor 1")
+	local left = { Cards = {}, Tower = { Floor = 40, Run = 22, Live = 23 } }
+	SaveMigration.Migrate(left)
+	check(left.Tower.Run == 0 and left.Tower.Live == nil and left.Tower.Floor == 40, "a save left mid tower fight ends that run (the best stays)")
+	local mid = { Cards = {}, Tower = { Floor = 40, Run = 22 } }
+	SaveMigration.Migrate(mid)
+	check(mid.Tower.Run == 22, "a run between fights carries on after a rejoin")
+end

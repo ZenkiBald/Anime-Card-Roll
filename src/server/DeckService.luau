@@ -68,8 +68,10 @@ function DeckService.Start()
 			-- `deck` may name the fight to counter-build for: a boss id, the tower (its next floor) or the raid.
 			local against = nil
 			if type(deck) == "string" then
-				if deck == Tower.Id then
-					local floor = Tower.FloorAt(data.Tower.Floor + 1)
+				if deck == Tower.Id or deck == Tower.PagodaId then
+					local floor = if deck == Tower.Id
+						then Tower.FloorAt(data.Tower.Run + 1)
+						else Tower.FloorAt(math.min(Tower.Pagoda.Floors, data.Pagoda.Floor + 1), nil, nil, Tower.PagodaId)
 					against = Bosses.SquadElements(floor.Boss, floor.Guards)
 				elseif deck == Raid.Id then
 					local forced = ReplicatedStorage:GetAttribute("DevRaidEnds")

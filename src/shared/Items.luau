@@ -99,6 +99,11 @@ local function pickFrom(list: { any }, rarity: string, roll: number): string?
 	return pool[math.clamp(math.floor(roll * #pool) + 1, 1, #pool)]
 end
 
+-- A sure artifact of `rarity` (Pagoda milestones): one of that rarity's, picked by `roll` in [0, 1).
+function Items.PickOfRarity(rarity: string, roll: number): string?
+	return pickFrom(Items.Artifacts, rarity, roll)
+end
+
 -- What a win at D drops: { Artifacts = { id = 1 }? }. `rng` is a Random. `boost` multiplies the chance
 -- (tower Guardians use it).
 function Items.RollDrops(d: number, rng: Random, boost: number?): { Artifacts: { [string]: number }? }

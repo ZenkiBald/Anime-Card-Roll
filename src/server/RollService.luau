@@ -112,7 +112,7 @@ local function fullState(player: Player, data)
 		Summary = summary(player, data),
 		Decks = DeckService.State(data, player),
 		Progress = data.Progress,
-		Tower = data.Tower.Floor,
+		Tower = { Best = data.Tower.Floor, Run = data.Tower.Run, Pagoda = data.Pagoda.Floor },
 		Packs = data.Packs,
 		Battle = { AutoUlt = data.Settings.AutoUlt, Speed = data.Settings.BattleSpeed },
 		Mount = data.Settings.Mount,
@@ -287,7 +287,7 @@ end
 
 -- Pays a win: Roll Packs into the player's packs (opened later, at their luck then), Shards, a potion
 -- (sure, or by chance) and a roll for an artifact at `d` (Items.RollDrops, x `boost`).
-local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, d: number, boost: number, traitShards: number?)
+local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, d: number, boost: number, traitShards: number?, sureArtifact: string?)
 	local held = profile.Data.Packs
 	for id, count in (packs or {}) :: { [string]: number } do
 		held[id] = (held[id] or 0) + count
@@ -298,6 +298,10 @@ local function payWin(player: Player, profile, packs: { [string]: number }?, sha
 	end
 	local drops = Items.RollDrops(d, rng, boost)
 	bundle.Artifacts = drops.Artifacts
+	if sureArtifact then
+		bundle.Artifacts = bundle.Artifacts or {}
+		bundle.Artifacts[sureArtifact] = (bundle.Artifacts[sureArtifact] or 0) + 1
+	end
 	bundle = MetaService.Grant(profile.Data, bundle, player) -- the screen shows the Shard Gain bonus too
 	return {
 		NewPacks = packs, -- what this win dropped
@@ -372,15 +376,20 @@ function RollService.RewardRolls(player: Player, d: number, firstClear: boolean,
 	return payWin(player, profile, Packs.ForBoss(d, firstClear), reward.Shards, reward.Potion, Config.Rewards.PotionChance, d, 1, traitShards)
 end
 
--- A cleared Infinite Tower floor (paid once per floor): Tower.Reward says what. Some floors drop Roll
--- Packs; Guardians add more Shards, a sure potion and boosted gear odds.
-function RollService.TowerRewards(player: Player, floor: number, replay: boolean?)
+-- A won tower floor. The Infinite Tower (Tower.Reward): every floor of a run pays, run milestones drop
+-- Roll Packs, and a Guardian on a record floor (`record`) adds more Shards, a sure potion and boosted
+-- artifact odds. The Pagoda (Tower.PagodaReward, each floor once): milestones add packs, Trait Shards and
+-- a sure artifact of their rarity (floor 100's title is saved by BattleService).
+function RollService.TowerRewards(player: Player, floor: number, mode: string, record: boolean)
 	local profile = DataService.Get(player)
 	if profile == nil then
 		return nil
 	end
-	local reward = Tower.Reward(floor, replay)
-	return payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.D, reward.DropBoost, reward.TraitShards)
+	local reward = if mode == Tower.PagodaId then Tower.PagodaReward(floor) else Tower.Reward(floor, record)
+	local sure = reward.Milestone and Items.PickOfRarity(reward.Milestone.Artifact, rng:NextNumber())
+	local result = payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.D, reward.DropBoost, reward.TraitShards, sure)
+	result.Milestone = reward.Milestone
+	return result
 end
 
 -- A raid payout for a hitter who left before the raid ended: the same reward, built into one bundle
@@ -760,10 +769,15 @@ function RollService.Start()
 			-- 5 Roll Packs, 2 Big Roll Packs and a Mega Roll Pack, to try opening them.
 			MetaService.Grant(profile.Data, { Packs = { ["10"] = 5, ["100"] = 2, ["1000"] = 1 } })
 		elseif action == "TowerUp" then
-			-- Skips 10 tower floors (no rewards), to try the higher floors.
-			profile.Data.Tower.Floor += 10
+			-- Skips 10 floors of the tower run and of the Pagoda (no rewards), to try the higher floors.
+			local tower = profile.Data.Tower
+			tower.Run += 10
+			tower.Floor = math.max(tower.Floor, tower.Run)
+			profile.Data.Pagoda.Floor = math.min(Tower.Pagoda.Floors - 1, profile.Data.Pagoda.Floor + 10)
 		elseif action == "TowerReset" then
 			profile.Data.Tower.Floor = 0
+			profile.Data.Tower.Run = 0
+			profile.Data.Pagoda.Floor = 0
 		elseif action == "GiveTraitShards" then
 			MetaService.Grant(profile.Data, { TraitShards = 200 })
 		elseif action == "GiveCopies" then

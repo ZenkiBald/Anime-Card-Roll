@@ -51,9 +51,13 @@ The engine (`BattleEngine`) is pure and runs headless in tests. Fights are stage
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended power 45k ... 298k; the fixtures are Base in World 1, Gold after, World 4 Gold
 5-star with Awakening 1-3). Boss wins pay reward rolls
-(luck / floors by D), Shards, Roll Packs, Trait Shards and an artifact roll. Infinite Tower: endless floors (recommended
-33k x 1.068^(floor-1)), each floor an echo of a world boss with affixes; Guardians every 10th; daily mutator; any floor up
-to the next can be replayed (replays pay like an ordinary floor: no packs, sure potion or Guardian bonuses). Server raids
+(luck / floors by D), Shards, Roll Packs, Trait Shards and an artifact roll. Two towers (BATTLE > TOWER / PAGODA), each floor an echo
+of a world boss with affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 33k x
+1.068^(floor-1)); every floor pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight
+(`Tower.Live`, ended by SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian
+bonuses only pay past it. Hundred-Floor Pagoda: 100 kept floors (33k x 1.051^(floor-1), floor 100 is a full Secret deck's
+fight), each paid once, milestones at 25 / 50 / 75 (packs, Trait Shards, a sure Rare / Epic / Legendary artifact) and
+100 (Mythic + the worn "Pagoda Master" title). Server raids
 every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared). Roll Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10
 / ALL at your luck, also during Auto Roll; Pack Alchemy condenses or infuses them.
 
@@ -112,7 +116,8 @@ portraits use the 2D `Image` when set, else an element-lit bust (the user is mak
   Robux sales live only in MonetizationConfig / MonetizationService; any perk that changes odds or gives random rewards
   is gated by PolicyService, with all outcomes and live odds summing to 100% shown.
 - Boss HP / ATK per difficulty are tuned so each fixture deck in `tests/fixtures.luau` wins its fight in 60-90 s
-  (`tests/battle_test.luau`, all 12 fights); `tests/tower_test.luau` does the same for the tower. Re-run after changing
+  (`tests/battle_test.luau`, all 12 fights); `tests/tower_test.luau` does the same for the tower and the Pagoda (Rainbow /
+Secret chase decks). Re-run after changing
   cards, bosses or battle rules, and retune if they fail.
 - Original characters only: no real anime characters, names or trademarked terms.
 - Cheap on phones: UI-first, plain Frames + tweens, no textures or 3D particles in reveals, at most one 3D model per

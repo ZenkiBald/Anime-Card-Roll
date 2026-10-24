@@ -94,8 +94,8 @@ local function refreshSigns(hub: Instance)
 	local anchor = gate and gate:FindFirstChild("SignAnchor")
 	local sign = anchor and anchor:FindFirstChild("Sign")
 	local sub = sign and sign:FindFirstChild("Sub")
-	if sub and sub:IsA("TextLabel") and State.Tower > 0 then
-		sub.Text = `Your best: floor {State.Tower} · next: floor {State.Tower + 1}`
+	if sub and sub:IsA("TextLabel") and State.Tower.Best > 0 then
+		sub.Text = `Best run: floor {State.Tower.Best} · this run: floor {State.Tower.Run + 1}`
 	end
 end
 

@@ -9,6 +9,9 @@
 --     border); an old rarity fusion becomes Gold copies. The card's total Copies always equals the sum.
 --   * Auto Roll stops that are no longer an option (old rarities) go back to the default.
 --   * The short-lived roll bank (rarity tickets) comes back as Roll Packs (10 tickets a pack, rounded up).
+--   * The Infinite Tower became a run: the old highest floor stays as the best run (Tower.Floor) and the
+--     run starts at floor 1. A save that loads mid-fight (Tower.Live set: the player left, or the server
+--     closed, during a tower fight) counts that fight as lost: the run ends.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
@@ -105,6 +108,19 @@ function SaveMigration.Migrate(data: any): { string }
 		end
 		data.RollBank = nil
 		table.insert(done, `roll bank: {tickets} tickets`)
+	end
+	-- The Infinite Tower is a run.
+	local tower = data.Tower
+	if type(tower) == "table" then
+		if type(tower.Run) ~= "number" then
+			tower.Run = 0
+			table.insert(done, "tower run started")
+		end
+		if tower.Live ~= nil then
+			tower.Live = nil
+			tower.Run = 0
+			table.insert(done, "tower run ended (left mid-fight)")
+		end
 	end
 	return done
 end

@@ -1,9 +1,16 @@
 --!strict
--- The Infinite Tower: climb floor after floor, each one a random enemy that hits harder and pays more.
--- Shared so the tower screen previews exactly the fight and rewards the server runs.
+-- The towers: climb floor after floor, each one a random enemy that hits harder and pays more. Shared so
+-- the tower screens preview exactly the fight and rewards the server runs. There are two:
 --
---   * Progress is permanent: the player always fights the floor above their highest clear, and a floor
---     pays once (no farming). The best floor is saved and shown on the leaderboard.
+--   * The Infinite Tower (Tower.Id) is a run: every win climbs one floor, and one loss (a defeat, GIVE
+--     UP, or leaving mid-fight) ends the run, so the next one starts at floor 1 again. Every floor pays
+--     Shards; Roll Packs drop on run milestones (Packs.ForFloor: every 5th floor, a Big Roll Pack every
+--     25th). The best run is saved (Tower.Floor) and shown on the leaderboard; a Guardian's bonuses
+--     (x3 Shards, a sure potion, x4 artifact odds) pay only on a new record floor.
+--   * The Hundred-Floor Pagoda (Tower.PagodaId) has an end: 100 floors whose progress is kept (a loss
+--     just tries the floor again), each paying once, with milestone rewards on floors 25 / 50 / 75 and a
+--     Mythic artifact plus a title on floor 100. It climbs slower than the Infinite Tower and its top is
+--     a full Secret deck's fight: the reason to chase Rainbow and Secret borders.
 --   * Each floor's enemy is one of the world bosses (their moves, models and backdrops) at stats scaled
 --     to the floor, picked by a seeded hash of the floor number: random-looking, but the same for every
 --     player on every server, so the screen can preview it and a retry faces the same fight.
@@ -26,7 +33,8 @@ local Items = require(script.Parent.Items)
 
 local Tower = {}
 
-Tower.Id = "tower" -- what the client sends to BattleStart for a tower floor
+Tower.Id = "tower" -- what the client sends to BattleStart for the Infinite Tower's next floor
+Tower.PagodaId = "pagoda" -- and for the Hundred-Floor Pagoda's
 Tower.UnlockAfter = "kurogane:Normal" -- with Config.Unlocks on, the tower opens after this clear
 
 export type Enemy = {
@@ -113,8 +121,34 @@ Tower.Curve = {
 		{ Power = 680500, HP = 10435500, ATK = 7465 },
 		{ Power = 751500, HP = 11881000, ATK = 9672 },
 	},
-	Beyond = { HP = 1.3, ATK = 1.3 }, -- past the last point: HP x (power / last) ^ 1.3
+	Beyond = { HP = 1.1, ATK = 1.1 }, -- past the last point: HP x (power / last) ^ 1.1 (a full Secret deck still wins in about 90 s)
 }
+
+-- The Pagoda: Floors floors on its own curve (same start, slower growth: floor 100 asks about 4.5M, a
+-- full Secret deck), with its own enemy picks (Salt), and the milestone rewards.
+Tower.Pagoda = {
+	Name = "Hundred-Floor Pagoda",
+	Floors = 100,
+	Power = 33000,
+	Growth = 1.051,
+	Salt = 500,
+	Title = "Pagoda Master", -- floor 100's title
+}
+
+export type Milestone = {
+	Shards: number,
+	TraitShards: number,
+	Packs: { [string]: number },
+	Artifact: string, -- a sure artifact of this rarity (Items.ItemRarities)
+	Title: string?,
+}
+
+Tower.PagodaMilestones = {
+	[25] = { Shards = 1500, TraitShards = 25, Packs = { ["100"] = 1 }, Artifact = "Rare" },
+	[50] = { Shards = 4000, TraitShards = 60, Packs = { ["100"] = 2 }, Artifact = "Epic" },
+	[75] = { Shards = 10000, TraitShards = 120, Packs = { ["1000"] = 1 }, Artifact = "Legendary" },
+	[100] = { Shards = 25000, TraitShards = 300, Packs = { ["1000"] = 2 }, Artifact = "Mythic", Title = "Pagoda Master" },
+} :: { [number]: Milestone }
 
 -- Which of a boss's moves are in: the Hard-only moves join at floor HardFrom, Nightmare's at NightmareFrom
 -- (Nightmare also shortens the warning before big moves).
@@ -130,6 +164,7 @@ Tower.GuardianDropBoost = 4 -- and on a Guardian: an artifact up to 60%
 
 export type Floor = {
 	Floor: number,
+	Mode: string, -- Tower.Id (the Infinite Tower) or Tower.PagodaId
 	Boss: string,
 	Name: string,
 	Guardian: boolean,
@@ -151,6 +186,8 @@ export type Reward = {
 	Potion: string?, -- Guardians: a sure potion
 	DropBoost: number,
 	TraitShards: number, -- every floor; a big bundle on a Guardian
+	Milestone: Milestone?, -- Pagoda floors 25 / 50 / 75 / 100
+	Record: boolean?, -- Infinite Tower: a floor above the best run (Guardian bonuses pay)
 }
 
 Tower.AffixById = {} :: { [string]: Affix }
@@ -171,8 +208,12 @@ function Tower.IsGuardian(floor: number): boolean
 	return floor % Tower.GuardianEvery == 0
 end
 
-function Tower.Recommended(floor: number): number
-	local c = Tower.Curve
+function Tower.IsPagoda(mode: string?): boolean
+	return mode == Tower.PagodaId
+end
+
+function Tower.Recommended(floor: number, mode: string?): number
+	local c = if Tower.IsPagoda(mode) then Tower.Pagoda else Tower.Curve
 	local power = c.Power * c.Growth ^ (math.max(1, floor) - 1)
 	if Tower.IsGuardian(floor) then
 		power *= Tower.GuardianPower
@@ -201,18 +242,19 @@ function Tower.StatsAt(power: number): (number, number)
 	return last.HP, last.ATK
 end
 
--- Which enemy and affix a floor has (forced ones are for tests).
-function Tower.Pick(floor: number): (Enemy, Affix?)
+-- Which enemy and affix a floor has (forced ones are for tests). The Pagoda picks with its own salt.
+function Tower.Pick(floor: number, mode: string?): (Enemy, Affix?)
 	local pool = {}
 	for _, enemy in Tower.Enemies do
 		if floor >= enemy.MinFloor then
 			table.insert(pool, enemy)
 		end
 	end
-	local enemy = pool[hash(floor, 1) % #pool + 1]
+	local salt = if Tower.IsPagoda(mode) then Tower.Pagoda.Salt else 0
+	local enemy = pool[hash(floor, salt + 1) % #pool + 1]
 	local affix = nil
-	if floor >= Tower.AffixFrom and not Tower.IsGuardian(floor) and hash(floor, 2) % 1000 < Tower.AffixChance * 1000 then
-		affix = Tower.Affixes[hash(floor, 3) % #Tower.Affixes + 1]
+	if floor >= Tower.AffixFrom and not Tower.IsGuardian(floor) and hash(floor, salt + 2) % 1000 < Tower.AffixChance * 1000 then
+		affix = Tower.Affixes[hash(floor, salt + 3) % #Tower.Affixes + 1]
 	end
 	return enemy, affix
 end
@@ -253,17 +295,20 @@ function Tower.GuardsAt(floor: number): { string }
 	return picked
 end
 
--- Everything about a floor's fight. `enemy` / `affix` override the pick (tests); pass false for no affix.
-function Tower.FloorAt(floor: number, enemy: Enemy?, affix: (Affix | false)?): Floor
+-- Everything about a floor's fight. `mode`: Tower.Id (default) or Tower.PagodaId. `enemy` / `affix`
+-- override the pick (tests); pass false for no affix.
+function Tower.FloorAt(floor: number, enemy: Enemy?, affix: (Affix | false)?, mode: string?): Floor
 	floor = math.max(1, math.floor(floor))
-	local pickedEnemy, pickedAffix = Tower.Pick(floor)
+	local pagoda = Tower.IsPagoda(mode)
+	local pickedEnemy, pickedAffix = Tower.Pick(floor, mode)
 	local e = enemy or pickedEnemy
 	local a: Affix? = if affix == false then nil elseif affix then affix else pickedAffix
-	local recommended = Tower.Recommended(floor)
+	local recommended = Tower.Recommended(floor, mode)
 	local hp, atk = Tower.StatsAt(recommended)
 	local difficulty = if floor >= Tower.NightmareFrom then "Nightmare" elseif floor >= Tower.HardFrom then "Hard" else "Normal"
 	return {
 		Floor = floor,
+		Mode = if pagoda then Tower.PagodaId else Tower.Id,
 		Boss = e.Boss,
 		Name = if Tower.IsGuardian(floor) then `{e.Name} Guardian` else e.Name,
 		Guardian = Tower.IsGuardian(floor),
@@ -279,28 +324,68 @@ function Tower.FloorAt(floor: number, enemy: Enemy?, affix: (Affix | false)?): F
 	}
 end
 
--- What clearing a floor pays (once: cleared floors can't be fought again).
--- What a floor's win pays. `replay`: a floor already cleared, fought again, pays like an ordinary floor:
--- its Shards, Trait Shards and artifact roll, but no Roll Packs, no sure potion and no Guardian bonuses
--- (x3 Shards, x4 artifact odds, Guardian Trait Shards), so an easy old Guardian can't be farmed.
-function Tower.Reward(floor: number, replay: boolean?): Reward
+-- What an Infinite Tower floor's win pays. Every floor of a run pays its Shards, Trait Shards, artifact
+-- roll and (on run milestones) Roll Packs. `record`: the floor is above the best run, so a Guardian's
+-- bonuses pay too (x3 Shards, a sure potion, x4 artifact odds, a Trait Shard bundle); a Guardian
+-- floor below the record pays like an ordinary floor (its packs aside), so easy floors can't be farmed
+-- for them.
+function Tower.Reward(floor: number, record: boolean?): Reward
 	local d = floor * Tower.DPerFloor
 	local base = Rewards.For(d)
-	local guardian = Tower.IsGuardian(floor) and not replay
+	local guardian = Tower.IsGuardian(floor) and record ~= false
 	local shards = Tower.ShardsBase + Tower.ShardsPerFloor * floor
 	return {
 		D = d,
-		Packs = if replay then {} else Packs.ForFloor(floor),
+		Packs = Packs.ForFloor(floor),
 		Shards = if guardian then shards * Tower.GuardianShards else shards,
-		Potion = if guardian and not replay then base.Potion else nil,
+		Potion = if guardian then base.Potion else nil,
 		DropBoost = if guardian then Tower.GuardianDropBoost else Tower.DropBoost,
 		TraitShards = if guardian then 10 + math.floor(floor / 5) else 1 + math.floor(floor / 20),
+		Record = record ~= false,
 	}
 end
 
--- The chance a floor's win drops an artifact (for the tower screen).
-function Tower.ArtifactChance(floor: number): number
-	local reward = Tower.Reward(floor)
+-- What a Pagoda floor pays (once: a cleared floor stays cleared). It pays like the Infinite Tower floor
+-- of the same recommended power (a Guardian always with its bonuses, a floor is only cleared once), plus
+-- its milestone. Roll Packs only drop on Guardians (2) and milestones: the Pagoda is a long climb with
+-- big stops, not a pack farm.
+function Tower.PagodaReward(floor: number): Reward
+	local c = Tower.Pagoda
+	local equal = Tower.FloorForPower(c.Power * c.Growth ^ (math.max(1, floor) - 1)) -- without the Guardian's extra
+	local reward = Tower.Reward(equal, true)
+	local guardian = Tower.IsGuardian(floor)
+	local packs: { [string]: number } = if guardian then { ["10"] = 2 } else {}
+	local milestone = Tower.PagodaMilestones[floor]
+	if milestone then
+		for id, n in milestone.Packs do
+			packs[id] = (packs[id] or 0) + n
+		end
+	end
+	local shards = Tower.ShardsBase + Tower.ShardsPerFloor * equal
+	return {
+		D = reward.D,
+		Packs = if next(packs) then packs else nil,
+		Shards = (if guardian then shards * Tower.GuardianShards else shards) + (if milestone then milestone.Shards else 0),
+		Potion = if guardian then Rewards.For(reward.D).Potion else nil,
+		DropBoost = if guardian then Tower.GuardianDropBoost else Tower.DropBoost,
+		TraitShards = (if guardian then 10 + math.floor(equal / 5) else 1 + math.floor(equal / 20)) + (if milestone then milestone.TraitShards else 0),
+		Milestone = milestone,
+	}
+end
+
+-- The next Pagoda milestone floor above `floor` (nil once floor 100 is cleared).
+function Tower.NextMilestone(floor: number): number?
+	for f = math.max(1, math.floor(floor) + 1), Tower.Pagoda.Floors do
+		if Tower.PagodaMilestones[f] then
+			return f
+		end
+	end
+	return nil
+end
+
+-- The chance a floor's win drops an artifact (for the tower screens; a Guardian with its bonuses).
+function Tower.ArtifactChance(floor: number, mode: string?): number
+	local reward = if Tower.IsPagoda(mode) then Tower.PagodaReward(floor) else Tower.Reward(floor)
 	return math.min(1, Items.ArtifactChance(reward.D) * reward.DropBoost)
 end
 

@@ -1,7 +1,8 @@
 --!nonstrict
 -- Boss screen: pick a world and difficulty, see the boss in 3D, compare Deck Power with the
 -- recommended power, preview the rewards, switch deck presets, then fight.
--- The TOWER tab shows the player's next Infinite Tower floor (Tower.luau) the same way, with the day's
+-- The TOWER tab shows the next floor of the player's Infinite Tower run and the PAGODA tab the next
+-- Hundred-Floor Pagoda floor (Tower.luau) the same way, with the day's
 -- mutator; the RAID tab shows the server raid (Raid.luau): its countdown, the shared pool, the top hitters.
 -- Every tab has a SCOUT box: the squad's elements, how the active deck lines up, its synergies and
 -- bonds, and COUNTER-BUILD (Auto-build weighed against that squad, Deck.AutoBuild).
@@ -39,15 +40,16 @@ local BossScreen = {}
 
 export type Actions = {
 	EditDeck: (target: string) -> (), -- target: the boss id, Tower.Id or Raid.Id the deck is for
-	Fight: (bossId: string, difficulty: string?, options: { Cost: boolean?, Floor: number? }?) -> (boolean, string?), -- bossId may be Tower.Id or Raid.Id
+	Fight: (bossId: string, difficulty: string?, options: { Cost: boolean? }?) -> (boolean, string?), -- bossId may be Tower.Id, Tower.PagodaId or Raid.Id
 }
 
 local actions: Actions
 local modal
 local bossId = Bosses.List[1].Id
 local difficulty = "Normal"
-local mode = "boss" -- "boss" | "tower" | "raid"
+local mode = "boss" -- "boss" | "tower" | "pagoda" | "raid"
 local TOWER_COLOR = Color3.fromRGB(90, 230, 220)
+local PAGODA_COLOR = Color3.fromRGB(255, 140, 90)
 local RAID_COLOR = Color3.fromRGB(255, 80, 120)
 local SCOUT_COLOR = Color3.fromRGB(150, 200, 255)
 local costChallenge = false -- boss fights: the 30-point Cost Challenge (2x Trait Shards)
@@ -174,7 +176,7 @@ local function setShowcase(boss, floor, raidName: string?)
 	showcaseTitle.Text = if affix then `{affix.Icon} {affix.Name}: {affix.Text}` else `{Elements.Label(boss.Element)} · {boss.Title}`
 	showcaseWorld.Text = if raidName
 		then "SERVER RAID · EVERYONE TOGETHER"
-		elseif floor then `INFINITE TOWER · FLOOR {floor.Floor}`
+		elseif floor then `{if floor.Mode == Tower.PagodaId then "HUNDRED-FLOOR PAGODA" else "INFINITE TOWER"} · FLOOR {floor.Floor}`
 		else `WORLD {boss.World} · {string.upper(boss.WorldName)}`
 	if viewBoss ~= boss.Id then
 		if view then
@@ -240,9 +242,14 @@ local function buildTabs()
 		mode = "tower"
 		refresh()
 	end)
+	local pagodaButton = pill(tabs, "PAGODA", #Bosses.List + 2, 100, PAGODA_COLOR, mode == "pagoda", not towerOpen())
+	pagodaButton.Activated:Connect(function()
+		mode = "pagoda"
+		refresh()
+	end)
 	local live = State.Raid ~= nil and State.Raid.Open
 	tabsLive = live
-	local raidButton = pill(tabs, if live then "RAID · LIVE" else "RAID", #Bosses.List + 2, if live then 120 else 92, RAID_COLOR, mode == "raid", false)
+	local raidButton = pill(tabs, if live then "RAID · LIVE" else "RAID", #Bosses.List + 3, if live then 120 else 92, RAID_COLOR, mode == "raid", false)
 	raidButton.Activated:Connect(function()
 		mode = "raid"
 		refresh()
@@ -428,55 +435,15 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 	end)
 end
 
--- The floor picked on the TOWER tab (nil = the next one up). Any floor up to the next can be fought:
--- cleared floors are replays (Tower.Reward(floor, true)).
-local towerPick: number? = nil
-
--- The TOWER tab: the picked floor's enemy (the next one by default), its power check and what it pays.
-local function buildTower()
-	local nextFloor = (State.Tower or 0) + 1
-	local floorNo = math.clamp(towerPick or nextFloor, 1, nextFloor)
-	local replay = floorNo < nextFloor
-	local floor = Tower.FloorAt(floorNo)
+-- The floor box shared by both towers: the enemy, its moves, guards, affix and the day's mutator.
+local function floorBox(order: number, floor, color: Color3)
 	local boss = Bosses.Get(floor.Boss)
-	local unlocked = towerOpen()
-	local deck = State.ActiveDeck() or Deck.Empty()
-	local power = Deck.Power(deck, State.Cards)
-	setShowcase(boss, floor)
-	buildTabs()
-
-	text(
-		body,
-		0,
-		"Climb as high as you can: every floor is a random echo of a world boss, stronger and richer than the last. Roll Packs pay on the first clear; any cleared floor can be fought again for its Shards, Trait Shards and artifact roll.",
-		Theme.Color.Muted,
-		17,
-		Theme.Font.Bold
-	)
-	-- Floor picker: ‹ / › step through the floors (1 to the next one), NEXT jumps back to the climb.
-	local picker = row(1, 40)
-	local function step(label: string, width: number, order: number, to: number, enabled: boolean)
-		local button = Kit.button(label, TOWER_COLOR, Color3.fromRGB(10, 50, 60), { LayoutOrder = order, Size = UDim2.fromOffset(width, 36), Parent = picker })
-		Kit.dim(button, not enabled)
-		button.Activated:Connect(function()
-			if enabled then
-				towerPick = if to >= nextFloor then nil else to
-				refresh()
-			end
-		end)
-	end
-	step("‹‹", 48, 1, math.max(1, floorNo - 10), floorNo > 1)
-	step("‹", 44, 2, floorNo - 1, floorNo > 1)
-	text(picker, 3, `  FLOOR <b>{floorNo}</b> / {nextFloor}{if replay then "  ·  REPLAY" else "  ·  NEXT CLIMB"}  `, if replay then Theme.Color.Gold else TOWER_COLOR, 18, Theme.Font.Heavy).Size = UDim2.new(0, 260, 0, 36)
-	step("›", 44, 4, floorNo + 1, floorNo < nextFloor)
-	step("››", 48, 5, math.min(nextFloor, floorNo + 10), floorNo < nextFloor)
-	step("NEXT", 80, 6, nextFloor, replay)
-	local foe = box(2, if floor.Guardian then Theme.Color.Gold else TOWER_COLOR)
+	local foe = box(order, if floor.Guardian then Theme.Color.Gold else color)
 	text(
 		foe,
 		1,
-		`FLOOR {floorNo} · <b>{string.upper(floor.Name)}</b>` .. (if floor.Guardian then `  <font color="#FFC42E">GUARDIAN</font>` else ""),
-		if floor.Guardian then Theme.Color.Gold else TOWER_COLOR,
+		`FLOOR {floor.Floor} · <b>{string.upper(floor.Name)}</b>` .. (if floor.Guardian then `  <font color="#FFC42E">GUARDIAN</font>` else ""),
+		if floor.Guardian then Theme.Color.Gold else color,
 		21,
 		Theme.Font.Heavy
 	)
@@ -496,28 +463,71 @@ local function buildTower()
 		16,
 		Theme.Font.Heavy
 	)
-	if not unlocked then
-		text(body, 3, `LOCKED · {Tower.UnlockHint()} to open the tower.`, Theme.Color.Roll, 15, Theme.Font.Heavy)
-	end
-	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.Id)
+end
 
-	local enough = power >= floor.Recommended
-	local powerBox = box(4, if enough then Theme.Color.Quick else Theme.Color.Roll)
+local function powerBox(order: number, recommended: number, power: number)
+	local enough = power >= recommended
+	local panel = box(order, if enough then Theme.Color.Quick else Theme.Color.Roll)
 	text(
-		powerBox,
+		panel,
 		1,
-		`Recommended <b>{Kit.commas(floor.Recommended)}</b>   ·   Your deck <font color="{if enough then "#56D68A" else "#FF7846"}"><b>{Kit.commas(power)}</b></font>`,
+		`Recommended <b>{Kit.commas(recommended)}</b>   ·   Your deck <font color="{if enough then "#56D68A" else "#FF7846"}"><b>{Kit.commas(power)}</b></font>`,
 		Theme.Color.Text,
 		21,
 		Theme.Font.Heavy
 	)
+end
 
-	local reward = Tower.Reward(floorNo, replay)
+local function rewardExtras(reward): string
+	local extras = `+💎{Kit.commas(reward.Shards)} Shards  ·  +🧬{reward.TraitShards} Trait Shards`
+	if reward.Potion then
+		local potion = Meta.PotionById[reward.Potion]
+		extras ..= `  ·  {potion.Icon} {potion.Name}`
+	end
+	return extras
+end
+
+-- The TOWER tab: the Infinite Tower run's next floor, its power check and what it pays. A loss ends the run.
+local function buildTower()
+	local tower = State.Tower
+	local floorNo = tower.Run + 1
+	local floor = Tower.FloorAt(floorNo)
+	local boss = Bosses.Get(floor.Boss)
+	local unlocked = towerOpen()
+	local deck = State.ActiveDeck() or Deck.Empty()
+	local power = Deck.Power(deck, State.Cards)
+	setShowcase(boss, floor)
+	buildTabs()
+
+	text(
+		body,
+		0,
+		"Climb as high as you can in one run: every win goes up a floor, every floor pays, and Roll Packs drop every 5th floor (a Big Roll Pack every 25th). Lose once, give up or leave mid-fight and the run starts again from floor 1.",
+		Theme.Color.Muted,
+		17,
+		Theme.Font.Bold
+	)
+	local status = row(1, 36)
+	text(
+		status,
+		1,
+		`  THIS RUN  <b>FLOOR {floorNo}</b>     ·     BEST RUN  <b>FLOOR {tower.Best}</b>  `,
+		TOWER_COLOR,
+		19,
+		Theme.Font.Heavy
+	).Size = UDim2.new(1, 0, 0, 36)
+	floorBox(2, floor, TOWER_COLOR)
+	if not unlocked then
+		text(body, 3, `LOCKED · {Tower.UnlockHint()} to open the tower.`, Theme.Color.Roll, 15, Theme.Font.Heavy)
+	end
+	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.Id)
+	powerBox(4, floor.Recommended, power)
+
+	local record = floorNo > tower.Best
+	local reward = Tower.Reward(floorNo, record)
 	local rewardBox = box(5, Theme.Color.Gold)
-	text(rewardBox, 1, if replay then "REPLAY REWARDS" elseif floor.Guardian then "GUARDIAN REWARDS" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
-	if replay then
-		text(rewardBox, 2, "Already cleared: no Roll Packs or sure potion this time", Theme.Color.Muted, 16, Theme.Font.Bold)
-	elseif reward.Packs and next(reward.Packs) then
+	text(rewardBox, 1, if floor.Guardian and record then "GUARDIAN REWARDS · NEW RECORD" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
+	if reward.Packs and next(reward.Packs) then
 		text(rewardBox, 2, `<b>{Packs.Describe(reward.Packs)}</b>  (saved to your BAG, opened at your luck)`, Theme.Color.Gold, 18)
 	else
 		local packFloor = floorNo + 1
@@ -526,42 +536,135 @@ local function buildTower()
 		end
 		text(rewardBox, 2, `No pack on this floor · next: <b>{Packs.Describe(Packs.ForFloor(packFloor))}</b> on floor {packFloor}`, Theme.Color.Text, 17)
 	end
-	local extras = `+💎{reward.Shards} Shards  ·  +🧬{reward.TraitShards} Trait Shards`
-	if reward.Potion then
-		local potion = Meta.PotionById[reward.Potion]
-		extras ..= `  ·  {potion.Icon} {potion.Name}`
-	end
-	text(rewardBox, 3, extras, Theme.Color.Text, 17, Theme.Font.Bold)
-	local artifactChance = Tower.ArtifactChance(floorNo)
+	text(rewardBox, 3, rewardExtras(reward), Theme.Color.Text, 17, Theme.Font.Bold)
 	text(
 		rewardBox,
 		4,
-		`🔮 Artifact drop <b>{string.format("%.1f", artifactChance * 100)}%</b>`,
+		`🔮 Artifact drop <b>{string.format("%.1f", math.min(1, Items.ArtifactChance(reward.D) * reward.DropBoost) * 100)}%</b>`,
 		Color3.fromRGB(255, 170, 230),
 		17,
 		Theme.Font.Bold
 	)
-	if not floor.Guardian then
+	if floor.Guardian and not record then
+		text(rewardBox, 5, `Guardian bonuses (x{Tower.GuardianShards} Shards, a sure potion, better artifact odds) pay on floors past your best run (floor {tower.Best})`, Theme.Color.Muted, 15, Theme.Font.Bold)
+	elseif not floor.Guardian then
 		local guardian = Tower.NextGuardian(floorNo)
-		local guardianArtifact = Tower.ArtifactChance(guardian)
 		text(
 			rewardBox,
 			5,
-			`Next Guardian: floor {guardian} · artifact {math.floor(guardianArtifact * 100 + 0.5)}%, a sure potion and 2 Roll Packs`,
+			if guardian > tower.Best
+				then `Next Guardian: floor {guardian} · artifact {math.floor(Tower.ArtifactChance(guardian) * 100 + 0.5)}%, a sure potion and 2 Roll Packs`
+				else `Next Guardian: floor {guardian} · 2 Roll Packs (its bonuses pay past floor {tower.Best})`,
 			Theme.Color.Gold,
 			16,
 			Theme.Font.Heavy
 		)
 	end
-	text(rewardBox, 6, if nextFloor > 1 then `✓ Best floor {nextFloor - 1}` else "Your first climb!", Theme.Color.Quick, 17, Theme.Font.Heavy)
 
 	deckAndFight(6, deck, unlocked, function()
 		if not unlocked then
 			hint(`{Tower.UnlockHint()} first`)
 			return
 		end
-		return actions.Fight(Tower.Id, nil, { Floor = floorNo })
-	end, if replay then `REPLAY · FLOOR {floorNo}` else `CLIMB · FLOOR {floorNo}`, Tower.Id)
+		return actions.Fight(Tower.Id, nil)
+	end, if floorNo == 1 then "START RUN · FLOOR 1" else `CLIMB · FLOOR {floorNo}`, Tower.Id)
+	hintLabel.Parent = body
+end
+
+-- The PAGODA tab: the Hundred-Floor Pagoda's next floor (progress is kept), its milestones and floor 100.
+local function buildPagoda()
+	local cleared = State.Tower.Pagoda
+	local done = cleared >= Tower.Pagoda.Floors
+	local floorNo = math.min(Tower.Pagoda.Floors, cleared + 1)
+	local floor = Tower.FloorAt(floorNo, nil, nil, Tower.PagodaId)
+	local boss = Bosses.Get(floor.Boss)
+	local unlocked = towerOpen()
+	local deck = State.ActiveDeck() or Deck.Empty()
+	local power = Deck.Power(deck, State.Cards)
+	setShowcase(boss, floor)
+	buildTabs()
+
+	text(
+		body,
+		0,
+		`{Tower.Pagoda.Floors} floors, each beaten once and kept for good: a loss just tries the floor again. Big rewards wait on floors 25, 50 and 75, and floor 100 pays a Mythic artifact and the "{Tower.Pagoda.Title}" title. Its top floors take Rainbow and Secret decks.`,
+		Theme.Color.Muted,
+		17,
+		Theme.Font.Bold
+	)
+	-- Progress bar: floors cleared out of 100, with the milestones marked.
+	local track = Kit.new("Frame", {
+		LayoutOrder = 1,
+		Size = UDim2.new(1, 0, 0, 22),
+		BackgroundColor3 = Theme.Color.Backdrop,
+		Parent = body,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	Kit.new("Frame", {
+		Size = UDim2.fromScale(cleared / Tower.Pagoda.Floors, 1),
+		BackgroundColor3 = PAGODA_COLOR,
+		Parent = track,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	for at in Tower.PagodaMilestones do
+		Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(at / Tower.Pagoda.Floors, 0.5),
+			Size = UDim2.fromOffset(4, 26),
+			BorderSizePixel = 0,
+			BackgroundColor3 = if cleared >= at then Theme.Color.Gold else Theme.Color.Muted,
+			ZIndex = 3,
+			Parent = track,
+		})
+	end
+	Kit.label({
+		Text = `{cleared} / {Tower.Pagoda.Floors} FLOORS`,
+		Font = Theme.Font.Heavy,
+		TextColor3 = Theme.Color.Text,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 4,
+		Parent = track,
+	}, 15)
+
+	if done then
+		local crown = box(2, Theme.Color.Gold)
+		text(crown, 1, "🏯 <b>PAGODA CONQUERED</b>", Theme.Color.Gold, 24, Theme.Font.Heavy)
+		text(crown, 2, `All {Tower.Pagoda.Floors} floors beaten. You wear the "{Tower.Pagoda.Title}" title.`, Theme.Color.Text, 17, Theme.Font.Bold)
+		hintLabel.Parent = body
+		return
+	end
+	floorBox(2, floor, PAGODA_COLOR)
+	if not unlocked then
+		text(body, 3, `LOCKED · {Tower.UnlockHint()} to open the Pagoda.`, Theme.Color.Roll, 15, Theme.Font.Heavy)
+	end
+	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.PagodaId)
+	powerBox(4, floor.Recommended, power)
+
+	local reward = Tower.PagodaReward(floorNo)
+	local rewardBox = box(5, Theme.Color.Gold)
+	local milestone = reward.Milestone
+	text(rewardBox, 1, if milestone then `MILESTONE · FLOOR {floorNo}` elseif floor.Guardian then "GUARDIAN REWARDS" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
+	if reward.Packs and next(reward.Packs) then
+		text(rewardBox, 2, `<b>{Packs.Describe(reward.Packs)}</b>  (saved to your BAG)`, Theme.Color.Gold, 18)
+	end
+	text(rewardBox, 3, rewardExtras(reward), Theme.Color.Text, 17, Theme.Font.Bold)
+	if milestone then
+		local color = Rarity.Get(milestone.Artifact).Color
+		text(rewardBox, 4, `🔮 A sure <font color="#{color:ToHex()}"><b>{milestone.Artifact}</b></font> artifact` .. (if milestone.Title then `  ·  🏷️ the "{milestone.Title}" title` else ""), Theme.Color.Text, 17, Theme.Font.Heavy)
+	else
+		text(rewardBox, 4, `🔮 Artifact drop <b>{string.format("%.1f", Tower.ArtifactChance(floorNo, Tower.PagodaId) * 100)}%</b>`, Color3.fromRGB(255, 170, 230), 17, Theme.Font.Bold)
+		local nextMilestone = Tower.NextMilestone(floorNo)
+		if nextMilestone then
+			local m = Tower.PagodaMilestones[nextMilestone]
+			text(rewardBox, 5, `Next milestone: floor {nextMilestone} · {Packs.Describe(m.Packs)}, 🧬{m.TraitShards} and a sure {m.Artifact} artifact`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+		end
+	end
+
+	deckAndFight(6, deck, unlocked, function()
+		if not unlocked then
+			hint(`{Tower.UnlockHint()} first`)
+			return
+		end
+		return actions.Fight(Tower.PagodaId, nil)
+	end, `CLIMB · FLOOR {floorNo}`, Tower.PagodaId)
 	hintLabel.Parent = body
 end
 
@@ -688,6 +791,9 @@ local function build()
 	end
 	if mode == "tower" then
 		buildTower()
+		return
+	elseif mode == "pagoda" then
+		buildPagoda()
 		return
 	elseif mode == "raid" then
 		buildRaid()
@@ -992,8 +1098,9 @@ end
 
 -- The TOWER tab, from the tower gate.
 function BossScreen.OpenTower()
-	mode = "tower"
-	towerPick = nil -- from the tower gate: back to the next climb
+	if mode ~= "pagoda" then
+		mode = "tower"
+	end
 	modal:Open()
 end
 
