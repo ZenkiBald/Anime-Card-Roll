@@ -27,6 +27,7 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 local Modal = require(script.Parent.Modal)
 local CardTile = require(script.Parent.CardTile)
 local Controls = require(script.Parent.Controls)
@@ -42,9 +43,9 @@ local State = require(script.Parent.Parent.State)
 local DeckBuilder = {}
 
 local CRIMSON = Color3.fromRGB(255, 70, 90)
-local CYAN = Color3.fromRGB(60, 220, 255)
+local C = UITheme.Colors
+local CYAN = C.SpiritCyan -- the backline and its spirit tethers (soft spirit blue, not electric cyan)
 local ROW_COLORS = { Attack = CRIMSON, Support = CYAN }
-local GOOD = Color3.fromRGB(70, 224, 150)
 
 local REASONS = {
 	Duplicate = "That card is already in the deck",
@@ -62,7 +63,7 @@ local emptyLabel: TextLabel
 local hintLabel: TextLabel
 local powerLabel: TextLabel
 local costPill: any -- children read by name
-local synergyLabel: TextLabel
+local synergyStrip: Frame -- the active synergies and bonds as small tags
 local slotTools: Frame
 local autoButton: TextButton
 local backButton: TextButton
@@ -247,6 +248,15 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	}, { Kit.corner(UDim.new(0, 3)), Kit.stroke(color, 1.2, 0) })
 	text({ Text = tostring(index), TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.fromScale(1, 1), ZIndex = 5, Parent = badge }, 12)
 	if id == "" then
+		-- A sunken well with a rust inner edge.
+		Kit.new("Frame", {
+			Name = "Well",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, -8, 1, -8),
+			BackgroundColor3 = C.UrushiInset,
+			Parent = plate,
+		}, { Kit.corner(UDim.new(0, 3)), Kit.stroke(C.TamahaganeRust, 1.5, 0) })
 		text({
 			Text = if isSelected then "▶ TAP A CARD IN THE VAULT" else "+ EMPTY SLOT",
 			TextColor3 = if isSelected then color else Theme.Color.Muted,
@@ -344,19 +354,41 @@ local function drawLink(link: Frame, index: number)
 		Size = UDim2.fromScale(0.9, 0.34),
 		Parent = link,
 	}, 22)
+	-- The spirit tether: a lit spirit-blue line with a soft halo when the Support links its Attack card
+	-- (gold for a bond), a dim steel thread when it doesn't.
+	local tetherColor = if bond then Theme.Color.Gold elseif linked then CYAN else C.TamahaganeSlate
+	local y = if bond then 0.32 else 0.4
+	if linked or bond then
+		Kit.new("Frame", {
+			Name = "Halo",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, y),
+			Size = UDim2.new(1, 0, 0, 10),
+			BorderSizePixel = 0,
+			BackgroundColor3 = tetherColor,
+			BackgroundTransparency = 0.8,
+			ZIndex = 0,
+			Parent = link,
+		}, {
+			Kit.corner(UDim.new(1, 0)),
+			Kit.new("UIGradient", {
+				Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(0.5, 0.75), NumberSequenceKeypoint.new(1, 0.3) }),
+			}),
+		})
+	end
 	Kit.new("Frame", {
 		Name = "Beam",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, if bond then 0.32 else 0.4),
-		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.fromScale(0.5, y),
+		Size = UDim2.new(1, 0, 0, if linked or bond then 3 else 1),
 		BorderSizePixel = 0,
-		BackgroundColor3 = CYAN,
-		BackgroundTransparency = if linked then 0.2 else 0.85,
+		BackgroundColor3 = tetherColor,
+		BackgroundTransparency = if linked or bond then 0 else 0.3,
 		ZIndex = 0,
 		Parent = link,
 	}, {
 		Kit.new("UIGradient", {
-			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(0.5, 0.7), NumberSequenceKeypoint.new(1, 0.2) }),
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.5, 0.45), NumberSequenceKeypoint.new(1, 0) }),
 		}),
 	})
 	icon.ZIndex = 2
@@ -627,21 +659,62 @@ end
 
 -- Footer and refresh -------------------------------------------------------------------------------------
 
+-- The Cost Challenge meter: a sunken track filling to the cap. Neutral steel when over (the cap only
+-- matters for the optional Cost Challenge; every other fight is fine).
 local function drawCost()
 	clear(costPill)
 	local cost = Deck.Cost(working, State.Cards)
-	local ok = cost <= Config.Deck.CostCap
-	-- Neutral when over: the cap only matters for the optional Cost Challenge, every other fight is fine.
-	local color = if ok then GOOD else Theme.Color.Muted
-	costPill.BackgroundColor3 = color:Lerp(Color3.new(0, 0, 0), 0.78)
-	costPill.UIStroke.Color = color
+	local cap = Config.Deck.CostCap
+	local ok = cost <= cap
+	Kit.new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(math.clamp(cost / cap, 0, 1), 1),
+		BackgroundColor3 = if ok then CYAN else C.TamahaganeEdge,
+		BackgroundTransparency = 0.55,
+		BorderSizePixel = 0,
+		Parent = costPill,
+	}, { Kit.corner(UDim.new(0, 3)) })
 	text({
-		Text = if ok then `✓ COST {cost}/{Config.Deck.CostCap} · COST CHALLENGE READY` else `COST {cost}/{Config.Deck.CostCap} · over the Cost Challenge cap`,
-		TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.2),
+		Text = if ok then `COST <b>{cost}</b> / {cap}  ·  COST CHALLENGE READY` else `COST <b>{cost}</b> / {cap}  ·  over the Cost Challenge cap`,
+		TextColor3 = if ok then C.WashiParchment else C.WashiGhost,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Size = UDim2.fromScale(1, 1),
+		ZIndex = 2,
 		Parent = costPill,
 	}, 14)
+end
+
+-- A small synergy / bond tag: raised Urushi, a steel bezel, the element icon and parchment text.
+local function tag(order: number, label: string, color: Color3)
+	local frame = Kit.new("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(0, 0, 1, 0),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = C.UrushiRaised,
+		Parent = synergyStrip,
+	}, {
+		Kit.corner(UDim.new(0, 3)),
+		Kit.stroke(C.TamahaganeSlate, 1, 0),
+		Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }),
+	})
+	text({
+		Text = label,
+		TextColor3 = C.WashiParchment,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.new(0, 0, 1, 0),
+		TextScaled = false,
+		TextSize = 13,
+		Parent = frame,
+	}, 13)
+	-- A thin line in the element's colour along the tag's bottom.
+	Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, -6, 1, 0),
+		Size = UDim2.new(1, 12, 0, 1),
+		BorderSizePixel = 0,
+		BackgroundColor3 = color,
+		Parent = frame,
+	})
 end
 
 local function drawPresets()
@@ -667,13 +740,15 @@ local function drawPresets()
 end
 
 local function drawFooter()
-	powerLabel.Text = `⚡ {Kit.commas(Deck.Power(working, State.Cards))}`
+	powerLabel.Text = `<font color="#FFC42E">⚡</font> {Kit.commas(Deck.Power(working, State.Cards))} <font size="14" color="#{C.WashiGhost:ToHex()}">DECK POWER</font>`
 	drawCost()
-	local parts = {}
+	clear(synergyStrip)
+	local count = 0
 	for _, active in Elements.ActiveSynergies(Deck.Elements(working)) do
 		local element = Elements.Get(active.Synergy.Element)
 		local tier = table.find(active.Synergy.Tiers, active.Tier) or 1
-		table.insert(parts, `<font color="#{element.Color:ToHex()}">{element.Icon} {active.Synergy.Name} {roman(tier)}</font>`)
+		count += 1
+		tag(count, `{element.Icon} {string.upper(active.Synergy.Name)} {roman(tier)}`, element.Color)
 	end
 	local ids = {}
 	for _, row in Deck.Rows do
@@ -683,12 +758,22 @@ local function drawFooter()
 			end
 		end
 	end
-	local bonds = {}
 	for _, bond in Elements.ActiveBonds(ids) do
-		table.insert(bonds, `<font color="#FFC42E">🤝 {bond.Name}</font>`)
+		count += 1
+		tag(count, `🤝 {string.upper(bond.Name)}`, Theme.Color.Gold)
 	end
-	synergyLabel.Text = (if #parts > 0 then `Active Synergies: {table.concat(parts, ", ")}` else `<font color="#8A94AC">No synergy yet: 2 cards of one element switch one on</font>`)
-		.. (if #bonds > 0 then `   ·   Bonds: {table.concat(bonds, ", ")}` else "")
+	if count == 0 then
+		text({
+			Text = "No synergy yet: 2 cards of one element switch one on (tap for the guide)",
+			TextColor3 = C.WashiGhost,
+			Font = Theme.Font.Bold,
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.new(0, 0, 1, 0),
+			TextScaled = false,
+			TextSize = 13,
+			Parent = synergyStrip,
+		}, 13)
+	end
 	local auto: any = autoButton
 	auto.Label.Text = if target then "COUNTER-BUILD" else "AUTO-BUILD"
 	backButton.Visible = returnTo ~= nil
@@ -816,17 +901,36 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		ZIndex = 3, -- the preset list opens upward over the rows
 		Parent = left,
 	})
-	powerLabel = text({ Text = "", Font = Theme.Font.Display, TextColor3 = Theme.Color.Gold, Size = UDim2.new(0.34, 0, 0, 30), Parent = footer }, 24)
+	powerLabel = text({ Text = "", Font = Theme.Font.Display, TextColor3 = C.WashiParchment, Size = UDim2.new(0.36, 0, 0, 30), Parent = footer }, 26)
 	costPill = Kit.new("Frame", {
 		Name = "Cost",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.62, 0, 0, 2),
+		Position = UDim2.new(0.68, 0, 0, 2),
 		Size = UDim2.new(0.62, 0, 0, 26),
-		BackgroundColor3 = GOOD,
+		BackgroundColor3 = C.UrushiInset,
+		ClipsDescendants = true,
 		Parent = footer,
-	}, { Kit.corner(UDim.new(0, 4)), Kit.stroke(GOOD, 1.2, 0) })
-	synergyLabel = text({ Text = "", Font = Theme.Font.Bold, Position = UDim2.fromOffset(0, 34), Size = UDim2.new(1, 0, 0, 18), Parent = footer }, 13)
-	Kit.new("TextButton", { Name = "Explain", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", Parent = synergyLabel }).Activated:Connect(ElementGuide.Open)
+	}, { Kit.corner(UDim.new(0, 4)), Kit.stroke(C.TamahaganeSlate, 1.5, 0) })
+	synergyStrip = Kit.new("Frame", {
+		Name = "Synergies",
+		Position = UDim2.fromOffset(0, 34),
+		Size = UDim2.new(1, 0, 0, 20),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Parent = footer,
+	}, {
+		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5) }),
+	})
+	-- Tapping the strip opens the elements guide (a button over it, outside its list layout).
+	Kit.new("TextButton", {
+		Name = "Explain",
+		Position = UDim2.fromOffset(0, 34),
+		Size = UDim2.new(1, 0, 0, 20),
+		BackgroundTransparency = 1,
+		Text = "",
+		ZIndex = 3,
+		Parent = footer,
+	}).Activated:Connect(ElementGuide.Open)
 
 	local actions = Kit.new("Frame", {
 		Name = "Actions",
@@ -846,14 +950,15 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 			back()
 		end
 	end)
-	autoButton = Kit.button("AUTO-BUILD", Theme.Color.Quick, Theme.Color.QuickDeep, { LayoutOrder = 1, Size = UDim2.new(0.28, 0, 1, 0), Parent = actions })
+	-- AUTO-BUILD is the call to action (a vermilion seal); CLEAR is recessed steel.
+	autoButton = Kit.button("AUTO-BUILD", C.VermilionHover, C.VermilionWax, { LayoutOrder = 1, Size = UDim2.new(0.28, 0, 1, 0), Parent = actions })
 	autoButton.Activated:Connect(function()
 		if call("AutoBuild", State.Decks.Active, target) then
 			Sfx.Play("Upgrade", 1.1)
 			hint(if target then "Rebuilt to counter this fight's elements" else "Filled with your strongest cards")
 		end
 	end)
-	local clearButton = Kit.button("CLEAR", Theme.Color.Danger, Color3.fromRGB(60, 10, 20), { LayoutOrder = 2, Size = UDim2.new(0.16, 0, 1, 0), Parent = actions })
+	local clearButton = Kit.button("CLEAR", C.TamahaganeSlate, C.UrushiBase, { LayoutOrder = 2, Size = UDim2.new(0.16, 0, 1, 0), Parent = actions })
 	clearButton.Activated:Connect(function()
 		working = Deck.Empty()
 		selected = { Row = "Attack", Index = 1 }

@@ -2,9 +2,12 @@
 -- STORE (menu button): one full-screen scroll. Top: the Robux passes; middle: Shard bundles and the
 -- Server Luck Totem (MonetizationConfig.luau); bottom: REDEEM CODES (UI/Codes builds into it). The server
 -- decides everything (MonetizationService): BUY prompts the real purchase, or grants a mock one in
--- Studio / test mode while the id is still 0. Perks marked 🎲 change odds or hand out random rewards;
--- where paid random items aren't allowed (PolicyService) they show greyed out and the totem isn't sold.
--- ODDS shows every outcome and its live chance.
+-- Studio / test mode while the id is still 0. Perks marked "changes odds" change odds or hand out random
+-- rewards; where paid random items aren't allowed (PolicyService) they show greyed out and the totem
+-- isn't sold. ODDS shows every outcome and its live chance.
+-- Look: Dark Feudal. Parchment section titles over a steel rule; each product an Urushi plate with a
+-- steel bezel, its crest in a diamond IconBadge (a short monogram, no emoji), ghost-text perks, and a
+-- solid vermilion wax BUY button reading "R$ price".
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -15,6 +18,9 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local IconBadge = require(script.Parent.Components.IconBadge)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
+local C = UITheme.Colors
 local Modal = require(script.Parent.Modal)
 local Sfx = require(script.Parent.Sfx)
 local Codes = require(script.Parent.Codes)
@@ -57,7 +63,7 @@ local function clear()
 	end
 end
 
--- A section heading across the scroll: neon caps and a thin rule.
+-- A section heading across the scroll: parchment caps and a slim steel rule.
 local function section(order: number, title: string, note: string?)
 	local frame = Kit.new("Frame", {
 		LayoutOrder = order,
@@ -68,7 +74,7 @@ local function section(order: number, title: string, note: string?)
 	Kit.label({
 		Text = title,
 		Font = Theme.Font.Display,
-		TextColor3 = Theme.Color.Neon,
+		TextColor3 = C.WashiParchment,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromOffset(2, 2),
 		Size = UDim2.new(1, -4, 0, 22),
@@ -78,7 +84,7 @@ local function section(order: number, title: string, note: string?)
 		Kit.label({
 			Text = note,
 			Font = Theme.Font.Bold,
-			TextColor3 = Theme.Color.Muted,
+			TextColor3 = C.WashiGhost,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Position = UDim2.fromOffset(2, 26),
 			Size = UDim2.new(1, -4, 0, 16),
@@ -90,10 +96,40 @@ local function section(order: number, title: string, note: string?)
 		Position = UDim2.new(0, 0, 1, 0),
 		Size = UDim2.new(1, 0, 0, 1),
 		BorderSizePixel = 0,
-		BackgroundColor3 = Theme.Color.Line,
+		BackgroundColor3 = C.TamahaganeSlate,
 		Parent = frame,
 	})
 	return frame
+end
+
+-- The solid vermilion wax BUY button: "R$ 149", parchment text, a hot rim; the press springs (Kit.pressable).
+local function buyButton(parent: Instance, text: string, enabled: boolean): TextButton
+	local button = Kit.new("TextButton", {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 6),
+		Size = UDim2.fromOffset(160, 46),
+		AutoButtonColor = false,
+		BackgroundColor3 = if enabled then C.VermilionWax else C.UrushiInset,
+		Font = Theme.Font.Display,
+		Text = text,
+		TextColor3 = if enabled then C.WashiParchment else C.WashiGhost,
+		TextSize = 22,
+		Parent = parent,
+	}, {
+		Kit.corner(UDim.new(0, 4)),
+		Kit.stroke(if enabled then C.VermilionHover else C.TamahaganeSlate, 1.5, 0),
+	})
+	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.5).Parent = button
+	if enabled then
+		button.MouseEnter:Connect(function()
+			Kit.tween(button, 0.12, { BackgroundColor3 = C.VermilionHover })
+		end)
+		button.MouseLeave:Connect(function()
+			Kit.tween(button, 0.12, { BackgroundColor3 = C.VermilionWax })
+		end)
+	end
+	Kit.pressable(button)
+	return button
 end
 
 local draw -- below
@@ -122,20 +158,31 @@ local function request(action: string, key: string?)
 	draw()
 end
 
-local function row(order: number, color: Color3, icon: string, title: string, perks: { { Text: string, Random: boolean? } }, price: number, owned: boolean, onBuy: () -> (), blocked: boolean?)
+-- The crests: short monograms that say what each product does (no emoji).
+local CRESTS = { FastRoll = "FR", AutoRoll = "A+", TripleRoll = "x3", VIP = "VIP" }
+
+local function row(order: number, color: Color3, crest: string, title: string, perks: { { Text: string, Random: boolean? } }, price: number, owned: boolean, onBuy: () -> (), blocked: boolean?)
 	local restricted = State.Store.Restricted
-	local frame = Kit.tile({ LayoutOrder = order, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = list }, color)
+	local frame = Kit.new("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = C.UrushiRaised,
+		Parent = list,
+	}, { Kit.corner(UDim.new(0, 5)), Kit.stroke(C.TamahaganeSlate, 1.5, 0) })
 	Kit.padding(12).Parent = frame
-	Kit.label({
-		Text = icon,
-		Font = Theme.Font.Display,
-		Size = UDim2.fromOffset(56, 56),
+	-- The product's crest: a short monogram in a diamond plate glowing in the product's colour.
+	IconBadge.new({
+		IconAsset = crest,
+		GlowColor = color,
+		Size = UDim2.fromOffset(58, 58),
+		Position = UDim2.fromOffset(-2, -2),
 		Parent = frame,
-	}, 46)
+	})
 	local title_ = Kit.label({
 		Text = title,
 		Font = Theme.Font.Display,
-		TextColor3 = color,
+		TextColor3 = C.WashiParchment,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromOffset(66, 0),
 		Size = UDim2.new(1, -260, 0, 30),
@@ -145,15 +192,18 @@ local function row(order: number, color: Color3, icon: string, title: string, pe
 	local lines = {}
 	for _, perk in perks do
 		if perk.Random and restricted then
-			table.insert(lines, `<font color="#7A7690">🎲 {perk.Text} (not available in your region)</font>`)
+			table.insert(lines, `<font color="#4E4A44">• {perk.Text} (not available in your region)</font>`)
+		elseif perk.Random then
+			table.insert(lines, `• {perk.Text}  <font color="#C9A24A">· changes odds</font>`)
 		else
-			table.insert(lines, `{if perk.Random then "🎲 " else "• "}{perk.Text}`)
+			table.insert(lines, `• {perk.Text}`)
 		end
 	end
 	Kit.label({
 		Text = table.concat(lines, "\n"),
 		RichText = true,
 		Font = Theme.Font.Bold,
+		TextColor3 = C.WashiGhost,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextScaled = false,
@@ -163,13 +213,7 @@ local function row(order: number, color: Color3, icon: string, title: string, pe
 		Size = UDim2.new(1, -260, 0, 20),
 		Parent = frame,
 	}, 16)
-	local buy = Kit.button(if owned then "OWNED ✓" elseif blocked then "UNAVAILABLE" else `BUY · R$ {price}`, Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 6),
-		Size = UDim2.fromOffset(180, 48),
-		Parent = frame,
-	})
-	Kit.dim(buy, owned or blocked == true)
+	local buy = buyButton(frame, if owned then "OWNED" elseif blocked then "UNAVAILABLE" else `R$ {price}`, not owned and not blocked)
 	buy.Activated:Connect(function()
 		if not owned and not blocked then
 			onBuy()
@@ -185,14 +229,14 @@ function draw()
 	local store = State.Store
 	section(1, "GAME PASSES", "Yours for good")
 	for i, pass in MonetizationConfig.Passes do
-		row(10 + i, pass.Color, pass.Icon, string.upper(pass.Name), pass.Perks, pass.Price, store.Passes[pass.Key] == true, function()
+		row(10 + i, pass.Color, CRESTS[pass.Key] or string.sub(pass.Name, 1, 2), string.upper(pass.Name), pass.Perks, pass.Price, store.Passes[pass.Key] == true, function()
 			request("Buy", pass.Key)
 		end)
 	end
 	section(40, "SHARDS & SERVER TOTEM", "Buy as often as you like")
 	for i, bundle in MonetizationConfig.ShardBundles do
-		row(40 + i, Color3.fromRGB(196, 140, 255), bundle.Icon, string.upper(bundle.Name), {
-			{ Text = `💎{Kit.commas(bundle.Shards)} Shards (spend them on potions and Shard upgrades)`, Random = true },
+		row(40 + i, Color3.fromRGB(196, 140, 255), Kit.short(bundle.Shards), string.upper(bundle.Name), {
+			{ Text = `{Kit.commas(bundle.Shards)} Shards (spend them on potions and Shard upgrades)`, Random = true },
 		}, bundle.Price, false, function()
 			request("BuyShards", bundle.Key)
 		end, store.Restricted)
@@ -201,9 +245,9 @@ function draw()
 	local now = workspace:GetServerTimeNow()
 	local running = store.TotemEnds and store.TotemEnds > now
 	local packs = Packs.Describe(totem.Packs)
-	row(60, Color3.fromRGB(110, 255, 160), totem.Icon, string.upper(totem.Name), {
+	row(60, Color3.fromRGB(110, 255, 160), `x{totem.Luck}`, string.upper(totem.Name), {
 		{ Text = `The whole server: x{totem.Luck} luck for {totem.Seconds // 60} min (buy again to add time)`, Random = true },
-		{ Text = `You: {packs} and 🧬{totem.TraitShards} Trait Shards`, Random = true },
+		{ Text = `You: {packs} and {totem.TraitShards} Trait Shards`, Random = true },
 		{ Text = if running then `Running now: {math.floor((store.TotemEnds - now) / 60)} min left` else "A totem rises by the town spawn while it runs" },
 	}, totem.Price, false, function()
 		request("BuyTotem")
@@ -218,7 +262,7 @@ function draw()
 	Kit.label({
 		Text = if store.Mock
 			then "Studio / test mode: BUY grants without Robux while a pass id is 0 (MonetizationConfig)."
-			else "🎲 items change odds or give random rewards: every outcome and its live chance is in ODDS.",
+			else "Perks marked \"changes odds\" change odds or give random rewards: every outcome and its live chance is in ODDS.",
 		Font = Theme.Font.Bold,
 		TextColor3 = Theme.Color.Muted,
 		TextXAlignment = Enum.TextXAlignment.Left,

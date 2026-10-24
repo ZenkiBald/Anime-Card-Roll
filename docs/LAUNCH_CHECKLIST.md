@@ -57,6 +57,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   Trait Master's AUTO ROLL view, the BAG's RELICS / ARTIFACTS tabs and the Pagoda's floor 100 artifact.
 - [ ] The art-direction pass: new card tiles (tier frames, star diamonds, element + role badges, name / stat / rarity
   rows), the Surge talisman's three states and shiver, the wax-seal ROLL, recessed AUTO / QUICK, no cyan trims left.
+- [ ] Art direction phase 2: panel frames and tabs on every screen, the deck screen (wells, tethers, cost meter,
+  synergy tags, AUTO-BUILD / CLEAR), sunken dropdowns, the STORE crests and R$ buttons.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

@@ -9,6 +9,7 @@ local Lighting = game:GetService("Lighting")
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local UITheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Configs"):WaitForChild("UITheme"))
 local Skin = require(script.Parent.Skin)
 
 local Modal = {}
@@ -17,10 +18,11 @@ Modal.__index = Modal
 local openModal = nil -- only one panel open at a time
 local blur: BlurEffect? = nil
 
-local PANEL_TOP = Color3.fromRGB(16, 20, 31)
-local PANEL_BOTTOM = Color3.fromRGB(9, 11, 18)
-local BANNER_LEFT = Color3.fromRGB(24, 30, 46)
-local BANNER_RIGHT = Color3.fromRGB(12, 15, 24)
+local C = UITheme.Colors
+local PANEL_TOP = C.UrushiRaised:Lerp(C.UrushiBase, 0.5) -- Urushi lacquer, a touch lighter at the top
+local PANEL_BOTTOM = C.UrushiBase
+local BANNER_LEFT = C.UrushiRaised
+local BANNER_RIGHT = C.UrushiBase
 
 export type Modal = {
 	Gui: ScreenGui,
@@ -47,8 +49,8 @@ local function setBlur(on: boolean)
 	Kit.tween(effect, 0.25, { Size = goal })
 end
 
--- Title tab used by every panel (and the deck screen): a dark slate plate, a neon slash on its left
--- and a neon underline, the title in heavy caps.
+-- Title tab used by every panel (and the deck screen): an Urushi plate with a steel edge, a vermilion
+-- seal slash on its left and a vermilion underline, the title in parchment caps.
 function Modal.Banner(parent: Instance, title: string, textSize: number?): any -- children read by name
 	local banner = Kit.new("Frame", {
 		Name = "Banner",
@@ -71,7 +73,7 @@ function Modal.Banner(parent: Instance, title: string, textSize: number?): any -
 		Size = UDim2.new(0, 5, 0.62, 0),
 		Rotation = 14,
 		BorderSizePixel = 0,
-		BackgroundColor3 = Theme.Color.Neon,
+		BackgroundColor3 = C.VermilionWax,
 		ZIndex = 7,
 		Parent = banner,
 	})
@@ -81,7 +83,7 @@ function Modal.Banner(parent: Instance, title: string, textSize: number?): any -
 		Position = UDim2.new(0, -30, 1, 0),
 		Size = UDim2.new(1, 52, 0, 2),
 		BorderSizePixel = 0,
-		BackgroundColor3 = Theme.Color.Neon,
+		BackgroundColor3 = C.VermilionWax,
 		ZIndex = 7,
 		Parent = banner,
 	}, {
@@ -119,7 +121,7 @@ function Modal.CloseButton(parent: Instance): TextButton
 		Position = UDim2.new(1, -2, 0, -2),
 		Size = UDim2.fromOffset(32, 32),
 		AutoButtonColor = false,
-		BackgroundColor3 = Color3.fromRGB(14, 17, 26),
+		BackgroundColor3 = C.UrushiInset,
 		Text = "",
 		ZIndex = 6,
 		Parent = parent,
@@ -184,7 +186,7 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 	}, {
 		Kit.corner(),
 		Kit.gradient(ColorSequence.new(PANEL_TOP, PANEL_BOTTOM), 90),
-		Kit.stroke(Theme.Color.Line, 1.2, 0),
+		Kit.stroke(C.TamahaganeSlate, 2, 0),
 		Kit.new("UISizeConstraint", { MaxSize = maxSize, MinSize = Vector2.new(280, 220) }),
 	})
 	self.Scale = Kit.new("UIScale", { Scale = 1, Parent = self.Panel })
@@ -266,12 +268,14 @@ end
 local Page = {}
 Page.__index = Page
 
+-- Active: a raised Urushi plate with a vermilion edge along its bottom; inactive: bare ghost text.
 local function styleTab(button: TextButton, on: boolean)
-	button.TextColor3 = if on then Theme.Color.Text else Theme.Color.Muted
-	button.BackgroundTransparency = if on then 0.05 else 0.4
+	button.TextColor3 = if on then C.WashiParchment else C.WashiGhost
+	button.BackgroundTransparency = if on then 0 else 1
 	local stroke = button:FindFirstChildOfClass("UIStroke")
 	if stroke then
-		stroke.Color = if on then Theme.Color.Neon else Theme.Color.Line
+		stroke.Color = C.TamahaganeSlate
+		stroke.Transparency = if on then 0 else 1
 	end
 	local bar = button:FindFirstChild("Bar")
 	if bar then
@@ -312,7 +316,7 @@ function Modal.Tabbed(playerGui: Instance, name: string, title: string, size: Ve
 			AutoButtonColor = false,
 			Size = UDim2.new(0, 0, 1, 0),
 			AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundColor3 = Theme.Color.PanelLight,
+			BackgroundColor3 = C.UrushiRaised,
 			Font = Theme.Font.Heavy,
 			Text = tab,
 			TextSize = 17,
@@ -328,7 +332,7 @@ function Modal.Tabbed(playerGui: Instance, name: string, title: string, size: Ve
 			Position = UDim2.new(0.5, 0, 1, 0),
 			Size = UDim2.new(1, 36, 0, 2),
 			BorderSizePixel = 0,
-			BackgroundColor3 = Theme.Color.Neon,
+			BackgroundColor3 = C.VermilionWax,
 			Visible = false,
 			Parent = button,
 		})
@@ -418,7 +422,7 @@ function Modal:Page(tab: string, region: string?, heading: string?)
 			Name = "Heading",
 			Text = string.upper(heading or tab),
 			Font = Theme.Font.Display,
-			TextColor3 = Theme.Color.Neon,
+			TextColor3 = C.WashiParchment,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Size = UDim2.new(0.5, 0, 0, 22),
 			Parent = header,

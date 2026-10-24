@@ -83,10 +83,14 @@ odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`
 cyan) feed `UI/Theme`. `UITheme.BorderTiers` frames card tiles (bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void 3
 px: the border is the tier); stars are small parchment diamonds (they're stats, not the tier). The HUD's Surge talisman
 charges spirit blue, shivers void purple for the last 4 rolls, and seals gold when the next roll is the surge (ROLL then
-reads UNLEASH SURGE!); AUTO / QUICK are recessed and light their bezel when on. Components: `JuicyButton` (sheen,
-spring, sounds, CanvasGroup content; roll console + battle pods) and `IconBadge` (diamond badges for element / role /
-currency). Card portraits use the 2D `Image` when set, else an element-lit bust (the user is making the illustrations:
-`art/CARD_ART_PROMPTS.md`, PNGs in `art/cards/<cardId>.png`).
+reads UNLEASH SURGE!); AUTO / QUICK are recessed and light their bezel when on. Panels (`Modal`) are Urushi with a 2 px
+steel edge, a vermilion banner slash and underline, tabs with a vermilion underline when active; `Controls` dropdowns
+and search are sunken wells. The deck screen has sunken empty slots, spirit-blue Slot Link tethers (gold for a bond), a
+sunken Cost Challenge meter and synergy / bond tags; AUTO-BUILD is the vermilion seal. The STORE uses diamond crests
+(monograms, no emoji) and solid vermilion R$ buttons. Components: `JuicyButton` (sheen, spring, sounds, CanvasGroup
+content; roll console + battle pods) and `IconBadge` (diamond badges for element / role / currency). Card portraits use
+the 2D `Image` when set, else an element-lit bust (the user is making the illustrations: `art/CARD_ART_PROMPTS.md`, PNGs
+in `art/cards/<cardId>.png`).
 
 ## Layout (Rojo project, `default.project.json`)
 

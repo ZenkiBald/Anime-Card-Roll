@@ -1,20 +1,21 @@
 --!nonstrict
--- Shared menu controls in the obsidian style (4 px corners, 1.2 px slate edges, neon when active):
--- dropdown tiles (Sort / Filter / Element), tabs with a neon underline, a search box, section banners
--- with a neon bar, small square icon buttons and toggle chips.
+-- Shared menu controls in the Dark Feudal style: sunken Urushi wells with Tamahagane slate bezels (gold
+-- leaf when active): dropdown pills (Sort / Filter / Element), tabs with a vermilion underline, a search
+-- box, section banners with a coloured bar, small square icon buttons and toggle chips.
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 
 local Controls = {}
 
-Controls.Purple = Color3.fromRGB(60, 200, 255) -- the neon accent (kept under its old name)
-Controls.PurpleDeep = Color3.fromRGB(14, 70, 110)
+Controls.Purple = Theme.Color.Neon -- the active accent: gold leaf (kept under its old name)
+Controls.PurpleDeep = Color3.fromRGB(70, 52, 20)
 Controls.Outline = Color3.fromRGB(8, 10, 16)
 
 local CORNER = UDim.new(0, 4)
-local TILE_TOP = Color3.fromRGB(26, 31, 46)
-local TILE_BOTTOM = Color3.fromRGB(13, 16, 25)
+local UITheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Configs"):WaitForChild("UITheme"))
+local TILE_TOP = UITheme.Colors.UrushiInset -- a sunken well, darker at the top
+local TILE_BOTTOM = UITheme.Colors.UrushiBase
 
 local function outlined(label: TextLabel, thickness: number?)
 	Kit.textStroke(Controls.Outline, math.min(thickness or 1, 1), 0.3).Parent = label
@@ -35,7 +36,7 @@ local function tile(className: string, props: { [string]: any }, edge: Color3?):
 	return Kit.new(className, base, {
 		Kit.corner(CORNER),
 		Kit.gradient(ColorSequence.new(TILE_TOP, TILE_BOTTOM), 90),
-		Kit.stroke(edge or Theme.Color.Line, 1.2, 0),
+		Kit.stroke(edge or UITheme.Colors.TamahaganeSlate, 1.5, 0),
 	})
 end
 Controls.Tile = tile
