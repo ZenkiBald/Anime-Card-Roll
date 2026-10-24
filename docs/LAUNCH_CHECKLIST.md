@@ -6,8 +6,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 ## 1. Balance decisions
 
 - [x] **Fusion luck removed** (user's call, 2026-10-24). Fusions used to add +0.05x permanent luck each, which had no limit
-  of its own and reached the 25x luck cap within a day or two of heavy rolling. Now a fusion pays the better card and
-  25 Trait Shards only.
+  of its own and reached the 25x luck cap within a day or two of heavy rolling. Fusion Trait Shards and XP went too:
+  a fusion's whole reward is the card at the next border (4x stats).
 
 ## 2. Code switches
 

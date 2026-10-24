@@ -273,7 +273,6 @@ Meta.XP = {
 	NewCard = 10, -- on top, for a card you didn't have
 	BossWinPerD = 30, -- x the fight's difficulty score D
 	Quest = 60, -- per daily quest claimed
-	Fusion = 120,
 	Minute = 6, -- every minute in the game
 }
 Meta.MaxLevel = 100

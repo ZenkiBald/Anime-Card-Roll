@@ -2,8 +2,8 @@
 -- Hoshi's border fusion: Config.FusionCopies (100) copies of one card at one border fuse into 1 copy of
 -- it at the next border (Base -> Gold -> Rainbow -> Secret). The card wears its best border, so Deck
 -- Power, the battle engine and every screen pick the new tier up from the save (Cards[id].BorderCopies /
--- Borders). Fusing is Awakening node 5 (Awaken.luau): it pays Awaken.FusionTraitShards, and every fusion
--- is counted in Cards[id].Fusion. Fusions give no luck (the 4x card is the reward).
+-- Borders). Fusing is Awakening node 5 (Awaken.luau); every fusion is counted in Cards[id].Fusion. The card
+-- at the next border is the whole reward: no luck, Trait Shards or XP (user's call, 2026-10-24).
 -- Fuse remote: (cardId, border) = fuse 100 of that border; ("ALL") = FUSE ALL; only beside Hoshi (NpcRange).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,8 +11,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
-local Meta = require(Shared.Meta)
-local Awaken = require(Shared.Awaken)
 local Borders = require(Shared.Borders)
 
 local Remotes = ReplicatedStorage.Remotes
@@ -44,15 +42,13 @@ local function fuseOnce(entry: any, from: string): string?
 	return to
 end
 
--- What every fusion pays (Awakening node 5), `count` times over.
-local function pay(player: Player, data, count: number)
-	local granted = MetaService.Grant(data, { TraitShards = Awaken.FusionTraitShards * count }, player)
+-- After `count` fusions: the daily "fuse a card" quest counts them, and a worn avatar card's aura follows
+-- its new border. The fusion pays nothing else: the card at the next border is the reward (user's call).
+local function afterFusion(player: Player, count: number)
 	for _ = 1, count do
 		MetaService.Track(player, "Fusions")
 	end
-	MetaService.AddXP(player, data, Meta.XP.Fusion * count)
-	AvatarService.Apply(player) -- if the worn avatar card moved up a border, its aura follows now
-	return granted
+	AvatarService.Apply(player)
 end
 
 -- FUSE ALL: every card, lowest border first, again and again while any border holds 100 copies (so 200
@@ -78,8 +74,8 @@ local function fuseAll(player: Player, profile): { [string]: any }
 	if fused == 0 then
 		return { Ok = false, Reason = "NotEnough" }
 	end
-	local granted = pay(player, data, fused)
-	return { Ok = true, All = true, Fused = fused, Cards = cards, Granted = granted, Meta = MetaService.State(player, data) }
+	afterFusion(player, fused)
+	return { Ok = true, All = true, Fused = fused, Cards = cards, Meta = MetaService.State(player, data) }
 end
 
 -- Fuse remote: (cardId, border) fuses 100 of that border on one card; ("ALL") fuses everything that can.
@@ -113,12 +109,11 @@ local function fuse(player: Player, cardId: unknown, border: unknown): { [string
 	if to == nil then
 		return { Ok = false, Reason = "NotEnough" }
 	end
-	local granted = pay(player, profile.Data, 1)
+	afterFusion(player, 1)
 	return {
 		Ok = true,
 		CardId = cardId,
 		Card = DataService.CardState(entry),
-		Granted = granted, -- the node 5 Trait Shards
 		From = from,
 		Border = to,
 		Meta = MetaService.State(player, profile.Data), -- the "fuse a card" quest

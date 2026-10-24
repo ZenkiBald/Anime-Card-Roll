@@ -36,7 +36,7 @@ HP = 2 x ATK; Support PWR ~300, no HP), so the border decides power. Each has an
 Mender / Warder) and abilities built from the effect library at the top of `Cards.luau`. Stars +5% each (max 5).
 Copies pile up per border (`BorderCopies`); Awakening nodes at 20 / 40 / 60 / 80 copies (+10% stats, +15% Skill DMG,
 400% bond, trait slot 2). **Border fusion** at Hoshi: 100 copies at one border -> 1 copy at the next (FUSE or FUSE ALL,
-which cascades); each fusion pays +25 Trait Shards (no luck: the 4x card is the reward). Traits are bought at Kenshin with Trait Shards
+which cascades); the card at the next border is the whole reward (no luck, Trait Shards or XP). Traits are bought at Kenshin with Trait Shards
 (battle-only: SPD / crit / guard / energy, never ATK / HP). The Index lists every card by best border with completion
 rewards per border. A card can be worn as your avatar (element aura; Rainbow fire footsteps, Secret celestial motes).
 
