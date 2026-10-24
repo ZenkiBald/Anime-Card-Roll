@@ -196,3 +196,10 @@ end
 check(wheelOk, "wheel prizes have weights and name real potions")
 check(Meta.WheelPick(0) == 1 and Meta.WheelPick(0.9999) == #Meta.Wheel.Prizes, "wheel picks span every prize")
 check(#Meta.Daily == 7, "the daily streak is 7 days")
+
+-- While you were away: packs and Shards for time offline, nothing under 10 minutes, capped at 8 hours.
+check(Meta.OfflineReward(300) == nil and Meta.OfflineReward(0 / 0) == nil, "a quick rejoin earns nothing")
+local away = Meta.OfflineReward(3 * 3600 + 120)
+check(away ~= nil and away.Packs ~= nil and away.Packs["10"] == 6 and away.Shards == 182 * Meta.Offline.ShardsPerMinute, "3 hours away: 6 Roll Packs and 2 Shards a minute")
+local long = Meta.OfflineReward(5 * 86400)
+check(long ~= nil and long.Seconds == Meta.Offline.CapSeconds and long.Packs["10"] == 16, "days away count as 8 hours (16 packs)")

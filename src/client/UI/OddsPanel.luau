@@ -59,7 +59,7 @@ local function refresh()
 	local untilSurge = RollBoost.UntilSurge(State.Summary.TotalRolls or 0)
 	surgeTitle.Text = `OVERCHARGE SURGE  <font color="#FFC42E">(every {cfg.Every}th roll · next in {untilSurge})</font>`
 	-- Which card a pull gives (any border): its pull weight among the cards unlocked so far.
-	local pull = Cards.PullChances(Cards.Pool(State.Progress.Cleared))
+	local pull = Cards.PullChances(Cards.Pool(State.Progress.Cleared), nil, nil, Cards.FeaturedAt(workspace:GetServerTimeNow()))
 	for id, row in cardRows do
 		local chance = pull[id]
 		row.Chance.Text = if chance then Odds.FormatPercent(chance * 100) else "🔒"

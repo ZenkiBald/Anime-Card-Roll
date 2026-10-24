@@ -938,11 +938,14 @@ function Hud.RefreshEvent()
 	else
 		local index = math.floor(workspace:GetServerTimeNow() / Meta.EventEvery) % #Meta.Events + 1
 		local nextEvent = Meta.Events[index]
+		-- Between events the pill also names the week's Featured Card (x3 as likely to pull).
+		local featured = Cards.Get(Cards.FeaturedAt(workspace:GetServerTimeNow()))
 		text.Text = `Next: {nextEvent.Icon} <b>{nextEvent.Name}</b> in {string.format("%d:%02d", untilNext // 60, math.floor(untilNext % 60))}`
-		eventPill.UIStroke.Color = Color3.new(1, 1, 1)
-		eventPill.UIStroke.Transparency = 0.5
-		eventPill.BackgroundColor3 = Color3.fromRGB(8, 11, 17)
-		eventPill.Size = UDim2.fromOffset(320, 26)
+			.. (if featured then `   ·   <font color="#FFD700">⭐ FEATURED <b>{string.upper(featured.Name)}</b> x{Cards.FeaturedBoost}</font>` else "")
+		eventPill.UIStroke.Color = UITheme.Colors.TamahaganeSlate
+		eventPill.UIStroke.Transparency = 0
+		eventPill.BackgroundColor3 = UITheme.Colors.UrushiBase
+		eventPill.Size = UDim2.fromOffset(if featured then 470 else 320, 26)
 	end
 	-- An event just started: pop the pill and say so.
 	local id = event and event.Id
@@ -1430,7 +1433,8 @@ function Hud.FeedAdd(result)
 	end)
 end
 
-function Hud.Announce(playerName: string, cardId: string, borderId: string?, foilId: string?)
+-- `global`: the pull happened on another server (GlobalAnnounce: Secret borders reach every server).
+function Hud.Announce(playerName: string, cardId: string, borderId: string?, foilId: string?, global: boolean?)
 	local card = Cards.Get(cardId)
 	if card == nil then
 		return
@@ -1449,7 +1453,7 @@ function Hud.Announce(playerName: string, cardId: string, borderId: string?, foi
 		what = `{string.upper(Foils.Get(foilId).Name)} {what}`
 	end
 	bannerLabel.Text = if secret
-		then `[SERVER] {playerName} rolled a <b>SECRET BORDER</b> {card.Name}!`
+		then `[{if global then "GLOBAL" else "SERVER"}] {playerName} rolled a <b>SECRET BORDER</b> {card.Name}!`
 		else `{playerName} rolled a <b>{what}</b> {card.Name}, {card.Title}!`
 	bannerLabel.TextColor3 = if secret then Color3.fromRGB(40, 24, 0) else Color3.new(1, 1, 1)
 	banner.Visible = true

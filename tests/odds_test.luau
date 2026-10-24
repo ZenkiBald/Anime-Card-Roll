@@ -163,3 +163,29 @@ do
 	end
 	check(roundOk, "a shown rarity is always within 15% of the exact one")
 end
+
+-- The weekly Featured Card: a rare non-boss card, the same all week on every server, x3 as likely.
+do
+	local Cards = MODULES.Cards
+	local t = 1761523200 -- a Monday 00:00 UTC
+	local a = Cards.FeaturedAt(t)
+	local card = Cards.Get(a)
+	check(card ~= nil and card.Boss == nil and card.Weight <= Cards.FeaturedMaxWeight, "the featured card is a rare card from the normal pool")
+	check(Cards.FeaturedAt(t + 6 * 86400 + 86399) == a and Cards.WeekEnds(t + 100) == t + 604800, "it stays all week and the week ends next Monday")
+	local seen = {}
+	for w = 0, 30 do
+		seen[Cards.FeaturedAt(t + w * 604800)] = true
+	end
+	local kinds = 0
+	for _ in seen do
+		kinds += 1
+	end
+	check(kinds >= 4, "the featured card rotates over the weeks")
+	local pool = Cards.Pool()
+	local plain, boosted = Cards.PullChances(pool), Cards.PullChances(pool, nil, nil, a)
+	local sum = 0
+	for _, chance in boosted do
+		sum += chance
+	end
+	check(math.abs(sum - 1) < 1e-9 and boosted[a] > plain[a] * 2.5, "featured odds still add up to 100%, the featured card about x3")
+end

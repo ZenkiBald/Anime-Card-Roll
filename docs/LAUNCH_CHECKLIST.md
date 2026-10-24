@@ -61,6 +61,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   synergy tags, AUTO-BUILD / CLEAR), sunken dropdowns, the STORE crests and R$ buttons.
 - [ ] Density pass: card tiles without stats (rarity number still on them), BAG plaques and crests and the 2 x 2 OPEN
   seals, BOSS SCOUT trays and chips, the sunken boss well, vermilion tab underlines everywhere.
+- [ ] The featured card in the event pill / ODDS / Index; a "While you were away" toast after 10+ min offline; a
+  [GLOBAL] Secret banner across two live servers (MessagingService only works in a published game).
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

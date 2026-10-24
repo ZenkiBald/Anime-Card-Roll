@@ -227,8 +227,8 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 	Reveal.Quick(result)
 end)
 
-Remotes.Announce.OnClientEvent:Connect(function(playerName: string, cardId: string, borderId: string?, foilId: string?)
-	Hud.Announce(playerName, cardId, borderId, foilId)
+Remotes.Announce.OnClientEvent:Connect(function(playerName: string, cardId: string, borderId: string?, foilId: string?, global: boolean?)
+	Hud.Announce(playerName, cardId, borderId, foilId, global)
 end)
 
 -- STORE: pass ownership and the Luck Totem (MonetizationService).
@@ -426,7 +426,11 @@ Remotes.RaidState.OnClientEvent:Connect(function(message)
 		if reward and reward.NewPacks then
 			loot = `{Packs.Describe(reward.NewPacks)}  {loot}`
 		end
-		if payout.Offline then
+		if payout.Away then
+			local minutes = math.floor(payout.Away / 60)
+			Sfx.Play("Reward")
+			Hud.Hint(`🌙 While you were away ({minutes // 60}h {minutes % 60}m) your cards kept rolling: {loot}`)
+		elseif payout.Offline then
 			Sfx.Play("Reward")
 			Hud.Hint(`⚔️ While you were away, {payout.Name} was cleared: your share is in your BAG!`)
 		elseif payout.Cleared then

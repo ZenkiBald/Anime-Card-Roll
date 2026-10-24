@@ -505,4 +505,25 @@ function Meta.Describe(bundle: Bundle): string
 	return table.concat(parts, "  ")
 end
 
+-- While you were away: time offline (since the save's LastSeen) pays a Roll Pack per PackEvery seconds and
+-- ShardsPerMinute Shards a minute, counted up to CapSeconds (8 h) and only after MinSeconds (10 min) away,
+-- so rejoining quickly earns nothing. Pure, so tests check it.
+Meta.Offline = { MinSeconds = 600, CapSeconds = 8 * 3600, PackEvery = 1800, ShardsPerMinute = 2 }
+
+export type OfflineReward = { Seconds: number, Shards: number, Packs: { [string]: number }? }
+
+function Meta.OfflineReward(seconds: number): OfflineReward?
+	local o = Meta.Offline
+	if seconds ~= seconds or seconds < o.MinSeconds then
+		return nil
+	end
+	local counted = math.min(seconds, o.CapSeconds)
+	local packs = math.floor(counted / o.PackEvery)
+	return {
+		Seconds = counted,
+		Shards = math.floor(counted / 60) * o.ShardsPerMinute,
+		Packs = if packs > 0 then { ["10"] = packs } else nil,
+	}
+end
+
 return Meta

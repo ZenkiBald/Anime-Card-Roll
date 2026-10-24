@@ -85,7 +85,7 @@ local list: { Card } = {
 	{
 		Id = "rook",
 		Name = "Rook",
-		Title = "Wolf Fist Brawler",
+		Title = "Iron Knuckle Brawler",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 10,
@@ -175,7 +175,7 @@ local list: { Card } = {
 	{
 		Id = "akane",
 		Name = "Akane",
-		Title = "Lightning Copy Blade",
+		Title = "Crimson Lance Duelist",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 4,
@@ -199,7 +199,7 @@ local list: { Card } = {
 	{
 		Id = "kaito",
 		Name = "Kaito",
-		Title = "Ascended Golden Warrior",
+		Title = "Dragon-Eye Ronin",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 2.5,
@@ -250,7 +250,7 @@ local list: { Card } = {
 	{
 		Id = "raijen",
 		Name = "Raijen",
-		Title = "Autonomous God State",
+		Title = "Eclipse Sovereign",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 1,
@@ -463,7 +463,7 @@ local list: { Card } = {
 	{
 		Id = "aurelia",
 		Name = "Aurelia",
-		Title = "Nine-Tails Sovereign",
+		Title = "Dawn Empress",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 1,
@@ -597,7 +597,7 @@ local list: { Card } = {
 	{
 		Id = "kurogane_card",
 		Name = "Kurogane",
-		Title = "Nine-Tailed Calamity",
+		Title = "The Ash Ronin",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 1,
@@ -622,7 +622,7 @@ local list: { Card } = {
 	{
 		Id = "rimeveil_card",
 		Name = "Rimeveil",
-		Title = "Galactic Tyrant",
+		Title = "The Glacier Queen",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 1,
@@ -647,7 +647,7 @@ local list: { Card } = {
 	{
 		Id = "vex_card",
 		Name = "Vex",
-		Title = "Six Paths Sovereign",
+		Title = "The Void Tyrant",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 0.8,
@@ -660,7 +660,7 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(150, 70, 230),
 		Abilities = {
 			ability("Basic", "Null Touch", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Six Paths", "Every 3 actions: 180% ATK, enemy DEF -15% for 3 turns", {
+			ability("Skill", "Null Cycle", "Every 3 actions: 180% ATK, enemy DEF -15% for 3 turns", {
 				{ Kind = "Damage", Pct = 1.8 },
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
 			}, 3),
@@ -673,7 +673,7 @@ local list: { Card } = {
 	{
 		Id = "tenrai_card",
 		Name = "Tenrai",
-		Title = "Multiverse Titan",
+		Title = "The Storm Sovereign",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 0.6,
@@ -733,16 +733,52 @@ function Cards.Pool(cleared: { [string]: boolean }?): { Card }
 	return pool
 end
 
+-- The weekly Featured Card: one of the rare pool cards (Weight FeaturedMaxWeight or less, no boss card)
+-- weighs x FeaturedBoost for a week (Monday 00:00 UTC to Monday), the same on every server: picked by a
+-- seeded hash of the week number. Its border odds don't change, so it's simply easier to pull.
+Cards.FeaturedBoost = 3
+Cards.FeaturedMaxWeight = 2
+local WEEK = 604800
+local MONDAY = 345600 -- the Unix epoch was a Thursday; +4 days is the first Monday 00:00 UTC
+
+function Cards.WeekAt(t: number): number
+	return math.floor((t - MONDAY) / WEEK)
+end
+
+-- When the week of `t` ends (for countdowns).
+function Cards.WeekEnds(t: number): number
+	return (Cards.WeekAt(t) + 1) * WEEK + MONDAY
+end
+
+function Cards.FeaturedAt(t: number): string
+	local candidates = {}
+	for _, card in list do
+		if card.Boss == nil and card.Weight <= Cards.FeaturedMaxWeight then
+			table.insert(candidates, card.Id)
+		end
+	end
+	local seed = (Cards.WeekAt(t) * 7919 + 104729) % 2147483647
+	for _ = 1, 3 do
+		seed = (seed * 48271 + 11) % 2147483647
+	end
+	return candidates[seed % #candidates + 1]
+end
+
 -- Each card's chance (0-1) to be the card of a pull, in `pool`. `element` (infused packs) weighs that
--- element's cards x `elementWeight`.
-function Cards.PullChances(pool: { Card }, element: string?, elementWeight: number?): { [string]: number }
+-- element's cards x `elementWeight`; `featured` (the week's Featured Card) weighs x FeaturedBoost.
+function Cards.PullChances(pool: { Card }, element: string?, elementWeight: number?, featured: string?): { [string]: number }
+	local function weight(card: Card): number
+		return card.Weight
+			* (if element and card.Element == element then elementWeight or 1 else 1)
+			* (if featured and card.Id == featured then Cards.FeaturedBoost else 1)
+	end
 	local total = 0
 	for _, card in pool do
-		total += card.Weight * (if element and card.Element == element then elementWeight or 1 else 1)
+		total += weight(card)
 	end
 	local chances = {}
 	for _, card in pool do
-		chances[card.Id] = card.Weight * (if element and card.Element == element then elementWeight or 1 else 1) / total
+		chances[card.Id] = weight(card) / total
 	end
 	return chances
 end

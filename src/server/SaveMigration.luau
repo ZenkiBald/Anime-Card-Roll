@@ -9,6 +9,7 @@
 --     border); an old rarity fusion becomes Gold copies. The card's total Copies always equals the sum.
 --   * Auto Roll no longer stops by itself: the saved stop setting goes.
 --   * The short-lived roll bank (rarity tickets) comes back as Roll Packs (10 tickets a pack, rounded up).
+--   * LastSeen (time-away rewards) must be a number: anything else becomes 0 (no reward on that load).
 --   * Artifacts became tower rewards: a save that already cleared the Pagoda gets its artifact.
 --   * The Infinite Tower became a run: the old highest floor stays as the best run (Tower.Floor) and the
 --     run starts at floor 1. A save that loads mid-fight (Tower.Live set: the player left, or the server
@@ -109,6 +110,10 @@ function SaveMigration.Migrate(data: any): { string }
 		end
 		data.RollBank = nil
 		table.insert(done, `roll bank: {tickets} tickets`)
+	end
+	if data.LastSeen ~= nil and (type(data.LastSeen) ~= "number" or data.LastSeen ~= data.LastSeen) then
+		data.LastSeen = 0
+		table.insert(done, "last seen reset")
 	end
 	-- The Pagoda's artifact for a save that cleared floor 100 before it existed.
 	local pagoda = data.Pagoda

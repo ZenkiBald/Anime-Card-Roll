@@ -66,6 +66,8 @@ local TEMPLATE = {
 	Titles = {},
 	-- Developer product receipts already paid out (PurchaseId -> os.time()), so a retry never pays twice.
 	Purchases = {},
+	-- When this save was last online (os.time(), kept fresh every minute): time away pays Meta.OfflineReward.
+	LastSeen = 0,
 }
 
 -- Test saves live in their own store so launch data starts clean.
@@ -79,9 +81,15 @@ local profiles = {} -- [Player] = Profile
 -- Messages to a save from another server or while its player was away (ProfileStore MessageAsync), e.g. a
 -- raid payout for a hitter who left before the raid ended. Set by Main.server (MetaService grants them).
 local messageHandler: ((player: Player, profile: any, message: any) -> ())? = nil
+local awayHandler: ((player: Player, profile: any, seconds: number) -> ())? = nil
 
 function DataService.SetMessageHandler(fn)
 	messageHandler = fn
+end
+
+-- Called once a save loads with the seconds since it was last online (0 for a new save).
+function DataService.SetAwayHandler(fn)
+	awayHandler = fn
 end
 
 -- Queues a message for a player's save, online or not; it's handled the next time their profile loads
@@ -205,6 +213,16 @@ local function onPlayerAdded(player: Player)
 	if player.Parent == Players then
 		profiles[player] = profile
 		sessionStart[player] = os.clock()
+		-- Time away since this save was last online, then mark it online now.
+		local lastSeen = profile.Data.LastSeen
+		local away = if type(lastSeen) == "number" and lastSeen > 0 then math.max(0, os.time() - lastSeen) else 0
+		profile.Data.LastSeen = os.time()
+		if awayHandler then
+			local ok, err = pcall(awayHandler, player, profile, away)
+			if not ok then
+				warn(`[DataService] away handler failed: {err}`)
+			end
+		end
 		profile:MessageHandler(function(message, processed)
 			if messageHandler then
 				local ok, err = pcall(messageHandler, player, profile, message)
@@ -229,6 +247,7 @@ local function onPlayerRemoving(player: Player)
 	if start then
 		profile.Data.Playtime += os.clock() - start
 	end
+	profile.Data.LastSeen = os.time()
 	profile:EndSession()
 end
 
@@ -238,6 +257,15 @@ function DataService.Start()
 	end
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
+	-- LastSeen stays fresh while playing, so a server crash doesn't count as time away.
+	task.spawn(function()
+		while true do
+			task.wait(60)
+			for _, profile in profiles do
+				profile.Data.LastSeen = os.time()
+			end
+		end
+	end)
 end
 
 return DataService

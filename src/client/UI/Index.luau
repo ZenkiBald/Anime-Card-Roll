@@ -143,7 +143,11 @@ local function showDetail(card)
 		17
 	)
 	-- The card's pull chance (any border); boss cards only join the pool after their boss's first Normal clear.
-	local pullChance = Cards.PullChances(Cards.Pool(State.Progress.Cleared))[card.Id]
+	local featured = Cards.FeaturedAt(workspace:GetServerTimeNow())
+	local pullChance = Cards.PullChances(Cards.Pool(State.Progress.Cleared), nil, nil, featured)[card.Id]
+	if featured == card.Id then
+		line(`⭐ FEATURED THIS WEEK: x{Cards.FeaturedBoost} as likely to pull`, Theme.Font.Heavy, Theme.Color.Gold, 18, 15)
+	end
 	if pullChance then
 		local chance = pullChance * 100
 		line(`Chance per roll: <b>{Odds.FormatPercent(chance)}</b>, any border`, Theme.Font.Bold, Theme.Color.Support, 18, 15)

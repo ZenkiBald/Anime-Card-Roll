@@ -18,6 +18,7 @@ local Tower = require(Shared.Tower)
 local Packs = require(Shared.Packs)
 
 local Remotes = ReplicatedStorage.Remotes
+local GlobalAnnounce = require(script.Parent.GlobalAnnounce)
 local DataService = require(script.Parent.DataService)
 local DeckService = require(script.Parent.DeckService)
 local BattleService = require(script.Parent.BattleService)
@@ -128,10 +129,11 @@ export type RollOptions = {
 	Surge: string?, -- "Plain" | "Perfect": tagged on the result for the reveal
 }
 
--- A card from the player's pool by Weight (the infused element's cards weighted up).
+-- A card from the player's pool by Weight (the infused element's cards and the week's Featured Card
+-- weighted up).
 local function pickCard(data, element: string?)
 	local pool = Cards.Pool(data.Progress.Cleared)
-	local chances = Cards.PullChances(pool, element, Packs.InfuseWeight)
+	local chances = Cards.PullChances(pool, element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()))
 	local target = rng:NextNumber()
 	for _, card in pool do
 		target -= chances[card.Id]
@@ -222,7 +224,7 @@ local function doRoll(player: Player, profile, luck: number?, batch: { XP: numbe
 
 	local big = Borders.Index(border) >= Borders.Index(Config.AnnounceFrom) or foil == "demon"
 	if batch == nil and big then
-		Remotes.Announce:FireAllClients(player.DisplayName, card.Id, border, foil)
+		GlobalAnnounce.Pull(player, card.Id, border, foil)
 	end
 
 	return {
@@ -355,7 +357,7 @@ local function openPack(player: Player, profile, pack: Packs.Pack)
 	MetaService.AddXP(player, data, batch.XP)
 	local best = shown[1]
 	if best and Borders.Index(best.Border) >= Borders.Index(Config.AnnounceFrom) then
-		Remotes.Announce:FireAllClients(player.DisplayName, best.CardId, best.Border)
+		GlobalAnnounce.Pull(player, best.CardId, best.Border)
 	end
 	local state = {}
 	for id in cards do

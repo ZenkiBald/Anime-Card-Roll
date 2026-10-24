@@ -120,3 +120,12 @@ do
 	SaveMigration.Migrate(mid)
 	check(mid.Gear.TowerArtifacts == nil, "a save partway up the Pagoda gets nothing yet")
 end
+
+-- LastSeen must be a number (time-away rewards); junk resets to 0.
+do
+	local junk = { Cards = {}, LastSeen = "yesterday" }
+	SaveMigration.Migrate(junk)
+	local fine = { Cards = {}, LastSeen = 1761523200 }
+	SaveMigration.Migrate(fine)
+	check(junk.LastSeen == 0 and fine.LastSeen == 1761523200, "a junk LastSeen resets to 0; a real one stays")
+end
