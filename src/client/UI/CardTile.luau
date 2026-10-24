@@ -1,8 +1,10 @@
 --!nonstrict
--- Square card tile for the deck and Index grids: full art framed only by its border (the tier: Base /
--- Gold / Rainbow / Secret) and an element glow, a small star count, copies and, big along the bottom, the
--- card's rarity number at its border (Cards.Rarity, a round number like 7,500,000) in the border's colour.
--- No rarity badges: the frame says the tier. Size it from outside (grid cell or slot).
+-- Square card tile for the deck, Vault and Index grids, in the Dark Feudal look: an Urushi lacquer chassis
+-- framed by its border tier (UITheme.BorderTiers: bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void
+-- 3 px; the border IS the tier), the art in the middle, and along the bottom the name and copies, one
+-- compact stat line, and big, the card's rarity number at its border (Cards.Rarity, a round number like
+-- 7,500,000) in the tier's colour. Stars are small parchment diamonds (they are stats, +5% each, not
+-- the tier); element and role sit in diamond IconBadges top-right. Size it from outside.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Borders = require(Shared.Borders)
 local Elements = require(Shared.Elements)
 local Cards = require(Shared.Cards)
+local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -21,16 +24,18 @@ local ElementUi = require(script.Parent.ElementUi)
 
 local CardTile = {}
 
+local C = UITheme.Colors
+
 export type Options = {
 	Owned: boolean?,
 	Stars: number?,
 	Copies: number?,
-	Power: number?, -- shown big along the bottom
+	Power: number?, -- unused on the tile now (the rarity number is the big number); kept for callers
 	InDeck: boolean?,
 	Selected: boolean?,
-	Spin: boolean?, -- spin a Secret card's prismatic border (only for a few tiles at once)
+	Spin: boolean?, -- spin a Secret card's border (only for a few tiles at once)
 	Border: string?, -- the card's best border (Borders.luau): the tier and its frame
-	Stats: boolean?, -- show DMG / HP (Support: PWR) above the bottom line
+	Stats: boolean?, -- show the compact stat line
 	Awaken: number?, -- the card's Awakening node, for those stats
 }
 
@@ -39,16 +44,28 @@ local function outlined(label: TextLabel, thickness: number?)
 	return label
 end
 
+-- "⚔ 45.7K  ❤ 91.3K" (Attack) or "✦ 27.9K PWR" (Support): one short line in parchment tones.
+local function statLine(card, stars: number, border: string, awaken: number?): string
+	local main = Kit.short(Cards.Stat(card, card.Main, stars, border, awaken))
+	if card.Type == "Attack" then
+		local hp = Kit.short(Cards.Stat(card, card.HP or 0, stars, border, awaken))
+		return `<font color="#E8907A">⚔ {main}</font>  <font color="#8FD4A8">❤ {hp}</font>`
+	end
+	return `<font color="#9CC8E6">✦ {main}</font> <font color="#{C.WashiGhost:ToHex()}">PWR</font>`
+end
+
 function CardTile.new(cardId: string, opts: Options?): TextButton
 	local options = opts or {}
 	local card = Cards.Get(cardId)
 	assert(card, `Unknown card {cardId}`)
-	local borderId = if options.Owned ~= false then options.Border or "Normal" else "Normal"
-	local tier = Borders.Get(borderId)
-	local element = Elements.Get(card.Element)
-	local glow = if element then element.Color else Theme.Color.Neon
 	local owned = options.Owned ~= false
+	local borderId = if owned then options.Border or "Normal" else "Normal"
+	local tier = Borders.Get(borderId)
+	local frame = UITheme.BorderTiers[borderId] or UITheme.BorderTiers.Normal
+	local element = Elements.Get(card.Element)
+	local glow = if element then element.Color else C.TamahaganeEdge
 
+	-- The chassis: Urushi lacquer, a breath of the element at the bottom.
 	local button = Kit.new("TextButton", {
 		Name = cardId,
 		AutoButtonColor = false,
@@ -56,65 +73,50 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		ClipsDescendants = true,
 		Text = "",
 	}, {
-		Kit.corner(UDim.new(0.12, 0)),
-		Kit.gradient(
-			ColorSequence.new(
-				if owned then card.Accent:Lerp(Color3.new(0, 0, 0), 0.25) else Color3.fromRGB(26, 30, 42),
-				if owned then glow:Lerp(Color3.new(0, 0, 0), 0.82) else Color3.fromRGB(11, 13, 20)
-			),
-			120
-		),
+		Kit.corner(UDim.new(0, 6)),
+		Kit.gradient(ColorSequence.new(C.UrushiRaised, if owned then C.UrushiBase:Lerp(glow, 0.12) else C.UrushiInset), 90),
 	})
-	-- The frame: the border's colours (a plain element-tinted edge on Base); BorderFx draws the full
-	-- Gold / Rainbow / Secret frame on top.
-	local stroke = Kit.stroke(Color3.new(1, 1, 1), if borderId == "Normal" then 1.2 else 2.5, 0)
-	local strokeGradient = Kit.gradient(if borderId == "Normal" then ColorSequence.new(glow:Lerp(Theme.Color.Line, 0.45)) else tier.Gradient, 45)
+	-- The tier frame (bezel on the border): its colour and thickness; Rainbow prismatic, Secret void.
+	local stroke = Kit.stroke(Color3.new(1, 1, 1), frame.Thickness, 0)
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	local strokeGradient = Kit.gradient(
+		if frame.Prismatic then tier.Gradient
+			elseif frame.Core then ColorSequence.new({
+				ColorSequenceKeypoint.new(0, frame.Color),
+				ColorSequenceKeypoint.new(0.5, frame.Core),
+				ColorSequenceKeypoint.new(1, frame.Color),
+			})
+			else ColorSequence.new(frame.Color),
+		45
+	)
 	strokeGradient.Parent = stroke
 	stroke.Parent = button
 	if borderId == "Secret" and options.Spin then
 		Effects.Spin(strokeGradient, 100)
 	end
-	-- Element glow rising from the bottom edge.
+	-- An inner steel bezel just inside the tier frame.
+	Kit.new("Frame", {
+		Name = "Bezel",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -2 * frame.Thickness - 2, 1, -2 * frame.Thickness - 2),
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+		Parent = button,
+	}, { Kit.corner(UDim.new(0, 5)), Kit.stroke(C.TamahaganeSlate, 1, 0.2) })
+	-- Element aura rising behind the art.
 	Kit.new("Frame", {
 		Name = "ElementGlow",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.fromScale(1, 0.55),
-		BackgroundColor3 = glow,
-		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.36),
+		Size = UDim2.fromScale(0.8, 0.8),
+		BackgroundColor3 = if frame.Glow then frame.Color:Lerp(glow, 0.5) else glow,
+		BackgroundTransparency = if owned then (if frame.Glow then 0.72 else 0.82) else 0.94,
 		ZIndex = 1,
 		Parent = button,
-	}, {
-		Kit.new("UIGradient", {
-			Rotation = 90,
-			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, if owned then 0.6 else 0.9) }),
-		}),
-	})
+	}, { Kit.corner(UDim.new(1, 0)), Kit.aspect(1, Enum.DominantAxis.Width) })
 
-	-- Light rays behind the character.
-	local rays = Kit.new("Frame", {
-		Name = "Rays",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromScale(1.3, 1.3),
-		BackgroundTransparency = 1,
-		ClipsDescendants = false,
-		Parent = button,
-	}, { Kit.aspect(1, Enum.DominantAxis.Width) })
-	for i = 1, 6 do
-		Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.08, 0.72),
-			Rotation = (i - 1) * 30,
-			BackgroundColor3 = if borderId == "Normal" then glow else tier.Color,
-			BackgroundTransparency = if owned then 0.86 else 0.96,
-			BorderSizePixel = 0,
-			Parent = rays,
-		})
-	end
-
-	-- The character (3D figure now, uploaded illustration later).
+	-- The art well (an uploaded illustration, else the element-lit bust).
 	local art = CardView.Art(cardId, owned, false)
 	if art then
 		art.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -122,165 +124,176 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		art.Size = UDim2.fromScale(1, 1)
 		art.Parent = button
 	else
-		-- No illustration yet: the element-lit bust (with its own "?" when not found).
 		local bust = CardView.Portrait(cardId, owned, false)
 		bust.AnchorPoint = Vector2.new(0.5, 0.5)
-		bust.Position = UDim2.fromScale(0.5, 0.44)
-		bust.Size = UDim2.fromScale(0.74, 0.62)
+		bust.Position = UDim2.fromScale(0.5, 0.36)
+		bust.Size = UDim2.fromScale(0.66, 0.52)
 		bust.Parent = button
 	end
 	if not owned and art then
 		outlined(Kit.label({
 			Text = "?",
 			Font = Theme.Font.Display,
-			TextColor3 = Color3.fromRGB(194, 204, 225),
+			TextColor3 = C.WashiGhost,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.45),
+			Position = UDim2.fromScale(0.5, 0.36),
 			Size = UDim2.fromScale(0.5, 0.36),
 			ZIndex = 4,
 			Parent = button,
 		}, 60), 3)
 	end
 
-	-- Dark fade along the bottom so the number reads on any art.
+	-- Lacquer fade under the text so it reads on any art.
 	Kit.new("Frame", {
 		Name = "Shade",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.fromScale(1, 0.42),
-		BackgroundColor3 = Color3.new(0, 0, 0),
+		Size = UDim2.fromScale(1, 0.5),
+		BackgroundColor3 = C.UrushiInset,
 		BorderSizePixel = 0,
 		ZIndex = 3,
 		Parent = button,
 	}, {
-		Kit.corner(UDim.new(0.25, 0)),
 		Kit.new("UIGradient", {
 			Rotation = 90,
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(1, 0.15),
-			}),
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.45, 0.2), NumberSequenceKeypoint.new(1, 0.05) }),
 		}),
 	})
 
-	-- The card's border frame over the art (uploaded frame art per border when Skin.KitArt is on).
+	-- Uploaded frame art per border (Skin.KitArt), and the border's own frame effect on Gold and up.
 	Skin.Frame(button, borderId, 4)
-	if owned then
-		BorderFx.Apply(button, options.Border, { Corner = UDim.new(0.12, 0), ZIndex = 5, Spin = options.Spin })
+	if owned and borderId ~= "Normal" then
+		BorderFx.Apply(button, options.Border, { Corner = UDim.new(0, 6), ZIndex = 5, Spin = options.Spin, Thickness = frame.Thickness })
 	end
 
-	-- The rarity number (Deck Power stays on the deck screen and in the tooltip).
+	-- Bottom, top to bottom: name and copies, the stat line, the rarity number.
+	outlined(Kit.label({
+		Name = "CardName",
+		Text = if owned then string.upper(card.Name) else "???",
+		Font = Theme.Font.Display,
+		TextColor3 = if owned then C.WashiParchment else C.WashiGhost,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromScale(0.07, 0.56),
+		Size = UDim2.fromScale(if owned and options.Copies then 0.6 else 0.86, 0.12),
+		ZIndex = 5,
+		Parent = button,
+	}, 15), 1.5)
+	if owned and options.Copies then
+		outlined(Kit.label({
+			Name = "Copies",
+			Text = `x{Kit.short(options.Copies)}`,
+			Font = Theme.Font.Heavy,
+			TextColor3 = C.WashiGhost,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.fromScale(0.93, 0.56),
+			Size = UDim2.fromScale(0.3, 0.12),
+			ZIndex = 5,
+			Parent = button,
+		}, 14), 1.2)
+	end
+	if owned and options.Stats then
+		outlined(Kit.label({
+			Name = "Stats",
+			Text = statLine(card, options.Stars or 0, borderId, options.Awaken),
+			RichText = true,
+			Font = Theme.Font.Heavy,
+			Position = UDim2.fromScale(0.05, 0.68),
+			Size = UDim2.fromScale(0.9, 0.12),
+			ZIndex = 5,
+			Parent = button,
+		}, 13), 1.2)
+	end
 	local rarity = if owned then Cards.Rarity(cardId, borderId) else 0
-	local bottomText = if rarity > 0 then Kit.commas(rarity) elseif owned then card.Name else "???"
 	outlined(Kit.label({
 		Name = "Rarity",
-		Text = bottomText,
+		Text = if rarity > 0 then Kit.commas(rarity) else "",
 		Font = Theme.Font.Display,
-		TextColor3 = if borderId == "Normal" then Color3.new(1, 1, 1) else tier.Color:Lerp(Color3.new(1, 1, 1), 0.2),
+		TextColor3 = if borderId == "Normal" then C.WashiParchment else tier.Color:Lerp(Color3.new(1, 1, 1), 0.2),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -4),
-		Size = UDim2.fromScale(0.94, 0.17),
+		Size = UDim2.fromScale(0.92, 0.17),
 		ZIndex = 5,
 		Parent = button,
 	}, 22), 2)
 
-	-- DMG / HP (or PWR) just above the bottom line.
-	if owned and options.Stats then
-		outlined(Kit.label({
-			Name = "Stats",
-			Text = Kit.statsText(card, options.Stars or 0, options.Border, options.Awaken),
-			RichText = true,
-			Font = Theme.Font.Heavy,
-			TextWrapped = true, -- DMG over HP on a narrow tile instead of squashed onto one line
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 0.83, -2),
-			Size = UDim2.fromScale(0.96, 0.2),
-			ZIndex = 5,
-			Parent = button,
-		}, 14), 1.5)
-	end
-
-	-- Stars (top-left): the only badge; the border says the tier.
+	-- Stars (top-left): up to five small parchment diamonds, filled for each star.
 	if owned and (options.Stars or 0) > 0 then
-		local pill = Kit.new("Frame", {
+		local pips = Kit.new("Frame", {
 			Name = "Stars",
-			Position = UDim2.fromScale(0.05, 0.06),
-			Size = UDim2.fromScale(0.3, 0.17),
-			BackgroundColor3 = Color3.fromRGB(8, 10, 15),
-			BackgroundTransparency = 0.25,
-			ZIndex = 5,
-			Parent = button,
-		}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(Theme.Color.Gold, 1.5, 0.3) })
-		outlined(Kit.label({
-			Text = `★{options.Stars}`,
-			Font = Theme.Font.Heavy,
-			TextColor3 = Theme.Color.Gold,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.85, 0.8),
+			Position = UDim2.fromScale(0.07, 0.06),
+			Size = UDim2.fromScale(0.5, 0.09),
+			BackgroundTransparency = 1,
 			ZIndex = 6,
-			Parent = pill,
-		}, 18), 1.5)
+			Parent = button,
+		}, {
+			Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0.04, 0), VerticalAlignment = Enum.VerticalAlignment.Center }),
+		})
+		for i = 1, 5 do
+			local filled = i <= (options.Stars or 0)
+			Kit.new("Frame", {
+				Size = UDim2.fromScale(0.15, 0.7),
+				Rotation = 45,
+				BackgroundColor3 = if filled then C.WashiParchment else C.UrushiInset,
+				BorderSizePixel = 0,
+				ZIndex = 6,
+				Parent = pips,
+			}, { Kit.aspect(1, Enum.DominantAxis.Height), Kit.stroke(if filled then C.TamahaganeRust else C.TamahaganeSlate, 1, 0) })
+		end
 	end
 
-	-- Element badge (top-right): shown even before the card is found, for planning.
+	-- Element and role (top-right): diamond IconBadges, shown before the card is found too (for planning).
 	ElementUi.Badge(card.Element, {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(0.95, 0.05),
-		Size = UDim2.fromScale(0.2, 0.2),
+		Position = UDim2.fromScale(0.96, 0.03),
+		Size = UDim2.fromScale(0.22, 0.22),
+		ZIndex = 6,
+		Parent = button,
+	})
+	ElementUi.RoleBadge(card.Role, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(0.95, 0.24),
+		Size = UDim2.fromScale(0.18, 0.18),
+		ZIndex = 6,
 		Parent = button,
 	})
 
-	if owned and options.Copies then
-		outlined(Kit.label({
-			Name = "Copies",
-			Text = `x{options.Copies}`,
-			Font = Theme.Font.Display,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.fromScale(0.95, 0.27),
-			Size = UDim2.fromScale(0.34, 0.16),
-			ZIndex = 5,
-			Parent = button,
-		}, 20), 2)
-	end
-
+	-- In the deck: a small vermilion seal under the stars.
 	if options.InDeck then
-		-- Under the stars on the left, clear of the copies (right) and the DMG / HP lines (bottom).
-		local check = Kit.new("Frame", {
+		local seal = Kit.new("Frame", {
 			Name = "InDeck",
-			AnchorPoint = Vector2.new(0, 0),
-			Position = UDim2.fromScale(0.05, 0.26),
-			Size = UDim2.fromScale(0.22, 0.22),
-			BackgroundColor3 = Theme.Color.Quick,
+			Position = UDim2.fromScale(0.06, 0.18),
+			Size = UDim2.fromScale(0.18, 0.18),
+			BackgroundColor3 = C.VermilionWax,
 			ZIndex = 6,
 			Parent = button,
 		}, {
 			Kit.corner(UDim.new(1, 0)),
 			Kit.aspect(1, Enum.DominantAxis.Width),
-			Kit.stroke(Color3.new(1, 1, 1), 2, 0),
+			Kit.stroke(C.VermilionHover, 1.5, 0),
 		})
 		outlined(Kit.label({
 			Text = "✓",
 			Font = Theme.Font.Heavy,
+			TextColor3 = C.WashiParchment,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(0.75, 0.75),
 			ZIndex = 7,
-			Parent = check,
-		}, 22), 1.5)
+			Parent = seal,
+		}, 18), 1)
 	end
 
 	if options.Selected then
 		local ring = Kit.new("Frame", {
 			Name = "Selected",
 			Size = UDim2.fromScale(1, 1),
-			BackgroundColor3 = Theme.Color.Gold,
-			BackgroundTransparency = 0.85,
+			BackgroundColor3 = C.WashiParchment,
+			BackgroundTransparency = 0.9,
 			ZIndex = 8,
 			Parent = button,
-		}, { Kit.corner(UDim.new(0.12, 0)) })
-		Kit.stroke(Theme.Color.Gold, 4, 0).Parent = ring
+		}, { Kit.corner(UDim.new(0, 6)) })
+		Kit.stroke(Theme.Color.Neon, 3, 0).Parent = ring
 	end
 
 	Kit.pressable(button)
@@ -293,11 +306,11 @@ function CardTile.Empty(row: string, selected: boolean?): TextButton
 	local button = Kit.new("TextButton", {
 		Name = "Empty",
 		AutoButtonColor = false,
-		BackgroundColor3 = color:Lerp(Color3.new(0, 0, 0), 0.75),
-		BackgroundTransparency = 0.2,
+		BackgroundColor3 = C.UrushiInset,
+		BackgroundTransparency = 0.1,
 		Text = "",
-	}, { Kit.corner(UDim.new(0.12, 0)) })
-	Kit.stroke(if selected then Theme.Color.Gold else color, if selected then 4 else 2, if selected then 0 else 0.5).Parent = button
+	}, { Kit.corner(UDim.new(0, 6)) })
+	Kit.stroke(if selected then Theme.Color.Neon else C.TamahaganeSlate, if selected then 3 else 1.5, 0).Parent = button
 	outlined(Kit.label({
 		Text = "+",
 		Font = Theme.Font.Display,

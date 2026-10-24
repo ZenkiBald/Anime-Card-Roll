@@ -58,6 +58,7 @@ local surgeMeter: any -- under it (children read by name): the Overcharge Surge 
 local surgeFill: any
 local surgeCount: TextLabel
 local surgeToken = 0
+local setShiver: (on: boolean) -> () -- below: the imminent-surge jitter
 local menuButtons = {} -- [name] = button (children read by name): categories and their items
 local questSlot: Frame -- Kenji's tracker (UI/Tutorial puts its banner in here)
 local questActive = false
@@ -76,18 +77,20 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 	button.AutoButtonColor = false
 	button.BackgroundColor3 = Color3.new(1, 1, 1)
 	button.Text = ""
-	Kit.corner().Parent = button
+	Kit.corner(UDim.new(0, 4)).Parent = button
 	if seal then
-		Kit.gradient(ColorSequence.new(UITheme.Colors.VermilionSeal, UITheme.Colors.VermilionDeep), 90).Parent = button
-		local steel = Instance.new("UIStroke")
-		steel.Name = "Steel"
-		steel.Thickness = 3
-		steel.Color = UITheme.Colors.TamahaganeLight
-		steel.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		steel.Parent = button
+		-- A vermilion wax seal: warm wax face, a 2 px hot rim.
+		Kit.gradient(ColorSequence.new(UITheme.Colors.VermilionHover, UITheme.Colors.VermilionWax:Lerp(UITheme.Colors.VermilionDeep, 0.45)), 90).Parent = button
+		local rim = Instance.new("UIStroke")
+		rim.Name = "Steel"
+		rim.Thickness = 2
+		rim.Color = UITheme.Colors.VermilionHover
+		rim.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		rim.Parent = button
 	else
-		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiRaised:Lerp(deep, 0.25), UITheme.Colors.UrushiBlack), 90).Parent = button
-		Kit.stroke(color, 1.2, 0).Parent = button
+		-- Recessed Urushi with a Tamahagane bezel; the button's colour only lights the bezel when it's on.
+		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiInset, UITheme.Colors.UrushiBase), 90).Parent = button
+		Kit.stroke(UITheme.Colors.TamahaganeSlate, 1.5, 0).Parent = button
 	end
 	Kit.new("Frame", {
 		Name = "Rim",
@@ -96,7 +99,7 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 		Size = UDim2.new(1, -6, 1, -6),
 		BackgroundTransparency = 1,
 		Parent = button,
-	}, { Kit.corner(), Kit.stroke(color, 1, 0.65) })
+	}, { Kit.corner(UDim.new(0, 3)), Kit.stroke(if seal then UITheme.Colors.VermilionDeep else UITheme.Colors.TamahaganeRust, 1, 0.3) })
 	Kit.new("Frame", {
 		Name = "Gloss",
 		Position = UDim2.new(0, 4, 0, 1),
@@ -124,7 +127,7 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 		Name = "Title",
 		Text = title,
 		Font = Theme.Font.Display,
-		TextColor3 = if seal then UITheme.Colors.WashiParchment else color:Lerp(UITheme.Colors.WashiParchment, 0.35),
+		TextColor3 = if seal then UITheme.Colors.WashiParchment else color:Lerp(UITheme.Colors.WashiParchment, 0.55),
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.14),
 		Size = UDim2.fromScale(0.86, 0.44),
@@ -474,18 +477,20 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Size = UDim2.new(1, -12, 1, -5),
 		Parent = momentumHeader,
 	}, 14)
-	-- The Surge meter: fills from Spirit Cyan into Surge Gold over the 25-roll cycle (TotalRolls % 25).
+	-- The Surge talisman (an ofuda strip): a sunken track over the 25-roll cycle (TotalRolls % 25) that
+	-- charges spirit blue, turns void purple and shivers when the surge is close, and seals in gold leaf
+	-- when the next roll is the surge (Hud.RefreshMomentum).
 	surgeMeter = Kit.new("CanvasGroup", {
 		Name = "SurgeMeter",
-		Position = UDim2.fromScale(0.31, 0.22),
-		Size = UDim2.fromScale(0.69, 0.56),
-		BackgroundColor3 = UITheme.Colors.UrushiBlack,
-		BackgroundTransparency = 0.1,
+		Position = UDim2.fromScale(0, 0.22),
+		Size = UDim2.fromScale(1, 0.56),
+		BackgroundColor3 = UITheme.Colors.UrushiInset,
+		BackgroundTransparency = 0,
 		Parent = row,
-	}, { Kit.corner(UDim.new(1, 0)) })
+	}, { Kit.corner(UDim.new(0, 3)) })
 	local meterEdge = Instance.new("UIStroke")
 	meterEdge.Thickness = 1.5
-	meterEdge.Color = UITheme.Colors.Tamahagane
+	meterEdge.Color = UITheme.Colors.TamahaganeSlate
 	meterEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	meterEdge.Parent = surgeMeter
 	surgeFill = Kit.new("Frame", {
@@ -1229,14 +1234,14 @@ end
 -- The QUICK toggle's face (ON: ROLL plays the short reveal).
 function Hud.SetQuick(on: boolean)
 	quickButton.Sub.Text = if on then "ON" else "OFF"
-	quickButton.UIStroke.Transparency = if on then 0 else 0.4
-	quickButton.UIStroke.Thickness = if on then 2 else 1.2
+	quickButton.UIStroke.Color = if on then Theme.Color.Quick else UITheme.Colors.TamahaganeSlate
+	quickButton.UIStroke.Thickness = if on then 2 else 1.5
 end
 
 function Hud.SetAuto(on: boolean)
 	autoButton.Sub.Text = if on then "ON" else "OFF"
-	autoButton.UIStroke.Transparency = if on then 0 else 0.4
-	autoButton.UIStroke.Thickness = if on then 2 else 1.2
+	autoButton.UIStroke.Color = if on then Theme.Color.Auto else UITheme.Colors.TamahaganeSlate
+	autoButton.UIStroke.Thickness = if on then 2 else 1.5
 	local dimmed = on
 	rollButton.Title.TextTransparency = if dimmed then 0.6 else 0
 	quickButton.Title.TextTransparency = if dimmed then 0.6 else 0
@@ -1271,6 +1276,26 @@ function Hud.StartCooldown(seconds: number)
 	end
 end
 
+-- The talisman shivers (a 1 px jitter) while the surge is imminent; one loop at a time, off on low effects.
+local shivering = false
+function setShiver(on: boolean)
+	if on == shivering then
+		return
+	end
+	shivering = on
+	if not on or Theme.FxLow then
+		surgeMeter.Position = UDim2.fromScale(0, 0.22)
+		return
+	end
+	task.spawn(function()
+		while shivering and surgeMeter.Parent do
+			surgeMeter.Position = UDim2.new(0, math.random(-1, 1), 0.22, math.random(-1, 1))
+			task.wait(0.05)
+		end
+		surgeMeter.Position = UDim2.fromScale(0, 0.22)
+	end)
+end
+
 -- Momentum and the next surge, over the roll buttons.
 function Hud.RefreshMomentum()
 	local s = State.Summary
@@ -1279,11 +1304,19 @@ function Hud.RefreshMomentum()
 	local every = RollBoost.Surge.Every
 	local progress = s.SurgeProgress or RollBoost.SurgeProgress(s.TotalRolls or 0)
 	local ratio = progress / (every - 1)
-	local tip = UITheme.Colors.SpiritCyan:Lerp(UITheme.Colors.SurgeGold, ratio)
+	-- Three states: charging (spirit blue), imminent (void purple, shivering), sealed (gold leaf).
+	local sealed = progress == every - 1
+	local imminent = not sealed and progress >= every - 5
+	local fillColor = if sealed then UITheme.Colors.SurgeGold elseif imminent then UITheme.Colors.VoidSurge else UITheme.Colors.SpiritCyan
 	Kit.tween(surgeFill, 0.2, { Size = UDim2.fromScale(math.clamp(ratio, 0, 1), 1) }) -- full when the surge is next
-	surgeFill.UIGradient.Color = ColorSequence.new(UITheme.Colors.SpiritCyan, tip)
-	surgeCount.Text = if progress == every - 1 then "⚡ SURGE NEXT ROLL" else `SURGE {progress}/{every}`
-	surgeMeter.UIStroke.Color = if progress == every - 1 then UITheme.Colors.SurgeGold else UITheme.Colors.Tamahagane
+	surgeFill.UIGradient.Color = ColorSequence.new(fillColor:Lerp(UITheme.Colors.UrushiBase, 0.35), fillColor)
+	surgeCount.Text = if sealed
+		then `OVERCHARGE SURGE SEALED ({RollBoost.Surge.BorderMult}x ODDS)`
+		else `SURGE {progress}/{every}`
+	surgeCount.TextColor3 = if sealed then UITheme.Colors.UrushiBase else UITheme.Colors.WashiParchment
+	surgeMeter.UIStroke.Color = if sealed then UITheme.Colors.SurgeGold elseif imminent then UITheme.Colors.VoidSurge else UITheme.Colors.TamahaganeSlate
+	rollButton.Title.Text = if sealed then "UNLEASH SURGE!" else "ROLL"
+	setShiver(imminent)
 	Kit.tween(momentumFill, 0.3, { Size = UDim2.new(math.clamp(m.Count / RollBoost.Momentum.Max, 0, 1), 0, 0, 2) })
 	-- Momentum only: the Surge meter under it already counts down to the next surge.
 	local paused = if m.Paused then " (paused)" else ""

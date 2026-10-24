@@ -78,10 +78,14 @@ Kenji's 6-step path and titles. Social: server list with favourite cards, profil
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches
 odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`). Ids are 0 (placeholders) until launch.
 
-**Look.** Dark Feudal Occult: `src/configs/UITheme.luau` tokens (Urushi black, Tamahagane steel, Washi parchment text,
-Vermilion seal, element glows, FredokaOne headers) feed `UI/Theme`. Components: `JuicyButton` (sheen, spring, sounds,
-CanvasGroup content; roll console + battle pods) and `IconBadge` (diamond badges for element / role / currency). Card
-portraits use the 2D `Image` when set, else an element-lit bust (the user is making the illustrations:
+**Look.** Dark Feudal Occult: `src/configs/UITheme.luau` tokens (Urushi base / raised / inset lacquer, Tamahagane slate
+/ edge / rust steel, Washi parchment and ghost text, Vermilion wax seal, element glows, FredokaOne headers; no electric
+cyan) feed `UI/Theme`. `UITheme.BorderTiers` frames card tiles (bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void 3
+px: the border is the tier); stars are small parchment diamonds (they're stats, not the tier). The HUD's Surge talisman
+charges spirit blue, shivers void purple for the last 4 rolls, and seals gold when the next roll is the surge (ROLL then
+reads UNLEASH SURGE!); AUTO / QUICK are recessed and light their bezel when on. Components: `JuicyButton` (sheen,
+spring, sounds, CanvasGroup content; roll console + battle pods) and `IconBadge` (diamond badges for element / role /
+currency). Card portraits use the 2D `Image` when set, else an element-lit bust (the user is making the illustrations:
 `art/CARD_ART_PROMPTS.md`, PNGs in `art/cards/<cardId>.png`).
 
 ## Layout (Rojo project, `default.project.json`)

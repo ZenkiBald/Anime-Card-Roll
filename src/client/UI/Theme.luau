@@ -1,7 +1,7 @@
 --!strict
 -- Colours and fonts for every screen, in the Dark Feudal Occult look (Configs/UITheme holds the tokens):
 -- Urushi black lacquer panels, Tamahagane steel edges, Washi parchment text, sharp 5 px corners, and
--- colour (spirit cyan, gold, vermilion, element glows) only where something is rare, active or wants a
+-- colour (spirit blue, gold leaf, vermilion, element glows) only where something is rare, active or wants a
 -- tap. Chunky FredokaOne headings over Gotham body type.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,9 +25,9 @@ Theme.Color = {
 	Line = C.Tamahagane, -- every thin steel edge
 	Text = C.WashiParchment,
 	Muted = C.TextMuted,
-	Neon = Color3.fromRGB(60, 220, 255), -- the active / selected trim
-	Accent = Color3.fromRGB(60, 200, 255),
-	AccentDeep = Color3.fromRGB(14, 70, 110),
+	Neon = Color3.fromRGB(232, 196, 120), -- the active / selected trim: warm gold leaf, not electric cyan
+	Accent = C.SpiritCyan, -- Shards and info highlights: soft spirit blue
+	AccentDeep = Color3.fromRGB(16, 60, 90),
 	Roll = Color3.fromRGB(255, 92, 70),
 	RollDeep = Color3.fromRGB(150, 28, 40),
 	Auto = Color3.fromRGB(64, 156, 255),

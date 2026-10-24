@@ -17,29 +17,53 @@ end
 
 local UITheme = {
 	Colors = {
-		UrushiBlack = Color3.fromRGB(11, 11, 14), -- #0B0B0E base panel background
-		UrushiRaised = Color3.fromRGB(19, 19, 24), -- tiles and slots, one step up from the panel
-		Tamahagane = Color3.fromRGB(38, 44, 54), -- #262C36 bevelled steel frames
-		TamahaganeLight = Color3.fromRGB(62, 72, 88), -- border highlights, notches
-		WashiParchment = Color3.fromRGB(222, 206, 175), -- #DECEAF primary labels and text
-		VermilionSeal = Color3.fromRGB(192, 41, 43), -- #C0292B call-to-action buttons, ink stamps
+		-- Surfaces: Urushi lacquer, three depths.
+		UrushiBase = Color3.fromRGB(11, 11, 14), -- #0B0B0E base panel background
+		UrushiRaised = Color3.fromRGB(20, 20, 26), -- #14141A tiles and slots, one step up
+		UrushiInset = Color3.fromRGB(7, 7, 9), -- #070709 sunken tracks and recessed buttons
+		-- Text: Washi parchment.
+		WashiParchment = Color3.fromRGB(236, 229, 216), -- #ECE5D8 primary labels and text
+		WashiGhost = Color3.fromRGB(140, 133, 123), -- #8C857B secondary labels, stats, counts
+		-- Frames: Tamahagane folded steel.
+		TamahaganeSlate = Color3.fromRGB(44, 48, 56), -- #2C3038 bezels and thin edges
+		TamahaganeEdge = Color3.fromRGB(86, 92, 104), -- #565C68 highlights, notches
+		TamahaganeRust = Color3.fromRGB(26, 28, 34), -- #1A1C22 the dark side of a bevel
+		-- Calls to action: Vermilion wax seal.
+		VermilionWax = Color3.fromRGB(201, 59, 43), -- #C93B2B
+		VermilionHover = Color3.fromRGB(230, 75, 58), -- #E64B3A its rim and hover
 		VermilionDeep = Color3.fromRGB(92, 16, 20),
-		TextMuted = Color3.fromRGB(120, 130, 145), -- secondary labels and stats
-		SpiritCyan = Color3.fromRGB(24, 229, 213), -- #18E5D5 the Surge meter, empty end
-		SurgeGold = Color3.fromRGB(255, 215, 0), -- #FFD700 the Surge meter, full end
-		SpiritSheen = Color3.fromRGB(210, 240, 255), -- the flowing sheen on JuicyButton rims
+		-- The Surge talisman's three states (Hud): charging, imminent, sealed.
+		SpiritCyan = Color3.fromRGB(79, 195, 247), -- #4FC3F7 charging (rolls 0-19 of the cycle)
+		VoidSurge = Color3.fromRGB(126, 87, 194), -- #7E57C2 imminent (20-23)
+		SurgeGold = Color3.fromRGB(255, 215, 0), -- #FFD700 sealed: the next roll is the surge
+		SpiritSheen = Color3.fromRGB(236, 229, 216), -- the flowing sheen on JuicyButton rims (parchment, not cyan)
+		-- Older names, the same values, so every screen built on them follows the new tokens.
+		UrushiBlack = Color3.fromRGB(11, 11, 14), -- = UrushiBase
+		Tamahagane = Color3.fromRGB(44, 48, 56), -- = TamahaganeSlate
+		TamahaganeLight = Color3.fromRGB(86, 92, 104), -- = TamahaganeEdge
+		VermilionSeal = Color3.fromRGB(201, 59, 43), -- = VermilionWax
+		TextMuted = Color3.fromRGB(140, 133, 123), -- = WashiGhost
 
 		-- Element glow tints, by Elements.luau id (Flame, Frost, Storm, Light, Void, Cosmic).
 		Elements = elementColors,
 
 		-- Border tier glows, by Borders.luau id.
 		Borders = {
-			Normal = Color3.fromRGB(180, 160, 140), -- Base
-			Gold = Color3.fromRGB(255, 215, 0),
+			Normal = Color3.fromRGB(122, 106, 88), -- Base: tainted bronze #7A6A58
+			Gold = Color3.fromRGB(255, 215, 0), -- gold leaf #FFD700
 			Rainbow = Color3.fromRGB(255, 105, 180),
-			Secret = Color3.fromRGB(140, 20, 255),
+			Secret = Color3.fromRGB(170, 0, 255), -- cosmic void purple #AA00FF
 		} :: { [string]: Color3 },
 	},
+
+	-- How each border tier frames a card tile (the border IS the tier): stroke colour and thickness.
+	-- Rainbow uses Borders.luau's prismatic gradient; Secret pairs the void purple with a singularity core.
+	BorderTiers = {
+		Normal = { Color = Color3.fromRGB(122, 106, 88), Thickness = 1 },
+		Gold = { Color = Color3.fromRGB(255, 215, 0), Thickness = 2, Glow = true },
+		Rainbow = { Color = Color3.fromRGB(255, 105, 180), Thickness = 2.5, Glow = true, Prismatic = true },
+		Secret = { Color = Color3.fromRGB(170, 0, 255), Core = Color3.fromRGB(11, 0, 20), Thickness = 3, Glow = true },
+	} :: { [string]: { Color: Color3, Thickness: number, Glow: boolean?, Prismatic: boolean?, Core: Color3? } },
 
 	-- Battle roles (Cards.luau `Role`): badge glyph and glow.
 	Roles = {

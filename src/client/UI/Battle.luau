@@ -405,7 +405,7 @@ end
 
 local NEON_EMERALD = Color3.fromRGB(40, 255, 140)
 local NEON_RED = Color3.fromRGB(255, 50, 70)
-local NEON_CYAN = Color3.fromRGB(60, 230, 255)
+local NEON_CYAN = UITheme.Colors.SpiritCyan -- action gauges: soft spirit blue
 
 local function hpColor(ratio: number): Color3
 	return if ratio >= 0.3 then NEON_EMERALD else NEON_RED
