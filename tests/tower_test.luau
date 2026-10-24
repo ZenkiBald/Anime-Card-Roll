@@ -188,6 +188,10 @@ end
 do
 	local first, again = Tower.Reward(10), Tower.Reward(10, true)
 	check(next(again.Packs or {}) == nil and again.Potion == nil, "a replayed floor drops no Roll Packs or sure potion")
-	check(again.Shards == first.Shards and again.TraitShards == first.TraitShards and again.D == first.D, "a replayed floor pays the same Shards, Trait Shards and artifact odds")
+	local plain = Tower.Reward(11) -- an ordinary floor next to it
+	check(first.DropBoost > again.DropBoost and again.DropBoost == plain.DropBoost and again.Shards < first.Shards, "a replayed Guardian pays like an ordinary floor (no x3 Shards or x4 artifact odds)")
+	check(again.D == first.D and again.TraitShards < first.TraitShards, "a replayed Guardian keeps its artifact tier but not the Guardian Trait Shards")
+	local ordinary, ordinaryAgain = Tower.Reward(12), Tower.Reward(12, true)
+	check(ordinaryAgain.Shards == ordinary.Shards and ordinaryAgain.TraitShards == ordinary.TraitShards and ordinaryAgain.DropBoost == ordinary.DropBoost, "a replayed ordinary floor pays the same Shards, Trait Shards and artifact odds")
 	check(first.Packs ~= nil and next(first.Packs) ~= nil, "a first clear of a Guardian floor still drops its packs")
 end

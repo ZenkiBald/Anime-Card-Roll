@@ -280,12 +280,13 @@ function Tower.FloorAt(floor: number, enemy: Enemy?, affix: (Affix | false)?): F
 end
 
 -- What clearing a floor pays (once: cleared floors can't be fought again).
--- What a floor's win pays. `replay`: a floor already cleared, fought again: the same Shards, Trait
--- Shards and artifact roll, but no Roll Packs and no sure potion (those are first clear only).
+-- What a floor's win pays. `replay`: a floor already cleared, fought again, pays like an ordinary floor:
+-- its Shards, Trait Shards and artifact roll, but no Roll Packs, no sure potion and no Guardian bonuses
+-- (x3 Shards, x4 artifact odds, Guardian Trait Shards), so an easy old Guardian can't be farmed.
 function Tower.Reward(floor: number, replay: boolean?): Reward
 	local d = floor * Tower.DPerFloor
 	local base = Rewards.For(d)
-	local guardian = Tower.IsGuardian(floor)
+	local guardian = Tower.IsGuardian(floor) and not replay
 	local shards = Tower.ShardsBase + Tower.ShardsPerFloor * floor
 	return {
 		D = d,

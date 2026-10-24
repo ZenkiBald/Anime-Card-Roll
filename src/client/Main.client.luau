@@ -158,9 +158,9 @@ function showExtras(result)
 	end
 	if result.Surge == "Perfect" then
 		Sfx.Sting("Epic", true)
-		Hud.Hint(`⚡ PERFECT OVERCHARGE SURGE! {1 + #(result.Extra or {})} cards, Epic or better first`)
+		Hud.Hint(`⚡ PERFECT OVERCHARGE SURGE! {1 + #(result.Extra or {})} cards at 12x border odds`)
 	elseif result.Surge == "Plain" then
-		Hud.Hint("⚡ OVERCHARGE SURGE! Rare or better (tap inside the surge window for a perfect one)")
+		Hud.Hint("⚡ OVERCHARGE SURGE! 10x border odds (tap inside the surge window for a perfect one)")
 	elseif result.Extra then
 		Hud.Hint(`🎴 TRIPLE ROLL: +{#result.Extra} cards`)
 	end
@@ -312,7 +312,7 @@ BossScreen.Init(playerGui, {
 	end,
 	Fight = Battle.Start,
 })
-if State.TestMode then
+if State.Dev then
 	DevPanel.Init(playerGui)
 end
 
@@ -406,7 +406,7 @@ Hud.Init(playerGui, {
 	OnOdds = OddsPanel.Toggle,
 	OnPets = Pets.Toggle,
 	OnRaid = BossScreen.OpenRaid,
-	OnDev = if State.TestMode then DevPanel.Toggle else nil,
+	OnDev = if State.Dev then DevPanel.Toggle else nil, -- only for test tool users (DevAccess)
 })
 
 State.Changed:Connect(function(kind)

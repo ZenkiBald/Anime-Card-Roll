@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProfileStore = require(script.Parent.ProfileStore)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Deck = require(ReplicatedStorage.Shared.Deck)
+local SaveMigration = require(script.Parent.SaveMigration)
 
 local presets = {}
 for i = 1, Config.Deck.Presets do
@@ -186,60 +187,8 @@ local function onPlayerAdded(player: Player)
 
 	profile:AddUserId(player.UserId) -- GDPR compliance
 	profile:Reconcile() -- fill in fields added to TEMPLATE after this save was made
-	-- Card accessories were removed: any the player had (in the bag or worn) are refunded as Shards.
-	local gear = profile.Data.Gear
-	if type(gear.Accessories) == "table" or type(gear.Cards) == "table" then
-		local count = 0
-		for _, n in gear.Accessories or {} do
-			count += if type(n) == "number" then n else 0
-		end
-		for _ in gear.Cards or {} do
-			count += 1
-		end
-		profile.Data.Shards += count * 150
-		gear.Accessories = nil
-		gear.Cards = nil
-	end
-	profile.Data.Pity = nil -- rolls are pure luck now
-	-- Borders became the tiers (no card rarities): each card gets per-border copy counts. Its old copies
-	-- are Base copies, minus one for each special border it had found; an old rarity fusion becomes one
-	-- Gold copy. Old Auto Roll stops (rarities) go back to the default.
-	for _, entry in profile.Data.Cards do
-		if type(entry) == "table" and entry.BorderCopies == nil then
-			local copies = { Normal = 0 }
-			local special = 0
-			for id, has in entry.Borders or {} do
-				if has and id ~= "Normal" then
-					copies[id] = 1
-					special += 1
-				end
-			end
-			local fused = entry.Fusion or 0
-			if fused > 0 then
-				copies.Gold = (copies.Gold or 0) + fused
-				entry.Borders = entry.Borders or {}
-				entry.Borders.Gold = true
-				entry.Copies += fused
-			end
-			copies.Normal = math.max(0, (entry.Copies or 1) - special - fused)
-			entry.BorderCopies = copies
-		end
-	end
-	if not table.find(Config.AutoStopOptions, profile.Data.Settings.AutoStop) then
-		profile.Data.Settings.AutoStop = Config.DefaultAutoStop
-	end
-	-- Saves from the short-lived roll bank (rarity tickets) get their tickets back as Roll Packs.
-	local bank = profile.Data.RollBank
-	if type(bank) == "table" then
-		local tickets = 0
-		for _, count in bank do
-			tickets += if type(count) == "number" then count else 0
-		end
-		if tickets > 0 then
-			profile.Data.Packs["10"] = (profile.Data.Packs["10"] or 0) + math.ceil(tickets / 10)
-		end
-		profile.Data.RollBank = nil
-	end
+	-- Old saves are brought up to date (accessory refunds, border copies, roll bank ...): SaveMigration.
+	SaveMigration.Migrate(profile.Data)
 
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil

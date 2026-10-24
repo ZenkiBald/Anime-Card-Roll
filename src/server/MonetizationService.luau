@@ -14,7 +14,6 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local PolicyService = game:GetService("PolicyService")
 
@@ -24,6 +23,7 @@ local MonetizationConfig = require(Shared.MonetizationConfig)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
+local DevAccess = require(script.Parent.DevAccess)
 local RateLimit = require(script.Parent.RateLimit)
 
 local MonetizationService = {}
@@ -40,8 +40,10 @@ function MonetizationService.SetGranter(fn)
 	granter = fn
 end
 
-local function mockAllowed(id: number): boolean
-	return (RunService:IsStudio() or Config.TestMode) and (id == 0 or MonetizationConfig.MockPurchases)
+-- Mock buys (free, saved in MockPasses) only for test tool users (DevAccess): never for players in a
+-- published game, even one left in test mode.
+local function mockAllowed(player: Player, id: number): boolean
+	return DevAccess.Allowed(player) and (id == 0 or MonetizationConfig.MockPurchases)
 end
 
 function MonetizationService.Restricted(player: Player): boolean
@@ -109,7 +111,7 @@ function MonetizationService.State(player: Player)
 		Ok = true,
 		Passes = passes,
 		Restricted = MonetizationService.Restricted(player),
-		Mock = mockAllowed(0),
+		Mock = mockAllowed(player, 0),
 		TotemEnds = if type(ends) == "number" then ends else nil,
 	}
 end
@@ -233,7 +235,7 @@ local function buy(player: Player, key: unknown)
 		return { Ok = false, Reason = "Owned" }
 	end
 	local id = MonetizationConfig.PassId(pass.Key)
-	if mockAllowed(id) then
+	if mockAllowed(player, id) then
 		local profile = DataService.Get(player)
 		if profile == nil then
 			return { Ok = false, Reason = "Loading" }
@@ -254,7 +256,7 @@ local function buyTotem(player: Player)
 		return { Ok = false, Reason = "Restricted" } -- random rewards for Robux: not offered here
 	end
 	local id = MonetizationConfig.SERVER_TOTEM_PRODUCT_ID
-	if mockAllowed(id) then
+	if mockAllowed(player, id) then
 		payTotem(player)
 		return { Ok = true, Mock = true, State = MonetizationService.State(player) }
 	end
@@ -273,7 +275,7 @@ local function buyShards(player: Player, key: unknown)
 	if MonetizationService.Restricted(player) then
 		return { Ok = false, Reason = "Restricted" } -- Shards buy luck: not sold for Robux here
 	end
-	if mockAllowed(bundle.ProductId) then
+	if mockAllowed(player, bundle.ProductId) then
 		payShards(player, bundle)
 		return { Ok = true, Mock = true, State = MonetizationService.State(player) }
 	end

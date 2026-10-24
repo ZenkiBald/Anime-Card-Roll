@@ -28,6 +28,7 @@ local AvatarService = require(script.Parent.AvatarService)
 local MetaService = {}
 
 local limiter = RateLimit.new(6, 12)
+local getLimiter = RateLimit.new(2, 6) -- "Get" (read only) builds the whole Meta state
 local wheelRng = Random.new()
 local giftsClaimed = {} -- [Player] = { [index] = true } for this server session
 
@@ -499,6 +500,9 @@ function MetaService.Start()
 			return { Ok = false, Reason = "Loading" }
 		end
 		if action == "Get" then
+			if not getLimiter:Allow(player) then
+				return { Ok = false, Reason = "TooFast" }
+			end
 			return { Ok = true, Meta = MetaService.State(player, profile.Data) }
 		end
 		if not limiter:Allow(player) then

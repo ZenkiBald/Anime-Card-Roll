@@ -179,7 +179,7 @@ Meta.Milestones = {
 Meta.Quests = {
 	{ Id = "roll50", Text = "Roll 50 times", Stat = "Rolls", Goal = 50, Reward = { Shards = 30 } },
 	{ Id = "roll200", Text = "Roll 200 times", Stat = "Rolls", Goal = 200, Reward = { Shards = 60, Potions = { luck = 1 } } },
-	{ Id = "epic", Text = "Pull an Epic or better", Stat = "EpicPulls", Goal = 1, Reward = { Shards = 50 } },
+	{ Id = "epic", Text = "Pull a Gold border or better", Stat = "EpicPulls", Goal = 1, Reward = { Shards = 50 } },
 	{ Id = "boss1", Text = "Beat any boss", Stat = "BossWins", Goal = 1, Reward = { Shards = 40 } },
 	{ Id = "boss3", Text = "Beat 3 bosses", Stat = "BossWins", Goal = 3, Reward = { Shards = 40, Potions = { speed = 1 }, TraitShards = 5 } },
 	{ Id = "hard", Text = "Beat a boss on Hard or Nightmare", Stat = "HardWins", Goal = 1, Reward = { Potions = { superluck = 1 } } },

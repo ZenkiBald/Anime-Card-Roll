@@ -9,6 +9,10 @@ Config.GameName = "Anime Card Roll"
 -- true  = dev panel on, all roll buttons unlocked, saves go to a separate test store.
 -- false = launch behaviour (unlock rules apply, dev tools are refused by the server).
 Config.TestMode = true
+-- Who may use the test tools while TestMode is on (DevAccess, server): anyone in Studio, the game's owner
+-- (a group game: rank DevGroupRank or higher in the owning group), and these user ids (testers).
+Config.DevUserIds = {} :: { number }
+Config.DevGroupRank = 254
 
 Config.Roll = {
 	Cooldown = 1.2, -- seconds between rolls, enforced on the server

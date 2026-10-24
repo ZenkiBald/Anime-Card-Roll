@@ -62,6 +62,7 @@ local State = {
 	MetaAt = os.clock(), -- when Meta arrived; timers count down from here
 	InBattle = false,
 	TestMode = false,
+	Dev = false, -- may use the DEV panel (DevAccess on the server)
 	Mount = "pup",
 }
 
@@ -96,6 +97,7 @@ function State.ApplyFull(full)
 		State.MetaAt = os.clock()
 	end
 	State.TestMode = full.TestMode == true
+	State.Dev = full.Dev == true
 	changed:Fire("all")
 end
 

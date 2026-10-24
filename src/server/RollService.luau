@@ -37,6 +37,7 @@ local Momentum = require(script.Parent.Momentum)
 local TutorialService = require(script.Parent.TutorialService)
 local NpcRange = require(script.Parent.NpcRange)
 local AvatarService = require(script.Parent.AvatarService)
+local DevAccess = require(script.Parent.DevAccess)
 
 local RollService = {}
 
@@ -46,6 +47,11 @@ local lastRoll = {} -- [Player] = os.clock() of their last roll
 local openLimiter = RateLimit.new(1, 2) -- opening Roll Packs: one a second
 local fastOpenLimiter = RateLimit.new(MonetizationConfig.TriplePackSpeed, MonetizationConfig.TriplePackSpeed * 2) -- Triple Roll pass
 local alchemyLimiter = RateLimit.new(4, 8)
+-- A big open (over BIG_OPEN rolls in one call, e.g. OPEN ALL on Mega Packs) costs real server time, so those
+-- come at most one per 4 s on top of the normal open limit.
+local BIG_OPEN = 1000
+local bigOpenLimiter = RateLimit.new(0.25, 1)
+local stateLimiter = RateLimit.new(0.5, 3) -- GetState builds the whole save's state
 local autoGeneration = {} -- [Player] = number; bumping it stops the running Auto Roll loop
 local autoActive = {} -- [Player] = true while Auto Roll is running
 local MAX_OPEN_ROLLS = 10000 -- the most cards one OpenPack call rolls (packs opened at once)
@@ -112,6 +118,7 @@ local function fullState(player: Player, data)
 		Mount = data.Settings.Mount,
 		Meta = MetaService.State(player, data),
 		TestMode = Config.TestMode,
+		Dev = DevAccess.Allowed(player), -- may use the DEV panel
 	}
 end
 
@@ -466,6 +473,9 @@ end
 
 function RollService.Start()
 	Remotes.GetState.OnServerInvoke = function(player: Player)
+		if not stateLimiter:Allow(player) then
+			return { Ok = false, Reason = "Loading" } -- the client asks again
+		end
 		local profile = DataService.WaitFor(player, 20)
 		if profile == nil then
 			return { Ok = false, Reason = "Loading" }
@@ -503,6 +513,9 @@ function RollService.Start()
 			return { Ok = false, Reason = "NoPacks" }
 		end
 		local n = math.min(wanted, have, math.max(1, math.floor(MAX_OPEN_ROLLS / pack.Rolls)))
+		if n * pack.Rolls > BIG_OPEN and not bigOpenLimiter:Allow(player) then
+			return { Ok = false, Reason = "TooFast" }
+		end
 		held[pack.Id] = have - n
 		if held[pack.Id] <= 0 then
 			held[pack.Id] = nil
@@ -645,9 +658,9 @@ function RollService.Start()
 		end
 	end)
 
-	-- Test-phase tools. The server refuses all of them once Config.TestMode is false.
+	-- Test-phase tools: only for DevAccess (TestMode on, and Studio / the owner / a listed tester).
 	Remotes.Dev.OnServerInvoke = function(player: Player, action: unknown, value: unknown)
-		if not Config.TestMode then
+		if not DevAccess.Allowed(player) then
 			return { Ok = false, Reason = "Disabled" }
 		end
 		local profile = DataService.Get(player)
