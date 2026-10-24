@@ -245,7 +245,7 @@ Combat & VFX pass (2026-10-23, not yet seen in Studio): Ultimate cut-in is an ob
 neon edge (`NEON` in `UI/Battle`), italic metallic GothamBlack, punch + sparks; battle cards stay dark (the border
 in the edge), neon emerald / red HP, cyan action bar, energy glows when full, status badges top right (`BADGES`);
 metal FIGHT! drop-in; a STAGGERED banner under the leader's HP while Staggered (shows the real effect, DEF 0 /
-Ultimates +50%). NPC / booth name plates and the town boards show within 25 studs only (HubFx fades them); the
+Ultimates +50%). NPC / booth name plates and the town boards showed within 25 studs only (undone 2026-10-24, see below); the
 Momentum line sits in an Urushi header over the roll console with a 2 px bar to 500 (the Surge meter sits in
 the row under it, beside AUTO STOP); Travel cards get a biome glow
 and a boss badge (highest cleared difficulty).
@@ -307,6 +307,18 @@ the obsidian / Gotham look above where they disagree:
   element line on top, Washi title, element + role IconBadges.
 Merge note (2026-10-24): the combat / arena / portrait passes were built on a PC from the polish + deck commit and
 merged after the border tiers and occult UI; where they said rarity, the merge uses the border.
+Playtest fixes (2026-10-24, from the user's Studio screenshots; headless tests + luau-lsp only):
+- NPC / booth name plates are full size again and seen from 160 studs, town boards from 120, Kenji's tip bubble
+  from 60 (the 25-stud range was unreadable; user's call). Portal / gate signs still fade in close.
+- `✕` and `▾` showed as empty boxes in game: `Kit.glyph("Cross" | "Chevron")` draws them (Modal close,
+  Controls dropdowns, the deck's remove icon). Don't put those characters in labels.
+- Card portraits: the stand-in bust is lit in the element colour with a pale rim (it read as a black blob).
+- Arena: guards at ±13 / front 12 studs, the front guard's tile hangs under its feet, the leader plate sits
+  higher, guard tiles 150 x 84, braziers softer, and the place's bloom is turned down for the fight (restored
+  in Arena.Stop). Battle dock: cast tags sit inside their own card's top edge; KO! / SAVED floats are smaller.
+- HUD: the Momentum line no longer repeats the surge count (the Surge meter shows it); MOUNT tile 58 px; Index
+  Base shows no "1 in"; `Kit.tile` drops its gloss line when a layout is added; name tags sit above the
+  avatar's bounding box (hats included).
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: the border still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,

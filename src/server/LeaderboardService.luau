@@ -221,7 +221,7 @@ local function buildBoard(parent: Instance, frame: CFrame, board: Board)
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 50
 	gui.LightInfluence = 0
-	gui.MaxDistance = 25 -- only shown up close, so the boards don't add to the town's text clutter
+	gui.MaxDistance = 120
 	gui.Parent = panel
 	local title = label(gui, {
 		Text = board.Title,

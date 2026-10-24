@@ -22,8 +22,15 @@ local ZoneFx = require(script.Parent.Parent.ZoneFx)
 local Arena = {}
 
 local GUARD_SCALE = 0.55
--- Where guards stand, in the leader's frame (it faces -Z): left, right, in front.
-local GUARD_SPOTS = { Vector3.new(-9, 0, -4), Vector3.new(9, 0, -4), Vector3.new(0, 0, -9) }
+-- Where guards stand, in the leader's frame (it faces -Z): left, right, in front. Wide enough that their
+-- tiles don't overlap from the battle camera; the front guard's tile hangs under its feet (FRONT), so it
+-- never covers the leader or its plate.
+local GUARD_SPOTS = { Vector3.new(-13, 0, -3), Vector3.new(13, 0, -3), Vector3.new(0, 0, -12) }
+local FRONT = 3
+-- During a fight the place's bloom is turned down (the braziers and neon blew out the middle of the
+-- screen); Stop puts it back.
+local FIGHT_BLOOM = { Intensity = 0.3, Threshold = 2.4 }
+local savedBloom: { Effect: BloomEffect, Intensity: number, Threshold: number }? = nil
 
 local folder: Folder? = nil
 local guis = {} -- BillboardGuis made for this fight
@@ -112,8 +119,8 @@ local function brazier(at: CFrame, color: Color3)
 	flame.Parent = folder
 	local light = Instance.new("PointLight")
 	light.Color = color
-	light.Range = 22
-	light.Brightness = 2.2
+	light.Range = 16
+	light.Brightness = 1.1
 	light.Shadows = false
 	light.Parent = flame
 	local embers = Instance.new("ParticleEmitter")
@@ -130,7 +137,7 @@ end
 
 -- The leader's compact plate: name and HP bar, in world space over its head.
 local function makePlate(leader, name: string, accent: Color3)
-	local gui = billboard("LeaderPlate", leader.Model.PrimaryPart, UDim2.fromOffset(210, 38), leader.Height / 2 + 1.8)
+	local gui = billboard("LeaderPlate", leader.Model.PrimaryPart, UDim2.fromOffset(210, 38), leader.Height / 2 + 3.5)
 	local frame = Kit.new("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.fromRGB(10, 12, 20),
@@ -259,11 +266,18 @@ function Arena.Start(boss, guards: { any }, tint: Color3?): Staged?
 		local g = Bosses.GuardTypes[guard.GuardId]
 		local color = if g then g.Color else Color3.fromRGB(255, 90, 90)
 		local fig = figure(guard.Id, boss.Id, onGround(offset), GUARD_SCALE, color)
-		guardGuis[i] = billboard(`Guard{i}`, fig.Model.PrimaryPart, UDim2.fromOffset(170, 96), fig.Height / 2 + 2.6)
+		local lift = if i == FRONT then -(fig.Height / 2 + 2.2) else fig.Height / 2 + 2.4
+		guardGuis[i] = billboard(`Guard{i}`, fig.Model.PrimaryPart, UDim2.fromOffset(150, 84), lift)
 	end
 
 	brazier(onGround(Vector3.new(-13, 0, 6)), boss.Accent)
 	brazier(onGround(Vector3.new(13, 0, 6)), boss.Accent)
+	local bloom = Lighting:FindFirstChildOfClass("BloomEffect")
+	if bloom then
+		savedBloom = { Effect = bloom, Intensity = bloom.Intensity, Threshold = bloom.Threshold }
+		bloom.Intensity = math.min(bloom.Intensity, FIGHT_BLOOM.Intensity)
+		bloom.Threshold = math.max(bloom.Threshold, FIGHT_BLOOM.Threshold)
+	end
 
 	-- Low cinematic camera in front of the squad, looking up at the leader, drifting slowly.
 	local camera = Workspace.CurrentCamera
@@ -350,6 +364,11 @@ function Arena.Stop()
 	if dof then
 		dof:Destroy()
 		dof = nil
+	end
+	if savedBloom then
+		savedBloom.Effect.Intensity = savedBloom.Intensity
+		savedBloom.Effect.Threshold = savedBloom.Threshold
+		savedBloom = nil
 	end
 	plate = nil
 	if folder then

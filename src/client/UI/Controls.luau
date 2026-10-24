@@ -80,17 +80,15 @@ function Controls.Option(parent: Instance, caption: string, options: { string },
 		ZIndex = 5,
 		Parent = button,
 	}, 16)
-	Kit.label({
+	-- The ▾ is drawn (the character shows as an empty box in game).
+	Kit.glyph("Chevron", Theme.Color.Neon, {
 		Name = "Arrow",
-		Text = "▾",
-		Font = Theme.Font.Heavy,
-		TextColor3 = Theme.Color.Neon,
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -8, 0.5, 0),
-		Size = UDim2.fromOffset(14, 18),
+		Position = UDim2.new(1, -10, 0.5, 0),
+		Size = UDim2.fromOffset(12, 8),
 		ZIndex = 5,
 		Parent = button,
-	}, 16)
+	})
 	Kit.pressable(button)
 	button.Activated:Connect(function()
 		local wasMine = openList and openList.Parent == button
@@ -264,15 +262,24 @@ function Controls.Icon(parent: Instance, text: string, color: Color3, order: num
 		Size = UDim2.new(0, 40, 1, 0),
 		Parent = parent,
 	}, color:Lerp(Theme.Color.Line, 0.5))
-	Kit.label({
-		Text = text,
-		Font = Theme.Font.Heavy,
-		TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.3),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.6, 0.6),
-		Parent = button,
-	}, 20)
+	if text == "✕" then
+		Kit.glyph("Cross", color:Lerp(Color3.new(1, 1, 1), 0.3), {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(12, 12),
+			Parent = button,
+		})
+	else
+		Kit.label({
+			Text = text,
+			Font = Theme.Font.Heavy,
+			TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.3),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.6, 0.6),
+			Parent = button,
+		}, 20)
+	end
 	Kit.pressable(button)
 	button.Activated:Connect(onClick)
 	return button

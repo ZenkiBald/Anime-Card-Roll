@@ -96,14 +96,12 @@ local function styleSign(gui: BillboardGui, fade: boolean, range: number?)
 	end
 end
 
--- NPC and booth name plates: compact, and only shown within this many studs (HubFx fades them in).
-local NPC_RANGE = 25
-
 local function sign(parent: BasePart, offset: number, title: string, sub: string, color: Color3, fade: boolean?)
-	local npcPlate = fade ~= true
+	-- NPC and booth name plates are full size and seen from 160 studs (the user found 25-stud plates
+	-- unreadable); portal / gate signs fade in close (SIGN_RANGE).
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Sign"
-	gui.Size = if npcPlate then UDim2.fromOffset(180, 46) else UDim2.fromOffset(260, 70)
+	gui.Size = UDim2.fromOffset(260, 70)
 	gui.StudsOffset = Vector3.new(0, offset, 0)
 	gui.MaxDistance = 160
 	gui.Parent = parent
@@ -124,7 +122,7 @@ local function sign(parent: BasePart, offset: number, title: string, sub: string
 	bottom.TextColor3 = color
 	bottom.Text = sub
 	bottom.Parent = gui
-	styleSign(gui, true, if npcPlate then NPC_RANGE else nil)
+	styleSign(gui, fade == true)
 end
 
 -- The gate signs saved in the place (tools/studio/map.luau) get the same look and fade.

@@ -394,7 +394,7 @@ local function section(rarity: string, order: number)
 		Parent = header,
 	}, 26), 2)
 	Controls.Outlined(Kit.label({
-		Text = `{Odds.FormatPercent(chance)}  ·  {Odds.FormatOneIn(chance)}  ·  {found}/{#pool} found{if rarity == "Normal" then "" else ` at {tier.Name}`}`,
+		Text = `{Odds.FormatPercent(chance)}{if rarity == "Normal" then "" else `  ·  {Odds.FormatOneIn(chance)}`}  ·  {found}/{#pool} found{if rarity == "Normal" then "" else ` at {tier.Name}`}`,
 		Font = Theme.Font.Heavy,
 		TextColor3 = Color3.fromRGB(223, 235, 255),
 		TextXAlignment = Enum.TextXAlignment.Left,

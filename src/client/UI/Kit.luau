@@ -160,6 +160,43 @@ function Kit.tween(
 	return tween
 end
 
+-- A drawn symbol, for the glyphs some fonts can't show in game (✕ and ▾ came out as empty boxes): two thin
+-- bars, crossed ("Cross") or as a down chevron ("Chevron"). Size and place the returned frame like a label;
+-- recolour it with Kit.glyphColor.
+function Kit.glyph(kind: string, color: Color3, props: { [string]: any }): Frame
+	local holder = Kit.new("Frame", props)
+	holder.BackgroundTransparency = 1
+	local chevron = kind == "Chevron"
+	for i, angle in { 45, -45 } do
+		Kit.new("Frame", {
+			Name = "Bar",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			-- A chevron's bars meet at the bottom middle: each sits on its own half, tilted in.
+			Position = if chevron then UDim2.fromScale(if i == 1 then 0.32 else 0.68, 0.5) else UDim2.fromScale(0.5, 0.5),
+			Size = if chevron then UDim2.new(0.62, 0, 0, 2) else UDim2.new(1.15, 0, 0, 2),
+			Rotation = angle,
+			BorderSizePixel = 0,
+			BackgroundColor3 = color,
+			ZIndex = holder.ZIndex,
+			Parent = holder,
+		}, { Kit.new("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	end
+	return holder
+end
+
+-- Recolours (or tweens, with `seconds`) a Kit.glyph.
+function Kit.glyphColor(glyph: Instance, color: Color3, seconds: number?)
+	for _, bar in glyph:GetChildren() do
+		if bar:IsA("Frame") then
+			if seconds then
+				Kit.tween(bar, seconds, { BackgroundColor3 = color })
+			else
+				bar.BackgroundColor3 = color
+			end
+		end
+	end
+end
+
 -- Press feedback: shrink and click on press, spring back on release. Cheap and works on touch.
 function Kit.pressable(button: GuiButton)
 	local scale = button:FindFirstChildOfClass("UIScale") or Kit.new("UIScale", { Parent = button })
@@ -264,7 +301,7 @@ function Kit.tile(props: { [string]: any }, edge: Color3?, className: string?): 
 		Kit.gradient(ColorSequence.new(Theme.Color.TileTop, Theme.Color.TileBottom), 90),
 		Kit.stroke(edge or Theme.Color.TileEdge, 1.2, 0.1),
 	})
-	Kit.new("Frame", {
+	local gloss = Kit.new("Frame", {
 		Name = "Gloss",
 		Position = UDim2.new(0, 4, 0, 1),
 		Size = UDim2.new(1, -8, 0, 1),
@@ -273,6 +310,13 @@ function Kit.tile(props: { [string]: any }, edge: Color3?, className: string?): 
 		BackgroundTransparency = 0.88,
 		Parent = frame,
 	})
+	-- A list or grid layout would pull the gloss line in as its first item (a stray line under the top
+	-- edge, e.g. the quest rows), so it goes when one is added.
+	frame.ChildAdded:Connect(function(child)
+		if child:IsA("UIGridStyleLayout") and gloss.Parent then
+			gloss:Destroy()
+		end
+	end)
 	if className == "TextButton" then
 		Kit.pressable(frame)
 	end

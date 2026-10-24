@@ -35,7 +35,7 @@ export type Options = {
 	Foil: string?, -- Foils.luau id: shown as a tag chip when it isn't Standard
 }
 
-local SILHOUETTE = Color3.fromRGB(14, 10, 24)
+local SILHOUETTE = Color3.fromRGB(46, 44, 62)
 
 local function starText(stars: number): string
 	return string.rep("★", stars) .. string.rep("☆", 5 - stars)
@@ -89,7 +89,7 @@ local function bust(card, owned: boolean): Frame
 			Name = "Mark",
 			Text = element.Icon,
 			Font = Theme.Font.Heavy,
-			TextTransparency = 0.72,
+			TextTransparency = 0.55,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.42),
 			Size = UDim2.fromScale(0.9, 0.62),
@@ -97,21 +97,25 @@ local function bust(card, owned: boolean): Frame
 			Parent = holder,
 		}, 160)
 	end
-	local fill = if owned then Color3.fromRGB(18, 14, 30) else SILHOUETTE
-	local rim = if owned then glow else Color3.fromRGB(60, 56, 80)
+	-- Owned: a figure lit in the element's colour (bright at the top, deep at the base) with a pale rim, so
+	-- it reads as a character, not a black hole. Not found yet: a flat grey silhouette.
+	local top = if owned then glow:Lerp(Color3.new(1, 1, 1), 0.1) else SILHOUETTE
+	local bottom = if owned then glow:Lerp(Color3.new(0, 0, 0), 0.62) else SILHOUETTE:Lerp(Color3.new(0, 0, 0), 0.3)
+	local rim = if owned then glow:Lerp(Color3.new(1, 1, 1), 0.55) else Color3.fromRGB(70, 66, 90)
 	local function piece(name: string, anchorY: number, y: number, w: number, h: number, round: UDim, aspect: boolean?)
 		local part = Kit.new("Frame", {
 			Name = name,
 			AnchorPoint = Vector2.new(0.5, anchorY),
 			Position = UDim2.fromScale(0.5, y),
 			Size = UDim2.fromScale(w, h),
-			BackgroundColor3 = fill,
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = if owned then 0.25 else 0.1,
 			ZIndex = 3,
 			Parent = holder,
 		}, {
 			Kit.corner(round),
-			Kit.stroke(rim, 2, if owned then 0.15 else 0.5),
-			Kit.gradient(ColorSequence.new(if owned then fill:Lerp(glow, 0.35) else fill, fill), 90),
+			Kit.stroke(rim, 1.5, if owned then 0.35 else 0.6),
+			Kit.gradient(ColorSequence.new(top, bottom), 90),
 		})
 		if aspect then
 			Kit.aspect(1, Enum.DominantAxis.Width).Parent = part

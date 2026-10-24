@@ -127,23 +127,18 @@ function Modal.CloseButton(parent: Instance): TextButton
 		Kit.corner(UDim.new(0, 4)),
 		Kit.stroke(Theme.Color.Line, 1.2, 0),
 	})
-	local cross = Kit.label({
+	-- The ✕ is drawn (the character shows as an empty box in game).
+	local cross = Kit.glyph("Cross", CLOSE_GREY, {
 		Name = "Cross",
-		Text = "✕",
-		Font = Theme.Font.Heavy,
-		TextColor3 = CLOSE_GREY,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.56, 0.56),
+		Size = UDim2.fromScale(0.42, 0.42),
 		ZIndex = 7,
 		Parent = close,
-	}, 18)
-	local glow = Kit.textStroke(CLOSE_RED, 1, 1)
-	glow.Parent = cross
+	})
 	local stroke = close:FindFirstChildOfClass("UIStroke") :: UIStroke
 	local function hover(on: boolean)
-		Kit.tween(cross, 0.12, { TextColor3 = if on then Color3.new(1, 1, 1) else CLOSE_GREY })
-		Kit.tween(glow, 0.12, { Transparency = if on then 0.35 else 1 })
+		Kit.glyphColor(cross, if on then CLOSE_RED:Lerp(Color3.new(1, 1, 1), 0.35) else CLOSE_GREY, 0.12)
 		Kit.tween(stroke, 0.12, { Color = if on then CLOSE_RED else Theme.Color.Line })
 	end
 	close.MouseEnter:Connect(function()

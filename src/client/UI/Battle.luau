@@ -175,11 +175,11 @@ local function float(parent: GuiObject?, text: string, color: Color3, big: boole
 		TextColor3 = if big then Color3.new(1, 1, 1) else color,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.25 + math.random() * 0.5, 0.42),
-		Size = UDim2.fromScale(if big then 1.4 else 1, if big then 0.6 else 0.4),
+		Size = UDim2.fromScale(if big then 1.05 else 0.9, if big then 0.5 else 0.36),
 		Rotation = math.random(-6, 6),
 		ZIndex = 40,
 		Parent = parent,
-	}, if big then 58 else 34)
+	}, if big then 44 else 30)
 	Kit.textStroke(Color3.fromRGB(6, 7, 11), if big then 3.5 else 2.5, 0).Parent = label
 	if big then
 		-- Crits: bright top fading into their colour, popping in from oversized.
@@ -187,7 +187,7 @@ local function float(parent: GuiObject?, text: string, color: Color3, big: boole
 	end
 	local scale = Kit.new("UIScale", { Scale = if big then 1.9 else 0.3, Parent = label })
 	Kit.tween(scale, if big then 0.22 else 0.18, { Scale = 1 }, Enum.EasingStyle.Back)
-	Kit.tween(label, 0.9, { Position = label.Position - UDim2.fromScale(0, 0.5) }, Enum.EasingStyle.Quad)
+	Kit.tween(label, 0.9, { Position = label.Position - UDim2.fromScale(0, 0.3) }, Enum.EasingStyle.Quad)
 	task.delay(0.5, function()
 		if label.Parent then
 			Kit.tween(label, 0.4, { TextTransparency = 1 }).Completed:Connect(function()
@@ -205,7 +205,8 @@ local function elementMark(flag: number?): string
 	return if flag == 1 then " ▲" elseif flag == -1 then " ▼" else ""
 end
 
--- A big pill over a card naming the ability it just used, in its slot's colour (SKILL blue ...).
+-- A pill along a card's top edge naming the ability it just used, in its slot's colour (SKILL blue ...).
+-- It stays inside its own card, so a Support's tag never lands on the Attack card above it.
 local function castTag(tile, name: string, slot: string)
 	local info = Abilities.Slots[slot] or Abilities.Slots.Skill
 	local old = tile.Slot:FindFirstChild("CastTag")
@@ -214,13 +215,13 @@ local function castTag(tile, name: string, slot: string)
 	end
 	local tag = Kit.new("Frame", {
 		Name = "CastTag",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -2),
-		Size = UDim2.new(1.1, 0, 0, 30),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 2),
+		Size = UDim2.new(0.86, 0, 0, 20),
 		BackgroundColor3 = info.Color:Lerp(Color3.new(0, 0, 0), 0.35),
 		ZIndex = 30,
 		Parent = tile.Slot,
-	}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(info.Color:Lerp(Color3.new(1, 1, 1), 0.3), 2, 0) })
+	}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(info.Color:Lerp(Color3.new(1, 1, 1), 0.3), 1.2, 0) })
 	local label = Kit.label({
 		Text = `{info.Label} · {name}`,
 		Font = Theme.Font.Display,
@@ -229,7 +230,7 @@ local function castTag(tile, name: string, slot: string)
 		Size = UDim2.fromScale(0.94, 0.78),
 		ZIndex = 31,
 		Parent = tag,
-	}, 20)
+	}, 14)
 	Kit.textStroke(Color3.fromRGB(6, 7, 11), 2, 0).Parent = label
 	local scale = Kit.new("UIScale", { Scale = 0.4, Parent = tag })
 	Kit.tween(scale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)

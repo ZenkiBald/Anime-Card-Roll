@@ -654,7 +654,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Name = "Mount",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(1, 10, 1, 0),
-		Size = UDim2.fromOffset(44, 44),
+		Size = UDim2.fromOffset(58, 58),
 		AutoButtonColor = false,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
@@ -678,9 +678,9 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		TextColor3 = Theme.Color.Muted,
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.fromScale(0.5, 0.96),
-		Size = UDim2.fromScale(0.94, 0.3),
+		Size = UDim2.fromScale(0.96, 0.28),
 		Parent = petsButton,
-	}, 9)
+	}, 12)
 	petsButton.MouseEnter:Connect(function()
 		petsButton.UIStroke.Color = Theme.Color.Neon
 	end)
@@ -1275,7 +1275,6 @@ end
 function Hud.RefreshMomentum()
 	local s = State.Summary
 	local m = s.Momentum or { Count = 0, Speed = 0, Luck = 0 }
-	local untilSurge = s.UntilSurge or RollBoost.Surge.Every
 	-- The meter binds to SurgeProgress (0-24): 24 = the next roll is the surge.
 	local every = RollBoost.Surge.Every
 	local progress = s.SurgeProgress or RollBoost.SurgeProgress(s.TotalRolls or 0)
@@ -1285,23 +1284,17 @@ function Hud.RefreshMomentum()
 	surgeFill.UIGradient.Color = ColorSequence.new(UITheme.Colors.SpiritCyan, tip)
 	surgeCount.Text = if progress == every - 1 then "⚡ SURGE NEXT ROLL" else `SURGE {progress}/{every}`
 	surgeMeter.UIStroke.Color = if progress == every - 1 then UITheme.Colors.SurgeGold else UITheme.Colors.Tamahagane
-	local surgeText = if untilSurge == 1
-		then '<font color="#FFC42E"><b>⚡ NEXT ROLL: SURGE</b></font>'
-		else `⚡ surge in <b>{untilSurge}</b>`
 	Kit.tween(momentumFill, 0.3, { Size = UDim2.new(math.clamp(m.Count / RollBoost.Momentum.Max, 0, 1), 0, 0, 2) })
-	-- Narrow docks (phones): a short line, so the text stays big enough to read.
+	-- Momentum only: the Surge meter under it already counts down to the next surge.
+	local paused = if m.Paused then " (paused)" else ""
 	if momentumLabel.AbsoluteSize.X > 0 and momentumLabel.AbsoluteSize.X < 300 then
-		local surge = if untilSurge == 1 then '<font color="#FFC42E"><b>⚡ SURGE!</b></font>' else `⚡{untilSurge}`
 		momentumLabel.Text = if m.Count > 0
-			then `🔥<b>{m.Count}</b>{if m.Paused then "⏸" else ""} +{math.floor(m.Speed * 100 + 0.5)}% +{string.format("%.2f", m.Luck)}x  {surge}`
-			else `🔥 0  {surge}`
-		return
-	end
-	if m.Count > 0 then
-		local paused = if m.Paused then " (paused)" else ""
-		momentumLabel.Text = `🔥 MOMENTUM <b>{m.Count}</b>{paused}  +{math.floor(m.Speed * 100 + 0.5)}% speed  +{string.format("%.2f", m.Luck)}x luck   {surgeText}`
+			then `🔥 <b>{m.Count}</b>{paused}  +{math.floor(m.Speed * 100 + 0.5)}% +{string.format("%.2f", m.Luck)}x`
+			else "🔥 Keep rolling for Momentum"
+	elseif m.Count > 0 then
+		momentumLabel.Text = `🔥 MOMENTUM <b>{m.Count}</b>{paused}  +{math.floor(m.Speed * 100 + 0.5)}% speed  +{string.format("%.2f", m.Luck)}x luck`
 	else
-		momentumLabel.Text = `🔥 Keep rolling to build Momentum   {surgeText}`
+		momentumLabel.Text = "🔥 Keep rolling to build Momentum"
 	end
 end
 

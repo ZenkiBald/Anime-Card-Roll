@@ -101,12 +101,11 @@ local function refresh(player: Player)
 		return
 	end
 	local gui: any = tag
-	-- Sit just above the top of the head, whatever the avatar's size.
-	local head = (character :: Model):FindFirstChild("Head")
-	if head and head:IsA("BasePart") then
-		local top = head.Position.Y + head.Size.Y / 2 - (root :: BasePart).Position.Y
-		gui.StudsOffsetWorldSpace = Vector3.new(0, top + 1.6, 0)
-	end
+	-- Sit just above the top of the avatar, hats and tall accessories included (the head alone left the
+	-- tag behind big hats).
+	local box, size = (character :: Model):GetBoundingBox()
+	local top = box.Position.Y + size.Y / 2 - (root :: BasePart).Position.Y
+	gui.StudsOffsetWorldSpace = Vector3.new(0, math.clamp(top, 2, 12) + 1.4, 0)
 	local data = profile.Data
 	local card, rarity = rarest(data)
 	-- A favourite card, when the player has picked one, stands in for the rarest.
