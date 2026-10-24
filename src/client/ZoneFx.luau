@@ -255,6 +255,16 @@ function ZoneFx.Start()
 	end)
 end
 
+-- A fight staged in another zone (UI/Arena) takes that zone's lighting mood; clearing `current` makes
+-- the loop above put the player's own zone (mood and music) back once the fight is over.
+function ZoneFx.MoodAt(position: Vector3)
+	local zones = ReplicatedStorage:FindFirstChild("Zones")
+	if zones then
+		applyMood(zoneAt(position, zones))
+		current = nil
+	end
+end
+
 function ZoneFx.Current(): string
 	return current or "Town"
 end

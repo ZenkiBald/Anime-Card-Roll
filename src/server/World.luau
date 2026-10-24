@@ -75,15 +75,15 @@ local function shadowed(label: TextLabel)
 	end
 end
 
-local function styleSign(gui: BillboardGui, fade: boolean)
+local function styleSign(gui: BillboardGui, fade: boolean, range: number?)
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 	gui.LightInfluence = 0
 	if fade then
-		gui.MaxDistance = SIGN_RANGE
+		gui.MaxDistance = range or SIGN_RANGE
 		-- The size-by-distance limits aren't in every API version (and may not be scriptable): try them.
 		pcall(function()
 			(gui :: any).DistanceLowerLimit = 10;
-			(gui :: any).DistanceUpperLimit = SIGN_RANGE
+			(gui :: any).DistanceUpperLimit = gui.MaxDistance
 		end)
 		CollectionService:AddTag(gui, "FadeSign")
 	end
@@ -96,10 +96,14 @@ local function styleSign(gui: BillboardGui, fade: boolean)
 	end
 end
 
+-- NPC and booth name plates: compact, and only shown within this many studs (HubFx fades them in).
+local NPC_RANGE = 25
+
 local function sign(parent: BasePart, offset: number, title: string, sub: string, color: Color3, fade: boolean?)
+	local npcPlate = fade ~= true
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Sign"
-	gui.Size = UDim2.fromOffset(260, 70)
+	gui.Size = if npcPlate then UDim2.fromOffset(180, 46) else UDim2.fromOffset(260, 70)
 	gui.StudsOffset = Vector3.new(0, offset, 0)
 	gui.MaxDistance = 160
 	gui.Parent = parent
@@ -120,7 +124,7 @@ local function sign(parent: BasePart, offset: number, title: string, sub: string
 	bottom.TextColor3 = color
 	bottom.Text = sub
 	bottom.Parent = gui
-	styleSign(gui, fade == true)
+	styleSign(gui, true, if npcPlate then NPC_RANGE else nil)
 end
 
 -- The gate signs saved in the place (tools/studio/map.luau) get the same look and fade.
@@ -735,6 +739,14 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 
 	local height = BossModels.Height(boss.Id)
 	local stand = bossMarker.CFrame
+	-- Fights are staged here (client Arena): published so clients know the spot before it streams in.
+	local arenas = ReplicatedStorage:FindFirstChild("Arenas") or Instance.new("Folder")
+	arenas.Name = "Arenas"
+	arenas.Parent = ReplicatedStorage
+	local spot = Instance.new("Configuration")
+	spot.Name = boss.Id
+	spot:SetAttribute("Stand", stand)
+	spot.Parent = arenas
 	local model = npc(boss.Id, stand * CFrame.new(0, height / 2, 0), area, "Challenge", `{boss.Name}, {boss.Title}`)
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	local prompt = (model.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")

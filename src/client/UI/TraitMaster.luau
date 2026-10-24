@@ -362,7 +362,8 @@ function drawGrid()
 		if pa ~= pb then
 			return pa -- unchosen rolls first
 		end
-		local ra, rb = Rarity.Index(a.Card.Rarity), Rarity.Index(b.Card.Rarity)
+		-- Then the best border first (the tier), so the strongest copies sit on top.
+		local ra, rb = Borders.Index(Borders.Best(a.Entry.Borders)), Borders.Index(Borders.Best(b.Entry.Borders))
 		if ra ~= rb then
 			return ra > rb
 		end

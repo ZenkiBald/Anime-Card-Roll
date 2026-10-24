@@ -43,7 +43,7 @@ local function short(n: number): string
 	return Kit.commas(n)
 end
 
--- The row's picture: the favourite card's art in a rarity-coloured frame.
+-- The row's picture: the favourite card's portrait in a frame of its border colour.
 local function setPortrait(row, cardId: string, fusion: number, border: string)
 	local key = `{cardId}:{fusion}:{border}`
 	if row.Fav == key then
@@ -61,17 +61,9 @@ local function setPortrait(row, cardId: string, fusion: number, border: string)
 		row.Stroke.Color = Theme.Color.TileEdge
 		return
 	end
-	row.Portrait.BackgroundColor3 = card.Accent
 	row.Stroke.Color = Borders.Get(border).Color
-	local art = CardView.Art(cardId, true, false)
-	if art then
-		art.Size = if card.Image then UDim2.fromScale(1, 1) else UDim2.fromScale(1.35, 1.35)
-		art.AnchorPoint = Vector2.new(0.5, 0.5)
-		art.Position = if card.Image then UDim2.fromScale(0.5, 0.5) else UDim2.fromScale(0.5, 0.62)
-		art.Parent = row.Portrait
-	else
-		Kit.label({ Text = card.Glyph, Font = Theme.Font.Display, Size = UDim2.fromScale(1, 1), Parent = row.Portrait }, 24)
-	end
+	row.Portrait.BackgroundColor3 = CardView.Glow(cardId)
+	CardView.Portrait(cardId, true).Parent = row.Portrait
 end
 
 local function makeRow(player: Player)

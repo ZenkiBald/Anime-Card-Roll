@@ -2,7 +2,9 @@
 -- Battle screen. The fight runs on the server; this draws the snapshots it streams
 -- (HP, shields, action bars, energy) and animates its events (hits, heals, warnings).
 -- The player only taps charged cards to fire Ultimates, toggles Auto and speed, or gives up.
--- Plain Frames + tweens and one 3D boss in a ViewportFrame, so it stays cheap on phones.
+-- The squad is staged in 3D in the boss's world (UI/Arena: leader, guards, cinematic camera) with the
+-- boss holder and guard tiles on world-space billboards; the squad dock keeps to the lower 22%.
+-- Without a map, the boss stands in a ViewportFrame over a 2D backdrop instead.
 
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,6 +27,7 @@ local Skin = require(script.Parent.Skin)
 local Modal = require(script.Parent.Modal)
 local Effects = require(script.Parent.Effects)
 local ModelView = require(script.Parent.ModelView)
+local Arena = require(script.Parent.Arena)
 local CardView = require(script.Parent.CardView)
 local RewardReveal = require(script.Parent.RewardReveal)
 local PackOpen = require(script.Parent.PackOpen)
@@ -51,6 +54,7 @@ local stage: Frame -- everything inside the safe area
 local fxLayer: Frame -- bolts, slashes and cut-ins, positioned in screen pixels
 local bossName: TextLabel
 local bossStagger: Frame -- the Stagger bar along the bottom of the leader's HP bar
+local staggerBanner: TextLabel -- glows under the leader's HP bar while it is Staggered
 local bossChip: any
 local bossHpFill: Frame
 local bossHpTrail: Frame
@@ -104,7 +108,6 @@ local REASONS = {
 	Cleared = "This raid is already cleared",
 }
 
-local STATUS = { B = "BURN", Z = "FROZEN", T = "TAUNT", U = "BUFFED", S = "SLOWED", G = "GUARDED", I = "SAFE" }
 local BOSS_STATUS = {
 	D = "DEF DOWN",
 	A = "ATK DOWN",
@@ -390,13 +393,57 @@ local function setHp(fill: Frame, trail: Frame?, ratio: number)
 	end
 end
 
+local NEON_EMERALD = Color3.fromRGB(40, 255, 140)
+local NEON_RED = Color3.fromRGB(255, 50, 70)
+local NEON_CYAN = Color3.fromRGB(60, 230, 255)
+
 local function hpColor(ratio: number): Color3
-	if ratio > 0.5 then
-		return Theme.Color.Quick
-	elseif ratio > 0.25 then
-		return Theme.Color.Gold
+	return if ratio >= 0.3 then NEON_EMERALD else NEON_RED
+end
+
+-- Crisp status badges docked top right on a battle card (instead of tinting the card).
+local BADGES = {
+	{ Flag = "U", Text = "BUFFED ▲", Color = Color3.fromRGB(255, 210, 60) },
+	{ Flag = "B", Text = "BURN 🔥", Color = Color3.fromRGB(255, 96, 40) },
+	{ Flag = "Z", Text = "FROZEN ❄", Color = Color3.fromRGB(120, 220, 255) },
+	{ Flag = "S", Text = "SLOWED ▼", Color = Color3.fromRGB(170, 140, 255) },
+	{ Flag = "T", Text = "TAUNT", Color = Color3.fromRGB(255, 120, 90) },
+	{ Flag = "G", Text = "GUARD 🛡", Color = Color3.fromRGB(150, 210, 255) },
+	{ Flag = "I", Text = "SAFE", Color = Color3.fromRGB(150, 255, 190) },
+}
+
+local function setBadges(dock: Frame, flags: string)
+	if dock:GetAttribute("Flags") == flags then
+		return
 	end
-	return Theme.Color.Danger
+	dock:SetAttribute("Flags", flags)
+	for _, child in dock:GetChildren() do
+		if child:IsA("TextLabel") then
+			child:Destroy()
+		end
+	end
+	for i, badge in BADGES do
+		if string.find(flags, badge.Flag, 1, true) then
+			local label = Kit.label({
+				Text = badge.Text,
+				Font = Theme.Font.Heavy,
+				TextColor3 = badge.Color,
+				LayoutOrder = i,
+				AutomaticSize = Enum.AutomaticSize.X,
+				Size = UDim2.fromScale(0, 1),
+				TextScaled = false,
+				TextWrapped = false,
+				TextSize = 11,
+				BackgroundColor3 = Color3.fromRGB(8, 10, 16),
+				BackgroundTransparency = 0.15,
+				ZIndex = 8,
+				Parent = dock,
+			}, 11)
+			Kit.corner(UDim.new(0, 3)).Parent = label
+			Kit.stroke(badge.Color, 1, 0.3).Parent = label
+			Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = label })
+		end
+	end
 end
 
 -- Screen-space effects --------------------------------------------------------------------------
@@ -492,25 +539,68 @@ local function glow(tile, color: Color3)
 	Kit.tween(flash, 0.35, { BackgroundTransparency = 1 })
 end
 
--- A band across the screen naming an Ultimate.
+-- Neon edge per element for the Ultimate cut-in.
+local NEON = {
+	Flame = Color3.fromRGB(255, 96, 40),
+	Frost = Color3.fromRGB(60, 230, 255),
+	Storm = Color3.fromRGB(255, 210, 40),
+	Light = Color3.fromRGB(255, 240, 170),
+	Void = Color3.fromRGB(176, 70, 255),
+	Cosmic = Color3.fromRGB(40, 240, 210),
+}
+local CUT_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
+
+-- An obsidian slash across the screen naming an Ultimate: slides in from the left with a punch,
+-- holds 0.7 s, then slashes out to the right trailing sparks.
 local function cutIn(cardId: string, ultName: string)
 	local card = Cards.Get(cardId)
 	if card == nil then
 		return
 	end
-	local cutEntry = State.Cards[cardId]
-	local tier = Borders.Get(Borders.Best(cutEntry and cutEntry.Borders))
+	local neon = NEON[card.Element] or card.Accent
 	local band = Kit.new("Frame", {
 		Name = "CutIn",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(-0.8, 0.46),
 		Size = UDim2.fromScale(1.5, 0.17),
-		Rotation = -5,
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		Rotation = -8,
+		BackgroundColor3 = Color3.fromRGB(12, 16, 26),
+		BackgroundTransparency = 0.15,
 		BorderSizePixel = 0,
 		ZIndex = 70,
 		Parent = fxLayer,
-	}, { Kit.gradient(ColorSequence.new(tier.Dark, card.Accent), 0) })
+	}, {
+		-- Sharp ends: the band fades out at both tips like a blade stroke.
+		Kit.new("UIGradient", {
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.12, 0),
+				NumberSequenceKeypoint.new(0.88, 0),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		}),
+	})
+	for _, y in { 0, 1 } do -- the glowing neon edges
+		Kit.new("Frame", {
+			Name = "Edge",
+			AnchorPoint = Vector2.new(0, y),
+			Position = UDim2.fromScale(0, y),
+			Size = UDim2.new(1, 0, 0, 3),
+			BackgroundColor3 = neon,
+			BorderSizePixel = 0,
+			ZIndex = 71,
+			Parent = band,
+		}, {
+			Kit.new("UIGradient", {
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(0.2, 0),
+					NumberSequenceKeypoint.new(0.8, 0),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
+			}),
+		})
+	end
 	local portrait = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.33, 0.5),
@@ -521,17 +611,12 @@ local function cutIn(cardId: string, ultName: string)
 	}, {
 		Kit.corner(UDim.new(1, 0)),
 		Kit.aspect(1, Enum.DominantAxis.Height),
-		Kit.stroke(tier.Color, 4, 0),
+		Kit.stroke(neon, 4, 0),
 	})
-	Kit.label({
-		Text = card.Glyph,
-		Font = Theme.Font.Display,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.8, 0.5),
-		ZIndex = 72,
-		Parent = portrait,
-	}, 60)
+	local face = CardView.Portrait(cardId, true)
+	face:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
+	face.Glow.UICorner.CornerRadius = UDim.new(1, 0)
+	face.Parent = portrait
 	local name = Kit.label({
 		Text = string.upper(ultName),
 		Font = Theme.Font.Display,
@@ -541,20 +626,37 @@ local function cutIn(cardId: string, ultName: string)
 		ZIndex = 72,
 		Parent = band,
 	}, 64)
-	Kit.textStroke(Color3.new(0, 0, 0), 3, 0.1).Parent = name
-	Kit.label({
-		Text = `{card.Name} · ULTIMATE`,
+	name.FontFace = CUT_FONT
+	name.TextColor3 = Color3.new(1, 1, 1)
+	-- Metallic fill: bright steel over a darker band, tinted toward the element at the bottom.
+	Kit.new("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.45, Color3.fromRGB(200, 210, 225)),
+			ColorSequenceKeypoint.new(0.55, Color3.fromRGB(130, 140, 160)),
+			ColorSequenceKeypoint.new(1, neon:Lerp(Color3.new(1, 1, 1), 0.3)),
+		}),
+		Parent = name,
+	})
+	Kit.textStroke(neon, 2.5, 0.35).Parent = name -- the glow
+	local sub = Kit.label({
+		Text = `{string.upper(card.Name)} · ULTIMATE`,
 		Font = Theme.Font.Heavy,
-		TextColor3 = tier.Color,
+		TextColor3 = neon,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromScale(0.4, 0.66),
 		Size = UDim2.fromScale(0.42, 0.24),
 		ZIndex = 72,
 		Parent = band,
 	}, 26)
-	Kit.tween(band, 0.22, { Position = UDim2.fromScale(0.5, 0.46) }, Enum.EasingStyle.Quart).Completed:Connect(function()
-		task.delay(0.55, function()
-			Kit.tween(band, 0.2, { Position = UDim2.fromScale(1.8, 0.46) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In).Completed
+	sub.FontFace = CUT_FONT
+	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = sub
+	Kit.tween(band, 0.16, { Position = UDim2.fromScale(0.5, 0.46) }, Enum.EasingStyle.Quart).Completed:Connect(function()
+		shakeStage(5, 0.18)
+		task.delay(0.7, function()
+			Effects.Sparks(band, neon, 16, 0.6)
+			Kit.tween(band, 0.16, { Position = UDim2.fromScale(1.8, 0.46) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In).Completed
 				:Connect(function()
 					band:Destroy()
 				end)
@@ -577,8 +679,8 @@ local function makeTile(unit, order: number)
 	if entry then
 		stars = entry.Stars
 	end
-	local rarity = Borders.Best(entry and entry.Borders) -- the border is the tier
-	local tier = Borders.Get(rarity)
+	local borderId = Borders.Best(entry and entry.Borders) -- the border is the tier
+	local tier = Borders.Get(borderId)
 	local isAttack = card.Type == "Attack"
 
 	local slot = Kit.new("Frame", {
@@ -598,13 +700,30 @@ local function makeTile(unit, order: number)
 		Parent = slot,
 	}, {
 		Kit.corner(UDim.new(0.12, 0)),
-		Kit.gradient(ColorSequence.new(tier.Dark:Lerp(Color3.new(1, 1, 1), 0.12), tier.Dark:Lerp(Color3.new(0, 0, 0), 0.35)), 90),
+		-- Urushi lacquer, whatever the border: the tier lives in the edge, not a washed-out fill.
+		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiRaised, UITheme.Colors.UrushiBlack), 90),
+	})
+	local badgeDock = Kit.new("Frame", {
+		Name = "Badges",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -4, 0, -9),
+		Size = UDim2.new(0.9, 0, 0, 16),
+		BackgroundTransparency = 1,
+		ZIndex = 8,
+		Parent = button,
+	}, {
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 3),
+		}),
 	})
 	local stroke = Kit.stroke(Color3.new(1, 1, 1), 2, 0)
 	local strokeGradient = Kit.gradient(tier.Gradient, 45)
 	strokeGradient.Parent = stroke
 	stroke.Parent = button
-	if rarity == "Secret" then
+	if borderId == "Secret" then
 		Effects.Spin(strokeGradient, 90)
 	end
 	local scale = Kit.new("UIScale", { Scale = 1, Parent = button })
@@ -637,24 +756,9 @@ local function makeTile(unit, order: number)
 		ZIndex = 4,
 		Parent = portrait,
 	})
-	local art = CardView.Art(unit.CardId, true, false)
-	if art then
-		-- A 2D illustration fills the portrait; the 3D figure is framed a little larger and lower.
-		art.Size = if card.Image then UDim2.fromScale(1, 1) else UDim2.fromScale(1.25, 1.25)
-		art.AnchorPoint = Vector2.new(0.5, 0.5)
-		art.Position = if card.Image then UDim2.fromScale(0.5, 0.5) else UDim2.fromScale(0.5, 0.58)
-		art.Parent = portrait
-	else
-		Kit.label({
-			Name = "Glyph",
-			Text = card.Glyph,
-			Font = Theme.Font.Display,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.46),
-			Size = UDim2.fromScale(0.85, 0.5),
-			Parent = portrait,
-		}, 40)
-	end
+	-- The illustration (or the element-lit bust) in a bevelled metal frame in the border's colour.
+	CardView.Portrait(unit.CardId, true).Parent = portrait
+	CardView.Bevel(portrait, borderId, 2)
 	if stars > 0 then
 		Kit.label({
 			Name = "Stars",
@@ -678,7 +782,7 @@ local function makeTile(unit, order: number)
 	})
 	-- The pod's contents (portrait, name, bars) render in one CanvasGroup with the pod's corner, so
 	-- sweeps and drains clip to its border; the flash / ready / KO overlays stay on the pod itself.
-	local content = JuicyButton.Content(button)
+	local content = JuicyButton.Content(button, { Badges = true }) -- the status badges ride above the pod's edge
 	-- Hover lift, press squash and the spirit sheen in the card's tier colour. The scale goes on the
 	-- slot, so it stacks with the hit punches the pod's own UIScale plays.
 	JuicyButton.Apply(button, { ScaleTarget = slot, SheenColor = tier.Color:Lerp(Color3.new(1, 1, 1), 0.35) })
@@ -715,11 +819,14 @@ local function makeTile(unit, order: number)
 		TierColor = tier.Color,
 		CardId = unit.CardId,
 		BaseStatus = status.Text,
+		Badges = badgeDock,
 	}
 
 	if isAttack then
-		local hpTrack, hpFill, hpTrail = bar(info, "HP", 0.45, 0.25, Theme.Color.Quick, true)
+		local hpTrack, hpFill, hpTrail = bar(info, "HP", 0.45, 0.25, NEON_EMERALD, true)
 		hpFill.Size = UDim2.fromScale(1, 1)
+		Kit.gradient(ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(120, 140, 130)), 90).Parent = hpFill
+		Kit.new("UISizeConstraint", { MinSize = Vector2.new(0, 6), Parent = hpTrack })
 		tile.HpFill, tile.HpTrail = hpFill, hpTrail
 		tile.Shield = Kit.new("Frame", {
 			Name = "Shield",
@@ -740,11 +847,19 @@ local function makeTile(unit, order: number)
 		}, 13)
 		Kit.textStroke(Color3.new(0, 0, 0), 1, 0.25).Parent = tile.HpText
 	end
-	local _, gauge = bar(info, "Action", if isAttack then 0.76 else 0.62, if isAttack then 0.09 else 0.12, Color3.fromRGB(222, 234, 255))
+	local _, gauge = bar(info, "Action", if isAttack then 0.76 else 0.62, if isAttack then 0.09 else 0.12, NEON_CYAN)
 	tile.Gauge = gauge
 	if unit.Ultimate then
-		local _, energy = bar(info, "Energy", if isAttack then 0.89 else 0.8, if isAttack then 0.09 else 0.12, Theme.Color.Gold)
+		local energyTrack, energy = bar(info, "Energy", if isAttack then 0.89 else 0.8, if isAttack then 0.09 else 0.12, Theme.Color.Gold)
+		Kit.gradient(ColorSequence.new(NEON_CYAN, Theme.Color.Gold), 0).Parent = energy
+		energy.BackgroundColor3 = Color3.new(1, 1, 1)
 		tile.Energy = energy
+		-- Fully charged: the bar glows and pulses.
+		local glow = Kit.stroke(Theme.Color.Gold, 2, 0)
+		glow.Enabled = false
+		glow.Parent = energyTrack
+		pulseForever(glow, { Transparency = 0.7, Thickness = 3.5 }, 0.4)
+		tile.EnergyGlow = glow
 	end
 
 	tile.Flash = Kit.new("Frame", {
@@ -888,6 +1003,28 @@ local function setFocus(id: string)
 end
 
 -- A guard: icon, name, role, HP and action bars; tap to focus it.
+-- In a staged fight the boss holder and guard slots ride on the arena's world-space billboards;
+-- sendHome() puts them back in the screen layout.
+local stageHomes = {} -- [GuiObject] = { Parent, Size, Position }
+
+local function moveInto(object: GuiObject, parent: Instance)
+	if stageHomes[object] == nil then
+		stageHomes[object] = { Parent = object.Parent, Size = object.Size, Position = object.Position }
+	end
+	object.Parent = parent
+	object.Size = UDim2.fromScale(1, 1)
+	object.Position = UDim2.fromScale(0.5, 0.5)
+end
+
+local function sendHome()
+	for object, home in stageHomes do
+		object.Parent = home.Parent
+		object.Size = home.Size
+		object.Position = home.Position
+	end
+	table.clear(stageHomes)
+end
+
 local function makeGuardTile(enemy, slot: Frame)
 	local g = Bosses.GuardTypes[enemy.GuardId]
 	local color = if g then g.Color else Theme.Color.Danger
@@ -1075,6 +1212,7 @@ local function applySnapshot(snap)
 		if id == "Boss" then
 			local maxHP = current.Info.Boss.MaxHP
 			setHp(bossHpFill, bossHpTrail, s.H / maxHP)
+			Arena.SetLeaderHp(s.H / maxHP)
 			local barrier = s.Bar or 0
 			Kit.tween(bossBarrier, 0.2, { Size = UDim2.fromScale(math.min(1, barrier / maxHP * 8), 1) })
 			bossHpText.Text = if barrier > 0
@@ -1086,6 +1224,13 @@ local function applySnapshot(snap)
 			local staggered = string.find(s.F, "Q") ~= nil
 			Kit.tween(bossStagger, 0.15, { Size = UDim2.fromScale(if staggered then 1 else (s.St or 0), 0.22) })
 			bossStagger.BackgroundColor3 = if staggered then Color3.new(1, 1, 1) else Theme.Color.Gold
+			if staggerBanner.Visible ~= staggered then
+				staggerBanner.Visible = staggered
+				if staggered then
+					staggerBanner.Size = UDim2.fromScale(0.75, 0.3)
+					Kit.tween(staggerBanner, 0.2, { Size = UDim2.fromScale(0.62, 0.24) }, Enum.EasingStyle.Back)
+				end
+			end
 		elseif enemyTiles[id] then
 			local tile = enemyTiles[id]
 			setHp(tile.HpFill, tile.HpTrail, s.H / tile.MaxHP)
@@ -1096,6 +1241,7 @@ local function applySnapshot(snap)
 			if tile.Ko.Visible ~= down then
 				tile.Ko.Visible = down
 				tile.Focus.Visible = false
+				Arena.SetDown(id, down)
 			end
 		else
 			local tile = tiles[id]
@@ -1108,14 +1254,8 @@ local function applySnapshot(snap)
 					tile.Shield.Size = UDim2.fromScale(math.min(1, (s.S or 0) / tile.MaxHP), 1)
 					tile.HpText.Text = if (s.S or 0) > 0 then `{Kit.commas(s.H)} +{Kit.commas(s.S)}` else Kit.commas(s.H)
 					alive = s.H > 0
-					tile.Status.Text = flagWords(s.F, STATUS)
-					tile.Status.TextColor3 = if string.find(s.F, "B") then Theme.Color.Roll
-						elseif string.find(s.F, "Z") then ICE_COLOR
-						else Theme.Color.Gold
-				else
-					local words = flagWords(s.F, STATUS)
-					tile.Status.Text = if words ~= "" then words else tile.BaseStatus
 				end
+				setBadges(tile.Badges, if alive then s.F else "")
 				local gaugeGoal = UDim2.fromScale(s.G, 1)
 				if s.G < tile.Gauge.Size.X.Scale then
 					tile.Gauge.Size = gaugeGoal -- it just acted: snap back
@@ -1124,6 +1264,7 @@ local function applySnapshot(snap)
 				end
 				if tile.Energy then
 					Kit.tween(tile.Energy, 0.15, { Size = UDim2.fromScale(s.E / cost, 1) })
+					tile.EnergyGlow.Enabled = alive and s.E >= cost
 				end
 				if tile.Ko.Visible ~= not alive then
 					tile.Ko.Visible = not alive
@@ -1315,6 +1456,7 @@ local function playEvent(event)
 				guard.Flash.BackgroundTransparency = 0.5
 				Kit.tween(guard.Flash, 0.2, { BackgroundTransparency = 1 })
 				bump(guard.Scale, if event.C then 0.1 else 0.04)
+				Arena.Hit(event.T, event.C)
 			end
 		else
 			local tile = tiles[event.T]
@@ -1644,14 +1786,30 @@ local function playIntro(boss, subtitle: string, deckPower: number, seconds: num
 	task.delay(math.max(0.6, seconds - 0.7), function()
 		Kit.tween(left, 0.25, { Position = UDim2.fromScale(-0.5, 0.38) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
 		Kit.tween(right, 0.25, { Position = UDim2.fromScale(1.5, 0.62) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+		-- FIGHT! drops in hard in brushed metal, then fades 1 s later.
 		vs.Text = "FIGHT!"
 		vs.TextColor3 = Color3.new(1, 1, 1)
-		vsScale.Scale = 1.6
-		Kit.tween(vsScale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
+		vs.FontFace = CUT_FONT
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(190, 200, 215)),
+				ColorSequenceKeypoint.new(0.52, Color3.fromRGB(120, 130, 150)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(235, 240, 250)),
+			}),
+			Parent = vs,
+		})
+		vs.Position = UDim2.fromScale(0.5, 0.3)
+		vsScale.Scale = 1.4
+		Kit.tween(vs, 0.18, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		Kit.tween(vsScale, 0.18, { Scale = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Connect(function()
+			shakeStage(6, 0.2)
+		end)
 		Kit.tween(intro, 0.4, { BackgroundTransparency = 1 })
 	end)
-	task.delay(seconds, function()
-		Kit.tween(vs, 0.2, { TextTransparency = 1 }).Completed:Connect(function()
+	task.delay(math.max(0.6, seconds - 0.7) + 1, function()
+		Kit.tween(vs, 0.25, { TextTransparency = 1 }).Completed:Connect(function()
 			intro.Visible = false
 		end)
 	end)
@@ -2228,35 +2386,58 @@ local function begin(start, bossId: string, difficulty: string?)
 	arena.Disc.UIStroke.Color = boss.Accent:Lerp(Color3.new(1, 1, 1), 0.35)
 	arena.Inner.BackgroundColor3 = boss.Deep:Lerp(Color3.new(0, 0, 0), 0.3)
 
-	-- The boss, live in 3D.
+	-- The boss, live in 3D: staged in its own world (UI/Arena) with its guards beside it, else (no map)
+	-- in a ViewportFrame over the 2D backdrop.
 	if bossView then
 		bossView.Frame:Destroy()
 	end
-	bossView = ModelView.new(boss.Id, {
-		Name = "BossView",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(1.6, 1.25),
-		ZIndex = 2,
-		Parent = bossHolder,
-	}, 10)
-	if tower then
-		bossView:SetTint(if tower.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
-	elseif raid then
-		bossView:SetTint(Color3.fromRGB(255, 150, 170)) -- a Colossus
-	end
-	barrierRing.Visible = false
-
-	-- The enemy squad: the leader in 3D in the middle, its guards as tiles around it.
-	local guardIndex = 0
+	sendHome()
+	local guards = {}
 	for _, enemy in start.Info.Enemies or {} do
 		enemyNames[enemy.Id] = enemy.Name
 		if not enemy.Leader then
-			guardIndex += 1
-			local slot = guardSlots[guardIndex]
-			if slot then
-				makeGuardTile(enemy, slot)
+			table.insert(guards, enemy)
+		end
+	end
+	local tint = if tower then (if tower.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
+		elseif raid then Color3.fromRGB(255, 150, 170) -- a Colossus
+		else nil
+	local staged = Arena.Start(boss, guards, tint)
+	backdrop.BackgroundTransparency = if staged then 1 else 0.02
+	backdrop.Active = staged == nil -- staged: taps reach the enemies' world-space billboards
+	local spotlight = gui:FindFirstChild("Spotlight")
+	if spotlight and spotlight:IsA("GuiObject") then
+		spotlight.Visible = staged == nil
+	end
+	arena.Visible = staged == nil
+	if staged then
+		bossView = staged.View
+		moveInto(bossHolder, staged.LeaderGui)
+		for i, slot in guardSlots do
+			if staged.GuardGuis[i] then
+				moveInto(slot, staged.GuardGuis[i])
 			end
+		end
+	else
+		bossView = ModelView.new(boss.Id, {
+			Name = "BossView",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1.6, 1.25),
+			ZIndex = 2,
+			Parent = bossHolder,
+		}, 10)
+		if tint then
+			bossView:SetTint(tint)
+		end
+	end
+	barrierRing.Visible = false
+
+	-- The enemy squad: the leader in the middle, its guards left, right and in front of it.
+	for i, enemy in guards do
+		local slot = guardSlots[i]
+		if slot then
+			makeGuardTile(enemy, slot)
 		end
 	end
 	enemyNames.Boss = current.BossName
@@ -2355,6 +2536,8 @@ function exit()
 		bossView.Frame:Destroy()
 		bossView = nil
 	end
+	sendHome() -- before the arena's billboards go
+	Arena.Stop()
 	for _, child in particles:GetChildren() do
 		child:Destroy()
 	end
@@ -2514,6 +2697,27 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		ZIndex = 4,
 		Parent = hpTrack,
 	}, { Kit.corner(UDim.new(1, 0)) })
+	staggerBanner = Kit.label({
+		Name = "StaggerBanner",
+		Text = `STAGGERED!  DEF 0 · ULTIMATES +{math.floor(Config.Battle.StaggerUltBonus * 100 + 0.5)}%`,
+		Font = Theme.Font.Display,
+		TextColor3 = Theme.Color.Gold,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.7),
+		Size = UDim2.fromScale(0.62, 0.24),
+		BackgroundColor3 = Color3.fromRGB(12, 16, 26),
+		BackgroundTransparency = 0.15,
+		Visible = false,
+		ZIndex = 12,
+		Parent = hpTrack.Parent,
+	}, 20)
+	staggerBanner.FontFace = CUT_FONT
+	Kit.corner(UDim.new(0, 4)).Parent = staggerBanner
+	local staggerGlow = Kit.stroke(Theme.Color.Gold, 2, 0)
+	staggerGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	staggerGlow.Parent = staggerBanner
+	pulseForever(staggerGlow, { Transparency = 0.6, Thickness = 4 }, 0.35)
+	Kit.textStroke(Color3.fromRGB(60, 30, 0), 1.5, 0).Parent = staggerBanner
 	for _, at in { Config.Battle.PhaseAt, Config.Battle.EnrageAt } do
 		Kit.new("Frame", {
 			Name = "Marker",
@@ -2705,26 +2909,16 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		Parent = warnBanner,
 	}, 28)
 
-	-- Card rows: Attack (front) above Support (back, slimmer: no HP).
+	-- The squad dock: the lower 22% of the screen, so the fight above has the rest. Attack badges (front)
+	-- with each Support's mini-chip tucked under the Attacker in the same column (back, no HP).
 	local rowsFrame = Kit.new("Frame", {
 		Name = "Rows",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 1),
-		Size = UDim2.fromScale(0.64, 0.46),
+		Position = UDim2.new(0.5, 0, 1, -6),
+		Size = UDim2.fromScale(0.66, 0.22),
 		BackgroundTransparency = 1,
 		Parent = stage,
-	}, { Kit.new("UISizeConstraint", { MaxSize = Vector2.new(980, 320) }) })
-	local function rowLabel(text: string, y: number, color: Color3)
-		Kit.label({
-			Text = text,
-			Font = Theme.Font.Heavy,
-			TextColor3 = color,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Position = UDim2.fromScale(0, y),
-			Size = UDim2.fromScale(0.6, 0.07),
-			Parent = rowsFrame,
-		}, 14)
-	end
+	}, { Kit.new("UISizeConstraint", { MaxSize = Vector2.new(980, 190) }) })
 	local function row(name: string, y: number, height: number): Frame
 		return Kit.new("Frame", {
 			Name = name,
@@ -2741,9 +2935,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 			}),
 		})
 	end
-	rowLabel("ATTACK · FRONT ROW", 0, Theme.Color.Attack)
-	frontRow = row("Front", 0.08, 0.5)
-	rowLabel("SUPPORT · BACK ROW · CAN'T BE HIT", 0.6, Theme.Color.Support)
+	frontRow = row("Front", 0, 0.64)
 	backRow = row("Back", 0.68, 0.32)
 
 	-- Controls down the left edge (where the main menu sits outside battle).

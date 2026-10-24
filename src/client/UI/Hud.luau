@@ -54,6 +54,7 @@ local eventPill: any
 local raidPill: any -- under the event pill while a raid is live (tap to join) or Raid Luck runs
 local raidWanted = false
 local momentumLabel: TextLabel -- above ROLL: the Momentum chain and the next Overcharge Surge
+local momentumFill: Frame -- the 2 px bar under it: Momentum toward RollBoost.Momentum.Max
 local surgeMeter: any -- under it (children read by name): the Overcharge Surge cycle, SurgeProgress 0-24
 local surgeFill: any
 local surgeCount: TextLabel
@@ -435,21 +436,56 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Parent = row,
 	})
 	autoStopButton.Activated:Connect(handlers.OnAutoStop)
+	-- Urushi mini-header on top of the roll console: Momentum text, and a 2 px bar filling to the cap.
+	local momentumHeader = Kit.new("Frame", {
+		Name = "MomentumHeader",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 0, -3),
+		Size = UDim2.new(1, 0, 0, 22),
+		BackgroundColor3 = UITheme.Colors.UrushiBlack,
+		BackgroundTransparency = 0.2,
+		ClipsDescendants = true,
+		Parent = row,
+	}, {
+		Kit.corner(UDim.new(0, 3)),
+		Kit.stroke(UITheme.Colors.Tamahagane, 1, 0),
+	})
+	momentumFill = Kit.new("Frame", {
+		Name = "Fill",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(0, 0, 0, 2),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Parent = momentumHeader,
+	})
+	local shimmer = Kit.new("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 110, 40)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 220, 90)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 110, 40)),
+		}),
+		Offset = Vector2.new(-0.5, 0),
+		Parent = momentumFill,
+	})
+	game:GetService("TweenService")
+		:Create(shimmer, TweenInfo.new(1.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Offset = Vector2.new(0.5, 0) })
+		:Play()
 	momentumLabel = Kit.label({
 		Name = "Momentum",
 		Text = "",
 		RichText = true,
 		Font = Theme.Font.Heavy,
 		TextColor3 = Theme.Color.Text,
-		Position = UDim2.fromScale(0.31, 0),
-		Size = UDim2.fromScale(0.69, 0.6),
-		Parent = row,
-	}, 18)
+		Position = UDim2.new(0, 6, 0, 2),
+		Size = UDim2.new(1, -12, 1, -5),
+		Parent = momentumHeader,
+	}, 14)
 	-- The Surge meter: fills from Spirit Cyan into Surge Gold over the 25-roll cycle (TotalRolls % 25).
 	surgeMeter = Kit.new("CanvasGroup", {
 		Name = "SurgeMeter",
-		Position = UDim2.fromScale(0.31, 0.66),
-		Size = UDim2.fromScale(0.69, 0.3),
+		Position = UDim2.fromScale(0.31, 0.22),
+		Size = UDim2.fromScale(0.69, 0.56),
 		BackgroundColor3 = UITheme.Colors.UrushiBlack,
 		BackgroundTransparency = 0.1,
 		Parent = row,
@@ -474,7 +510,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = 2,
 		Parent = surgeMeter,
-	}, 12)
+	}, 14)
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.2).Parent = surgeCount
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = momentumLabel
 	momentumLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
@@ -1252,6 +1288,7 @@ function Hud.RefreshMomentum()
 	local surgeText = if untilSurge == 1
 		then '<font color="#FFC42E"><b>⚡ NEXT ROLL: SURGE</b></font>'
 		else `⚡ surge in <b>{untilSurge}</b>`
+	Kit.tween(momentumFill, 0.3, { Size = UDim2.new(math.clamp(m.Count / RollBoost.Momentum.Max, 0, 1), 0, 0, 2) })
 	-- Narrow docks (phones): a short line, so the text stays big enough to read.
 	if momentumLabel.AbsoluteSize.X > 0 and momentumLabel.AbsoluteSize.X < 300 then
 		local surge = if untilSurge == 1 then '<font color="#FFC42E"><b>⚡ SURGE!</b></font>' else `⚡{untilSurge}`
