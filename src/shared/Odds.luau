@@ -35,6 +35,26 @@ function Odds.FormatPercent(pct: number): string
 	return string.format("%.4f%%", pct)
 end
 
+-- The round numbers rarity numbers snap to: these mantissas times a power of ten (12, 125, 2,500, 7,500,000).
+Odds.RoundSteps = { 1, 1.2, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 8, 10 }
+
+-- `n` snapped to the nearest round number (nearest in ratio, so 48 -> 50 and 9,950,000 -> 10,000,000).
+function Odds.Round(n: number): number
+	if n <= 0 then
+		return 0
+	end
+	local scale = 10 ^ math.floor(math.log10(n))
+	local best, gap = n, math.huge
+	for _, step in Odds.RoundSteps do
+		local value = step * scale
+		local g = math.abs(math.log(n / value))
+		if g < gap then
+			best, gap = value, g
+		end
+	end
+	return math.floor(best + 0.5)
+end
+
 -- The rarity number for a chance in percent: how many tries it takes on average, as a plain number
 -- ("5,000", never "1 in 5,000": the user's call, the big ones are the flex). "" for anything more common
 -- than 1 in 1.5 (the Base border), "-" for a zero chance.
@@ -48,7 +68,7 @@ function Odds.FormatRarity(pct: number): string
 	elseif n < 10 then
 		return string.format("%.1f", n)
 	end
-	local whole = tostring(math.floor(n + 0.5))
+	local whole = tostring(Odds.Round(n))
 	return (whole:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
 end
 

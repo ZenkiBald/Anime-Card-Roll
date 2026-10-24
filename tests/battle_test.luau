@@ -1,5 +1,5 @@
 -- Deck rules, the battle engine, boss mechanics, rewards, and the tuning targets:
--- the first all-Base deck (about 52k Deck Power) beats Kurogane Normal in 60-90 s,
+-- the first all-Base deck (about 53k Deck Power) beats Kurogane Normal in 60-90 s,
 -- and a deck at each fight's recommended power wins it in 60-90 s.
 local Config = MODULES.Config
 local Deck = MODULES.Deck
@@ -14,7 +14,7 @@ local starterOwned = F.own(starterIds)
 local starter = Deck.AutoBuild(starterOwned)
 local starterPower = Deck.Power(starter, starterOwned)
 print(`   starter deck: {table.concat(starter.Attack, ",")} / {table.concat(starter.Support, ",")} = {starterPower} power`)
-check(math.abs(starterPower - 52300) <= 600, `the first all-Base deck is about 52k power ({starterPower})`)
+check(math.abs(starterPower - 53200) <= 600, `the first all-Base deck is about 53k power ({starterPower})`)
 check(Deck.Count(starter, "Attack") == 4 and Deck.Count(starter, "Support") == 4, "auto-build fills 4 Attack + 4 Support")
 check(starter.Attack[1] == "rook" and starter.Support[1] == "suzu", "auto-build puts the strongest card on the left")
 
@@ -278,7 +278,7 @@ for _, t in times do
 end
 print(
 	string.format(
-		"   52k all-Base starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
+		"   53k all-Base starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
 		rate * 100,
 		F.percentile(times, 0.1),
 		F.percentile(times, 0.5),

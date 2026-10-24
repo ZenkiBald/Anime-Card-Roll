@@ -1,7 +1,8 @@
 --!nonstrict
 -- Square card tile for the deck and Index grids: full art framed only by its border (the tier: Base /
--- Gold / Rainbow / Secret) and an element glow, a small star count, copies and a big power number. No
--- rarity badges: the frame says the tier. Size it from outside (grid cell or slot).
+-- Gold / Rainbow / Secret) and an element glow, a small star count, copies and, big along the bottom, the
+-- card's rarity number at its border (Cards.Rarity, a round number like 7,500,000) in the border's colour.
+-- No rarity badges: the frame says the tier. Size it from outside (grid cell or slot).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -168,11 +169,14 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		BorderFx.Apply(button, options.Border, { Corner = UDim.new(0.12, 0), ZIndex = 5, Spin = options.Spin })
 	end
 
-	local bottomText = if owned then (if options.Power then Kit.commas(options.Power) else card.Name) else "???"
+	-- The rarity number (Deck Power stays on the deck screen and in the tooltip).
+	local rarity = if owned then Cards.Rarity(cardId, borderId) else 0
+	local bottomText = if rarity > 0 then Kit.commas(rarity) elseif owned then card.Name else "???"
 	outlined(Kit.label({
-		Name = "Power",
+		Name = "Rarity",
 		Text = bottomText,
 		Font = Theme.Font.Display,
+		TextColor3 = if borderId == "Normal" then Color3.new(1, 1, 1) else tier.Color:Lerp(Color3.new(1, 1, 1), 0.2),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -4),
 		Size = UDim2.fromScale(0.94, 0.17),

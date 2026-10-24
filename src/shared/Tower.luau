@@ -108,18 +108,18 @@ Tower.Curve = {
 	Power = 33000,
 	Growth = 1.068, -- about 2x every 10 floors; floor 48 is about Tenrai Nightmare
 	Points = {
-		{ Power = 33000, HP = 57000, ATK = 164 },
-		{ Power = 44000, HP = 76500, ATK = 203 },
-		{ Power = 64000, HP = 94500, ATK = 222 },
-		{ Power = 93500, HP = 181500, ATK = 426 },
-		{ Power = 111000, HP = 269000, ATK = 817 },
-		{ Power = 173000, HP = 680000, ATK = 962 },
-		{ Power = 214500, HP = 860000, ATK = 1052 },
-		{ Power = 270000, HP = 2100000, ATK = 1446 },
-		{ Power = 362000, HP = 5661000, ATK = 2102 },
-		{ Power = 545500, HP = 8118500, ATK = 5881 },
-		{ Power = 680500, HP = 10435500, ATK = 7465 },
-		{ Power = 751500, HP = 11881000, ATK = 9672 },
+		{ Power = 33500, HP = 57000, ATK = 164 },
+		{ Power = 44500, HP = 76500, ATK = 203 },
+		{ Power = 65000, HP = 94500, ATK = 222 },
+		{ Power = 101000, HP = 181500, ATK = 426 },
+		{ Power = 122000, HP = 269000, ATK = 817 },
+		{ Power = 197500, HP = 680000, ATK = 962 },
+		{ Power = 242500, HP = 860000, ATK = 1052 },
+		{ Power = 323000, HP = 2100000, ATK = 1446 },
+		{ Power = 470500, HP = 5661000, ATK = 2102 },
+		{ Power = 709000, HP = 9100000, ATK = 5881 },
+		{ Power = 884500, HP = 13000000, ATK = 7465 },
+		{ Power = 977000, HP = 14850000, ATK = 9672 },
 	},
 	Beyond = { HP = 1.1, ATK = 1.1 }, -- past the last point: HP x (power / last) ^ 1.1 (a full Secret deck still wins in about 90 s)
 }
@@ -130,7 +130,7 @@ Tower.Pagoda = {
 	Name = "Hundred-Floor Pagoda",
 	Floors = 100,
 	Power = 33000,
-	Growth = 1.051,
+	Growth = 1.053,
 	Salt = 500,
 	Title = "Pagoda Master", -- floor 100's title
 }

@@ -152,5 +152,14 @@ do
 	check(Cards.Rarity("nobody", "Gold") == 0, "an unknown card has no rarity number")
 	local c = Cards.List[1]
 	local expected = 1 / (Cards.PullChances(Cards.List)[c.Id] * Borders.Chances().Gold)
-	check(math.abs(Cards.Rarity(c.Id, "Gold") - expected) <= 0.5, "the rarity number is 1 / (pull chance x border chance)")
+	check(math.abs(Cards.RawRarity(c.Id, "Gold") - expected) < 1e-6, "the raw rarity is 1 / (pull chance x border chance)")
+	check(Odds.Round(48) == 50 and Odds.Round(12) == 12 and Odds.Round(9950000) == 10000000 and Odds.Round(7462500) == 7500000 and Odds.Round(130) == 125 and Odds.Round(2400) == 2500, "rarity numbers snap to round numbers (50, 12, 10,000,000, 7,500,000, 125, 2,500)")
+	local roundOk = true
+	for _, card in Cards.List do
+		for _, b in Borders.List do
+			local shown, raw = Cards.Rarity(card.Id, b.Id), Cards.RawRarity(card.Id, b.Id)
+			roundOk = roundOk and shown / raw < 1.15 and raw / shown < 1.15
+		end
+	end
+	check(roundOk, "a shown rarity is always within 15% of the exact one")
 end

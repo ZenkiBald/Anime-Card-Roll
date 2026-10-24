@@ -34,7 +34,8 @@ check(Awaken.FromCopies(19) == 0 and Awaken.FromCopies(20) == 1 and Awaken.FromC
 check(Awaken.Level({ Copies = 5, Awaken = 3 }) == 3, "a node stays open after the copies are spent")
 check(Awaken.Level({ Copies = 1, Fusion = 1 }) == 5, "a fused card has node 5")
 local card = Cards.Get("tomo")
-check(Cards.Stat(card, 100, 0, nil, 1) == 110 and Cards.Stat(card, 100, 0, nil, 0) == 100, "node 1 adds +10% base stats")
+local scaled = 100 * Cards.Scale(card)
+check(math.abs(Cards.Stat(card, 100, 0, nil, 1) - scaled * 1.1) <= 0.5 and math.abs(Cards.Stat(card, 100, 0, nil, 0) - scaled) <= 0.5, "node 1 adds +10% base stats")
 
 -- 3. Momentum and surges -----------------------------------------------------------------------------
 local speed, luck = RollBoost.MomentumBonus(500)

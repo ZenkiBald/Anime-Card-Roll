@@ -153,11 +153,11 @@ check(Raid.LuckAt(10, 20) == Raid.LuckBoost and Raid.LuckAt(30, 20) == 1, "Raid 
 do
 	-- A run: the Colossus alone, sized to the deck, lasts Raid.FightSeconds and can't be felled solo;
 	-- a deck at its power drains its share of the pool in two-four runs, against every Colossus.
-	-- (Fixture 10, not 11-12: Awakening nodes 2-3 add damage Deck Power doesn't count, so those decks
-	-- drain faster, on purpose. Late Cosmic / Light decks counter every Colossus, so they can need as
-	-- little as one run; nobody fells it solo either way.)
+	-- (Up to fixture 9: the World 4 fixtures (10-12) are the Cosmic / Light lineup, which counters every
+	-- Colossus and drains its share in about one run, on purpose; Awakening nodes 2-3 also add damage Deck
+	-- Power doesn't count. Nobody fells the Colossus solo either way.)
 	local runsOk, shareOk = true, true
-	for _, i in { 1, 3, 5, 8, 10 } do
+	for _, i in { 1, 3, 5, 8, 9 } do
 		local deck, owned = F.fixtureDeck(F.FIGHTS[i])
 		local power = Deck.Power(deck, owned)
 		local line = string.format("   raid runs to drain a share at %6d power:", power)

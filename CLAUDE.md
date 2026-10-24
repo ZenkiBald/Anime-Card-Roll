@@ -28,23 +28,25 @@ bosses are beaten with Base + Gold, Rainbow and Secret are the tower chase). Luc
 0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped at 50% together). Total luck = base
 (upgrades, stat points, level, Index rewards, Momentum, artifacts) x potion x event / Raid Luck / Totem / VIP, capped at
 25x (`Meta.TotalLuck`). Pure luck: no pity. Every card shows its **rarity number** per border (`Cards.Rarity`: 1 / (pull
-chance x border chance) at 1x luck, a plain number like "48,579", never "1 in"; `Odds.FormatRarity` for the ODDS panel).
-Every pull also rolls a foil (Aura / Golden Ki / Demon Seal, battle-only). ROLL (R), QUICK toggle (T: ROLL plays the
-short reveal, saved), AUTO (E; never stops by itself: a Rainbow+ pull or Demon Seal holds the next roll
-`Config.AutoBigRevealHold` s for its full reveal, then it rolls on). Momentum chain: +1% speed / +0.01x luck per 10
-rolls, max 500, breaks after 30 s idle. Overcharge Surge every 25th roll (`TotalRolls % 25`): 5x border odds, or 3 cards
-at 6x on a perfect tap; HUD meter binds to `SurgeProgress`. Rainbow+ pulls are announced; a Secret gets "[SERVER]
-{Player} rolled a SECRET BORDER {Card}!".
+chance x border chance) at 1x luck, snapped to a round number by `Odds.Round` like "7,500,000", never "1 in"; it is the
+big number on card tiles; `Odds.FormatRarity` for the ODDS panel). Every pull also rolls a foil (Aura / Golden Ki /
+Demon Seal, battle-only). ROLL (R), QUICK toggle (T: ROLL plays the short reveal, saved), AUTO (E; never stops by
+itself: a Rainbow+ pull or Demon Seal holds the next roll `Config.AutoBigRevealHold` s for its full reveal, then it
+rolls on). Momentum chain: +1% speed / +0.01x luck per 10 rolls, max 500, breaks after 30 s idle. Overcharge Surge every
+25th roll (`TotalRolls % 25`): 5x border odds, or 3 cards at 6x on a perfect tap; HUD meter binds to `SurgeProgress`.
+Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET BORDER {Card}!".
 
-**Cards.** 22 cards + 4 boss cards (original characters only). Every card sits on one stat line (ATK ~500 +-10%,
-HP = 2 x ATK; Support PWR ~300, no HP), so the border decides power. Each has an `Element`, a `Role` (Striker / Hexer /
-Mender / Warder) and abilities built from the effect library at the top of `Cards.luau`. Stars +5% each (max 5).
-Copies pile up per border (`BorderCopies`); Awakening nodes at 20 / 40 / 60 / 80 copies (+10% stats, +15% Skill DMG,
-400% bond, trait slot 2). **Border fusion** at Hoshi: 100 copies at one border -> 1 copy at the next (FUSE or FUSE ALL,
-which cascades); the card at the next border is the whole reward (no luck, Trait Shards or XP). Traits are bought at Kenshin with Trait Shards
-(battle-only: SPD / crit / guard / energy, never ATK / HP); AUTO rolls a slot until a ticked trait lands (up to
-`Traits.AutoMax` rolls a tap) and applies it. The Index lists every card by best border with completion
-rewards per border. A card can be worn as your avatar (element aura; Rainbow fire footsteps, Secret celestial motes).
+**Cards.** 22 cards + 4 boss cards (original characters only). Every card sits on one stat line (ATK ~500 +-10%, HP = 2
+x ATK; Support PWR ~300, no HP), scaled by rarity (`Cards.Scale`: a Weight 10 card 1x, Weight 1 about 1.41x, boss cards
+up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
+`Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
+`Cards.luau`. Stars +5% each (max 5). Copies pile up per border (`BorderCopies`); Awakening nodes at 20 / 40 / 60 / 80
+copies (+10% stats, +15% Skill DMG, 400% bond, trait slot 2). **Border fusion** at Hoshi: 100 copies at one border -> 1
+copy at the next (FUSE or FUSE ALL, which cascades); the card at the next border is the whole reward (no luck, Trait
+Shards or XP). Traits are bought at Kenshin with Trait Shards (battle-only: SPD / crit / guard / energy, never ATK /
+HP); AUTO rolls a slot until a ticked trait lands (up to `Traits.AutoMax` rolls a tap) and applies it. The Index lists
+every card by best border with completion rewards per border. A card can be worn as your avatar (element aura; Rainbow
+fire footsteps, Secret celestial motes).
 
 **Deck and battle.** 4 Attack + 4 Support, 3 presets (+2 VIP), AUTO-BUILD / COUNTER-BUILD. Each Support's Slot Link
 buffs the Attack card in its column. Elements: Flame > Frost > Storm > Flame, Light <> Void, Cosmic beats all (x1.3 /
@@ -54,17 +56,17 @@ elements fill it faster) -> 5 s Staggered. Cost Challenge (Deck Cost by border 2
 The engine (`BattleEngine`) is pure and runs headless in tests. Fights are staged in 3D at the boss's spot in its world
 (`UI/Arena`, low cinematic camera, guards as tinted smaller copies); no map = the 2D fallback.
 
-**Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended power 45k ... 298k; the fixtures are Base in World 1, Gold after, World 4 Gold
-5-star with Awakening 1-3). Boss wins pay reward rolls
-(luck / floors by D), Shards, Roll Packs, Trait Shards and an artifact roll. Two towers (BATTLE > TOWER / PAGODA), each floor an echo
-of a world boss with affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 33k x
-1.068^(floor-1)); every floor pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight
-(`Tower.Live`, ended by SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian
-bonuses only pay past it. Hundred-Floor Pagoda: 100 kept floors (33k x 1.051^(floor-1), floor 100 is a full Secret deck's
-fight), each paid once, milestones at 25 / 50 / 75 (packs, Trait Shards, a sure Rare / Epic / Legendary artifact) and
-100 (Mythic + the worn "Pagoda Master" title). Server raids
-every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared). Roll Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10
-/ ALL at your luck, also during Auto Roll; Pack Alchemy condenses or infuses them.
+**Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended power 45k ... 388k; the fixtures are Base in
+World 1, Gold after, World 4 Gold 5-star with Awakening 1-3). Boss wins pay reward rolls (luck / floors by D), Shards,
+Roll Packs, Trait Shards and an artifact roll. Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss
+with affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 33k x 1.068^(floor-1)); every
+floor pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
+SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past
+it. Hundred-Floor Pagoda: 100 kept floors (33k x 1.051^(floor-1), floor 100 is a full Secret deck's fight), each paid
+once, milestones at 25 / 50 / 75 (packs, Trait Shards, a sure Rare / Epic / Legendary artifact) and 100 (Mythic + the
+worn "Pagoda Master" title). Server raids every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared). Roll
+Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy condenses or
+infuses them.
 
 **Progression and retention.** Levels 1-100 with stat points; Shard Shop upgrades; potions; artifacts (wear 3); daily
 streak, daily quests, playtime gifts, roll milestones, Lucky Wheel, server events (LUCKY STORM / ROLL RUSH / DOUBLE XP),
@@ -110,7 +112,8 @@ portraits use the 2D `Image` when set, else an element-lit bust (the user is mak
 
 - The server owns every roll, stat and result; the client only requests and animates. Validate every remote argument on
   the server, rate-limit it (`RateLimit`), and check ownership / NPC range where it applies.
-- The border always wins: Base 1x / Gold 4x / Rainbow 16x / Secret 64x; base stats within +-10% of one line (HP = 2 x ATK);
+- The border always wins: Base 1x / Gold 4x / Rainbow 16x / Secret 64x; base stats within +-10% of one line (HP = 2 x ATK),
+  then rarer cards scale up (`Cards.Scale`: (10 / Weight) ^ 0.15, boss cards up to about 1.5x, the user's call);
   stars +5% each, max 5; a maxed card on one border never reaches a 0-star card on the next (odds_test checks). Traits stay
   small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border fusion only: 100 copies at one border -> 1 at the next.
 - Content is data: a new card is one entry in `Cards.luau` (stats, abilities, `Role`, `Weight`, `Element`, `Image`); a

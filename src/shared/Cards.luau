@@ -74,6 +74,7 @@ export type Card = {
 local Config = require(script.Parent.Config)
 local Borders = require(script.Parent.Borders)
 local Awaken = require(script.Parent.Awaken)
+local Odds = require(script.Parent.Odds)
 
 local function ability(slot: string, name: string, text: string, effects: { Effect }, every: number?): Ability
 	return { Slot = slot, Name = name, Text = text, Effects = effects, Every = every }
@@ -709,6 +710,17 @@ function Cards.Get(id: string): Card?
 	return Cards.ById[id]
 end
 
+-- Rarer cards hit harder at the same border (the user's call, 2026-10-24): a card's stats scale by
+-- (CommonWeight / its Weight) ^ Exponent, so a common card (Weight 10) is 1x, a Weight 1 card about
+-- 1.41x and the boss cards (Weight 0.6-1) up to 1.53x. Still far under the next border's 4x, with
+-- stars and Awakening on top (1.53 x 1.375 = 2.1x), so the border always wins.
+Cards.RarityScale = { CommonWeight = 10, Exponent = 0.15 }
+
+function Cards.Scale(card: Card): number
+	local s = Cards.RarityScale
+	return (s.CommonWeight / math.max(0.01, card.Weight)) ^ s.Exponent
+end
+
 -- The roll pool: every card, except boss cards whose boss hasn't been beaten on Normal yet
 -- (`cleared` = Progress.Cleared, keyed "boss:Normal").
 function Cards.Pool(cleared: { [string]: boolean }?): { Card }
@@ -737,9 +749,10 @@ end
 
 -- A card's rarity number at one border: how many pulls one of it takes on average (1 / (its pull chance
 -- x the border's chance)) at 1x luck, over the full pool (boss cards included), so the number is the
--- same for everyone. Shown as a plain number ("48,579"), never "1 in": the big ones are the flex.
+-- same for everyone. RawRarity is the exact figure; Rarity snaps it to a round number (Odds.Round:
+-- 12, 50, 7,500, 6,000,000) for display: a plain number, never "1 in" (the user's call).
 local fullChances: { [string]: number }? = nil
-function Cards.Rarity(cardId: string, border: string?): number
+function Cards.RawRarity(cardId: string, border: string?): number
 	if fullChances == nil then
 		fullChances = Cards.PullChances(list)
 	end
@@ -748,7 +761,12 @@ function Cards.Rarity(cardId: string, border: string?): number
 	if pull <= 0 or chance <= 0 then
 		return 0
 	end
-	return math.max(1, math.floor(1 / (pull * chance) + 0.5))
+	return 1 / (pull * chance)
+end
+
+function Cards.Rarity(cardId: string, border: string?): number
+	local raw = Cards.RawRarity(cardId, border)
+	return if raw > 0 then math.max(1, Odds.Round(raw)) else 0
 end
 
 -- The boss card a boss unlocks, if any.
@@ -776,10 +794,11 @@ function Cards.StatWithStars(base: number, stars: number): number
 	return math.floor(base * (1 + 0.05 * math.clamp(stars, 0, 5)) + 0.5)
 end
 
--- A stat with stars, the border's tier multiplier (1x / 4x / 16x / 64x) and the Awakening node (node 1:
--- +10%). The border decides power: 5 stars and node 1 together are 1.375x, far under the next border's 4x.
+-- A stat with stars, the border's tier multiplier (1x / 4x / 16x / 64x), the card's rarity scale
+-- (Cards.Scale) and the Awakening node (node 1: +10%). The border decides power: the rarest card's scale,
+-- 5 stars and node 1 together are about 2.1x, far under the next border's 4x.
 function Cards.Stat(card: Card, base: number, stars: number, border: string?, awaken: number?): number
-	return Cards.StatWithStars(base * Borders.Multiplier(border) * Awaken.StatMultiplier(awaken), stars)
+	return Cards.StatWithStars(base * Borders.Multiplier(border) * Cards.Scale(card) * Awaken.StatMultiplier(awaken), stars)
 end
 
 -- Deck Power used for boss recommendations: Attack = ATK x 10 + HP, Support = PWR x 24.
