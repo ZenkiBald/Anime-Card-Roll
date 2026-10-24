@@ -1,9 +1,14 @@
 --!strict
--- Artifacts: relics that drop from boss wins and Infinite Tower floors, kept in the BAG. Wear up to
--- ArtifactSlots; each boosts luck, roll speed, border chance, Shards or XP. A duplicate levels it up
--- (up to MaxLevel); past that it melts into Shards. (Card accessories were removed on 2026-10-23:
--- per-card battle bonuses are traits now, Traits.luau.)
--- Shared so the BAG, the boss screen and the server agree on every number. Adding an artifact is one entry.
+-- Gear, in two sets (the user's call, 2026-10-24):
+--   * RELICS (Items.Artifacts in code, Gear.Artifacts in saves, shown as "Relic"): the ten wearable items.
+--     They drop only from Infinite Tower wins on floor RelicFloor and up, at RelicChance a win. Wear up to
+--     ArtifactSlots; each boosts luck, roll speed, border chance, Shards or XP. A duplicate levels it up
+--     (up to MaxLevel); past that it melts into Shards.
+--   * ARTIFACTS (Items.TowerArtifacts, Gear.TowerArtifacts, shown as "Artifact"): one per finite tower,
+--     given only for clearing its last floor (the Pagoda's floor 100). Always on, no slot; several bonuses.
+-- Bosses, raids and other floors drop neither. (Card accessories were removed on 2026-10-23: per-card
+-- battle bonuses are traits now, Traits.luau.)
+-- Shared so the BAG, the tower screens and the server agree on every number. Adding one is one entry.
 
 local Items = {}
 
@@ -41,14 +46,36 @@ end
 -- A max-level artifact that drops again melts into this many Shards.
 Items.MeltShards = { Rare = 150, Epic = 400, Legendary = 1200, Mythic = 4000 } :: { [string]: number }
 
--- Drops -------------------------------------------------------------------------------------------
--- Every boss win and tower floor rolls once for an artifact. The chance and the rarity mix improve with
--- the fight's difficulty score D (1-12 for bosses, floor x 0.25 in the tower).
+-- Artifacts: always on once owned (Gear.TowerArtifacts[id] = true). Bonuses use the relic Kinds.
+export type TowerArtifact = { Id: string, Name: string, Icon: string, Source: string, Bonuses: { [string]: number } }
+
+Items.TowerArtifacts = {
+	{
+		Id = "hundredcrown",
+		Name = "Crown of the Hundred Floors",
+		Icon = "🏯",
+		Source = "Hundred-Floor Pagoda, floor 100",
+		Bonuses = { Luck = 0.5, RollSpeed = 0.1, Border = 0.25 },
+	},
+} :: { TowerArtifact }
+
+Items.TowerArtifactById = {} :: { [string]: TowerArtifact }
+for _, artifact in Items.TowerArtifacts do
+	Items.TowerArtifactById[artifact.Id] = artifact
+end
+
+-- Relic drops -------------------------------------------------------------------------------------
+-- Only Infinite Tower wins on floor RelicFloor and up roll for a relic, at RelicChance. Its rarity mix
+-- improves with the floor's score D (floor x 0.25, Tower.DPerFloor).
+
+Items.RelicFloor = 50
+Items.RelicChance = 0.001 -- 0.1% a win
 
 Items.ItemRarities = { "Rare", "Epic", "Legendary", "Mythic" }
 
-function Items.ArtifactChance(d: number): number
-	return math.min(0.15, 0.03 + 0.007 * d)
+-- The relic chance for an Infinite Tower win on `floor` (0 below RelicFloor).
+function Items.RelicChanceAt(floor: number): number
+	return if floor >= Items.RelicFloor then Items.RelicChance else 0
 end
 
 -- Rarity weights at D: Rare fades, the rarer ones grow (Mythic only from D 7).
@@ -99,17 +126,11 @@ local function pickFrom(list: { any }, rarity: string, roll: number): string?
 	return pool[math.clamp(math.floor(roll * #pool) + 1, 1, #pool)]
 end
 
--- A sure artifact of `rarity` (Pagoda milestones): one of that rarity's, picked by `roll` in [0, 1).
-function Items.PickOfRarity(rarity: string, roll: number): string?
-	return pickFrom(Items.Artifacts, rarity, roll)
-end
-
--- What a win at D drops: { Artifacts = { id = 1 }? }. `rng` is a Random. `boost` multiplies the chance
--- (tower Guardians use it).
-function Items.RollDrops(d: number, rng: Random, boost: number?): { Artifacts: { [string]: number }? }
+-- What an Infinite Tower win on `floor` drops: { Artifacts = { relicId = 1 }? }. `rng` is a Random.
+function Items.RollDrops(floor: number, rng: Random): { Artifacts: { [string]: number }? }
 	local drops = {}
-	local mult = boost or 1
-	if rng:NextNumber() < Items.ArtifactChance(d) * mult then
+	local d = floor * 0.25
+	if rng:NextNumber() < Items.RelicChanceAt(floor) then
 		local id = pickFrom(Items.Artifacts, pickRarity(d, rng:NextNumber()), rng:NextNumber())
 		if id then
 			drops.Artifacts = { [id] = 1 }
@@ -122,11 +143,12 @@ end
 
 export type Gear = {
 	Artifacts: { [string]: number }, -- owned: id -> level
-	Worn: { string }, -- artifact ids being worn (up to ArtifactSlots)
+	Worn: { string }, -- relic ids being worn (up to ArtifactSlots)
+	TowerArtifacts: { [string]: boolean }?, -- artifacts owned (always on)
 }
 
 function Items.Empty(): Gear
-	return { Artifacts = {}, Worn = {} }
+	return { Artifacts = {}, Worn = {}, TowerArtifacts = {} }
 end
 
 -- An artifact's bonus at a level.
@@ -134,12 +156,18 @@ function Items.ArtifactValue(artifact: Artifact, level: number): number
 	return artifact.Amount + artifact.PerLevel * (math.clamp(level, 1, Items.MaxLevel) - 1)
 end
 
--- What the worn artifacts add for a Kind (Luck, RollSpeed, Border, ShardGain, XPGain).
+-- What the worn relics and the owned artifacts add for a Kind (Luck, RollSpeed, Border, ShardGain, XPGain).
 function Items.ArtifactBonus(gear: Gear?, kind: string): number
 	if gear == nil then
 		return 0
 	end
 	local total = 0
+	for id, owned in (gear.TowerArtifacts or {}) :: { [string]: boolean } do
+		local artifact = Items.TowerArtifactById[id]
+		if owned and artifact then
+			total += artifact.Bonuses[kind] or 0
+		end
+	end
 	for _, id in (gear.Worn or {}) :: { string } do
 		local artifact = Items.ArtifactById[id]
 		local level = (gear.Artifacts or {})[id]
@@ -162,12 +190,27 @@ local function percent(x: number): string
 	return `{math.floor(x * 100 + 0.5)}%`
 end
 
-function Items.ArtifactText(artifact: Artifact, level: number): string
-	local value = Items.ArtifactValue(artifact, level)
-	if artifact.Kind == "Luck" then
+local function bonusText(kind: string, value: number): string
+	if kind == "Luck" then
 		return string.format("+%.2fx luck", value)
 	end
-	return `+{percent(value)} {KIND_TEXT[artifact.Kind] or artifact.Kind}`
+	return `+{percent(value)} {KIND_TEXT[kind] or kind}`
+end
+
+function Items.ArtifactText(artifact: Artifact, level: number): string
+	return bonusText(artifact.Kind, Items.ArtifactValue(artifact, level))
+end
+
+-- "+0.50x luck · +10% faster rolls · +25% border chance" for an artifact (fixed order).
+function Items.TowerArtifactText(artifact: TowerArtifact): string
+	local parts = {}
+	for _, kind in { "Luck", "RollSpeed", "Border", "ShardGain", "XPGain" } do
+		local value = artifact.Bonuses[kind]
+		if value then
+			table.insert(parts, bonusText(kind, value))
+		end
+	end
+	return table.concat(parts, " · ")
 end
 
 return Items

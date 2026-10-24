@@ -176,13 +176,13 @@ function DevPanel.Init(playerGui: Instance)
 	fill.Activated:Connect(function()
 		devCall("FillCopies") -- every owned card gets enough copies to fuse
 	end)
-	local items = Kit.button("GIVE ARTIFACTS", Color3.fromRGB(255, 120, 220), Color3.fromRGB(140, 40, 110), {
+	local items = Kit.button("GIVE GEAR", Color3.fromRGB(255, 120, 220), Color3.fromRGB(140, 40, 110), {
 		LayoutOrder = 5,
 		Size = UDim2.fromOffset(150, 36),
 		Parent = fightRow,
 	})
 	items.Activated:Connect(function()
-		devCall("GiveItems") -- one of every artifact
+		devCall("GiveItems") -- one of every relic and artifact
 	end)
 	local traits = Kit.button("GIVE TRAITS", Color3.fromRGB(176, 92, 255), Theme.Color.AccentDeep, {
 		LayoutOrder = 6,

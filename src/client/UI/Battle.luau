@@ -2101,9 +2101,12 @@ local function showResults(summary)
 			if bundle and (bundle.TraitShards or 0) > 0 then
 				stat("TRAIT SHARDS", `+{bundle.TraitShards}`, Color3.fromRGB(80, 230, 200), nil, if summary.CostChallenge then "Cost Challenge x2" else "for the Trait Master")
 			end
-			-- An artifact drop gets its own loud line (it goes in the BAG).
+			-- A relic drop (Infinite Tower, 0.1%) or the Pagoda's artifact gets its own loud line.
+			if bundle and bundle.TowerArtifacts then
+				line(`🏯 ARTIFACT!  {Meta.Describe({ TowerArtifacts = bundle.TowerArtifacts })} · always on`, Color3.fromRGB(255, 140, 90), 26)
+			end
 			if bundle and bundle.Artifacts then
-				line(`ARTIFACT DROP!  {Meta.Describe({ Artifacts = bundle.Artifacts })}`, Color3.fromRGB(255, 120, 220), 24)
+				line(`RELIC DROP!  {Meta.Describe({ Artifacts = bundle.Artifacts })}`, Color3.fromRGB(255, 120, 220), 24)
 				task.delay(0.5, function()
 					Sfx.Sting("Legendary", true)
 					Effects.Sparks(panel, Color3.fromRGB(255, 120, 220), 24, 1)

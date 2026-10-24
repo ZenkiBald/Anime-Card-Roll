@@ -31,7 +31,6 @@ Raid.LuckBoost = 2 -- Raid Luck: x2 luck for everyone on the server...
 Raid.LuckSeconds = 600 -- ...for 10 minutes after a clear
 Raid.ClearPacks = { ["10"] = 1 } :: { [string]: number } -- every hitter of a cleared raid
 Raid.TopPacks = { ["100"] = 1 } :: { [string]: number } -- the top hitter, on top
-Raid.ClearDropBoost = 2 -- artifact odds on a clear (Items.RollDrops)
 
 -- Pool: a multiplier on the pool share for a kit that is slower to chew through (Vex's barrier wants
 -- Skills, Tenrai's chain lightning wears a young deck down; measured in tests/strategy_test.luau).
@@ -100,7 +99,7 @@ function Raid.Score(damage: number, power: number): number
 	return math.min(Raid.MaxScore, damage / Raid.StatsFor(power).Base)
 end
 
-export type Reward = { D: number, Shards: number, Packs: { [string]: number }?, DropBoost: number, TraitShards: number }
+export type Reward = { D: number, Shards: number, Packs: { [string]: number }?, TraitShards: number }
 
 Raid.ClearTraitShards = 5 -- every hitter of a cleared raid, + 2 per run's worth of damage
 Raid.FailTraitShards = 2 -- a failed raid, + 1 per run's worth
@@ -122,7 +121,6 @@ function Raid.Reward(cleared: boolean, damage: number, power: number, top: boole
 		return {
 			D = base.D,
 			Shards = math.floor(base.Shards * 0.5 * (1 + score) + 0.5),
-			DropBoost = 0,
 			TraitShards = Raid.FailTraitShards + math.floor(score) + topShards,
 		}
 	end
@@ -136,7 +134,6 @@ function Raid.Reward(cleared: boolean, damage: number, power: number, top: boole
 		D = base.D,
 		Shards = math.floor(base.Shards * (1 + score) + 0.5),
 		Packs = packs,
-		DropBoost = Raid.ClearDropBoost,
 		TraitShards = Raid.ClearTraitShards + 2 * math.floor(score) + topShards,
 	}
 end

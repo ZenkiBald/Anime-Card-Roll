@@ -15,7 +15,6 @@ local Cards = require(Shared.Cards)
 local Bosses = require(Shared.Bosses)
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
-local Rarity = require(Shared.Rarity) -- artifact tier colours
 local Borders = require(Shared.Borders)
 local Rewards = require(Shared.Rewards)
 local Meta = require(Shared.Meta)
@@ -540,20 +539,22 @@ local function buildTower()
 	text(
 		rewardBox,
 		4,
-		`🔮 Artifact drop <b>{string.format("%.1f", math.min(1, Items.ArtifactChance(reward.D) * reward.DropBoost) * 100)}%</b>`,
+		if reward.Relic > 0
+			then `🔮 Relic drop <b>{string.format("%.1f", reward.Relic * 100)}%</b> (every win from floor {Items.RelicFloor})`
+			else `🔮 Relics drop from floor {Items.RelicFloor} up (0.1% a win), only in the Infinite Tower`,
 		Color3.fromRGB(255, 170, 230),
 		17,
 		Theme.Font.Bold
 	)
 	if floor.Guardian and not record then
-		text(rewardBox, 5, `Guardian bonuses (x{Tower.GuardianShards} Shards, a sure potion, better artifact odds) pay on floors past your best run (floor {tower.Best})`, Theme.Color.Muted, 15, Theme.Font.Bold)
+		text(rewardBox, 5, `Guardian bonuses (x{Tower.GuardianShards} Shards, a sure potion) pay on floors past your best run (floor {tower.Best})`, Theme.Color.Muted, 15, Theme.Font.Bold)
 	elseif not floor.Guardian then
 		local guardian = Tower.NextGuardian(floorNo)
 		text(
 			rewardBox,
 			5,
 			if guardian > tower.Best
-				then `Next Guardian: floor {guardian} · artifact {math.floor(Tower.ArtifactChance(guardian) * 100 + 0.5)}%, a sure potion and 2 Roll Packs`
+				then `Next Guardian: floor {guardian} · x{Tower.GuardianShards} Shards, a sure potion and 2 Roll Packs`
 				else `Next Guardian: floor {guardian} · 2 Roll Packs (its bonuses pay past floor {tower.Best})`,
 			Theme.Color.Gold,
 			16,
@@ -587,7 +588,7 @@ local function buildPagoda()
 	text(
 		body,
 		0,
-		`{Tower.Pagoda.Floors} floors, each beaten once and kept for good: a loss just tries the floor again. Big rewards wait on floors 25, 50 and 75, and floor 100 pays a Mythic artifact and the "{Tower.Pagoda.Title}" title. Its top floors take Rainbow and Secret decks.`,
+		`{Tower.Pagoda.Floors} floors, each beaten once and kept for good: a loss just tries the floor again. Big rewards wait on floors 25, 50 and 75, and floor 100 pays the Pagoda's own artifact (always on) and the "{Tower.Pagoda.Title}" title. Its top floors take Rainbow and Secret decks.`,
 		Theme.Color.Muted,
 		17,
 		Theme.Font.Bold
@@ -646,15 +647,19 @@ local function buildPagoda()
 		text(rewardBox, 2, `<b>{Packs.Describe(reward.Packs)}</b>  (saved to your BAG)`, Theme.Color.Gold, 18)
 	end
 	text(rewardBox, 3, rewardExtras(reward), Theme.Color.Text, 17, Theme.Font.Bold)
-	if milestone then
-		local color = Rarity.Get(milestone.Artifact).Color
-		text(rewardBox, 4, `🔮 A sure <font color="#{color:ToHex()}"><b>{milestone.Artifact}</b></font> artifact` .. (if milestone.Title then `  ·  🏷️ the "{milestone.Title}" title` else ""), Theme.Color.Text, 17, Theme.Font.Heavy)
+	-- The Pagoda's artifact waits on its last floor (always on once owned).
+	local crownId = Tower.PagodaMilestones[Tower.Pagoda.Floors].Artifact
+	local crown = crownId and Items.TowerArtifactById[crownId]
+	if milestone and milestone.Artifact and crown then
+		text(rewardBox, 4, `🏯 THE ARTIFACT: <b>{crown.Name}</b> ({Items.TowerArtifactText(crown)}, always on)` .. (if milestone.Title then `  ·  🏷️ the "{milestone.Title}" title` else ""), Color3.fromRGB(255, 140, 90), 17, Theme.Font.Heavy)
 	else
-		text(rewardBox, 4, `🔮 Artifact drop <b>{string.format("%.1f", Tower.ArtifactChance(floorNo, Tower.PagodaId) * 100)}%</b>`, Color3.fromRGB(255, 170, 230), 17, Theme.Font.Bold)
 		local nextMilestone = Tower.NextMilestone(floorNo)
 		if nextMilestone then
 			local m = Tower.PagodaMilestones[nextMilestone]
-			text(rewardBox, 5, `Next milestone: floor {nextMilestone} · {Packs.Describe(m.Packs)}, 🧬{m.TraitShards} and a sure {m.Artifact} artifact`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+			text(rewardBox, 4, `Next milestone: floor {nextMilestone} · {Packs.Describe(m.Packs)} and 🧬{m.TraitShards}`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+		end
+		if crown then
+			text(rewardBox, 5, `🏯 Floor {Tower.Pagoda.Floors}: <b>{crown.Name}</b>, the Pagoda's artifact ({Items.TowerArtifactText(crown)}, always on)`, Color3.fromRGB(255, 140, 90), 16, Theme.Font.Heavy)
 		end
 	end
 
@@ -764,7 +769,7 @@ local function buildRaid()
 	text(
 		rewardBox,
 		2,
-		`Cleared: <b>+💎{Kit.commas(reward.Shards)}</b> + <b>🧬{reward.TraitShards}</b> (two good runs; more damage pays more) + <b>{Packs.Describe(reward.Packs)}</b> · 🔮 artifact odds x{Raid.ClearDropBoost}`,
+		`Cleared: <b>+💎{Kit.commas(reward.Shards)}</b> + <b>🧬{reward.TraitShards}</b> (two good runs; more damage pays more) + <b>{Packs.Describe(reward.Packs)}</b>`,
 		Theme.Color.Text,
 		17,
 		Theme.Font.Bold
@@ -899,20 +904,6 @@ local function build()
 		3,
 		`+💎{reward.Shards} Shards  ·  +🧬{Rewards.TraitShards(fight.D, false) * (if costChallenge then Config.Deck.CostTraitShards else 1)} Trait Shards ({if cleared()[key] then "" else "x2 first clear · "}{if costChallenge then "Cost Challenge x2" else "x2 on a Cost Challenge"})  ·  {math.floor(Config.Rewards.PotionChance * 100)}% chance of a {dropPotion.Icon} {dropPotion.Name}`,
 		Theme.Color.Text,
-		17,
-		Theme.Font.Bold
-	)
-	-- Artifact odds for this fight (Items.luau: harder fights drop them more often, and rarer ones).
-	local rarityChances = Items.RarityChances(fight.D)
-	local rarest = if (rarityChances.Mythic or 0) > 0 then "Mythic" else "Legendary"
-	text(
-		rewardBox,
-		4,
-		`🔮 Artifact drop <b>{string.format("%.1f", Items.ArtifactChance(fight.D) * 100)}%</b>  ·  <font color="#{Rarity.Get(rarest).Color:ToHex()}">{rarest}</font> artifact {string.format(
-			"%.1f",
-			rarityChances[rarest] * 100
-		)}%`,
-		Color3.fromRGB(255, 170, 230),
 		17,
 		Theme.Font.Bold
 	)

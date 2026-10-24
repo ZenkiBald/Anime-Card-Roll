@@ -52,7 +52,14 @@ function MetaService.Grant(data, bundle: Meta.Bundle, player: Player?)
 			bundle.TraitShards = traitShards
 		end
 	end
-	-- Artifacts: new ones arrive at level 1, duplicates level them up, and past max they melt into Shards.
+	-- Artifacts (always on): owned once.
+	for id, owned in (bundle.TowerArtifacts or {}) :: { [string]: boolean } do
+		if owned and Items.TowerArtifactById[id] then
+			data.Gear.TowerArtifacts = data.Gear.TowerArtifacts or {}
+			data.Gear.TowerArtifacts[id] = true
+		end
+	end
+	-- Relics: new ones arrive at level 1, duplicates level them up, and past max they melt into Shards.
 	for id, count in (bundle.Artifacts or {}) :: { [string]: number } do
 		local artifact = Items.ArtifactById[id]
 		if artifact and count > 0 then

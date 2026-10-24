@@ -36,7 +36,7 @@ local TIPS = {
 	"Spend Shards in SQUAD > UPGRADES on faster rolls and more base luck.",
 	"Stay a while! Playtime gifts unlock the longer you play this session.",
 	"Long reveal? Tap SKIP to jump straight to the card.",
-	"The Infinite Tower never ends: every floor is a new foe, and every 10th a Guardian with artifacts.",
+	"The Infinite Tower never ends: every floor is a new foe, and every 10th a Guardian, and from floor 50 a rare relic can drop.",
 	"Kenshin the Trait Master, beside Hoshi, rolls traits for Trait Shards. Bosses, the tower and raids pay them.",
 	"Every 20 copies of a card open an Awakening node: stats, Skill damage, a stronger bond, then a second trait slot.",
 	"Every 25th roll is an Overcharge Surge: wait for the gold ring, then tap ROLL for three cards at once (a tap before it lights only gets the plain surge).",

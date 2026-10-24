@@ -12,7 +12,8 @@ local Packs = require(script.Parent.Packs)
 export type Bundle = {
 	Shards: number?,
 	Potions: { [string]: number }?,
-	Artifacts: { [string]: number }?, -- Items.luau ids
+	Artifacts: { [string]: number }?, -- relics (Items.Artifacts ids)
+	TowerArtifacts: { [string]: boolean }?, -- artifacts (Items.TowerArtifacts ids), always on
 	Packs: { [string]: number }?, -- Roll Packs (Packs.luau ids)
 	TraitShards: number?, -- the Trait Master's currency (Traits.RollCost per roll)
 }
@@ -483,7 +484,13 @@ function Meta.Describe(bundle: Bundle): string
 		end
 	end
 	for id in (bundle.Artifacts or {}) :: { [string]: number } do
-		local artifact = Items.ArtifactById[id]
+		local relic = Items.ArtifactById[id]
+		if relic then
+			table.insert(parts, `{relic.Icon} {relic.Name}`)
+		end
+	end
+	for id in (bundle.TowerArtifacts or {}) :: { [string]: boolean } do
+		local artifact = Items.TowerArtifactById[id]
 		if artifact then
 			table.insert(parts, `{artifact.Icon} {artifact.Name}`)
 		end

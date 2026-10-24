@@ -5,9 +5,10 @@ local Rarity = MODULES.Rarity
 local Meta = MODULES.Meta
 local Rewards = MODULES.Rewards
 
--- Artifacts (Items.luau): drop odds grow with D, rarities sum to 1, worn artifacts add bonuses.
+-- Gear (Items.luau): relics drop only from Infinite Tower floors past RelicFloor, rarities sum to 1, worn
+-- relics and owned artifacts add bonuses.
 local Items = MODULES.Items
-check(Items.ArtifactChance(12) > Items.ArtifactChance(1), "harder fights drop artifacts more often")
+check(Items.RelicChanceAt(Items.RelicFloor - 1) == 0 and Items.RelicChanceAt(Items.RelicFloor) == 0.001 and Items.RelicChanceAt(300) == 0.001, "relics drop only from the relic floor up, at 0.1% a win")
 for _, d in { 1, 6, 12 } do
 	local sum = 0
 	for _, chance in Items.RarityChances(d) do
@@ -23,15 +24,21 @@ gear.Worn = { "clover", "voideye" }
 check(math.abs(Items.ArtifactBonus(gear, "Luck") - (0.05 + 0.02 * 2 + 0.5)) < 1e-9, "worn luck artifacts add up, with levels")
 check(Items.ArtifactBonus(gear, "ShardGain") == 0, "an artifact in the bag (not worn) does nothing")
 check(math.abs(Meta.BaseLuck({}, {}, nil, 1, gear) - (1 + 0.59)) < 1e-9, "worn artifacts raise base luck")
-check(Meta.Describe({ Artifacts = { voideye = 1 } }):find("Void Eye") ~= nil, "loot text names the artifact")
+check(Meta.Describe({ Artifacts = { voideye = 1 } }):find("Void Eye") ~= nil, "loot text names the relic")
+gear.TowerArtifacts = { hundredcrown = true }
+check(math.abs(Items.ArtifactBonus(gear, "Luck") - (0.05 + 0.02 * 2 + 0.5 + 0.5)) < 1e-9 and Items.ArtifactBonus(gear, "Border") == 0.25, "an owned artifact is always on, with every one of its bonuses")
+check(Meta.Describe({ TowerArtifacts = { hundredcrown = true } }):find("Crown of the Hundred Floors") ~= nil, "loot text names the artifact")
 local drng = Random.new(3)
-local artifactDrops = 0
-for _ = 1, 40000 do
-	if Items.RollDrops(6, drng).Artifacts then
-		artifactDrops += 1
+local lowDrops, relicDrops = 0, 0
+for _ = 1, 200000 do
+	if Items.RollDrops(Items.RelicFloor - 1, drng).Artifacts then
+		lowDrops += 1
+	end
+	if Items.RollDrops(Items.RelicFloor + 10, drng).Artifacts then
+		relicDrops += 1
 	end
 end
-check(math.abs(artifactDrops / 40000 - Items.ArtifactChance(6)) < 0.006, "artifacts drop at their listed chance")
+check(lowDrops == 0 and math.abs(relicDrops / 200000 - Items.RelicChance) < 0.0003, "relics drop at 0.1% from the relic floor, never below it")
 
 -- Traits (Traits.luau): odds add up, rarer tiers are rarer, picks follow the odds, never ATK / HP.
 local Traits = MODULES.Traits

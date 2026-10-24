@@ -285,8 +285,9 @@ local function rollClick(player: Player, profile, perfect: boolean, click: boole
 end
 
 -- Pays a win: Roll Packs into the player's packs (opened later, at their luck then), Shards, a potion
--- (sure, or by chance) and a roll for an artifact at `d` (Items.RollDrops, x `boost`).
-local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, d: number, boost: number, traitShards: number?, sureArtifact: string?)
+-- (sure, or by chance) and Trait Shards. `relicFloor`: an Infinite Tower win on that floor also rolls for
+-- a relic (Items.RollDrops: only from Items.RelicFloor up). `towerArtifact`: a finite tower's artifact.
+local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, traitShards: number?, relicFloor: number?, towerArtifact: string?)
 	local held = profile.Data.Packs
 	for id, count in (packs or {}) :: { [string]: number } do
 		held[id] = (held[id] or 0) + count
@@ -295,11 +296,11 @@ local function payWin(player: Player, profile, packs: { [string]: number }?, sha
 	if potion and rng:NextNumber() < potionChance then
 		bundle.Potions[potion] = 1
 	end
-	local drops = Items.RollDrops(d, rng, boost)
-	bundle.Artifacts = drops.Artifacts
-	if sureArtifact then
-		bundle.Artifacts = bundle.Artifacts or {}
-		bundle.Artifacts[sureArtifact] = (bundle.Artifacts[sureArtifact] or 0) + 1
+	if relicFloor then
+		bundle.Artifacts = Items.RollDrops(relicFloor, rng).Artifacts
+	end
+	if towerArtifact and Items.TowerArtifactById[towerArtifact] then
+		bundle.TowerArtifacts = { [towerArtifact] = true }
 	end
 	bundle = MetaService.Grant(profile.Data, bundle, player) -- the screen shows the Shard Gain bonus too
 	return {
@@ -368,34 +369,34 @@ function RollService.RewardRolls(player: Player, d: number, firstClear: boolean,
 	if profile == nil then
 		return nil
 	end
-	-- Every win drops Roll Packs, pays Shards and Trait Shards (x2 on a Cost Challenge), may drop a
-	-- potion, and rolls for an artifact (Items.luau: better odds and rarer artifacts on harder fights).
+	-- Every win drops Roll Packs, pays Shards and Trait Shards (x2 on a Cost Challenge) and may drop a
+	-- potion. No relics or artifacts: those come from the towers only.
 	local reward = Rewards.For(d)
 	local traitShards = Rewards.TraitShards(d, firstClear) * (if costChallenge then Config.Deck.CostTraitShards else 1)
-	return payWin(player, profile, Packs.ForBoss(d, firstClear), reward.Shards, reward.Potion, Config.Rewards.PotionChance, d, 1, traitShards)
+	return payWin(player, profile, Packs.ForBoss(d, firstClear), reward.Shards, reward.Potion, Config.Rewards.PotionChance, traitShards)
 end
 
 -- A won tower floor. The Infinite Tower (Tower.Reward): every floor of a run pays, run milestones drop
--- Roll Packs, and a Guardian on a record floor (`record`) adds more Shards, a sure potion and boosted
--- artifact odds. The Pagoda (Tower.PagodaReward, each floor once): milestones add packs, Trait Shards and
--- a sure artifact of their rarity (floor 100's title is saved by BattleService).
+-- Roll Packs, floors from Items.RelicFloor roll for a relic, and a Guardian on a record floor (`record`)
+-- adds more Shards and a sure potion. The Pagoda (Tower.PagodaReward, each floor once): milestones add
+-- packs and Trait Shards, floor 100 its artifact (its title is saved by BattleService).
 function RollService.TowerRewards(player: Player, floor: number, mode: string, record: boolean)
 	local profile = DataService.Get(player)
 	if profile == nil then
 		return nil
 	end
 	local reward = if mode == Tower.PagodaId then Tower.PagodaReward(floor) else Tower.Reward(floor, record)
-	local sure = reward.Milestone and Items.PickOfRarity(reward.Milestone.Artifact, rng:NextNumber())
-	local result = payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.D, reward.DropBoost, reward.TraitShards, sure)
+	local pagoda = mode == Tower.PagodaId
+	local artifact = if reward.Milestone then reward.Milestone.Artifact else nil
+	local result = payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.TraitShards, if pagoda then nil else floor, artifact)
 	result.Milestone = reward.Milestone
 	return result
 end
 
--- A raid payout for a hitter who left before the raid ended: the same reward, built into one bundle
--- (artifact roll included) and sent to their save as a message; it lands when they next play.
+-- A raid payout for a hitter who left before the raid ended: the same reward, built into one bundle and
+-- sent to their save as a message; it lands when they next play.
 function RollService.RaidRewardsOffline(userId: number, reward, name: string)
 	local bundle = { Shards = reward.Shards, TraitShards = reward.TraitShards, Packs = reward.Packs }
-	bundle.Artifacts = Items.RollDrops(reward.D, rng, reward.DropBoost).Artifacts
 	DataService.SendMessage(userId, { Kind = "Grant", Source = "Raid", Note = name, Bundle = bundle })
 end
 
@@ -413,7 +414,7 @@ function RollService.RaidRewards(player: Player, reward)
 	if profile == nil then
 		return nil
 	end
-	return payWin(player, profile, reward.Packs, reward.Shards, nil, 0, reward.D, reward.DropBoost, reward.TraitShards)
+	return payWin(player, profile, reward.Packs, reward.Shards, nil, 0, reward.TraitShards)
 end
 
 local function cooldownLeft(player: Player): number
@@ -722,10 +723,13 @@ function RollService.Start()
 				end
 			end
 		elseif action == "GiveItems" then
-			-- One of every artifact, to try the BAG.
-			local bundle = { Artifacts = {} }
-			for _, artifact in Items.Artifacts do
-				bundle.Artifacts[artifact.Id] = 1
+			-- One of every relic and every artifact, to try the BAG.
+			local bundle = { Artifacts = {}, TowerArtifacts = {} }
+			for _, relic in Items.Artifacts do
+				bundle.Artifacts[relic.Id] = 1
+			end
+			for _, artifact in Items.TowerArtifacts do
+				bundle.TowerArtifacts[artifact.Id] = true
 			end
 			MetaService.Grant(profile.Data, bundle)
 		elseif action == "GiveTraits" then

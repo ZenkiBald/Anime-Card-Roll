@@ -9,6 +9,7 @@
 --     border); an old rarity fusion becomes Gold copies. The card's total Copies always equals the sum.
 --   * Auto Roll no longer stops by itself: the saved stop setting goes.
 --   * The short-lived roll bank (rarity tickets) comes back as Roll Packs (10 tickets a pack, rounded up).
+--   * Artifacts became tower rewards: a save that already cleared the Pagoda gets its artifact.
 --   * The Infinite Tower became a run: the old highest floor stays as the best run (Tower.Floor) and the
 --     run starts at floor 1. A save that loads mid-fight (Tower.Live set: the player left, or the server
 --     closed, during a tower fight) counts that fight as lost: the run ends.
@@ -16,6 +17,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Borders = require(Shared.Borders)
+local Tower = require(Shared.Tower)
 
 local SaveMigration = {}
 
@@ -107,6 +109,17 @@ function SaveMigration.Migrate(data: any): { string }
 		end
 		data.RollBank = nil
 		table.insert(done, `roll bank: {tickets} tickets`)
+	end
+	-- The Pagoda's artifact for a save that cleared floor 100 before it existed.
+	local pagoda = data.Pagoda
+	local top = Tower.PagodaMilestones[Tower.Pagoda.Floors]
+	local crown = top and top.Artifact
+	if crown and type(pagoda) == "table" and type(pagoda.Floor) == "number" and pagoda.Floor >= Tower.Pagoda.Floors and type(data.Gear) == "table" then
+		data.Gear.TowerArtifacts = data.Gear.TowerArtifacts or {}
+		if not data.Gear.TowerArtifacts[crown] then
+			data.Gear.TowerArtifacts[crown] = true
+			table.insert(done, "pagoda artifact granted")
+		end
 	end
 	-- The Infinite Tower is a run.
 	local tower = data.Tower

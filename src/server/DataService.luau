@@ -43,9 +43,9 @@ local TEMPLATE = {
 	XP = 0,
 	-- Stat points spent, by Meta.Stats id (one point per level past 1).
 	Stats = {},
-	-- Boss drops (Items.luau): artifacts owned (id -> level) and the ones worn, accessories owned but
-	-- not worn (id -> count) and the one each card wears (cardId -> accessory id).
-	Gear = { Artifacts = {}, Worn = {} },
+	-- Gear (Items.luau): relics owned (Artifacts: id -> level) and the ones worn (up to 3), and artifacts
+	-- owned (TowerArtifacts: id -> true, always on).
+	Gear = { Artifacts = {}, Worn = {}, TowerArtifacts = {} },
 	-- Lucky Wheel: banked free spins and seconds played toward the next one.
 	Wheel = { Spins = 1, Progress = 0 },
 	-- Infinite Tower (Tower.luau): the best run (Floor, on the leaderboard) and the run going now (Run:

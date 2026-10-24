@@ -8,8 +8,8 @@
 --     25th). The best run is saved (Tower.Floor) and shown on the leaderboard; a Guardian's bonuses
 --     (x3 Shards, a sure potion, x4 artifact odds) pay only on a new record floor.
 --   * The Hundred-Floor Pagoda (Tower.PagodaId) has an end: 100 floors whose progress is kept (a loss
---     just tries the floor again), each paying once, with milestone rewards on floors 25 / 50 / 75 and a
---     Mythic artifact plus a title on floor 100. It climbs slower than the Infinite Tower and its top is
+--     just tries the floor again), each paying once, with milestone rewards on floors 25 / 50 / 75 and
+--     its artifact (the Crown of the Hundred Floors) plus a title on floor 100. It climbs slower than the Infinite Tower and its top is
 --     a full Secret deck's fight: the reason to chase Rainbow and Secret borders.
 --   * Each floor's enemy is one of the world bosses (their moves, models and backdrops) at stats scaled
 --     to the floor, picked by a seeded hash of the floor number: random-looking, but the same for every
@@ -19,8 +19,9 @@
 --     guard: stronger, with more Shards, a sure potion and better gear odds.
 --   * Recommended power grows by Growth per floor, without end; HP / ATK follow the same curve the world
 --     bosses are tuned on. tests/tower_test.luau checks a deck at a floor's recommended power wins it.
---   * Every floor pays Shards, XP and a roll for gear (Items.RollDrops at D = floor x DPerFloor, World 1
---     Normal = 1, boosted on Guardians); some floors also drop Roll Packs (Packs.ForFloor).
+--   * Every floor pays Shards and XP (reward score D = floor x DPerFloor, World 1 Normal = 1); some floors
+--     drop Roll Packs (Packs.ForFloor). Infinite Tower wins from Items.RelicFloor up roll for a relic
+--     (Items.RelicChance); the Pagoda's last floor gives its artifact (Items.TowerArtifacts).
 --   * Every day (UTC) one mutator is on for every tower floor, the same on every server: a boon for one
 --     element's cards (or for every card) that turns the day's climb into a different deck puzzle.
 --     Mutators only ever help, so the tuning tests (run without one) are the hardest case.
@@ -139,15 +140,15 @@ export type Milestone = {
 	Shards: number,
 	TraitShards: number,
 	Packs: { [string]: number },
-	Artifact: string, -- a sure artifact of this rarity (Items.ItemRarities)
+	Artifact: string?, -- the tower's artifact (Items.TowerArtifacts id): floor 100 only
 	Title: string?,
 }
 
 Tower.PagodaMilestones = {
-	[25] = { Shards = 1500, TraitShards = 25, Packs = { ["100"] = 1 }, Artifact = "Rare" },
-	[50] = { Shards = 4000, TraitShards = 60, Packs = { ["100"] = 2 }, Artifact = "Epic" },
-	[75] = { Shards = 10000, TraitShards = 120, Packs = { ["1000"] = 1 }, Artifact = "Legendary" },
-	[100] = { Shards = 25000, TraitShards = 300, Packs = { ["1000"] = 2 }, Artifact = "Mythic", Title = "Pagoda Master" },
+	[25] = { Shards = 1500, TraitShards = 25, Packs = { ["100"] = 2 } },
+	[50] = { Shards = 4000, TraitShards = 60, Packs = { ["100"] = 3 } },
+	[75] = { Shards = 10000, TraitShards = 120, Packs = { ["1000"] = 1 } },
+	[100] = { Shards = 25000, TraitShards = 300, Packs = { ["1000"] = 2 }, Artifact = "hundredcrown", Title = "Pagoda Master" },
 } :: { [number]: Milestone }
 
 -- Which of a boss's moves are in: the Hard-only moves join at floor HardFrom, Nightmare's at NightmareFrom
@@ -159,8 +160,6 @@ Tower.DPerFloor = 0.25 -- reward score D = floor x 0.25 (floor 4 pays like World
 Tower.ShardsBase = 20 -- Shards = 20 + 5 x floor, x3 on a Guardian
 Tower.ShardsPerFloor = 5
 Tower.GuardianShards = 3
-Tower.DropBoost = 1 -- gear drop chance multiplier (Items.RollDrops) on an ordinary floor
-Tower.GuardianDropBoost = 4 -- and on a Guardian: an artifact up to 60%
 
 export type Floor = {
 	Floor: number,
@@ -184,7 +183,7 @@ export type Reward = {
 	Packs: { [string]: number }?, -- Roll Packs this floor drops (Packs.ForFloor)
 	Shards: number,
 	Potion: string?, -- Guardians: a sure potion
-	DropBoost: number,
+	Relic: number, -- the chance this win drops a relic (Items.RelicChanceAt; Infinite Tower only)
 	TraitShards: number, -- every floor; a big bundle on a Guardian
 	Milestone: Milestone?, -- Pagoda floors 25 / 50 / 75 / 100
 	Record: boolean?, -- Infinite Tower: a floor above the best run (Guardian bonuses pay)
@@ -324,9 +323,9 @@ function Tower.FloorAt(floor: number, enemy: Enemy?, affix: (Affix | false)?, mo
 	}
 end
 
--- What an Infinite Tower floor's win pays. Every floor of a run pays its Shards, Trait Shards, artifact
--- roll and (on run milestones) Roll Packs. `record`: the floor is above the best run, so a Guardian's
--- bonuses pay too (x3 Shards, a sure potion, x4 artifact odds, a Trait Shard bundle); a Guardian
+-- What an Infinite Tower floor's win pays. Every floor of a run pays its Shards, Trait Shards, relic roll
+-- (from Items.RelicFloor) and (on run milestones) Roll Packs. `record`: the floor is above the best run,
+-- so a Guardian's bonuses pay too (x3 Shards, a sure potion, a Trait Shard bundle); a Guardian
 -- floor below the record pays like an ordinary floor (its packs aside), so easy floors can't be farmed
 -- for them.
 function Tower.Reward(floor: number, record: boolean?): Reward
@@ -339,7 +338,7 @@ function Tower.Reward(floor: number, record: boolean?): Reward
 		Packs = Packs.ForFloor(floor),
 		Shards = if guardian then shards * Tower.GuardianShards else shards,
 		Potion = if guardian then base.Potion else nil,
-		DropBoost = if guardian then Tower.GuardianDropBoost else Tower.DropBoost,
+		Relic = Items.RelicChanceAt(floor),
 		TraitShards = if guardian then 10 + math.floor(floor / 5) else 1 + math.floor(floor / 20),
 		Record = record ~= false,
 	}
@@ -348,7 +347,7 @@ end
 -- What a Pagoda floor pays (once: a cleared floor stays cleared). It pays like the Infinite Tower floor
 -- of the same recommended power (a Guardian always with its bonuses, a floor is only cleared once), plus
 -- its milestone. Roll Packs only drop on Guardians (2) and milestones: the Pagoda is a long climb with
--- big stops, not a pack farm.
+-- big stops, not a pack farm. No relics here (they're the Infinite Tower's); floor 100 gives the artifact.
 function Tower.PagodaReward(floor: number): Reward
 	local c = Tower.Pagoda
 	local equal = Tower.FloorForPower(c.Power * c.Growth ^ (math.max(1, floor) - 1)) -- without the Guardian's extra
@@ -367,7 +366,7 @@ function Tower.PagodaReward(floor: number): Reward
 		Packs = if next(packs) then packs else nil,
 		Shards = (if guardian then shards * Tower.GuardianShards else shards) + (if milestone then milestone.Shards else 0),
 		Potion = if guardian then Rewards.For(reward.D).Potion else nil,
-		DropBoost = if guardian then Tower.GuardianDropBoost else Tower.DropBoost,
+		Relic = 0,
 		TraitShards = (if guardian then 10 + math.floor(equal / 5) else 1 + math.floor(equal / 20)) + (if milestone then milestone.TraitShards else 0),
 		Milestone = milestone,
 	}
@@ -381,12 +380,6 @@ function Tower.NextMilestone(floor: number): number?
 		end
 	end
 	return nil
-end
-
--- The chance a floor's win drops an artifact (for the tower screens; a Guardian with its bonuses).
-function Tower.ArtifactChance(floor: number, mode: string?): number
-	local reward = if Tower.IsPagoda(mode) then Tower.PagodaReward(floor) else Tower.Reward(floor)
-	return math.min(1, Items.ArtifactChance(reward.D) * reward.DropBoost)
 end
 
 -- "Beat Kurogane on Normal": what opens the tower (with Config.Unlocks on).

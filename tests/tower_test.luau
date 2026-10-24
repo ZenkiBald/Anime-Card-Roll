@@ -75,21 +75,18 @@ local rewardsOk = true
 local lastShards = 0
 for floor = 1, 120 do
 	local r = Tower.Reward(floor)
-	local art = Tower.ArtifactChance(floor)
-	if art > 1 or art <= 0 then
-		rewardsOk = false
-	end
+	rewardsOk = rewardsOk and r.Relic == Items.RelicChanceAt(floor)
 	for id, count in r.Packs or {} do
 		rewardsOk = rewardsOk and Packs.ById[id] ~= nil and count >= 1
 	end
 	if Tower.IsGuardian(floor) then
-		rewardsOk = rewardsOk and r.Potion ~= nil and Meta.PotionById[r.Potion] ~= nil and art > Items.ArtifactChance(r.D) and r.Packs ~= nil
+		rewardsOk = rewardsOk and r.Potion ~= nil and Meta.PotionById[r.Potion] ~= nil and r.Packs ~= nil
 	else
 		rewardsOk = rewardsOk and r.Shards > lastShards and r.Potion == nil
 		lastShards = r.Shards
 	end
 end
-check(rewardsOk, "floor rewards: Shards grow every floor; Guardians pay a potion, packs and better artifact odds")
+check(rewardsOk, "floor rewards: Shards grow every floor; Guardians pay a potion and packs; relics only from the relic floor")
 check(Tower.Reward(48).D == 12 and Tower.Reward(4).D == 1, "reward score: floor 4 pays like World 1 Normal, floor 48 like World 4 Nightmare")
 check(Packs.ForFloor(1) == nil and Packs.ForFloor(5)["10"] == 1 and Packs.ForFloor(10)["10"] == 2, "every 5th floor drops a Roll Pack, Guardians two")
 check(Packs.ForFloor(25)["100"] == 1 and Packs.ForFloor(100)["1000"] == 1, "floor 25 drops a Big Roll Pack, floor 100 a Mega Roll Pack")
@@ -189,10 +186,10 @@ do
 	local record, again = Tower.Reward(10, true), Tower.Reward(10, false)
 	check(again.Potion == nil and record.Potion ~= nil, "a Guardian below the best run pays no sure potion")
 	local plain = Tower.Reward(11) -- an ordinary floor next to it
-	check(record.DropBoost > again.DropBoost and again.DropBoost == plain.DropBoost and again.Shards < record.Shards, "a Guardian below the best run pays like an ordinary floor (no x3 Shards or x4 artifact odds)")
+	check(again.Shards < record.Shards and plain.Potion == nil, "a Guardian below the best run pays like an ordinary floor (no x3 Shards)")
 	check(again.D == record.D and again.TraitShards < record.TraitShards, "it keeps its artifact tier but not the Guardian Trait Shards")
 	local ordinary, ordinaryAgain = Tower.Reward(12, true), Tower.Reward(12, false)
-	check(ordinaryAgain.Shards == ordinary.Shards and ordinaryAgain.TraitShards == ordinary.TraitShards and ordinaryAgain.DropBoost == ordinary.DropBoost, "an ordinary floor pays the same on every run")
+	check(ordinaryAgain.Shards == ordinary.Shards and ordinaryAgain.TraitShards == ordinary.TraitShards and ordinaryAgain.Relic == ordinary.Relic, "an ordinary floor pays the same on every run")
 	check(again.Packs ~= nil and again.Packs["10"] == 2 and Tower.Reward(25, false).Packs["100"] == 1, "run milestones drop their Roll Packs on every run")
 end
 
@@ -214,12 +211,12 @@ do
 	for _, at in { 25, 50, 75, 100 } do
 		local m = Tower.PagodaMilestones[at]
 		local r = Tower.PagodaReward(at)
-		milestonesOk = milestonesOk and m ~= nil and r.Milestone == m and table.find(Items.ItemRarities, m.Artifact) ~= nil
-			and Items.PickOfRarity(m.Artifact, 0.5) ~= nil and r.TraitShards >= m.TraitShards and r.Shards > m.Shards
+		milestonesOk = milestonesOk and m ~= nil and r.Milestone == m and r.TraitShards >= m.TraitShards and r.Shards > m.Shards
+			and r.Relic == 0 and (m.Artifact == nil) == (at < 100)
 	end
-	check(milestonesOk, "floors 25 / 50 / 75 / 100 pay their milestone: packs, Shards, Trait Shards and a sure artifact")
+	check(milestonesOk, "floors 25 / 50 / 75 / 100 pay their milestone (packs, Shards, Trait Shards); only floor 100 an artifact; no relics")
 	local top = Tower.PagodaMilestones[100]
-	check(top.Artifact == "Mythic" and top.Title == Tower.Pagoda.Title and Tower.NextMilestone(99) == 100 and Tower.NextMilestone(100) == nil, "floor 100 pays a Mythic artifact and the Pagoda's title")
+	check(Items.TowerArtifactById[top.Artifact] ~= nil and top.Title == Tower.Pagoda.Title and Tower.NextMilestone(99) == 100 and Tower.NextMilestone(100) == nil, "floor 100 pays the Pagoda's artifact and its title")
 	check(Tower.PagodaReward(37).Packs == nil and Tower.PagodaReward(40).Packs["10"] == 2, "Pagoda packs drop only on Guardians and milestones")
 	local payOk = true
 	for floor = 2, Tower.Pagoda.Floors do

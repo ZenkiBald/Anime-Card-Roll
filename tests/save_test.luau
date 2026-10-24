@@ -110,3 +110,13 @@ do
 	SaveMigration.Migrate(mid)
 	check(mid.Tower.Run == 22, "a run between fights carries on after a rejoin")
 end
+
+-- A save that cleared the Pagoda before artifacts became its reward gets the artifact (once).
+do
+	local done = { Cards = {}, Pagoda = { Floor = 100 }, Gear = { Artifacts = {}, Worn = {} } }
+	SaveMigration.Migrate(done)
+	check(done.Gear.TowerArtifacts.hundredcrown == true, "a cleared Pagoda save gets the Crown of the Hundred Floors")
+	local mid = { Cards = {}, Pagoda = { Floor = 60 }, Gear = { Artifacts = {}, Worn = {} } }
+	SaveMigration.Migrate(mid)
+	check(mid.Gear.TowerArtifacts == nil, "a save partway up the Pagoda gets nothing yet")
+end

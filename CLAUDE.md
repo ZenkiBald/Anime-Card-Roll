@@ -58,20 +58,22 @@ The engine (`BattleEngine`) is pure and runs headless in tests. Fights are stage
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended power 45k ... 388k; the fixtures are Base in
 World 1, Gold after, World 4 Gold 5-star with Awakening 1-3). Boss wins pay reward rolls (luck / floors by D), Shards,
-Roll Packs, Trait Shards and an artifact roll. Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss
-with affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 33k x 1.068^(floor-1)); every
-floor pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
+Roll Packs and Trait Shards (no gear). Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
+affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 33k x 1.068^(floor-1)); every floor
+pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
 SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past
-it. Hundred-Floor Pagoda: 100 kept floors (33k x 1.051^(floor-1), floor 100 is a full Secret deck's fight), each paid
-once, milestones at 25 / 50 / 75 (packs, Trait Shards, a sure Rare / Epic / Legendary artifact) and 100 (Mythic + the
-worn "Pagoda Master" title). Server raids every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared). Roll
-Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy condenses or
+it; from floor 50 every win has a 0.1% relic drop (`Items.RelicFloor` / `RelicChance`), the only relic source.
+Hundred-Floor Pagoda: 100 kept floors (33k x 1.053^(floor-1), floor 100 is a full Secret deck's fight), each paid once,
+milestones at 25 / 50 / 75 (packs, Trait Shards) and 100 (the Pagoda's artifact, the Crown of the Hundred Floors, and
+the worn "Pagoda Master" title). Server raids every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared).
+Roll Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy condenses or
 infuses them.
 
-**Progression and retention.** Levels 1-100 with stat points; Shard Shop upgrades; potions; artifacts (wear 3); daily
-streak, daily quests, playtime gifts, roll milestones, Lucky Wheel, server events (LUCKY STORM / ROLL RUSH / DOUBLE XP),
-codes, Kenji's 6-step path and titles. Social: server list with favourite cards, profiles, name tags, three town
-leaderboards.
+**Progression and retention.** Levels 1-100 with stat points; Shard Shop upgrades; potions; gear in two sets
+(`Items.luau`): **relics** (the 10 wearable items, `Items.Artifacts` / `Gear.Artifacts` in code, wear 3, Infinite Tower
+drops only) and **artifacts** (`Items.TowerArtifacts`, one per finite tower's last floor, always on); daily streak,
+daily quests, playtime gifts, roll milestones, Lucky Wheel, server events (LUCKY STORM / ROLL RUSH / DOUBLE XP), codes,
+Kenji's 6-step path and titles. Social: server list with favourite cards, profiles, name tags, three town leaderboards.
 
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches
 odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`). Ids are 0 (placeholders) until launch.
@@ -87,9 +89,9 @@ portraits use the 2D `Image` when set, else an element-lit bust (the user is mak
 - `src/configs` -> ReplicatedStorage.Configs: `UITheme` (design tokens, client UI only).
 - `src/shared` -> ReplicatedStorage.Shared (both sides; pure data + formulas, tested headless): `Config` (tuning,
   `TestMode`, dev access lists, deck and battle rules), `Cards` (card data + `Pool`, `PullChances`, `Stat`, `Power`,
-  `Cost`), `Borders` (the tiers: odds, multipliers, cost, colours), `Odds`, `Rarity` (artifact / trait tiers only),
+  `Cost`), `Borders` (the tiers: odds, multipliers, cost, colours), `Odds`, `Rarity` (relic / trait tiers only),
   `Elements`, `Foils`, `Awaken`, `RollBoost` (Momentum + Surge), `Deck`, `Bosses`, `Rewards`, `Tower`, `Raid`, `Packs`,
-  `Items` (artifacts), `Traits`, `Meta` (potions, upgrades, Index rewards, daily, gifts, milestones, quests, levels,
+  `Items` (relics + artifacts), `Traits`, `Meta` (potions, upgrades, Index rewards, daily, gifts, milestones, quests, levels,
   stats, events, wheel, luck / cooldown formulas), `Tutorial`, `Mounts`, `BossModels`, `MonetizationConfig`.
 - `src/server` -> ServerScriptService.Server: `Main.server`, `DataService` (ProfileStore saves), `SaveMigration` (old
   saves brought up to date on load; pure, tested), `DevAccess` (who may use test tools), `RollService` (rolls, Auto Roll,
@@ -117,7 +119,7 @@ portraits use the 2D `Image` when set, else an element-lit bust (the user is mak
   stars +5% each, max 5; a maxed card on one border never reaches a 0-star card on the next (odds_test checks). Traits stay
   small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border fusion only: 100 copies at one border -> 1 at the next.
 - Content is data: a new card is one entry in `Cards.luau` (stats, abilities, `Role`, `Weight`, `Element`, `Image`); a
-  boss or difficulty one entry in `Bosses.luau`; an artifact in `Items.luau`; a trait in `Traits.luau`; a potion / gift /
+  boss or difficulty one entry in `Bosses.luau`; a relic or artifact in `Items.luau`; a trait in `Traits.luau`; a potion / gift /
   milestone / quest in `Meta.luau`. Only Secret signatures are coded in `BattleEngine`.
 - Save format changes need a step in `SaveMigration` (safe to run twice) and a case in `tests/save_test.luau`.
 - Potions, upgrades and gifts are earned in game only (Shard bundles are gated like random items because Shards buy luck).

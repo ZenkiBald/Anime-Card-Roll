@@ -31,10 +31,13 @@ local TABS = {
 	{ Name = "ALL", Color = Color3.fromRGB(255, 196, 46) },
 	{ Name = "PACKS", Color = Color3.fromRGB(255, 160, 60) },
 	{ Name = "POTIONS", Color = Color3.fromRGB(86, 214, 138) },
-	{ Name = "ARTIFACTS", Color = Color3.fromRGB(255, 120, 220) },
+	{ Name = "RELICS", Color = Color3.fromRGB(255, 120, 220) },
+	{ Name = "ARTIFACTS", Color = Color3.fromRGB(255, 140, 90) },
 }
-local KIND_ORDER = { Pack = 1, Potion = 2, Artifact = 3 }
-local KIND_TAB = { Pack = "PACKS", Potion = "POTIONS", Artifact = "ARTIFACTS" }
+-- Kind "Artifact" is a relic (Items.Artifacts, worn in 3 slots); "TowerArtifact" an artifact (always on).
+local KIND_ORDER = { Pack = 1, Potion = 2, Artifact = 3, TowerArtifact = 4 }
+local KIND_TAB = { Pack = "PACKS", Potion = "POTIONS", Artifact = "RELICS", TowerArtifact = "ARTIFACTS" }
+local KIND_NAME = { Pack = "Pack", Potion = "Potion", Artifact = "Relic", TowerArtifact = "Artifact" }
 local GOLD_DEEP = Color3.fromRGB(150, 100, 10)
 
 local modal
@@ -137,6 +140,22 @@ local function entries()
 			})
 		end
 	end
+	for i, artifact in Items.TowerArtifacts do
+		if (data.TowerArtifacts or {})[artifact.Id] then
+			add({
+				Key = `TowerArtifact:{artifact.Id}`,
+				Kind = "TowerArtifact",
+				Id = artifact.Id,
+				Item = artifact,
+				Name = artifact.Name,
+				Icon = artifact.Icon,
+				Color = Color3.fromRGB(255, 140, 90),
+				Count = 1,
+				Worn = true, -- always on
+				Order = i,
+			})
+		end
+	end
 	table.sort(list, function(a, b)
 		if a.Kind ~= b.Kind then
 			return KIND_ORDER[a.Kind] < KIND_ORDER[b.Kind]
@@ -157,6 +176,8 @@ local function subText(entry): (string, Color3)
 		return clock(State.PotionLeft(entry.Id)), Theme.Color.Quick
 	elseif entry.Kind == "Artifact" then
 		return if entry.Worn then `WORN · Lv{entry.Level}` else `Lv{entry.Level}`, if entry.Worn then Theme.Color.Gold else Theme.Color.Text
+	elseif entry.Kind == "TowerArtifact" then
+		return "ALWAYS ON", Color3.fromRGB(255, 140, 90)
 	elseif entry.Kind == "Pack" then
 		return `{Kit.commas(entry.Item.Rolls)} rolls`, Theme.Color.Text
 	end
@@ -402,7 +423,8 @@ local function showDetail(entry)
 	Kit.label({ Text = entry.Icon, Font = Theme.Font.Heavy, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.5, 0.8), Parent = big }, 80)
 	local name = detailText(2, string.upper(entry.Name), entry.Color, 24, Theme.Font.Display)
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = name
-	local kindText = if entry.Rarity then `{entry.Rarity} {entry.Kind}` else entry.Kind
+	local kindName = KIND_NAME[entry.Kind] or entry.Kind
+	local kindText = if entry.Rarity then `{entry.Rarity} {kindName}` else kindName
 	detailText(3, `{kindText}  ·  You have <b>{Kit.commas(entry.Count)}</b>`, Theme.Color.Muted, 15, Theme.Font.Heavy)
 
 	if entry.Kind == "Pack" then
@@ -468,7 +490,7 @@ local function showDetail(entry)
 			detailText(5, `Max level: duplicates melt into 💎{Items.MeltShards[item.Rarity] or 100} Shards.`, Theme.Color.Muted, 14)
 		end
 		local worn = gear().Worn or {}
-		detailText(6, `Artifacts worn: <b>{#worn}/{Items.ArtifactSlots}</b>`, Theme.Color.Text, 15, Theme.Font.Heavy)
+		detailText(6, `Relics worn: <b>{#worn}/{Items.ArtifactSlots}</b>  ·  relics drop only in the Infinite Tower, from floor {Items.RelicFloor} (0.1% a win)`, Theme.Color.Text, 15, Theme.Font.Heavy)
 		local row = actionRow(7)
 		if entry.Worn then
 			action(row, "REMOVE", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), 1, true, function()
@@ -477,12 +499,15 @@ local function showDetail(entry)
 		else
 			action(row, "WEAR", Theme.Color.Gold, GOLD_DEEP, 1, #worn < Items.ArtifactSlots, function()
 				if #worn >= Items.ArtifactSlots then
-					hint("All 3 artifact slots are full: remove one first")
+					hint("All 3 relic slots are full: remove one first")
 					return
 				end
 				call("WearArtifact", item.Id, `{item.Name} worn: {Items.ArtifactText(item, entry.Level)}`)
 			end)
 		end
+	elseif entry.Kind == "TowerArtifact" then
+		detailText(4, `<b>{Items.TowerArtifactText(item)}</b>`, Color3.fromRGB(255, 140, 90), 17, Theme.Font.Heavy)
+		detailText(5, `Always on, no slot needed. Earned once: {item.Source}.`, Theme.Color.Muted, 14)
 	end
 end
 
@@ -493,7 +518,7 @@ function Bag.Refresh()
 		return
 	end
 	summaryLabel.Text = string.format(
-		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Roll cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   💎 <b>%s</b>   ·   🧬 <b>%s</b>   ·   Packs <b>%s</b>   ·   Artifacts worn <b>%d/%d</b>',
+		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Roll cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   💎 <b>%s</b>   ·   🧬 <b>%s</b>   ·   Packs <b>%s</b>   ·   Relics worn <b>%d/%d</b>',
 		State.Luck(),
 		State.Cooldown(),
 		Kit.commas(State.Summary.Shards or 0),
