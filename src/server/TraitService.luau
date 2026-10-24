@@ -6,6 +6,9 @@
 --   "Roll", cardId, slot           Traits.RollCost: one new trait for that slot
 --   "LockRoll", cardId, lockSlot   Traits.LockCost: keep lockSlot, roll the other slot twice
 --   "Choose", cardId, pick         0 = keep the old trait, 1 / 2 = take that rolled one
+--   "AutoRoll", cardId, { Slot, Targets = { traitId } }
+--                                  rolls that slot (RollCost each, up to Traits.AutoMax) until a target
+--                                  lands and applies it; no hit keeps the old trait (no Pending either way)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -45,6 +48,60 @@ local function reply(player: Player, data, cardId: string, extra)
 		result[key] = value
 	end
 	return result
+end
+
+-- AUTO ROLL (see the header). `arg` = { Slot = 1 | 2, Targets = { trait ids } }, checked here.
+local function autoRoll(player: Player, data, cardId: string, entry, arg: unknown)
+	if type(arg) ~= "table" then
+		return { Ok = false, Reason = "BadRequest" }
+	end
+	local slot, list = (arg :: any).Slot, (arg :: any).Targets
+	if (slot ~= 1 and slot ~= 2) or type(list) ~= "table" then
+		return { Ok = false, Reason = "BadRequest" }
+	end
+	local targets, count = {}, 0
+	for _, id in list do
+		if type(id) ~= "string" or Traits.Get(id) == nil or count >= #Traits.List then
+			return { Ok = false, Reason = "BadRequest" }
+		end
+		if not targets[id] then
+			targets[id] = true
+			count += 1
+		end
+	end
+	if count == 0 then
+		return { Ok = false, Reason = "NoTargets" }
+	end
+	if not slotOpen(entry, slot) then
+		return { Ok = false, Reason = "SlotLocked" }
+	end
+	local current = if slot == 2 then entry.Trait2 else entry.Trait
+	if current and targets[current] then
+		return { Ok = false, Reason = "HasTarget" }
+	end
+	if not limiter:Allow(player) then
+		return { Ok = false, Reason = "TooFast" }
+	end
+	if not NpcRange.Near(player, "traitmaster") then
+		return { Ok = false, Reason = "TooFar" }
+	end
+	local affordable = math.floor((data.TraitShards or 0) / Traits.RollCost)
+	if affordable < 1 then
+		return { Ok = false, Reason = "NoTraitShards" }
+	end
+	local rolled, hit = Traits.AutoRun(roll, targets, math.min(Traits.AutoMax, affordable))
+	local spent = #rolled * Traits.RollCost
+	data.TraitShards -= spent
+	if hit then
+		if slot == 2 then
+			entry.Trait2 = hit
+		else
+			entry.Trait = hit
+		end
+	end
+	MetaService.Track(player, "TraitRolls", #rolled)
+	TutorialService.Note(player, "TraitRoll")
+	return reply(player, data, cardId, { Rolled = rolled, Hit = hit, Slot = slot, Spent = spent, Big = hit ~= nil and Traits.TierIndex(hit) >= Traits.BigTier })
 end
 
 local function handle(player: Player, action: unknown, cardId: unknown, arg: unknown)
@@ -87,6 +144,9 @@ local function handle(player: Player, action: unknown, cardId: unknown, arg: unk
 	-- Rolling: one choice at a time.
 	if entry.Pending then
 		return { Ok = false, Reason = "Pending", Card = DataService.CardState(entry) }
+	end
+	if action == "AutoRoll" then
+		return autoRoll(player, data, cardId, entry, arg)
 	end
 	local slot, cost, count
 	if action == "Roll" then

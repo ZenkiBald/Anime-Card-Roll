@@ -153,3 +153,28 @@ do
 	local base, awakened = bondHit(0), bondHit(3)
 	check(awakened > base * 1.3, `Awakening node 3 lifts the bond combo (300% -> 400%: {base} -> {awakened})`)
 end
+
+-- Trait Master AUTO ROLL: rolls until a ticked trait lands (applied), at most the cap.
+do
+	local Traits = MODULES.Traits
+	local seq = { "swift", "keen", "assassin", "godspeed" }
+	local i = 0
+	local rolled, hit = Traits.AutoRun(function()
+		i += 1
+		return seq[i]
+	end, { assassin = true, godspeed = true }, 10)
+	check(hit == "assassin" and #rolled == 3, "auto roll stops on the first ticked trait")
+	local none, miss = Traits.AutoRun(function()
+		return "swift"
+	end, { godspeed = true }, 7)
+	check(miss == nil and #none == 7, "with no hit it rolls exactly the cap and applies nothing")
+	local rng = Random.new(5)
+	local total, runs = 0, 400
+	for _ = 1, runs do
+		local r = Traits.AutoRun(function()
+			return Traits.Pick(rng:NextNumber(), rng:NextNumber())
+		end, { tempest = true, assassin = true, bulwark = true }, Traits.AutoMax)
+		total += #r
+	end
+	check(total / runs > 15 and total / runs < 30, `auto rolling to any Legendary takes about 22 rolls (got {string.format("%.1f", total / runs)})`)
+end

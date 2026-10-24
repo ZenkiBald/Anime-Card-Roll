@@ -41,7 +41,8 @@ Mender / Warder) and abilities built from the effect library at the top of `Card
 Copies pile up per border (`BorderCopies`); Awakening nodes at 20 / 40 / 60 / 80 copies (+10% stats, +15% Skill DMG,
 400% bond, trait slot 2). **Border fusion** at Hoshi: 100 copies at one border -> 1 copy at the next (FUSE or FUSE ALL,
 which cascades); the card at the next border is the whole reward (no luck, Trait Shards or XP). Traits are bought at Kenshin with Trait Shards
-(battle-only: SPD / crit / guard / energy, never ATK / HP). The Index lists every card by best border with completion
+(battle-only: SPD / crit / guard / energy, never ATK / HP); AUTO rolls a slot until a ticked trait lands (up to
+`Traits.AutoMax` rolls a tap) and applies it. The Index lists every card by best border with completion
 rewards per border. A card can be worn as your avatar (element aura; Rainbow fire footsteps, Secret celestial motes).
 
 **Deck and battle.** 4 Attack + 4 Support, 3 presets (+2 VIP), AUTO-BUILD / COUNTER-BUILD. Each Support's Slot Link
