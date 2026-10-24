@@ -2285,7 +2285,14 @@ local function showResults(summary)
 	end
 	local bossId, difficulty = if current.Raid then Raid.Id elseif tower then Tower.Id else current.BossId, current.Difficulty
 	local function goAgain()
-		local ok, message = startFight(bossId, difficulty, current.Options)
+		-- Tower: a win goes up a floor from the one just fought (a replay climbs on from there too), a loss
+		-- tries the same floor again.
+		local options = current.Options
+		if tower then
+			local fought = summary.Floor or tower.Floor
+			options = { Floor = if summary.Result == "Win" then fought + 1 else fought }
+		end
+		local ok, message = startFight(bossId, difficulty, options)
 		if not ok and message then
 			hint(message)
 		end
@@ -3086,8 +3093,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 end
 
 -- Starts a fight. Returns false and a message when the server refuses.
--- bossId is a boss id, or Tower.Id for the next tower floor (then difficulty is ignored).
-function Battle.Start(bossId: string, difficulty: string?, options: { Cost: boolean? }?): (boolean, string?)
+-- bossId is a boss id, or Tower.Id for a tower floor (options.Floor, else the next; difficulty is ignored).
+function Battle.Start(bossId: string, difficulty: string?, options: { Cost: boolean?, Floor: number? }?): (boolean, string?)
 	return startFight(bossId, difficulty, options)
 end
 

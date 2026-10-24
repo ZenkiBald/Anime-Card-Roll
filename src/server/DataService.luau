@@ -25,7 +25,7 @@ local TEMPLATE = {
 	TraitShards = 0, -- the Trait Master's currency
 	Playtime = 0, -- seconds, saved when the player leaves
 	-- Favorite: the card shown as the player's picture in the server list and on their name tag ("" = none).
-	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "", Title = "", Avatar = "" },
+	Settings = { AutoStop = Config.DefaultAutoStop, AutoUlt = false, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "", Title = "", Avatar = "", QuickRoll = false },
 	Decks = { Active = 1, Presets = presets }, -- each preset: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
 	Progress = { Cleared = {}, BestTime = {} }, -- keyed by Bosses.FightKey, e.g. "kurogane:Normal"
 	-- Long-term progression (Meta.luau): potions owned / seconds left running (ticks only while online),

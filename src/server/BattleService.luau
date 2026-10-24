@@ -1,7 +1,8 @@
 --!nonstrict
 -- Boss fights run here, on the server, in real time. The client only asks (start, fire an
 -- Ultimate, pick a target, toggle Auto, change speed, give up) and animates the events streamed back.
--- BattleStart(Tower.Id) fights the player's next Infinite Tower floor (Tower.luau) instead of a boss,
+-- BattleStart(Tower.Id, nil, { Floor = n }?) fights an Infinite Tower floor (Tower.luau; the next one, or a
+-- cleared one again) instead of a boss,
 -- with the day's tower mutator on; BattleStart(Raid.Id) runs a raid run against the server's Colossus
 -- (Raid.luau, RaidService): its damage goes into the shared pool as it lands. A boss fight can be a
 -- Cost Challenge (BattleStart's 3rd argument { Cost = true }): the deck's cost must be at most
@@ -55,7 +56,7 @@ end
 -- Pays boss and tower rewards; set by Main.server to RollService.RewardRolls / TowerRewards
 -- (RollService needs this module).
 local rewardRolls: ((player: Player, d: number, firstClear: boolean, costChallenge: boolean?) -> any)? = nil
-local towerRewards: ((player: Player, floor: number) -> any)? = nil
+local towerRewards: ((player: Player, floor: number, replay: boolean) -> any)? = nil
 
 function BattleService.SetRewardHandler(handler, towerHandler)
 	rewardRolls = handler
@@ -100,13 +101,16 @@ local function recordResult(player: Player, state)
 		return record
 	end
 	if state.Floor then
-		-- A tower floor: a win moves the player up one (only the next floor can be fought, so every
-		-- win is a first clear and pays once).
-		if battle.Result == "Win" and state.Floor == data.Tower.Floor + 1 then
-			data.Tower.Floor = state.Floor
-			record.FirstClear = true
-			record.NewBest = true
-			MetaService.Track(player, "TowerFloors")
+		-- A tower floor: winning the next floor moves the player up one (a first clear, full pay); a
+		-- floor already cleared can be fought again (a replay, Tower.Reward(floor, true): no packs or
+		-- sure potion, the rest pays again).
+		if battle.Result == "Win" then
+			record.FirstClear = state.Floor == data.Tower.Floor + 1
+			if record.FirstClear then
+				data.Tower.Floor = state.Floor
+				record.NewBest = true
+				MetaService.Track(player, "TowerFloors")
+			end
 			MetaService.AddXP(player, data, math.ceil(Meta.XP.BossWinPerD * Tower.Reward(state.Floor).D))
 		end
 		record.Progress = data.Progress
@@ -197,9 +201,10 @@ local function run(player: Player, state)
 		if state.Raid then
 			-- paid by RaidService when the raid ends
 		elseif state.Floor then
-			if record.FirstClear and towerRewards then
-				summary.Rewards = towerRewards(player, state.Floor)
+			if battle.Result == "Win" and towerRewards then
+				summary.Rewards = towerRewards(player, state.Floor, not record.FirstClear)
 			end
+			summary.Replay = not record.FirstClear
 		elseif battle.Result == "Win" and rewardRolls and boss then
 			summary.Rewards = rewardRolls(player, boss.Difficulties[battle.Difficulty].D, record.FirstClear, state.Cost)
 			summary.CostChallenge = state.Cost
@@ -279,7 +284,8 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	end
 	local data = profile.Data
 
-	-- The tower always fights the floor above the player's best: the server picks it, not the client.
+	-- The tower fights the floor above the player's best, or (options.Floor) any floor already cleared
+	-- to replay it; the server checks the choice.
 	local floor = nil
 	local stats = nil
 	local mutator = nil
@@ -292,7 +298,13 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		if not BattleService.TowerOpen(data) then
 			return { Ok = false, Reason = "Locked" }
 		end
-		floor = Tower.FloorAt(data.Tower.Floor + 1)
+		local next = data.Tower.Floor + 1
+		local pick = if type(options) == "table" then (options :: any).Floor else nil
+		local want = if type(pick) == "number" and pick == pick then math.floor(pick) else next
+		if want < 1 or want > next then
+			return { Ok = false, Reason = "BadRequest" }
+		end
+		floor = Tower.FloorAt(want)
 		local devMutator = ReplicatedStorage:GetAttribute("DevMutator")
 		mutator = Tower.MutatorToday(Meta.DayNumber(os.time()), if Config.TestMode and type(devMutator) == "string" then devMutator else nil)
 		boss = Bosses.Get(floor.Boss)

@@ -414,7 +414,8 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Size = UDim2.fromScale(0.29, 0.84),
 		Parent = bar,
 	})
-	rollButtonFace(quickButton, "QUICK", "ROLL", Theme.Color.Quick, Theme.Color.QuickDeep, "QuickButton")
+	-- QUICK is a toggle: on, ROLL plays the short reveal (faster rolling); the roll itself is the same.
+	rollButtonFace(quickButton, "QUICK", "OFF", Theme.Color.Quick, Theme.Color.QuickDeep, "QuickButton")
 	lockOverlay(quickButton, "QuickRoll")
 
 	rollButton.Activated:Connect(handlers.OnRoll)
@@ -1087,6 +1088,7 @@ function Hud.Refresh()
 	autoStopButton.Label.Text = if s.AutoStop == "Never" then "STOP: NEVER" else `STOP: {string.upper(s.AutoStop)}+`
 	rollButton.Sub.Text = string.format("%.2gs", State.Cooldown())
 	Hud.SetAuto(s.AutoActive)
+	Hud.SetQuick(State.Meta.QuickRoll == true)
 	Hud.RefreshLevel()
 
 	for feature, overlay in locks do
@@ -1231,6 +1233,13 @@ end
 function Hud.SetRevealMode(on: boolean)
 	hiddenBy.Reveal = on
 	applyHidden()
+end
+
+-- The QUICK toggle's face (ON: ROLL plays the short reveal).
+function Hud.SetQuick(on: boolean)
+	quickButton.Sub.Text = if on then "ON" else "OFF"
+	quickButton.UIStroke.Transparency = if on then 0 else 0.4
+	quickButton.UIStroke.Thickness = if on then 2 else 1.2
 end
 
 function Hud.SetAuto(on: boolean)

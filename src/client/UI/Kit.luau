@@ -362,4 +362,27 @@ function Kit.commas(n: number): string
 	return formatted
 end
 
+-- "980", "2.2K", "41.9K", "1.25M": big stats in small spaces.
+function Kit.short(n: number): string
+	if n >= 1e6 then
+		return string.format("%.2fM", n / 1e6)
+	elseif n >= 1e3 then
+		return string.format("%.1fK", n / 1e3)
+	end
+	return tostring(math.floor(n))
+end
+
+-- A card's battle stats as rich text: "⚔ DMG 2.2K  ❤ HP 4.4K" (Attack) or "✨ PWR 1.3K" (Support), at its
+-- stars, border and Awakening node. `long` spells the numbers out with commas.
+function Kit.statsText(card, stars: number, border: string?, awaken: number?, long: boolean?): string
+	local Cards = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Cards")) :: any
+	local fmt = if long then Kit.commas else Kit.short
+	local main = fmt(Cards.Stat(card, card.Main, stars, border, awaken))
+	if card.Type == "Attack" then
+		local hp = fmt(Cards.Stat(card, card.HP or 0, stars, border, awaken))
+		return `<font color="#FF7A5C">⚔ DMG <b>{main}</b></font>   <font color="#5CE6A0">❤ HP <b>{hp}</b></font>`
+	end
+	return `<font color="#6CD8FF">✨ PWR <b>{main}</b></font>   <font color="#B8C2D6">SPD {card.SPD}</font>`
+end
+
 return Kit

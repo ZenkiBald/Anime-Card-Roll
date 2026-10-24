@@ -48,6 +48,7 @@ local fastOpenLimiter = RateLimit.new(MonetizationConfig.TriplePackSpeed, Moneti
 local alchemyLimiter = RateLimit.new(4, 8)
 local autoGeneration = {} -- [Player] = number; bumping it stops the running Auto Roll loop
 local autoActive = {} -- [Player] = true while Auto Roll is running
+local MAX_OPEN_ROLLS = 10000 -- the most cards one OpenPack call rolls (packs opened at once)
 
 local COOLDOWN_TOLERANCE = 0.1 -- forgive small network timing differences
 
@@ -366,12 +367,12 @@ end
 
 -- A cleared Infinite Tower floor (paid once per floor): Tower.Reward says what. Some floors drop Roll
 -- Packs; Guardians add more Shards, a sure potion and boosted gear odds.
-function RollService.TowerRewards(player: Player, floor: number)
+function RollService.TowerRewards(player: Player, floor: number, replay: boolean?)
 	local profile = DataService.Get(player)
 	if profile == nil then
 		return nil
 	end
-	local reward = Tower.Reward(floor)
+	local reward = Tower.Reward(floor, replay)
 	return payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.D, reward.DropBoost, reward.TraitShards)
 end
 
@@ -472,10 +473,17 @@ function RollService.Start()
 		return fullState(player, profile.Data)
 	end
 
-	-- OpenPack(packId): opens one of the player's Roll Packs.
-	Remotes.OpenPack.OnServerInvoke = function(player: Player, packId: unknown)
+	-- OpenPack(packId, count?): opens `count` of the player's Roll Packs of that kind (1 by default; a number,
+	-- or "all"). Works while Auto Roll runs: a pack opens in one go, with no yield an Auto Roll pull could
+	-- land in. One call rolls at most MAX_OPEN_ROLLS cards (at least one pack), so "all" on a pile of Mega
+	-- Packs stays fast; the rest stay in the bag.
+	Remotes.OpenPack.OnServerInvoke = function(player: Player, packId: unknown, count: unknown)
 		local pack = if type(packId) == "string" then Packs.ById[packId] else nil
 		if pack == nil then
+			return { Ok = false, Reason = "BadRequest" }
+		end
+		local wanted = if count == "all" then math.huge elseif type(count) == "number" and count == count then math.floor(count) else 1
+		if wanted < 1 then
 			return { Ok = false, Reason = "BadRequest" }
 		end
 		local profile = DataService.Get(player)
@@ -485,29 +493,48 @@ function RollService.Start()
 		if BattleService.InBattle(player) then
 			return { Ok = false, Reason = "InBattle" }
 		end
-		if autoActive[player] then
-			return { Ok = false, Reason = "AutoActive" }
-		end
 		local limiter = if MonetizationService.Perk(player, "TripleRoll") then fastOpenLimiter else openLimiter
 		if not limiter:Allow(player) then
 			return { Ok = false, Reason = "TooFast" }
 		end
 		local held = profile.Data.Packs
-		if (held[pack.Id] or 0) <= 0 then
+		local have = held[pack.Id] or 0
+		if have <= 0 then
 			return { Ok = false, Reason = "NoPacks" }
 		end
-		held[pack.Id] -= 1
+		local n = math.min(wanted, have, math.max(1, math.floor(MAX_OPEN_ROLLS / pack.Rolls)))
+		held[pack.Id] = have - n
 		if held[pack.Id] <= 0 then
 			held[pack.Id] = nil
 		end
-		local shown, counts, newCards, cards, luck = openPack(player, profile, pack)
+		-- Open them one by one and merge: the rarest pulls of all of them, summed counts, every card touched.
+		local shown, counts, newCards, cards, luck = {}, {}, 0, {}, 1
+		for _ = 1, n do
+			local s1, c1, new1, cards1, luck1 = openPack(player, profile, pack)
+			for _, result in s1 do
+				table.insert(shown, result)
+			end
+			for id, k in c1 do
+				counts[id] = (counts[id] or 0) + k
+			end
+			newCards += new1
+			for id, state in cards1 do
+				cards[id] = state
+			end
+			luck = luck1
+		end
+		table.sort(shown, rarer)
+		while #shown > Packs.ShowCards do
+			table.remove(shown)
+		end
 		return {
 			Ok = true,
 			PackId = pack.Id,
+			Opened = n,
 			Results = shown,
 			Counts = counts,
 			New = newCards,
-			Rolls = pack.Rolls,
+			Rolls = pack.Rolls * n,
 			Luck = luck,
 			Cards = cards,
 			Packs = held,
@@ -641,7 +668,10 @@ function RollService.Start()
 		elseif action == "MaxStars" then
 			for _, entry in profile.Data.Cards do
 				if entry.Stars < Config.MaxStars then
-					entry.Copies += Config.MaxStars - entry.Stars
+					local add = Config.MaxStars - entry.Stars
+					entry.Copies += add
+					entry.BorderCopies = entry.BorderCopies or {}
+					entry.BorderCopies.Normal = (entry.BorderCopies.Normal or 0) + add -- keep the per-border piles in step
 					entry.Stars = Config.MaxStars
 				end
 			end

@@ -39,7 +39,7 @@ local BossScreen = {}
 
 export type Actions = {
 	EditDeck: (target: string) -> (), -- target: the boss id, Tower.Id or Raid.Id the deck is for
-	Fight: (bossId: string, difficulty: string?, options: { Cost: boolean? }?) -> (boolean, string?), -- bossId may be Tower.Id or Raid.Id
+	Fight: (bossId: string, difficulty: string?, options: { Cost: boolean?, Floor: number? }?) -> (boolean, string?), -- bossId may be Tower.Id or Raid.Id
 }
 
 local actions: Actions
@@ -428,9 +428,15 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 	end)
 end
 
--- The TOWER tab: the next floor's enemy, its power check and what clearing it pays.
+-- The floor picked on the TOWER tab (nil = the next one up). Any floor up to the next can be fought:
+-- cleared floors are replays (Tower.Reward(floor, true)).
+local towerPick: number? = nil
+
+-- The TOWER tab: the picked floor's enemy (the next one by default), its power check and what it pays.
 local function buildTower()
-	local floorNo = (State.Tower or 0) + 1
+	local nextFloor = (State.Tower or 0) + 1
+	local floorNo = math.clamp(towerPick or nextFloor, 1, nextFloor)
+	local replay = floorNo < nextFloor
 	local floor = Tower.FloorAt(floorNo)
 	local boss = Bosses.Get(floor.Boss)
 	local unlocked = towerOpen()
@@ -441,12 +447,30 @@ local function buildTower()
 
 	text(
 		body,
-		1,
-		"Climb as high as you can: every floor is a random echo of a world boss, stronger and richer than the last. Each floor pays once.",
+		0,
+		"Climb as high as you can: every floor is a random echo of a world boss, stronger and richer than the last. Roll Packs pay on the first clear; any cleared floor can be fought again for its Shards, Trait Shards and artifact roll.",
 		Theme.Color.Muted,
 		17,
 		Theme.Font.Bold
 	)
+	-- Floor picker: ‹ / › step through the floors (1 to the next one), NEXT jumps back to the climb.
+	local picker = row(1, 40)
+	local function step(label: string, width: number, order: number, to: number, enabled: boolean)
+		local button = Kit.button(label, TOWER_COLOR, Color3.fromRGB(10, 50, 60), { LayoutOrder = order, Size = UDim2.fromOffset(width, 36), Parent = picker })
+		Kit.dim(button, not enabled)
+		button.Activated:Connect(function()
+			if enabled then
+				towerPick = if to >= nextFloor then nil else to
+				refresh()
+			end
+		end)
+	end
+	step("‹‹", 48, 1, math.max(1, floorNo - 10), floorNo > 1)
+	step("‹", 44, 2, floorNo - 1, floorNo > 1)
+	text(picker, 3, `  FLOOR <b>{floorNo}</b> / {nextFloor}{if replay then "  ·  REPLAY" else "  ·  NEXT CLIMB"}  `, if replay then Theme.Color.Gold else TOWER_COLOR, 18, Theme.Font.Heavy).Size = UDim2.new(0, 260, 0, 36)
+	step("›", 44, 4, floorNo + 1, floorNo < nextFloor)
+	step("››", 48, 5, math.min(nextFloor, floorNo + 10), floorNo < nextFloor)
+	step("NEXT", 80, 6, nextFloor, replay)
 	local foe = box(2, if floor.Guardian then Theme.Color.Gold else TOWER_COLOR)
 	text(
 		foe,
@@ -488,17 +512,19 @@ local function buildTower()
 		Theme.Font.Heavy
 	)
 
-	local reward = Tower.Reward(floorNo)
+	local reward = Tower.Reward(floorNo, replay)
 	local rewardBox = box(5, Theme.Color.Gold)
-	text(rewardBox, 1, if floor.Guardian then "GUARDIAN REWARDS" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
-	if reward.Packs then
+	text(rewardBox, 1, if replay then "REPLAY REWARDS" elseif floor.Guardian then "GUARDIAN REWARDS" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
+	if replay then
+		text(rewardBox, 2, "Already cleared: no Roll Packs or sure potion this time", Theme.Color.Muted, 16, Theme.Font.Bold)
+	elseif reward.Packs and next(reward.Packs) then
 		text(rewardBox, 2, `<b>{Packs.Describe(reward.Packs)}</b>  (saved to your BAG, opened at your luck)`, Theme.Color.Gold, 18)
 	else
-		local nextFloor = floorNo + 1
-		while Packs.ForFloor(nextFloor) == nil do
-			nextFloor += 1
+		local packFloor = floorNo + 1
+		while Packs.ForFloor(packFloor) == nil do
+			packFloor += 1
 		end
-		text(rewardBox, 2, `No pack on this floor · next: <b>{Packs.Describe(Packs.ForFloor(nextFloor))}</b> on floor {nextFloor}`, Theme.Color.Text, 17)
+		text(rewardBox, 2, `No pack on this floor · next: <b>{Packs.Describe(Packs.ForFloor(packFloor))}</b> on floor {packFloor}`, Theme.Color.Text, 17)
 	end
 	local extras = `+💎{reward.Shards} Shards  ·  +🧬{reward.TraitShards} Trait Shards`
 	if reward.Potion then
@@ -527,15 +553,15 @@ local function buildTower()
 			Theme.Font.Heavy
 		)
 	end
-	text(rewardBox, 6, if floorNo > 1 then `✓ Best floor {floorNo - 1}` else "Your first climb!", Theme.Color.Quick, 17, Theme.Font.Heavy)
+	text(rewardBox, 6, if nextFloor > 1 then `✓ Best floor {nextFloor - 1}` else "Your first climb!", Theme.Color.Quick, 17, Theme.Font.Heavy)
 
 	deckAndFight(6, deck, unlocked, function()
 		if not unlocked then
 			hint(`{Tower.UnlockHint()} first`)
 			return
 		end
-		return actions.Fight(Tower.Id, nil)
-	end, `CLIMB · FLOOR {floorNo}`, Tower.Id)
+		return actions.Fight(Tower.Id, nil, { Floor = floorNo })
+	end, if replay then `REPLAY · FLOOR {floorNo}` else `CLIMB · FLOOR {floorNo}`, Tower.Id)
 	hintLabel.Parent = body
 end
 
@@ -967,6 +993,7 @@ end
 -- The TOWER tab, from the tower gate.
 function BossScreen.OpenTower()
 	mode = "tower"
+	towerPick = nil -- from the tower gate: back to the next climb
 	modal:Open()
 end
 

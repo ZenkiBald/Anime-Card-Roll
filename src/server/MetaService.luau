@@ -270,6 +270,7 @@ function MetaService.State(player: Player, data)
 		Wheel = { Spins = data.Wheel.Spins, Progress = data.Wheel.Progress },
 		Favorite = data.Settings.Favorite,
 		Avatar = data.Settings.Avatar, -- the card worn as an avatar aura ("" = none)
+		QuickRoll = data.Settings.QuickRoll == true, -- ROLL plays the short reveal
 		Packs = data.Packs, -- gifts, quests and milestones can grant Roll Packs
 	}
 end
@@ -394,6 +395,14 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 			return false, "BadRequest"
 		end
 		data.Settings.Favorite = arg
+		return true
+	elseif action == "SetQuickRoll" then
+		-- The QUICK toggle: ROLL plays the short reveal instead of the full one (a client look; the roll is
+		-- the same either way).
+		if type(arg) ~= "boolean" then
+			return false, "BadRequest"
+		end
+		data.Settings.QuickRoll = arg
 		return true
 	elseif action == "SetAvatar" then
 		-- Wear an owned card as your look in town (its element aura; Rainbow / Secret borders add a

@@ -15,6 +15,7 @@ local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
 local Elements = require(Shared.Elements)
 local Config = require(Shared.Config)
+local Awaken = require(Shared.Awaken)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -191,6 +192,11 @@ local function build(cardId: string, border: string): Frame?
 	local roleInfo = UITheme.Roles[role]
 	chip(ElementUi.RoleBadge(role, { Size = UDim2.fromOffset(28, 28), ZIndex = 52 }), `  {string.upper(role or "")}`, if roleInfo then roleInfo.Color else UITheme.Colors.TextMuted, 3)
 	line(badge(Borders.Label(border), tier.Color), Theme.Font.Heavy, UITheme.Colors.WashiParchment, 13)
+	-- The card's battle numbers at its stars, border and Awakening.
+	local own = State.Cards[card.Id]
+	local stars = if own then own.Stars else 0
+	local node = if own then Awaken.Level(own) else 0
+	line(Kit.statsText(card, stars, border, node, true), Theme.Font.Heavy, UITheme.Colors.WashiParchment, 14)
 
 	-- Abilities: Basic, Skill, Ultimate (passives / auras / signatures follow in plain rows).
 	local basic, skill, ult = Cards.Ability(card, "Basic"), Cards.Ability(card, "Skill"), Cards.Ability(card, "Ultimate")

@@ -182,3 +182,12 @@ do
 	local rate = campaign(Tower.FloorAt(30, Tower.Enemies[1], false), deck, owned, 10)
 	check(rate == 0, "a World 1 deck can't climb to floor 30")
 end
+
+-- Replays: a cleared floor fought again pays its Shards, Trait Shards and artifact roll, but no Roll Packs
+-- or sure potion (those are first clear only).
+do
+	local first, again = Tower.Reward(10), Tower.Reward(10, true)
+	check(next(again.Packs or {}) == nil and again.Potion == nil, "a replayed floor drops no Roll Packs or sure potion")
+	check(again.Shards == first.Shards and again.TraitShards == first.TraitShards and again.D == first.D, "a replayed floor pays the same Shards, Trait Shards and artifact odds")
+	check(first.Packs ~= nil and next(first.Packs) ~= nil, "a first clear of a Guardian floor still drops its packs")
+end

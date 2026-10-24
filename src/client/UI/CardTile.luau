@@ -29,6 +29,8 @@ export type Options = {
 	Selected: boolean?,
 	Spin: boolean?, -- spin a Secret card's prismatic border (only for a few tiles at once)
 	Border: string?, -- the card's best border (Borders.luau): the tier and its frame
+	Stats: boolean?, -- show DMG / HP (Support: PWR) above the bottom line
+	Awaken: number?, -- the card's Awakening node, for those stats
 }
 
 local function outlined(label: TextLabel, thickness: number?)
@@ -177,6 +179,21 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		ZIndex = 5,
 		Parent = button,
 	}, 22), 2)
+
+	-- DMG / HP (or PWR) just above the bottom line.
+	if owned and options.Stats then
+		outlined(Kit.label({
+			Name = "Stats",
+			Text = Kit.statsText(card, options.Stars or 0, options.Border, options.Awaken),
+			RichText = true,
+			Font = Theme.Font.Heavy,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 0.83, -2),
+			Size = UDim2.fromScale(0.96, 0.12),
+			ZIndex = 5,
+			Parent = button,
+		}, 13), 1.5)
+	end
 
 	-- Stars (top-left): the only badge; the border says the tier.
 	if owned and (options.Stars or 0) > 0 then

@@ -3,7 +3,8 @@
 -- top-left, the count top-right, the item's colour round the edge, and a timer / level / WORN tag along
 -- the bottom. Tabs filter it (ALL / PACKS / POTIONS / ARTIFACTS) and SEARCH finds by name.
 -- Tapping a tile shows it on the right with what you can do with it:
---   Roll Packs: OPEN (rolls at your luck now; the pulls play over the bag, PackOpen)
+--   Roll Packs: OPEN 1 / 5 / 10 / ALL (rolls at your luck now, even during Auto Roll; the pulls play over
+--   the bag, PackOpen)
 --   Potions: USE / BUY      Artifacts: WEAR / REMOVE (3 slots)
 -- The server checks every action (MetaService, RollService "OpenPack").
 
@@ -321,11 +322,11 @@ local function cover(): (Frame, () -> ())
 	return frame, close
 end
 
-local function openPack(pack)
+local function openPack(pack, count: (number | string)?)
 	if busy then
 		return
 	end
-	local result, message = PackOpen.Open(pack.Id)
+	local result, message = PackOpen.Open(pack.Id, count)
 	if result == nil then
 		hint(message or "Couldn't open it")
 		return
@@ -358,10 +359,10 @@ local function openPack(pack)
 	local done = Kit.button("DONE", Theme.Color.Quick, Theme.Color.QuickDeep, { LayoutOrder = 1, Size = UDim2.fromOffset(170, 48), Parent = buttons })
 	done.Activated:Connect(close)
 	if (State.Packs[pack.Id] or 0) > 0 then
-		local again = Kit.button("OPEN ANOTHER", Theme.Color.Gold, GOLD_DEEP, { LayoutOrder = 2, Size = UDim2.fromOffset(200, 48), Parent = buttons })
+		local again = Kit.button(if count == "all" then "OPEN MORE" elseif (count or 1) == 1 then "OPEN ANOTHER" else `OPEN {count} MORE`, Theme.Color.Gold, GOLD_DEEP, { LayoutOrder = 2, Size = UDim2.fromOffset(200, 48), Parent = buttons })
 		again.Activated:Connect(function()
 			close()
-			openPack(pack)
+			openPack(pack, count)
 		end)
 	end
 	PackOpen.Play(area, result, function()
@@ -419,17 +420,29 @@ local function showDetail(entry)
 				15
 			)
 		end
+		-- OPEN 1 / 5 / 10 / ALL (a choice you don't have enough for is dimmed; ALL opens up to 10,000 rolls
+		-- a go). Packs open while Auto Roll runs too.
+		local function opener(row: Frame, label: string, count: number | string, order: number)
+			local enough = if count == "all" then entry.Count > 0 else entry.Count >= (count :: number)
+			action(row, label, Theme.Color.Gold, GOLD_DEEP, order, enough, function()
+				if (State.Packs[item.Id] or 0) <= 0 then
+					hint("Beat bosses and every 5th tower floor for packs")
+				elseif not enough then
+					hint(`You have {State.Packs[item.Id] or 0}`)
+				else
+					openPack(item, count)
+				end
+			end)
+		end
 		local row = actionRow(6)
-		action(row, "OPEN", Theme.Color.Gold, GOLD_DEEP, 1, entry.Count > 0, function()
-			if (State.Packs[item.Id] or 0) > 0 then
-				openPack(item)
-			else
-				hint("Beat bosses and every 5th tower floor for packs")
-			end
-		end)
+		opener(row, "OPEN 1", 1, 1)
+		opener(row, "OPEN 5", 5, 2)
+		local row2 = actionRow(7)
+		opener(row2, "OPEN 10", 10, 1)
+		opener(row2, `OPEN ALL ({Kit.commas(entry.Count)})`, "all", 2)
 		-- Condensing and infusing are done in town, at Hoshi's PACK ALCHEMY.
 		if Packs.Condense[item.Id] or item.Id == "1000" then
-			detailText(7, "⚗️ Condense 10 into a bigger pack, or infuse a Mega Pack with an element: visit Hoshi the Fusion Master in town.", Theme.Color.Muted, 14, Theme.Font.Heavy)
+			detailText(8, "⚗️ Condense 10 into a bigger pack, or infuse a Mega Pack with an element: visit Hoshi the Fusion Master in town.", Theme.Color.Muted, 14, Theme.Font.Heavy)
 		end
 	elseif entry.Kind == "Potion" then
 		detailText(4, item.Text, Theme.Color.Text, 17, Theme.Font.Heavy)

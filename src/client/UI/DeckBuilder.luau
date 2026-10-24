@@ -471,6 +471,8 @@ local function drawGrid()
 			Border = Borders.Best(own.Borders),
 			Copies = own.Copies,
 			Power = Deck.CardPower(card.Id, State.Cards),
+			Stats = true,
+			Awaken = Awaken.Level(own),
 			InDeck = findInDeck(card.Id) ~= nil,
 			Selected = card.Id == inspectId,
 		})
@@ -536,8 +538,9 @@ local function drawInspector()
 	ElementUi.Badge(card.Element, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -26, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
 	ElementUi.RoleBadge(card.Role, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
 	text({
-		Text = `{card.Title or ""}  ·  {Borders.Label(best)} {card.Role or card.Type}{if element then `  ·  <font color="#{element.Color:ToHex()}">{element.Name}</font>` else ""}`,
-		Font = Theme.Font.Bold,
+		-- The battle numbers first (the tooltip has the title, element and role), then the tier.
+		Text = `{Kit.statsText(card, own.Stars, best, Awaken.Level(own), true)}   <font color="#{border.Color:ToHex()}">{Borders.Label(best)}</font>`,
+		Font = Theme.Font.Heavy,
 		TextColor3 = Theme.Color.Muted,
 		Position = UDim2.fromOffset(0, 24),
 		Size = UDim2.new(1, 0, 0, 16),

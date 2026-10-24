@@ -56,6 +56,7 @@ local State = {
 		Gear = { Artifacts = {}, Worn = {} } :: any,
 		Favorite = nil :: any,
 		Avatar = nil :: any,
+		QuickRoll = false,
 		Volume = nil :: any,
 	},
 	MetaAt = os.clock(), -- when Meta arrived; timers count down from here

@@ -166,6 +166,25 @@ function showExtras(result)
 	end
 end
 
+-- ROLL plays the full reveal, or the short one while QUICK is on (saved in Settings.QuickRoll).
+local function rollMode(): string
+	return if State.Meta.QuickRoll then "Quick" else "Full"
+end
+
+local function toggleQuick()
+	local on = not State.Meta.QuickRoll
+	State.Meta.QuickRoll = on -- optimistic; the server saves it
+	Hud.SetQuick(on)
+	Hud.Hint(if on then "⚡ QUICK ROLL on: rolls skip the long reveal" else "Quick Roll off")
+	task.spawn(function()
+		local result = MetaClient.Call("SetQuickRoll", on)
+		if not result.Ok then
+			State.Meta.QuickRoll = not on
+			Hud.SetQuick(not on)
+		end
+	end)
+end
+
 local function toggleAuto()
 	local on = not State.Summary.AutoActive
 	autoWanted = on
@@ -359,11 +378,9 @@ end)
 
 Hud.Init(playerGui, {
 	OnRoll = function()
-		requestRoll("Full")
+		requestRoll(rollMode())
 	end,
-	OnQuick = function()
-		requestRoll("Quick")
-	end,
+	OnQuick = toggleQuick,
 	OnAuto = toggleAuto,
 	OnAutoStop = cycleAutoStop,
 	-- Six direct buttons. Fusion, alchemy, the wheel and traits are only at their NPCs in town.
@@ -521,15 +538,15 @@ Title.Ready(function()
 	end
 end)
 
--- Keyboard shortcuts on PC: R = Roll, T = Quick Roll, E = Auto Roll, G = ride / get off (Q is Dash).
+-- Keyboard shortcuts on PC: R = Roll, T = Quick Roll on / off, E = Auto Roll, G = ride / get off (Q is Dash).
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed or Title.IsOpen() then
 		return
 	end
 	if input.KeyCode == Enum.KeyCode.R then
-		requestRoll("Full")
+		requestRoll(rollMode())
 	elseif input.KeyCode == Enum.KeyCode.T then
-		requestRoll("Quick")
+		toggleQuick()
 	elseif input.KeyCode == Enum.KeyCode.E then
 		toggleAuto()
 	elseif input.KeyCode == Enum.KeyCode.G then

@@ -1,5 +1,5 @@
 --!nonstrict
--- Opening Roll Packs (Packs.luau) on the client: asks the server to open one, keeps the client's copy of
+-- Opening Roll Packs (Packs.luau) on the client: asks the server to open some (1, 5, 10 or "all"), keeps the client's copy of
 -- the player's cards and packs in step, and plays it: the rarest pulls flip one by one (RewardReveal)
 -- under a line that sums up everything the pack gave.
 
@@ -20,15 +20,15 @@ local PackOpen = {}
 local REASONS = {
 	TooFast = "One moment...",
 	InBattle = "Finish the fight first",
-	AutoActive = "Turn off Auto Roll first",
 	NoPacks = "You don't have that pack",
 	Loading = "Still loading",
 }
 
--- Opens one pack of `packId`. Returns the server's result, or nil and a message.
-function PackOpen.Open(packId: string): (any, string?)
+-- Opens `count` packs of `packId` (default 1; a number or "all"). Returns the server's result (Opened =
+-- how many it opened), or nil and a message.
+function PackOpen.Open(packId: string, count: (number | string)?): (any, string?)
 	local ok, result = pcall(function()
-		return Remotes.OpenPack:InvokeServer(packId)
+		return Remotes.OpenPack:InvokeServer(packId, count or 1)
 	end)
 	if not ok or result == nil or not result.Ok then
 		return nil, if ok and result then REASONS[result.Reason] or "Couldn't open it" else "Couldn't open it, try again"
@@ -48,7 +48,8 @@ end
 
 -- "100 rolls at 2.40x luck · 3 NEW · Legendary 2 · Epic 9 · Rare 30 ..." (rarest first).
 function PackOpen.SummaryText(result): string
-	local parts = { `{result.Rolls} rolls at {string.format("%.2f", result.Luck or 1)}x luck` }
+	local opened = if (result.Opened or 1) > 1 then `{result.Opened} packs · ` else ""
+	local parts = { `{opened}{Kit.commas(result.Rolls)} rolls at {string.format("%.2f", result.Luck or 1)}x luck` }
 	if (result.New or 0) > 0 then
 		table.insert(parts, `<font color="#FFC42E"><b>{result.New} NEW</b></font>`)
 	end

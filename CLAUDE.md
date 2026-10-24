@@ -319,6 +319,20 @@ Playtest fixes (2026-10-24, from the user's Studio screenshots; headless tests +
 - HUD: the Momentum line no longer repeats the surge count (the Surge meter shows it); MOUNT tile 58 px; Index
   Base shows no "1 in"; `Kit.tile` drops its gloss line when a layout is added; name tags sit above the
   avatar's bounding box (hats included).
+Playtest round 2 (2026-10-24, user's asks; headless tests + luau-lsp only):
+- Fusion: the "FUSED!" stage was wiped when another card was picked before "Tap to continue", leaving `busy` set
+  (FUSE dead until the panel closed); drawDetail now ends a stage it clears. FUSE ALL (above the list;
+  `Fuse("ALL")`): every card, lowest border first, cascading (200 Base -> 2 Gold; 100 Gold -> 1 Rainbow).
+  Fusion still needs 100 copies AT ONE border; the tiles' xN is the total over all borders.
+- DMG / HP: `Kit.statsText` (⚔ DMG / ❤ HP, Support ✨ PWR / SPD) on vault tiles (`CardTile` option Stats),
+  the tooltip and the deck inspector; `Kit.short` for 2.2K / 1.25M.
+- QUICK is a toggle (`Settings.QuickRoll`, MetaService "SetQuickRoll"; T key): on, ROLL plays the short reveal.
+- Packs: `OpenPack(packId, count)` opens 1 / 5 / 10 / "all" (at most 10,000 rolls a call), and works while Auto
+  Roll runs (a pack opens with no yield, so it can't interleave with an Auto Roll pull). BAG: OPEN 1 / 5 / 10 / ALL.
+- Tower is repeatable: `BattleStart(Tower.Id, nil, { Floor = n })`, n from 1 to Floor + 1 (server-checked). A
+  cleared floor is a replay: `Tower.Reward(floor, true)` = same Shards / Trait Shards / XP / artifact roll, no Roll
+  Packs or sure potion. TOWER tab floor picker (‹‹ ‹ FLOOR n › ›› NEXT); NEXT FLOOR / TRY AGAIN / auto-climb
+  go from the floor just fought.
 Planned next: AI card illustrations (user). Ascension was left out (user's call). Keep it SMALL: the border still wins.
 Leaderboards: Rolls / Level in the player list, and three boards at the map's `Leaderboards` marker
 (most rolls, rarest card incl. fusions, fastest Nightmare clear of the last boss) from OrderedDataStores,

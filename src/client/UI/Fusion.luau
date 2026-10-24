@@ -2,7 +2,8 @@
 -- FUSION (talk to Hoshi the Fusion Master in town): border fusion only. Config.FusionCopies (100) copies of
 -- one card at one border fuse into 1 copy at the next border (Base -> Gold -> Rainbow -> Secret; Awakening
 -- node 5: +25 Trait Shards and +0.05x luck each). Left: your cards with their copy progress, ready ones first.
--- Right: the picked card at its fusing border and at the next, and the FUSE button. The server does the
+-- Right: the picked card at its fusing border and at the next, and the FUSE button. FUSE ALL (above the
+-- list) fuses every card that can, cascading up the borders. The server does the
 -- fusing (FusionService); this screen asks and plays the fusion.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -124,6 +125,26 @@ local function statLine(card, stars: number, border: string, node: number): stri
 end
 
 local drawGrid -- forward declaration
+local fuseAllButton: any -- children read by name
+
+-- How many fusions FUSE ALL would make right now (every card, cascading up the borders).
+local function fuseAllCount(): number
+	local n = 0
+	for id, entry in State.Cards do
+		if Cards.Get(id) then
+			local copies = table.clone(entry.BorderCopies or {})
+			for _, from in Borders.Order do
+				local to = Borders.Next(from)
+				while to and (copies[from] or 0) >= Config.FusionCopies do
+					copies[from] -= Config.FusionCopies
+					copies[to] = (copies[to] or 0) + 1
+					n += 1
+				end
+			end
+		end
+	end
+	return n
+end
 
 -- The big fusion moment: the old card shakes and shrinks into a flash, the fused card bursts out.
 -- Ends the fusion on screen (if it's still the current one) and unlocks the FUSE button. Before this
@@ -255,7 +276,45 @@ local function fuse(cardId: string)
 	end
 end
 
+-- FUSE ALL: every card that has 100 copies at a border fuses (cascading), in one server call.
+local function fuseAll()
+	if busy then
+		return
+	end
+	if fuseAllCount() == 0 then
+		hint("No card has 100 copies at one border yet")
+		return
+	end
+	busy = true
+	local ok, result = pcall(function()
+		return Remotes.Fuse:InvokeServer("ALL")
+	end)
+	busy = false
+	if not ok or result == nil or not result.Ok then
+		hint(if ok and result then REASONS[result.Reason] or "Fusion failed" else "Fusion failed, try again")
+		return
+	end
+	for cardId, state in result.Cards or {} do
+		State.ApplyCard(cardId, state)
+	end
+	if result.Meta then
+		State.ApplyMeta(result.Meta)
+	end
+	local shards = result.Granted and result.Granted.TraitShards or 0
+	Sfx.Sting("Rainbow")
+	Effects.Flash(detail, FIRE, 0.5, 0)
+	hint(`🔥 FUSED x{result.Fused} · +🧬{shards} Trait Shards · +{string.format("%.2f", Awaken.FusionLuck * result.Fused)}x luck`)
+	drawGrid()
+end
+
 local function drawDetail()
+	-- Redrawing wipes a fusion still on screen (e.g. another card picked before "Tap to continue"):
+	-- end it properly, or `busy` would stay set and FUSE would stop working until the panel closed.
+	if fusionStage then
+		fusionStage = nil
+		fusionToken += 1
+		busy = false
+	end
 	clear(detail)
 	local entry = selectedId and State.Cards[selectedId]
 	local card = selectedId and Cards.Get(selectedId)
@@ -392,6 +451,9 @@ end
 
 function drawGrid()
 	clear(grid)
+	local ready = fuseAllCount()
+	fuseAllButton.Label.Text = if ready > 0 then `🔥 FUSE ALL ({ready})` else "FUSE ALL"
+	Kit.dim(fuseAllButton, ready == 0)
 	local list = cardsByProgress()
 	if selectedId == nil or State.Cards[selectedId] == nil then
 		selectedId = if list[1] then list[1].Card.Id else nil
@@ -452,9 +514,16 @@ function Fusion.Init(playerGui: Instance, host: any?)
 		Size = UDim2.new(0.45, 0, 0, 20),
 		Parent = modal.Header,
 	}, 16)
+	fuseAllButton = Kit.button("FUSE ALL", FIRE, FIRE_DEEP, {
+		Name = "FuseAll",
+		Size = UDim2.new(0.5, -8, 0, 40),
+		Parent = modal.Body,
+	})
+	fuseAllButton.Activated:Connect(fuseAll)
 	grid = Kit.new("ScrollingFrame", {
 		Name = "Cards",
-		Size = UDim2.fromScale(0.5, 1),
+		Position = UDim2.fromOffset(0, 48),
+		Size = UDim2.new(0.5, 0, 1, -48),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 6,
