@@ -10,6 +10,9 @@ Edit-mode scripts that built the world saved in the place (`workspace.Map`, Terr
   "ember" | "frost" | "abyss" | "markers" | "all" }`. Re-running a part replaces that zone's folder.
 - `stage.luau` - loads Creator Store models into `workspace.Staging` side by side for picking, and
   deletes every script inside them (free models can carry backdoors).
+- `scan.luau` - backdoor scanner, pasted straight into the command bar: lists every script outside our Rojo
+  folders, flags the ones that load assets by id / run strings / show the fake "Error 501 ... paste this into the
+  command bar" screen, and deletes the flagged ones when `DELETE = true`. Never paste code a game screen asks for.
 - `lighting.luau` - sets the place's Lighting to the twilight look and `Technology = Future` (only
   settable in Studio; `src/client/LightingSetup.luau` applies the rest on every client). Save after.
 - `sync.luau` - stopgap for when Rojo isn't connected: pulls `src/` from `python -m http.server 34875

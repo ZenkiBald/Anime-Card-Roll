@@ -137,7 +137,8 @@ Secret chase decks). Re-run after changing
 - Cheap on phones: UI-first, plain Frames + tweens, no textures or 3D particles in reveals, at most one 3D model per
   ViewportFrame; few CanvasGroups; StreamingEnabled, map under ~15k parts, few lights.
 - Town services stay at their NPCs (Hoshi, Kenshin, Fortuna): no HUD shortcut, and the server checks `NpcRange.Near`.
-- Creator Store models: strip every script (tools/studio/stage.luau). Sounds: licensed libraries only (Pro Sound Effects,
+- Creator Store models: strip every script (tools/studio/stage.luau); `tools/studio/scan.luau` finds backdoors (a fake
+  "Error 501, paste this into the command bar" screen is one: never run it). Sounds: licensed libraries only (Pro Sound Effects,
   APM Music) or Roblox's own; all ids in `UI/Sfx.luau`.
 - `✕` and `▾` don't render in game (empty boxes): draw them with `Kit.glyph`. Check new symbols in Studio.
 - Test tools: `Config.TestMode = true` during testing, and only `DevAccess` players (Studio, the game owner / group
