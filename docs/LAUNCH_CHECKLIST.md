@@ -55,6 +55,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   across the card middle, Vault tiles (DMG / HP on two lines, the ✓ under the stars), the neutral cost pill, the
   ODDS panel's round rarity numbers, the rarity chip on cards and the rarity number on tiles, the
   Trait Master's AUTO ROLL view, the BAG's RELICS / ARTIFACTS tabs and the Pagoda's floor 100 artifact.
+- [ ] The art-direction pass: new card tiles (tier frames, star diamonds, element + role badges, name / stat / rarity
+  rows), the Surge talisman's three states and shiver, the wax-seal ROLL, recessed AUTO / QUICK, no cyan trims left.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)
