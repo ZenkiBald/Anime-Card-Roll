@@ -146,6 +146,9 @@ portraits use the 2D `Image` when set, else an element-lit bust (the user is mak
 Secret chase decks). Re-run after changing
   cards, bosses or battle rules, and retune if they fail.
 - Original characters only: no real anime characters, names or trademarked terms.
+  Prototype exception (the user's call, 2026-10-25): card names and boss names are anime-style epithets that nod to
+  well-known series (card ids unchanged). Ability names are original. This is for private testing: rename the cards
+  and bosses to fully original names before any publish, test with friends included.
 - Cheap on phones: UI-first, plain Frames + tweens, no textures or 3D particles in reveals, at most one 3D model per
   ViewportFrame; few CanvasGroups; StreamingEnabled, map under ~15k parts, few lights.
 - Town services stay at their NPCs (Hoshi, Kenshin, Fortuna): no HUD shortcut, and the server checks `NpcRange.Near`.

@@ -51,8 +51,8 @@ Tutorial.Steps = {
 	{
 		Id = "flame",
 		Name = "Trial by Flame",
-		Text = "Beat Kurogane on Normal",
-		Kenji = "Kurogane waits in Ember Village. Storm cards burn brightest against Flame.",
+		Text = "Beat the Iron Warlord on Normal",
+		Kenji = "The Iron Warlord waits in Ember Village. Storm cards burn brightest against Flame.",
 		Hint = "BATTLE > World 1, or walk through the Ember Village portal",
 		Check = "Clear",
 		Goal = 1,

@@ -729,7 +729,7 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 		oath.Used = true
 		target.HP = 1
 		target.Invuln = oath.Seconds
-		self:Emit({ K = "Signature", U = oath.Owner.Id, T = target.Id, N = "Dawn Oath" })
+		self:Emit({ K = "Signature", U = oath.Owner.Id, T = target.Id, N = "Seal's Last Gate" })
 		return
 	end
 	target.HP = 0
@@ -955,7 +955,7 @@ function Engine:CardAct(unit)
 		end
 	end
 	if unit.EclipseEvery and unit.Actions % unit.EclipseEvery == 0 and unit.Alive then
-		self:Emit({ K = "Signature", U = unit.Id, N = "Eclipse" })
+		self:Emit({ K = "Signature", U = unit.Id, N = "Moving Without Thought" })
 		self:CardAct(unit)
 	end
 end

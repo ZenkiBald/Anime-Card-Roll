@@ -142,14 +142,14 @@ end
 
 -- Bonds: pairs with a story. Pct is a share of both cards' ATK / PWR added together.
 Elements.Bonds = {
-	{ Id = "village", Name = "Martial Oath", Cards = { "rook", "tomo" }, Pct = 3, Text = "The brawler and the lantern swordsman swore to guard Ember Village together." },
+	{ Id = "village", Name = "Martial Oath", Cards = { "rook", "tomo" }, Pct = 3, Text = "Titan Warder holds the line while Solar Blade cuts through it." },
 	{ Id = "mist", Name = "Shadow and Mist", Cards = { "kaede", "ibuki" }, Pct = 3, Text = "Spirit Weaver's strikes fly out of Phantom Blade's fog where no one can see them coming." },
 	{ Id = "drum", Name = "Thunder Rhythm", Cards = { "mirai", "suzu" }, Pct = 3, Text = "Thunder Flash drums the rhythm, Limitless Sage looses on the beat." },
-	{ Id = "tempest", Name = "Rival Tempest", Cards = { "sora", "hayate" }, Pct = 3, Text = "Two storm blades, one wind: rivals since the dojo." },
-	{ Id = "crimson", Name = "Crimson Dragon", Cards = { "akane", "kaito" }, Pct = 3, Text = "The lance duelist and the dragon-eye ronin never agree, except on who falls first." },
+	{ Id = "tempest", Name = "Rival Tempest", Cards = { "sora", "hayate" }, Pct = 3, Text = "Cursed Prodigy and Infernal Warden: rivals since the dojo." },
+	{ Id = "crimson", Name = "Crimson Dragon", Cards = { "akane", "kaito" }, Pct = 3, Text = "Crimson Scourge and Ascended Golden Warrior never agree, except on who falls first." },
 	{ Id = "starfall", Name = "Celestial Gambit", Cards = { "noa", "luna" }, Pct = 3, Text = "Celestial Strategist reads the stars, Starfall Witch drops them." },
-	{ Id = "skyfall", Name = "Sky Sovereigns", Cards = { "tsubasa", "amaya" }, Pct = 3, Text = "The sky knight rides the oracle's lightning down." },
-	{ Id = "duskdawn", Name = "Cosmic Supremacy", Cards = { "raijen", "aurelia" }, Pct = 3, Text = "Eclipse and sunrise: the two Secret sovereigns, finally on one side." },
+	{ Id = "skyfall", Name = "Sky Sovereigns", Cards = { "tsubasa", "amaya" }, Pct = 3, Text = "Lunar Reaper rides the Storm Oracle's lightning down." },
+	{ Id = "duskdawn", Name = "Cosmic Supremacy", Cards = { "raijen", "aurelia" }, Pct = 3, Text = "Pure instinct and the sealed flame: the two Secret sovereigns, finally on one side." },
 } :: { Bond }
 
 Elements.BondById = {} :: { [string]: Bond }

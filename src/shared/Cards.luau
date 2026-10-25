@@ -1,5 +1,5 @@
 --!strict
--- The 18 starter cards from the concept doc, plus the World 4 (Stormspire Isle) cards. All characters are original.
+-- The 18 starter cards from the concept doc, plus the World 4 (Stormspire Isle) cards.
 -- Adding a card = adding one entry here (plus art later). No other code changes.
 --
 -- Attack cards (front row) have ATK and HP: they deal the damage and take the enemies' hits.
@@ -87,7 +87,7 @@ local list: { Card } = {
 		Name = "Titan Warder",
 		Title = "Iron Knuckle Brawler",
 		Type = "Attack",
-		Role = "Striker",
+		Role = "Warder",
 		Weight = 10,
 		Element = "Flame",
 		Main = 550,
@@ -95,14 +95,17 @@ local list: { Card } = {
 		SPD = 95,
 		Glyph = "RK",
 		Accent = Color3.fromRGB(196, 120, 72),
-		Abilities = { ability("Basic", "Heavy Jab", "100% ATK", { { Kind = "Damage", Pct = 1 } }) },
+		Abilities = {
+			ability("Basic", "Bulwark Jab", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Passive", "Plated Hide", "Takes 10% less damage", { { Kind = "Buff", Stat = "Guard", Amount = 0.1 } }),
+		},
 	},
 	{
 		Id = "kaede",
 		Name = "Spirit Weaver",
 		Title = "Kunai Thrower",
 		Type = "Attack",
-		Role = "Striker",
+		Role = "Mender",
 		Weight = 10,
 		Element = "Void",
 		Main = 475,
@@ -110,7 +113,10 @@ local list: { Card } = {
 		SPD = 115,
 		Glyph = "KD",
 		Accent = Color3.fromRGB(120, 140, 170),
-		Abilities = { ability("Basic", "Twin Kunai", "2 hits x 50% ATK on random enemies", { { Kind = "Damage", Pct = 0.5, Hits = 2, Target = "RandomEnemy" } }) },
+		Abilities = {
+			ability("Basic", "Soul Thread", "2 hits x 50% ATK on random enemies", { { Kind = "Damage", Pct = 0.5, Hits = 2, Target = "RandomEnemy" } }),
+			ability("Passive", "Thread of Return", "Mends herself for 12% ATK each time she acts", { { Kind = "Heal", Pct = 0.12, Target = "Self", When = "OnAct" } }),
+		},
 	},
 	{
 		Id = "tomo",
@@ -126,8 +132,8 @@ local list: { Card } = {
 		Glyph = "TM",
 		Accent = Color3.fromRGB(255, 160, 70),
 		Abilities = {
-			ability("Basic", "Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Passive", "Opening Cut", "+15% damage while the enemy leader is above 50% HP", {
+			ability("Basic", "Dawn Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Passive", "Rising Sun Rhythm", "+15% damage while the enemy leader is above 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.15, When = "BossAbove50" },
 			}),
 		},
@@ -146,8 +152,8 @@ local list: { Card } = {
 		Glyph = "MR",
 		Accent = Color3.fromRGB(255, 220, 90),
 		Abilities = {
-			ability("Basic", "Spark Arrow", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Passive", "Live Wire", "15% chance to Burn (5% ATK per turn, 3 turns)", {
+			ability("Basic", "Hollow Orb", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Passive", "Folded Gap", "15% chance to Burn (5% ATK per turn, 3 turns)", {
 				{ Kind = "Burn", Pct = 0.05, Turns = 3, Chance = 0.15, When = "OnHit" },
 			}),
 		},
@@ -166,8 +172,8 @@ local list: { Card } = {
 		Glyph = "SI",
 		Accent = Color3.fromRGB(90, 180, 255),
 		Abilities = {
-			ability("Basic", "Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Thunder Rush", "Every 3 actions: 3 hits x 80% ATK", {
+			ability("Basic", "Cursed Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Familiar's Rush", "Every 3 actions: 3 hits x 80% ATK", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 3 },
 			}, 3),
 		},
@@ -186,12 +192,12 @@ local list: { Card } = {
 		Glyph = "AK",
 		Accent = Color3.fromRGB(230, 60, 70),
 		Abilities = {
-			ability("Basic", "Thrust", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Piercing Spiral", "Every 3 actions: 250% ATK + target DEF -15% for 2 turns", {
+			ability("Basic", "Rend", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Spatial Cleave", "Every 3 actions: 250% ATK + target DEF -15% for 2 turns", {
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 2 },
 				{ Kind = "Damage", Pct = 2.5 },
 			}, 3),
-			ability("Passive", "Killer Edge", "Crits deal 200% instead of 150%", {
+			ability("Passive", "Malice Edge", "Crits deal 200% instead of 150%", {
 				{ Kind = "Buff", Stat = "CritDamage", Amount = 0.5 },
 			}),
 		},
@@ -210,12 +216,12 @@ local list: { Card } = {
 		Glyph = "KR",
 		Accent = Color3.fromRGB(70, 200, 160),
 		Abilities = {
-			ability("Basic", "Cut", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Dragon Draw", "Every 3 actions: 300% ATK", { { Kind = "Damage", Pct = 3 } }, 3),
-			ability("Passive", "Cornered Dragon", "+20% ATK below 50% HP", {
+			ability("Basic", "Proud Strike", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Radiant Surge", "Every 3 actions: 300% ATK", { { Kind = "Damage", Pct = 3 } }, 3),
+			ability("Passive", "Pride Awakened", "+20% ATK below 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
 			}),
-			ability("Ultimate", "Thousand Dragon Cut", "8 hits x 90% ATK on random enemies", {
+			ability("Ultimate", "Golden Barrage", "8 hits x 90% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.9, Hits = 8, Target = "RandomEnemy" },
 			}),
 		},
@@ -234,15 +240,15 @@ local list: { Card } = {
 		Glyph = "NO",
 		Accent = Color3.fromRGB(150, 110, 255),
 		Abilities = {
-			ability("Basic", "Star Bolt", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
-			ability("Skill", "Comet Rain", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
+			ability("Basic", "Shade Bolt", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
+			ability("Skill", "Shikigami Swarm", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 1, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
-			ability("Ultimate", "Meteor Requiem", "900% ATK + the target takes +25% damage for 3 turns", {
+			ability("Ultimate", "Abyssal Summoning", "900% ATK + the target takes +25% damage for 3 turns", {
 				{ Kind = "Damage", Pct = 9 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.25, Turns = 3 },
 			}),
-			ability("Aura", "Night Sky", "All Attack cards +10% ATK", {
+			ability("Aura", "Abyss Veil", "All Attack cards +10% ATK", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
 			}),
 		},
@@ -261,12 +267,12 @@ local list: { Card } = {
 		Glyph = "RJ",
 		Accent = Color3.fromRGB(40, 30, 70),
 		Abilities = {
-			ability("Basic", "Shadow Edge", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
-			ability("Skill", "Umbra Cross", "Every 3 actions: 400% ATK", { { Kind = "Damage", Pct = 4 } }, 3),
-			ability("Ultimate", "Black Sun", "1,500% ATK, ignores DEF and Warders", {
+			ability("Basic", "Reflex Strike", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
+			ability("Skill", "Afterimage Cross", "Every 3 actions: 400% ATK", { { Kind = "Damage", Pct = 4 } }, 3),
+			ability("Ultimate", "Unthinking Divinity", "1,500% ATK, ignores DEF and Warders", {
 				{ Kind = "Damage", Pct = 15, IgnoreDef = true },
 			}),
-			ability("Signature", "Eclipse", "Every 5th action, he acts again at once", {
+			ability("Signature", "Moving Without Thought", "Every 5th action, he acts again at once", {
 				{ Kind = "Eclipse", Every = 5 },
 			}),
 		},
@@ -281,13 +287,13 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 10,
 		Element = "Light",
-		Link = { Name = "Herbal Ward", Stat = "Guard", Amount = 0.06, Text = "The Attack card in front takes 6% less damage" },
+		Link = { Name = "Blossom Guard", Stat = "Guard", Amount = 0.06, Text = "The Attack card in front takes 6% less damage" },
 		Main = 300,
 		SPD = 100,
 		Glyph = "HN",
 		Accent = Color3.fromRGB(120, 200, 110),
 		Abilities = {
-			ability("Basic", "Herbal Mend", "Heal the most hurt Attack card 100% PWR", {
+			ability("Basic", "Blossom Palm", "Heal the most hurt Attack card 100% PWR", {
 				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
 			}),
 		},
@@ -306,8 +312,9 @@ local list: { Card } = {
 		Glyph = "GR",
 		Accent = Color3.fromRGB(200, 170, 110),
 		Abilities = {
-			ability("Basic", "Stone Palm", "Shield the most hurt Attack card 150% PWR", {
-				{ Kind = "Shield", Pct = 1.5, Target = "Lowest" },
+			ability("Basic", "Pummel Pact", "50% PWR damage + shield the most hurt Attack card 100% PWR", {
+				{ Kind = "Damage", Pct = 0.5 },
+				{ Kind = "Shield", Pct = 1, Target = "Lowest" },
 			}),
 		},
 	},
@@ -319,16 +326,16 @@ local list: { Card } = {
 		Role = "Striker",
 		Weight = 8,
 		Element = "Flame",
-		Link = { Name = "Battle Rhythm", Stat = "ATK", Amount = 0.06, Text = "The Attack card in front +6% ATK" },
+		Link = { Name = "Flash Tempo", Stat = "ATK", Amount = 0.06, Text = "The Attack card in front +6% ATK" },
 		Main = 312,
 		SPD = 105,
 		Glyph = "SZ",
 		Accent = Color3.fromRGB(240, 110, 150),
 		Abilities = {
-			ability("Basic", "War Drum", "All Attack cards +8% ATK for 1 turn", {
+			ability("Basic", "Flash Draw", "All Attack cards +8% ATK for 1 turn", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.08, Turns = 1, Target = "Attack" },
 			}),
-			ability("Passive", "Rhythm", "+5 energy to a random card with an Ultimate each time she acts", {
+			ability("Passive", "Flash Cadence", "+5 energy to a random card with an Ultimate each time she acts", {
 				{ Kind = "Energy", Amount = 5, Target = "Random", When = "OnAct" },
 			}),
 		},
@@ -341,17 +348,17 @@ local list: { Card } = {
 		Role = "Warder",
 		Weight = 8,
 		Element = "Frost",
-		Link = { Name = "Mist Cloak", Stat = "SPD", Amount = 0.06, Text = "The Attack card in front +6% SPD" },
+		Link = { Name = "Shadow Cloak", Stat = "SPD", Amount = 0.06, Text = "The Attack card in front +6% SPD" },
 		Main = 288,
 		SPD = 100,
 		Glyph = "IB",
 		Accent = Color3.fromRGB(150, 170, 200),
 		Abilities = {
-			ability("Basic", "Mist Veil", "60% PWR damage + target -10% ATK for 1 turn", {
+			ability("Basic", "Hidden Blade", "60% PWR damage + target -10% ATK for 1 turn", {
 				{ Kind = "Damage", Pct = 0.6 },
 				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 1 },
 			}),
-			ability("Passive", "Ghost Step", "The first enemy hit on each Attack card misses", {
+			ability("Passive", "Zero Presence", "The first enemy hit on each Attack card misses", {
 				{ Kind = "Evade", Hits = 1, Target = "Attack" },
 			}),
 		},
@@ -364,18 +371,19 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 6,
 		Element = "Frost",
-		Link = { Name = "Moon Sight", Stat = "Crit", Amount = 0.06, Text = "The Attack card in front +6% crit chance" },
+		Link = { Name = "Mirror Sight", Stat = "Crit", Amount = 0.06, Text = "The Attack card in front +6% crit chance" },
 		Main = 308,
 		SPD = 110,
 		Glyph = "YA",
 		Accent = Color3.fromRGB(150, 200, 255),
 		Abilities = {
-			ability("Basic", "Moon Touch", "Heal the most hurt Attack card 100% PWR", {
+			ability("Basic", "Reflected Mercy", "Heal the most hurt Attack card 100% PWR", {
 				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
 			}),
-			ability("Skill", "Moon Bloom", "Every 3 actions: heal all Attack cards 120% PWR + cleanse 1 debuff", {
+			ability("Skill", "Mirror Realm", "Every 3 actions: heal all Attack cards 120% PWR + cleanse 1 debuff + every enemy -10% SPD for 2 turns", {
 				{ Kind = "Heal", Pct = 1.2, Target = "All" },
 				{ Kind = "Cleanse", Amount = 1, Target = "All" },
+				{ Kind = "Debuff", Stat = "SPD", Amount = 0.1, Turns = 2, Target = "Enemies" },
 			}, 3),
 		},
 	},
@@ -393,14 +401,14 @@ local list: { Card } = {
 		Glyph = "TS",
 		Accent = Color3.fromRGB(140, 150, 165),
 		Abilities = {
-			ability("Basic", "Guard", "Shield the most hurt Attack card 150% PWR", {
+			ability("Basic", "Sand Shield", "Shield the most hurt Attack card 150% PWR", {
 				{ Kind = "Shield", Pct = 1.5, Target = "Lowest" },
 			}),
-			ability("Skill", "Iron Bastion", "Every 3 actions: shield all Attack cards 100% PWR + they take 20% less damage for 2 turns", {
+			ability("Skill", "Iron Sand Wall", "Every 3 actions: shield all Attack cards 100% PWR + they take 20% less damage for 2 turns", {
 				{ Kind = "Shield", Pct = 1, Target = "All" },
 				{ Kind = "Buff", Stat = "Guard", Amount = 0.2, Turns = 2, Target = "Attack" },
 			}, 3),
-			ability("Passive", "Iron Wall", "Attack cards take 10% less damage", {
+			ability("Passive", "Floating Wall", "Attack cards take 10% less damage", {
 				{ Kind = "Buff", Stat = "Guard", Amount = 0.1, Target = "Attack" },
 			}),
 		},
@@ -413,22 +421,22 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 2.5,
 		Element = "Light",
-		Link = { Name = "Star Chart", Stat = "CritDamage", Amount = 0.2, Text = "The Attack card in front +20% crit damage" },
+		Link = { Name = "Wing Chart", Stat = "CritDamage", Amount = 0.2, Text = "The Attack card in front +20% crit damage" },
 		Main = 307,
 		SPD = 115,
 		Glyph = "LM",
 		Accent = Color3.fromRGB(110, 140, 255),
 		Abilities = {
-			ability("Basic", "Field Care", "Heal the most hurt Attack card 100% PWR", {
+			ability("Basic", "Butterfly Mend", "Heal the most hurt Attack card 100% PWR", {
 				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
 			}),
-			ability("Skill", "Battle Plan", "Every 3 actions: all Attack cards +25% ATK for 2 turns", {
+			ability("Skill", "Wing Tactics", "Every 3 actions: all Attack cards +25% ATK for 2 turns", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.25, Turns = 2, Target = "Attack" },
 			}, 3),
-			ability("Passive", "Tempo", "+5 energy to every card each time she acts", {
+			ability("Passive", "Mist Tempo", "+5 energy to every card each time she acts", {
 				{ Kind = "Energy", Amount = 5, Target = "All", When = "OnAct" },
 			}),
-			ability("Ultimate", "Grand Formation", "Reset all Attack Skill cooldowns + 30 energy each", {
+			ability("Ultimate", "Mist Formation", "Reset all Attack Skill cooldowns + 30 energy each", {
 				{ Kind = "Energy", Amount = 30, Target = "Attack", ResetSkill = true },
 			}),
 		},
@@ -447,10 +455,10 @@ local list: { Card } = {
 		Glyph = "OR",
 		Accent = Color3.fromRGB(90, 220, 220),
 		Abilities = {
-			ability("Basic", "Gentle Hours", "Heal all Attack cards 60% PWR", {
+			ability("Basic", "Gentle Gears", "Heal all Attack cards 60% PWR", {
 				{ Kind = "Heal", Pct = 0.6, Target = "All" },
 			}),
-			ability("Skill", "Haste", "Every 3 actions: every card +20% SPD for 2 turns", {
+			ability("Skill", "Quickened Gears", "Every 3 actions: every card +20% SPD for 2 turns", {
 				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2, Target = "All" },
 			}, 3),
 			ability("Ultimate", "Rewind", "Revive all KO'd Attack cards at 40% HP + heal them 200% PWR", {
@@ -468,24 +476,24 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 1,
 		Element = "Cosmic",
-		Link = { Name = "Dawn Mantle", Stat = "ATK", Amount = 0.12, Text = "The Attack card in front +12% ATK" },
+		Link = { Name = "Fox Mantle Link", Stat = "ATK", Amount = 0.12, Text = "The Attack card in front +12% ATK" },
 		Main = 308,
 		SPD = 110,
 		Glyph = "AU",
 		Accent = Color3.fromRGB(255, 214, 140),
 		Abilities = {
-			ability("Basic", "Radiant Heal", "Heal all Attack cards 80% PWR", {
+			ability("Basic", "Foxfire Mend", "Heal all Attack cards 80% PWR", {
 				{ Kind = "Heal", Pct = 0.8, Target = "All" },
 			}),
-			ability("Skill", "Sunshield", "Every 3 actions: shield all Attack cards 200% PWR", {
+			ability("Skill", "Fox Mantle", "Every 3 actions: shield all Attack cards 200% PWR", {
 				{ Kind = "Shield", Pct = 2, Target = "All" },
 			}, 3),
-			ability("Ultimate", "Radiant Crown", "All Attack cards +50% damage for 2 turns", {
+			ability("Ultimate", "Beast Unsealed", "All Attack cards +50% damage for 2 turns", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.5, Turns = 2, Target = "Attack" },
 			}),
 			ability(
 				"Signature",
-				"Dawn Oath",
+				"Seal's Last Gate",
 				"Once per battle, an Attack card that would be KO'd survives at 1 HP, invulnerable for 1 turn",
 				{ { Kind = "DawnOath", Turns = 1 } }
 			),
@@ -507,10 +515,11 @@ local list: { Card } = {
 		Glyph = "HY",
 		Accent = Color3.fromRGB(110, 220, 170),
 		Abilities = {
-			ability("Basic", "Wind Cut", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Cyclone", "Every 3 actions: 2 hits x 70% ATK on every enemy + this card +20% SPD for 2 turns", {
+			ability("Basic", "Scorching Cut", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Cinder Vow", "Every 3 actions: 2 hits x 70% ATK on every enemy, this card +20% SPD for 2 turns, and a 30% ATK shield on every Attack card", {
 				{ Kind = "Damage", Pct = 0.7, Hits = 2, Target = "Enemies" },
 				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2, Target = "Self" },
+				{ Kind = "Shield", Pct = 0.3, Target = "Attack" },
 			}, 3),
 		},
 	},
@@ -522,20 +531,20 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 4,
 		Element = "Storm",
-		Link = { Name = "Rain Step", Stat = "SPD", Amount = 0.08, Text = "The Attack card in front +8% SPD" },
+		Link = { Name = "Thread Step", Stat = "SPD", Amount = 0.08, Text = "The Attack card in front +8% SPD" },
 		Main = 298,
 		SPD = 105,
 		Glyph = "AM",
 		Accent = Color3.fromRGB(100, 160, 240),
 		Abilities = {
-			ability("Basic", "Rain Prayer", "Heal the most hurt Attack card 120% PWR", {
+			ability("Basic", "Puppet Mend", "Heal the most hurt Attack card 120% PWR", {
 				{ Kind = "Heal", Pct = 1.2, Target = "Lowest" },
 			}),
-			ability("Skill", "Clearing Rain", "Every 3 actions: cleanse every Attack card + heal them 60% PWR", {
+			ability("Skill", "Thread Cut", "Every 3 actions: cleanse every Attack card + heal them 60% PWR", {
 				{ Kind = "Cleanse", Amount = 2, Target = "All" },
 				{ Kind = "Heal", Pct = 0.6, Target = "All" },
 			}, 3),
-			ability("Passive", "Calm Skies", "Every enemy -8% ATK", { { Kind = "Debuff", Stat = "ATK", Amount = 0.08, Target = "Enemies" } }),
+			ability("Passive", "Cursed Strings", "Every enemy -8% ATK", { { Kind = "Debuff", Stat = "ATK", Amount = 0.08, Target = "Enemies" } }),
 		},
 	},
 	{
@@ -552,13 +561,13 @@ local list: { Card } = {
 		Glyph = "TB",
 		Accent = Color3.fromRGB(250, 210, 90),
 		Abilities = {
-			ability("Basic", "Lance Strike", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Thunder Dive", "Every 3 actions: 280% ATK + the target takes 10% more damage for 2 turns", {
+			ability("Basic", "Crescent Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Soul Cleave", "Every 3 actions: 280% ATK + the target takes 10% more damage for 2 turns", {
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.1, Turns = 2 },
 				{ Kind = "Damage", Pct = 2.8 },
 			}, 3),
-			ability("Passive", "Sky Sight", "+15% crit chance", { { Kind = "Buff", Stat = "Crit", Amount = 0.15 } }),
-			ability("Ultimate", "Skyfall Lance", "5 hits x 140% ATK, ignoring DEF and Warders", {
+			ability("Passive", "Reaper's Sight", "+15% crit chance", { { Kind = "Buff", Stat = "Crit", Amount = 0.15 } }),
+			ability("Ultimate", "Moonfall Cleave", "5 hits x 140% ATK, ignoring DEF and Warders", {
 				{ Kind = "Damage", Pct = 1.4, Hits = 5, IgnoreDef = true },
 			}),
 		},
@@ -571,24 +580,24 @@ local list: { Card } = {
 		Role = "Warder",
 		Weight = 1.5,
 		Element = "Storm",
-		Link = { Name = "Static Charge", Stat = "ATK", Amount = 0.1, Text = "The Attack card in front +10% ATK" },
+		Link = { Name = "Live Current Link", Stat = "ATK", Amount = 0.1, Text = "The Attack card in front +10% ATK" },
 		Main = 317,
 		SPD = 105,
 		Glyph = "AY",
 		Accent = Color3.fromRGB(255, 220, 80),
 		Abilities = {
-			ability("Basic", "Static Ward", "Shield the most hurt Attack card 180% PWR", {
+			ability("Basic", "Voltage Ward", "Shield the most hurt Attack card 180% PWR", {
 				{ Kind = "Shield", Pct = 1.8, Target = "Lowest" },
 			}),
-			ability("Skill", "Stormcall", "Every 3 actions: 100% PWR to every enemy + all Attack cards +15% crit for 2 turns", {
+			ability("Skill", "Arc Surge", "Every 3 actions: 100% PWR to every enemy + all Attack cards +15% crit for 2 turns", {
 				{ Kind = "Damage", Pct = 1, Target = "Enemies" },
 				{ Kind = "Buff", Stat = "Crit", Amount = 0.15, Turns = 2, Target = "Attack" },
 			}, 3),
-			ability("Ultimate", "Eye of the Storm", "All Attack cards dodge the next 2 enemy hits + 40 energy each", {
+			ability("Ultimate", "Thunderveil", "All Attack cards dodge the next 2 enemy hits + 40 energy each", {
 				{ Kind = "Evade", Hits = 2, Target = "All" },
 				{ Kind = "Energy", Amount = 40, Target = "Attack" },
 			}),
-			ability("Aura", "Charged Air", "All Attack cards +10% ATK", {
+			ability("Aura", "Live Current", "All Attack cards +10% ATK", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
 			}),
 		},
@@ -609,12 +618,12 @@ local list: { Card } = {
 		Glyph = "KG",
 		Accent = Color3.fromRGB(230, 90, 40),
 		Abilities = {
-			ability("Basic", "Ember Claw", "110% ATK", { { Kind = "Damage", Pct = 1.1 } }),
-			ability("Skill", "Ninefold Flame", "Every 3 actions: 220% ATK and burns for 10% a turn", {
+			ability("Basic", "Magma Claw", "110% ATK", { { Kind = "Damage", Pct = 1.1 } }),
+			ability("Skill", "Forge Brand", "Every 3 actions: 220% ATK and burns for 10% a turn", {
 				{ Kind = "Damage", Pct = 2.2 },
 				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
 			}, 3),
-			ability("Ultimate", "Calamity Tail Storm", "6 hits x 80% ATK on every enemy's line", {
+			ability("Ultimate", "Warlord's Slagfall", "6 hits x 80% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 6, Target = "RandomEnemy" },
 			}),
 		},
@@ -635,11 +644,12 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(110, 190, 255),
 		Abilities = {
 			ability("Basic", "Rime Lance", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Absolute Zero", "Every 4 actions: 250% ATK, enemies -15% SPD for 2 turns", {
+			ability("Skill", "Stilled Hour", "Every 4 actions: 250% ATK, enemies -15% SPD for 2 turns", {
 				{ Kind = "Damage", Pct = 2.5 },
 				{ Kind = "Debuff", Stat = "SPD", Amount = 0.15, Turns = 2, Target = "Enemies" },
 			}, 4),
-			ability("Ultimate", "Tyrant's Winter", "350% ATK, ignores DEF", {
+			ability("Passive", "Crystal Wall", "Takes 6% less damage", { { Kind = "Buff", Stat = "Guard", Amount = 0.06 } }),
+			ability("Ultimate", "Crystal Sovereignty", "350% ATK, ignores DEF", {
 				{ Kind = "Damage", Pct = 3.5, IgnoreDef = true },
 			}),
 		},
@@ -659,12 +669,12 @@ local list: { Card } = {
 		Glyph = "VX",
 		Accent = Color3.fromRGB(150, 70, 230),
 		Abilities = {
-			ability("Basic", "Null Touch", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Null Cycle", "Every 3 actions: 180% ATK, enemy DEF -15% for 3 turns", {
+			ability("Basic", "Void Maw", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Rend the Guard", "Every 3 actions: 180% ATK, enemy DEF -15% for 3 turns", {
 				{ Kind = "Damage", Pct = 1.8 },
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
 			}, 3),
-			ability("Ultimate", "Null Emperor", "4 hits x 120% ATK, enemies take +15% damage", {
+			ability("Ultimate", "Devour All", "4 hits x 120% ATK, enemies take +15% damage", {
 				{ Kind = "Damage", Pct = 1.2, Hits = 4 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.15, Turns = 3, Target = "Enemies" },
 			}),
@@ -686,10 +696,10 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(255, 220, 80),
 		Abilities = {
 			ability("Basic", "Static Fist", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Chain Lightning", "Every 3 actions: 4 hits x 60% ATK on random enemies", {
+			ability("Skill", "Forked Storm", "Every 3 actions: 4 hits x 60% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.6, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
-			ability("Ultimate", "Thunderclap", "300% ATK to every enemy", {
+			ability("Ultimate", "Judgment Bolt", "300% ATK to every enemy", {
 				{ Kind = "Damage", Pct = 3, Target = "Enemies" },
 			}),
 		},
