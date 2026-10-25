@@ -51,8 +51,8 @@ Tutorial.Steps = {
 	{
 		Id = "flame",
 		Name = "Trial by Flame",
-		Text = "Beat Kurogane, the Ash Ronin, on Normal",
-		Kenji = "Kurogane, the Ash Ronin, waits in Ember Village. Storm cards burn brightest against Flame.",
+		Text = "Beat the Tailed Beast Calamity on Normal",
+		Kenji = "The Tailed Beast Calamity waits in Ember Village. Storm cards burn brightest against Flame.",
 		Hint = "BATTLE > World 1, or walk through the Ember Village portal",
 		Check = "Clear",
 		Goal = 1,

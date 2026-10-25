@@ -573,7 +573,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		Parent = frame,
 	}, if compact then 14 else 40)
 	if compact then
-		-- Long names ("Frostcrown Prince") wrap onto two lines and scale between 9 and 14 instead
+		-- Long names ("Ascended Golden Warrior") wrap onto two lines and scale between 9 and 14 instead
 		-- of clipping mid-word.
 		nameLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 9
 	end

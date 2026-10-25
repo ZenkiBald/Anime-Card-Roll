@@ -119,32 +119,32 @@ Targets: enemy side `nil` (current target), `Enemies` (all), `RandomEnemy` (each
 
 | id | Type | Role | Element | Weight | Now (name, subtitle) | Headline move |
 | --- | --- | --- | --- | --- | --- | --- |
-| kaede | Attack | Mender | Void | 10 | Gravethread Maiden, Mender of Torn Souls | – |
-| rook | Attack | Warder | Flame | 8 | Ashen Bulwark, The Ember-Plated Vanguard | Colossal Stomp |
-| tomo | Attack | Striker | Flame | 8 | Dawnfire Ronin, Blade of the First Light | Dawnfire Dance |
-| noa | Attack | Hexer | Void | 8 | Starfall Witch, Mistress of Hounds | Garden of Black Thorns |
-| hayate | Attack | Striker | Flame | 6 | Pyregate Warden, Keeper of the Funeral Flame | Purgatory Gate |
-| sora | Attack | Striker | Storm | 4 | Hexblood Prodigy, Master of Storm Shikigami | Hundred Familiars |
-| kaito | Attack | Striker | Frost | 2.5 | Frostcrown Prince, Pride of the Glacier Blade | Frostfall Barrage |
-| tsubasa | Attack | Hexer | Light | 2.5 | Moonlit Executioner, Crescent of the Last Rite | Moonfall Cleave |
-| mirai | Attack | Hexer | Storm | 1.5 | Stillstorm Hermit, Sage of the Unbroken Ward | Stillstorm Convergence |
-| akane | Attack | Hexer | Flame | 1.5 | Crimson Oni Warlord, Lord of the Burning Shrine | Thousand Cuts |
-| raijen | Attack | Striker | Cosmic | 1 | Eclipse Sovereign, The Thoughtless Blade | Moving Without Thought |
-| hana | Support | Mender | Light | 10 | Lotus Shrine Healer, Hundred-Petal Mender | Hundred Petals |
-| suzu | Support | Striker | Storm | 10 | Thunderclap Duelist, The Sleepwalking Storm | – |
-| luna | Support | Mender | Light | 10 | Celestial Strategist, Reader of the Star Charts | – |
-| ibuki | Support | Warder | Frost | 8 | Mistveil Shinobi, Cloud-Step Assassin | – |
-| tetsu | Support | Warder | Void | 6 | Blacksand Bastion, The Living Rampart | Black Sand Tomb |
-| amane | Support | Mender | Storm | 6 | Stormstring Puppeteer, Mistress of Strings | Puppet Theater |
-| goro | Support | Warder | Light | 4 | Iron-Vow Monk, Bearer of the Blood Oath | Severing Pact |
+| kaede | Attack | Mender | Void | 10 | Spirit Weaver, Soul-Thread Medic | – |
+| rook | Attack | Warder | Flame | 8 | Titan Warder, Armored Colossus | Colossal Stomp |
+| tomo | Attack | Striker | Flame | 8 | Solar Blade, Dawn Swordsman | Sun Dance |
+| noa | Attack | Hexer | Void | 8 | Starfall Witch, Mistress of Hounds | Shadow Garden |
+| hayate | Attack | Striker | Flame | 6 | Infernal Warden, Purgatory Flamekeeper | Purgatory Gate |
+| sora | Attack | Striker | Storm | 4 | Cursed Prodigy, Shadow Familiar Tamer | Hundred Familiars |
+| kaito | Attack | Striker | Frost | 2.5 | Ascended Golden Warrior, Prince of Pride | Golden Barrage |
+| tsubasa | Attack | Hexer | Light | 2.5 | Lunar Reaper, Crescent Soul Blade | Moonfall Cleave |
+| mirai | Attack | Hexer | Storm | 1.5 | Limitless Sage, The Untouchable | Hollow Convergence |
+| akane | Attack | Hexer | Flame | 1.5 | Crimson Scourge, King of Malice | Dismantle Storm |
+| raijen | Attack | Striker | Cosmic | 1 | Autonomous God State, The Silver Instinct | Moving Without Thought |
+| hana | Support | Mender | Light | 10 | Lotus Blossom, Hundred-Healing Medic | Hundred Healings |
+| suzu | Support | Striker | Storm | 10 | Thunder Flash, Sleeping Lightning | – |
+| luna | Support | Mender | Light | 10 | Celestial Strategist, Wisteria Tactician | – |
+| ibuki | Support | Warder | Frost | 8 | Phantom Blade, Cloud-Step Assassin | – |
+| tetsu | Support | Warder | Void | 6 | Iron Bastion, Living Sand Fortress | Sand Coffin |
+| amane | Support | Mender | Storm | 6 | Shadow Puppeteer, Mistress of Strings | Puppet Theater |
+| goro | Support | Warder | Light | 4 | Fist of Severance, Blood-Pact Brawler | Severing Pact |
 | amaya | Support | Warder | Storm | 4 | Storm Oracle, Voice of the Storm | Oracle's Tempest |
 | orin | Support | Mender | Void | 2.5 | Time Weaver, Keeper of Hours | Rewind |
-| yume | Support | Mender | Frost | 1.5 | Moon-Mirror Priestess, Keeper of Frozen Dreams | Frozen Lullaby |
-| aurelia | Support | Mender | Cosmic | 1 | Dawn Empress, Vessel of the Sealed Dawn | Last Light Oath |
-| kurogane_card | Attack | Hexer | Flame | 0.9 | Kurogane, The Ash Ronin | Ashen Slagfall |
-| rimeveil_card | Attack | Hexer | Frost | 0.85 | Rimeveil, The Glacier Queen | Crystal Sovereignty |
-| vex_card | Attack | Hexer | Void | 0.8 | Vex, The Void Tyrant | Devour All |
-| tenrai_card | Attack | Striker | Storm | 0.6 | Tenrai, The Storm Sovereign | Judgment Bolt |
+| yume | Support | Mender | Frost | 1.5 | Dream Reaper, Mirror of Hypnosis | Total Hypnosis |
+| aurelia | Support | Mender | Cosmic | 1 | Nine-Tails Sovereign, Vessel of the Nine Tails | Seal's Last Gate |
+| kurogane_card | Attack | Hexer | Flame | 0.9 | Tailed Beast Calamity, The Ember Fox | Fox's Slagfall |
+| rimeveil_card | Attack | Hexer | Frost | 0.85 | Galactic Emperor, The Frost Tyrant | Crystal Sovereignty |
+| vex_card | Attack | Hexer | Void | 0.8 | Mirror Flower Overlord, The Hollow Betrayer | Devour All |
+| tenrai_card | Attack | Striker | Storm | 0.6 | Demon Progenitor, The Thousand-Year Storm | Judgment Bolt |
 
 Weight sets the rarity (lower is rarer); the kit has to match it: a rarer card never carries fewer or smaller
 abilities than a commoner one (Weight 6 and rarer: an Ultimate; boss cards: a passive too).

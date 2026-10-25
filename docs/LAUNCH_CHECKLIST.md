@@ -73,7 +73,7 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   on vault tiles and splash cards (no "Starfall Wit"), no ★5 chip on splash cards; FUSE! seal and Awakening pips on
   vault tiles, the inspector's EQUIP / FUSE / ROLL TRAITS; the squad dock 12 px higher with no Support row clipping,
   damage numbers above the cards, the third guard clear of the dock, beams / hit flashes / lunges / camera shake in the
-  3D arena; AUTO-RETRY above SPEED; the Next Goal pill over Momentum; the new original card and boss names everywhere.
+  3D arena; AUTO-RETRY above SPEED; the Next Goal pill over Momentum.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

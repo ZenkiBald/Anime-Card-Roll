@@ -39,7 +39,7 @@ Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET B
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
 
-**Cards.** 22 cards + 4 boss cards, all original Dark Feudal names (the boss cards are the Four Calamities). Every card sits on one stat line (ATK ~500 +-10%, HP = 2
+**Cards.** 22 cards + 4 boss cards (anime-style epithet names for the private prototype, see Rules). Every card sits on one stat line (ATK ~500 +-10%, HP = 2
 x ATK; Support PWR ~300, no HP), scaled by rarity (`Cards.Scale`: a Weight 10 card 1x, Weight 1 about 1.41x, boss cards
 up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
@@ -157,8 +157,9 @@ emblem, role weapon, a hair crest picked by a hash of the id, so every card look
 Secret chase decks). Re-run after changing
   cards, bosses or battle rules, and retune if they fail.
 - Original characters only: no real anime characters, names or trademarked terms.
-  The 2026-10-25 prototype epithets were renamed to original dark-feudal names on 2026-10-26 (ids unchanged); keep
-  new names, subtitles and ability names original.
+  Prototype exception (the user's call, 2026-10-25, confirmed 2026-10-26): card and boss names are anime-style
+  epithets that nod to well-known series (card ids unchanged). Keep them: don't rename them unless the user asks in
+  their own words. This is for private testing: rename to fully original names before any publish.
 - Cheap on phones: UI-first, plain Frames + tweens, no textures or 3D particles in reveals, at most one 3D model per
   ViewportFrame; few CanvasGroups; StreamingEnabled, map under ~15k parts, few lights.
 - Town services stay at their NPCs (Hoshi, Kenshin, Fortuna): no HUD shortcut, and the server checks `NpcRange.Near`.
