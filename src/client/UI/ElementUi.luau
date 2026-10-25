@@ -29,6 +29,7 @@ function ElementUi.Badge(id: string?, props: { [string]: any }): Frame?
 	return IconBadge.new({
 		Name = props.Name or "Element",
 		IconAsset = element.Icon,
+		ArtKey = `Element:{element.Id}`,
 		ElementColor = element.Color,
 		Size = props.Size,
 		Position = props.Position,
@@ -49,6 +50,7 @@ function ElementUi.RoleBadge(role: string?, props: { [string]: any }): Frame?
 	return IconBadge.new({
 		Name = props.Name or "Role",
 		IconAsset = info.Icon,
+		ArtKey = `Role:{role}`,
 		GlowColor = info.Color,
 		Size = props.Size,
 		Position = props.Position,

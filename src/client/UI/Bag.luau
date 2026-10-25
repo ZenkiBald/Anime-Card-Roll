@@ -231,6 +231,7 @@ local function tile(entry, order: number)
 	local crest = IconBadge.new({
 		Name = "Icon",
 		IconAsset = crestOf(entry),
+		ArtKey = entry.Key,
 		GlowColor = edge,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.48),
@@ -242,6 +243,8 @@ local function tile(entry, order: number)
 		for _, d in crest:GetDescendants() do
 			if d:IsA("TextLabel") then
 				d.TextTransparency = 0.55
+			elseif d:IsA("ImageLabel") and d.Name == "Icon" then
+				d.ImageTransparency = 0.55
 			end
 		end
 	end
@@ -436,6 +439,7 @@ local function showDetail(entry)
 	})
 	IconBadge.new({
 		IconAsset = crestOf(entry),
+		ArtKey = entry.Key,
 		GlowColor = entry.Color,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),

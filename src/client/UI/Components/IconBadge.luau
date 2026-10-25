@@ -10,13 +10,14 @@
 -- side is 1/√2 of the root, so its points touch the root's edges and never clip outside it; the icon is
 -- sized to the square that fits inside the diamond (half the root, a little more for glyphs).
 --
--- IconBadge.new(props: { IconAsset: string, ElementColor: Color3?, GlowColor: Color3?, Size: UDim2,
+-- IconBadge.new(props: { IconAsset: string, ArtKey: string?, ElementColor: Color3?, GlowColor: Color3?, Size: UDim2,
 --   Parent: Instance?, Position: UDim2?, AnchorPoint: Vector2?, ZIndex: number?, Name: string?,
 --   LayoutOrder: number?, DominantAxis: Enum.DominantAxis? }) -> Frame
 -- The returned frame has children Plate, Glow and Icon (an ImageLabel for "rbxassetid://..." /
 -- "rbxasset://..." / "http..." assets, else a TextLabel showing the glyph).
 
 local Kit = require(script.Parent.Parent.Kit)
+local Skin = require(script.Parent.Parent.Skin)
 local Theme = require(script.Parent.Parent.Theme)
 local UITheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Configs"):WaitForChild("UITheme"))
 
@@ -163,7 +164,7 @@ function IconBadge.new(props: { [string]: any }): Frame
 	end
 
 	-- 5. The icon, upright in the square that fits inside the diamond.
-	local icon: string = props.IconAsset or ""
+	local icon: string = Skin.Art(props.ArtKey) or props.IconAsset or "" -- uploaded art (Skin.Icons) beats the glyph
 	if isAsset(icon) then
 		Kit.new("ImageLabel", {
 			Name = "Icon",

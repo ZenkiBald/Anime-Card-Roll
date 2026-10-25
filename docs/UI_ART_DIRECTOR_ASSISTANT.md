@@ -105,23 +105,22 @@ outline so it reads on black, lit from the upper left, a faint rim of its glow c
 
 (INDEX, POTIONS, SHOP, FX are old keys still in the table; leave them or reuse them.)
 
-**Icons that still show emoji** (the data holds an emoji in an `Icon` field). Design these too, but each needs
-a small coding task to wire, written in section 6:
+**Diamond badge art (wired: an empty key keeps the emoji or monogram).** These keys are already in
+`Skin.Icons`; paste an id next to one and every diamond badge using it switches to the image:
 
-- Elements (`Elements.luau`): Flame, Frost, Storm, Light, Void, Cosmic: a single crest per element (flame
-  mon, snowflake mon, lightning tomoe, sun disc, crescent eclipse, eclipse ring with stars).
-- Roles (`UITheme.Roles`): Striker (blade), Hexer (eye in a seal), Mender (lotus cross), Warder (round shield).
-- Relics (`Items.luau`, framed by rarity in the BAG): clover (four-leaf relic), hourglass (quicksand
-  hourglass), coin (merchant's coin with a square hole), tome (sage's tome), prism (prism shard), moonstone,
-  emberheart (a heart-shaped ember in a cage), frostsigil, voideye (a violet eye in black glass), stormcrown.
-- Artifact: hundredcrown (Crown of the Hundred Floors: a pagoda-tiered gold crown).
-- Roll Packs (`Packs.luau`): 10 = a single sealed card envelope, 100 = a lacquered scroll case, 1000 = a gold-
-  bound treasure chest; element packs = the same case tinted per element.
-- Potions (`Meta.luau`): luck, speed, border, mystic, time: stoppered gourds / vials, glow in the effect colour.
-- Shard Shop upgrades: Luck, Roll Speed, Border Chance, Shard Gain, XP Gain.
-- Foils (`Foils.luau`): Aura (spiral), Golden Ki (star burst), Demon Seal (oni mask seal).
-- Server events: LUCKY STORM, ROLL RUSH, DOUBLE XP (pill icons).
-- Store crests (now monograms "FR", "A+", "x3", "VIP" on diamonds): optional art for each pass.
+| Key | What to draw | Shows on |
+| --- | --- | --- |
+| `Element:Flame` / `Frost` / `Storm` / `Light` / `Void` / `Cosmic` | one crest per element: flame mon, snowflake mon, lightning tomoe, sun disc, crescent eclipse, eclipse ring with stars | card tiles, deck screen, tooltip, BOSS SCOUT, battle |
+| `Role:Striker` / `Hexer` / `Mender` / `Warder` | blade, eye in a seal, lotus cross, round shield | card tiles, deck inspector, tooltip |
+| `Artifact:<id>` (the 10 relics: clover, hourglass, coin, tome, prism, moonstone, emberheart, frostsigil, voideye, stormcrown) | four-leaf relic, quicksand hourglass, square-holed merchant's coin, sage's tome, prism shard, moonstone, a heart-shaped ember in a cage, frost sigil, a violet eye in black glass, storm crown | BAG (framed by relic rarity) |
+| `TowerArtifact:hundredcrown` | Crown of the Hundred Floors: a pagoda-tiered gold crown | BAG |
+| `Pack:10` / `Pack:100` / `Pack:1000` | a sealed card envelope, a lacquered scroll case, a gold-bound treasure chest (the element Mega Packs use `Pack:1000` unless you add `Pack:1000:Flame` ...) | BAG |
+| `Potion:luck` / `speed` / `superluck` / `mythic` | stoppered gourds / vials glowing in the potion's colour | BAG |
+| `Store:FastRoll` / `AutoRoll` / `TripleRoll` / `VIP` / `Totem` / `pouch` / `chest` / `vault` | pass and bundle crests (now the monograms "FR", "A+", "x3", "VIP" ...) | STORE |
+
+Still emoji in text, no badge yet (design them if you like; wiring them is a coding task, section 6): Shard Shop
+upgrades (Luck, Roll Speed, Border Chance, Shard Gain, XP Gain), foils (Aura spiral, Golden Ki star burst, Demon
+Seal oni mask), server events (LUCKY STORM, ROLL RUSH, DOUBLE XP).
 
 ### Icon prompt template
 
@@ -256,9 +255,8 @@ Effects.Sparks(badge, UITheme.Colors.Elements.Void, 6, 30)
 
 Paste the one you need into the coding session:
 
-- **Wire data icons:** "Let `Skin.Icons` take keys `element:<Id>`, `role:<Id>`, `relic:<Id>`,
-  `artifact:<Id>`, `pack:<Id>`, `potion:<Id>`, `upgrade:<Id>`, `foil:<Id>`, `event:<Id>`, and make
-  IconBadge / Bag / BossScreen / Index / Shop use the image when the key has an id, else the emoji."
+- **More icon art:** "Give the Shard Shop upgrades, foils and server events `IconBadge` crests with `ArtKey`s
+  (`Upgrade:<Id>`, `Foil:<Id>`, `Event:<Id>`) and add the keys to `Skin.Icons`."
 - **Border frames:** "Rekey `Skin.Frames` by border id (Normal / Gold / Rainbow / Secret) and draw them over
   CardTile and CardView when `Skin.KitArt` is on."
 - **New animation:** "Implement this spec: {paste the spec table + Luau}. Keep it in the screen's module,

@@ -161,7 +161,7 @@ end
 -- The crests: short monograms that say what each product does (no emoji).
 local CRESTS = { FastRoll = "FR", AutoRoll = "A+", TripleRoll = "x3", VIP = "VIP" }
 
-local function row(order: number, color: Color3, crest: string, title: string, perks: { { Text: string, Random: boolean? } }, price: number, owned: boolean, onBuy: () -> (), blocked: boolean?)
+local function row(order: number, color: Color3, crest: string, title: string, perks: { { Text: string, Random: boolean? } }, price: number, owned: boolean, onBuy: () -> (), blocked: boolean?, artKey: string?)
 	local restricted = State.Store.Restricted
 	local frame = Kit.new("Frame", {
 		LayoutOrder = order,
@@ -174,6 +174,7 @@ local function row(order: number, color: Color3, crest: string, title: string, p
 	-- The product's crest: a short monogram in a diamond plate glowing in the product's colour.
 	IconBadge.new({
 		IconAsset = crest,
+		ArtKey = artKey, -- uploaded crest art (Skin.Icons "Store:..."), else the monogram
 		GlowColor = color,
 		Size = UDim2.fromOffset(58, 58),
 		Position = UDim2.fromOffset(-2, -2),
@@ -231,7 +232,7 @@ function draw()
 	for i, pass in MonetizationConfig.Passes do
 		row(10 + i, pass.Color, CRESTS[pass.Key] or string.sub(pass.Name, 1, 2), string.upper(pass.Name), pass.Perks, pass.Price, store.Passes[pass.Key] == true, function()
 			request("Buy", pass.Key)
-		end)
+		end, nil, `Store:{pass.Key}`)
 	end
 	section(40, "SHARDS & SERVER TOTEM", "Buy as often as you like")
 	for i, bundle in MonetizationConfig.ShardBundles do
@@ -239,7 +240,7 @@ function draw()
 			{ Text = `{Kit.commas(bundle.Shards)} Shards (spend them on potions and Shard upgrades)`, Random = true },
 		}, bundle.Price, false, function()
 			request("BuyShards", bundle.Key)
-		end, store.Restricted)
+		end, store.Restricted, `Store:{bundle.Key}`)
 	end
 	local totem = MonetizationConfig.Totem
 	local now = workspace:GetServerTimeNow()
@@ -251,7 +252,7 @@ function draw()
 		{ Text = if running then `Running now: {math.floor((store.TotemEnds - now) / 60)} min left` else "A totem rises by the town spawn while it runs" },
 	}, totem.Price, false, function()
 		request("BuyTotem")
-	end, store.Restricted)
+	end, store.Restricted, "Store:Totem")
 
 	local footer = Kit.new("Frame", {
 		LayoutOrder = 70,

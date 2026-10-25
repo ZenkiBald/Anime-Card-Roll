@@ -54,6 +54,47 @@ Skin.Icons = {
 	DEV = "rbxassetid://77762881503907",
 	Shard = "rbxassetid://105504428224041",
 	Luck = "rbxassetid://116998892373970",
+
+	-- Diamond badge art (Components/IconBadge `ArtKey`), docs/UI_ART_DIRECTOR_ASSISTANT.md lists what to draw.
+	-- Empty keeps the emoji / monogram. 512 x 512 transparent PNGs, the object upright inside the diamond.
+	["Element:Flame"] = "",
+	["Element:Frost"] = "",
+	["Element:Storm"] = "",
+	["Element:Light"] = "",
+	["Element:Void"] = "",
+	["Element:Cosmic"] = "",
+	["Role:Striker"] = "",
+	["Role:Hexer"] = "",
+	["Role:Mender"] = "",
+	["Role:Warder"] = "",
+	-- BAG items, keyed like their BAG entries: relics (Artifact:), the Pagoda's artifact, packs, potions.
+	["Artifact:clover"] = "",
+	["Artifact:hourglass"] = "",
+	["Artifact:coin"] = "",
+	["Artifact:tome"] = "",
+	["Artifact:prism"] = "",
+	["Artifact:moonstone"] = "",
+	["Artifact:emberheart"] = "",
+	["Artifact:frostsigil"] = "",
+	["Artifact:voideye"] = "",
+	["Artifact:stormcrown"] = "",
+	["TowerArtifact:hundredcrown"] = "",
+	["Pack:10"] = "",
+	["Pack:100"] = "",
+	["Pack:1000"] = "", -- also the element Mega Packs unless they get their own ("Pack:1000:Flame" ...)
+	["Potion:luck"] = "",
+	["Potion:speed"] = "",
+	["Potion:superluck"] = "",
+	["Potion:mythic"] = "",
+	-- STORE crests, by pass key, plus the Luck Totem and the Shard bundles.
+	["Store:FastRoll"] = "",
+	["Store:AutoRoll"] = "",
+	["Store:TripleRoll"] = "",
+	["Store:VIP"] = "",
+	["Store:Totem"] = "",
+	["Store:pouch"] = "",
+	["Store:chest"] = "",
+	["Store:vault"] = "",
 }
 
 local BUTTON_COLORS = {
@@ -205,6 +246,22 @@ function Skin.Verify(playerGui: Instance): { string }
 	until #failed == 0 or os.clock() > deadline
 	holder:Destroy()
 	return failed
+end
+
+-- The uploaded art for an icon key (Skin.Icons), or nil while it has none. Keys with a ":" fall back to
+-- the part before the last ":" ("Pack:1000:Flame" -> "Pack:1000"), so a family can share one image.
+function Skin.Art(key: string?): string?
+	while key do
+		local id = Skin.Icons[key]
+		if id and id ~= "" then
+			return id
+		end
+		key = string.match(key, "^(.+):[^:]+$")
+		if key and not string.find(key, ":") then
+			return nil -- never fall back to a bare family name ("Pack")
+		end
+	end
+	return nil
 end
 
 -- Replaces an emoji icon label with the uploaded icon image, if there is one.
