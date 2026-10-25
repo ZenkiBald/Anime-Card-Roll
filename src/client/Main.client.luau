@@ -318,6 +318,7 @@ end)
 Battle.Init(playerGui, {
 	OnStart = function()
 		Hud.SetBattleMode(true)
+		HubFx.SetWorldLabelsHidden("Battle", true)
 		PlayerList.SetHidden("Battle", true)
 		Sfx.SetMusicOverride("Battle")
 		if controls then
@@ -326,6 +327,7 @@ Battle.Init(playerGui, {
 	end,
 	OnEnd = function()
 		Hud.SetBattleMode(false)
+		HubFx.SetWorldLabelsHidden("Battle", false)
 		PlayerList.SetHidden("Battle", false)
 		Sfx.SetMusicOverride(nil)
 		if controls then
@@ -337,6 +339,9 @@ Battle.Init(playerGui, {
 -- Hub NPCs: bosses open the boss screen, Kenji the Card Sage gives tips, Hoshi fuses, Madame Fortuna spins the
 -- wheel, and the tower gate opens the boss screen's TOWER tab.
 HubFx.Start()
+Modal.Changed:Connect(function(anyOpen: boolean)
+	HubFx.SetWorldLabelsHidden("Modal", anyOpen)
+end)
 -- Music and lighting follow the zone you walk into.
 ZoneFx.Start()
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
@@ -484,6 +489,7 @@ task.spawn(function()
 end)
 Reveal.OnBusy = function(on: boolean)
 	Hud.SetRevealMode(on)
+	HubFx.SetWorldLabelsHidden("Reveal", on)
 	PlayerList.SetHidden("Reveal", on)
 end
 

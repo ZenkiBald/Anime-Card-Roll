@@ -23,6 +23,7 @@ modules = [
     ("Tower", root / "src" / "shared"),
     ("Raid", root / "src" / "shared"),
     ("Tutorial", root / "src" / "shared"),
+    ("Goals", root / "src" / "shared"),
     ("MonetizationConfig", root / "src" / "shared"),
     ("BattleEngine", root / "src" / "server"),
     ("SaveMigration", root / "src" / "server"),

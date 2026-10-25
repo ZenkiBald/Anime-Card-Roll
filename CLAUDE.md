@@ -17,8 +17,9 @@ section 5). Treat anything not named here as unseen.
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and
 its boss. Town NPCs: Kenji (guide), Hoshi (fusion + pack alchemy), Kenshin (traits), Madame Fortuna (Lucky Wheel), the
-tower gate and leaderboards. Town services only work beside their NPC (server `NpcRange`, 24 studs); NPC name plates show
-from 160 studs. TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
+tower gate and leaderboards. Town services only work beside their NPC (server `NpcRange`, 24 studs); every world sign and NPC plate shows
+within 45 studs only, fades in (HubFx), never draws over the world, and hides with player name tags while a panel,
+fight or reveal is up (`Modal.Changed`, `HubFx.SetWorldLabelsHidden`). TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
 double jump. Twilight lighting (`LightingSetup`), zone music and moods (`ZoneFx`).
 
 **Rolling.** The server owns every roll. Each pull picks a card by its `Weight` from the pool (`Cards.Pool`; a boss's
@@ -38,7 +39,7 @@ Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET B
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
 
-**Cards.** 22 cards + 4 boss cards (anime-style epithet names for the private prototype, see Rules). Every card sits on one stat line (ATK ~500 +-10%, HP = 2
+**Cards.** 22 cards + 4 boss cards, all original Dark Feudal names (the boss cards are the Four Calamities). Every card sits on one stat line (ATK ~500 +-10%, HP = 2
 x ATK; Support PWR ~300, no HP), scaled by rarity (`Cards.Scale`: a Weight 10 card 1x, Weight 1 about 1.41x, boss cards
 up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
@@ -59,11 +60,14 @@ x0.85); 2 / 4 of an element switch on a synergy; 8 named bonds fire a Dual Ultim
 3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls. Stagger bar (counter
 elements fill it faster) -> 5 s Staggered. Cost Challenge (Deck Cost by border 2/4/6/8, cap 30) for x2 Trait Shards.
 The engine (`BattleEngine`) is pure and runs headless in tests. Fights are staged in 3D at the boss's spot in its world
-(`UI/Arena`, low cinematic camera, guards as tinted smaller copies); no map = the 2D fallback.
+(`UI/Arena`, low cinematic camera, guards as tinted smaller copies; beams fly from the card slots to the 3D figures,
+hits flash and recoil, guards lunge, boss skills and crits shake the camera); no map = the 2D fallback. Damage
+numbers on the squad's cards spawn above the card frame.
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended power 45k ... 388k; the fixtures are Base in
 World 1, Gold after, World 4 Gold 5-star with Awakening 1-3). Boss wins pay reward rolls (luck / floors by D), Shards,
-Roll Packs and Trait Shards (no gear); after a win AUTO REPEAT (opt-in) restarts the same fight. Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
+Roll Packs and Trait Shards (no gear); after a win AUTO-RETRY (opt-in, in the battle controls above SPEED and on
+the results screen) restarts the same fight; in the towers the same switch is AUTO CLIMB. Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
 affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 33k x 1.068^(floor-1)); every floor
 pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
 SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past
@@ -80,7 +84,8 @@ drops only) and **artifacts** (`Items.TowerArtifacts`, one per finite tower's la
 daily quests, playtime gifts, time-away rewards (`Meta.OfflineReward`: a Roll Pack per 30 min and 2 Shards a minute
 offline, after 10 min, up to 8 h; `LastSeen` in the save), roll milestones, Lucky Wheel, server events (LUCKY STORM /
 ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.client`): a SQUAD badge + hint when AUTO-BUILD would
-beat the active deck by 5%, and a hint when a card can fuse at Hoshi. Social: server list with favourite cards, profiles, name
+beat the active deck by 5%, and a hint when a card can fuse at Hoshi. The HUD's Next Goal pill (above Momentum,
+`Goals.Next`) shows the reward closest to landing (a fusion, an Awakening node, a roll milestone, a Shard upgrade). Social: server list with favourite cards, profiles, name
 tags, three town leaderboards.
 
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches
@@ -95,13 +100,15 @@ reads UNLEASH SURGE!); AUTO / QUICK are recessed and light their bezel when on. 
 steel edge, a vermilion banner slash and underline, tabs with a vermilion underline when active; `Controls` dropdowns
 and search are sunken wells. The deck screen has sunken empty slots, spirit-blue Slot Link tethers (gold for a bond), a
 sunken Cost Challenge meter and synergy / bond tags; AUTO-BUILD is the vermilion seal. Card tiles carry no combat stats
-(frame, art, star diamonds, element / role crests, name, xN and the rarity number); stats live in the deck inspector and
+(frame, art, star diamonds, element / role crests, name, xN, Awakening pips, a pulsing FUSE! seal at 100 copies and
+the rarity number; names wrap and scale 9-14); stats live in the deck inspector and
 the tooltip. BAG plaques are framed by relic rarity (bronze / purple / gold / cosmic crimson) with diamond crests (packs
 show their roll count). BOSS SCOUT is trays: leader and counter crests with +30% DMG, guard unit chips, synergy / bond
 tags; the boss well is sunken with a vignette; every tab strip uses the vermilion underline. The STORE uses diamond
 crests (monograms, no emoji) and solid vermilion R$ buttons. Components: `JuicyButton` (sheen, spring, sounds,
 CanvasGroup content; roll console + battle pods) and `IconBadge` (diamond badges for element / role / currency). Card
-portraits use the 2D `Image` when set, else an element-lit bust (the user is making the illustrations:
+portraits use the 2D `Image` when set, else a procedural portrait (`CardView` bust: element pattern, layered diamond
+emblem, role weapon, a hair crest picked by a hash of the id, so every card looks different) (the user is making the illustrations:
 `art/STORY_CARD_PROMPTS.md` has a prompt per current card, PNGs in `art/cards/<cardId>.png`).
 
 ## Layout (Rojo project, `default.project.json`)
@@ -110,7 +117,7 @@ portraits use the 2D `Image` when set, else an element-lit bust (the user is mak
 - `src/shared` -> ReplicatedStorage.Shared (both sides; pure data + formulas, tested headless): `Config` (tuning,
   `TestMode`, dev access lists, deck and battle rules), `Cards` (card data + `Pool`, `PullChances`, `Stat`, `Power`,
   `Cost`), `Borders` (the tiers: odds, multipliers, cost, colours), `Odds`, `Rarity` (relic / trait tiers only),
-  `Elements`, `Foils`, `Awaken`, `RollBoost` (Momentum + Surge), `Deck`, `Bosses`, `Rewards`, `Tower`, `Raid`, `Packs`,
+  `Elements`, `Foils`, `Awaken`, `RollBoost` (Momentum + Surge), `Deck`, `Bosses`, `Rewards`, `Tower`, `Raid`, `Packs`, `Goals`,
   `Items` (relics + artifacts), `Traits`, `Meta` (potions, upgrades, Index rewards, daily, gifts, milestones, quests, levels,
   stats, events, wheel, luck / cooldown formulas), `Tutorial`, `Mounts`, `BossModels`, `MonetizationConfig`.
 - `src/server` -> ServerScriptService.Server: `Main.server`, `DataService` (ProfileStore saves), `SaveMigration` (old
@@ -150,9 +157,8 @@ portraits use the 2D `Image` when set, else an element-lit bust (the user is mak
 Secret chase decks). Re-run after changing
   cards, bosses or battle rules, and retune if they fail.
 - Original characters only: no real anime characters, names or trademarked terms.
-  Prototype exception (the user's call, 2026-10-25): card names and boss names are anime-style epithets that nod to
-  well-known series (card ids unchanged). Ability names are original. This is for private testing: rename the cards
-  and bosses to fully original names before any publish, test with friends included.
+  The 2026-10-25 prototype epithets were renamed to original dark-feudal names on 2026-10-26 (ids unchanged); keep
+  new names, subtitles and ability names original.
 - Cheap on phones: UI-first, plain Frames + tweens, no textures or 3D particles in reveals, at most one 3D model per
   ViewportFrame; few CanvasGroups; StreamingEnabled, map under ~15k parts, few lights.
 - Town services stay at their NPCs (Hoshi, Kenshin, Fortuna): no HUD shortcut, and the server checks `NpcRange.Near`.

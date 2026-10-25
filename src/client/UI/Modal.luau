@@ -16,6 +16,9 @@ local Modal = {}
 Modal.__index = Modal
 
 local openModal = nil -- only one panel open at a time
+local changed = Instance.new("BindableEvent")
+-- Fires (anyOpen: boolean) when the first panel opens or the last one closes (Main hides world signs).
+Modal.Changed = changed.Event
 local blur: BlurEffect? = nil
 
 local C = UITheme.Colors
@@ -221,7 +224,11 @@ function Modal:Open()
 	if openModal and openModal ~= self then
 		openModal:Close()
 	end
+	local was = openModal
 	openModal = self
+	if was == nil then
+		changed:Fire(true)
+	end
 	self.IsOpen = true
 	self.Gui.Enabled = true
 	-- Pop in: the panel rises and grows a little while the backdrop fades in.
@@ -248,6 +255,7 @@ function Modal:Close()
 	if openModal == self then
 		openModal = nil
 		setBlur(false)
+		changed:Fire(false)
 	end
 	self.Gui.Enabled = false
 	if self.OnClose then

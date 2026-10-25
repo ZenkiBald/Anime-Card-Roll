@@ -18,6 +18,7 @@ local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
 local Foils = require(Shared.Foils)
 local RollBoost = require(Shared.RollBoost)
+local Goals = require(Shared.Goals)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -55,6 +56,7 @@ local raidWanted = false
 local momentumLabel: TextLabel -- above ROLL: the Momentum chain and the next Overcharge Surge
 local momentumFill: Frame -- the 2 px bar under it: Momentum toward RollBoost.Momentum.Max
 local surgeMeter: any -- under it (children read by name): the Overcharge Surge cycle, SurgeProgress 0-24
+local goalPill: any -- above the Momentum header (children read by name): the Next Goal tracker (Goals.Next)
 local surgeFill: any
 local surgeCount: TextLabel
 local surgeToken = 0
@@ -446,6 +448,43 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Kit.corner(UDim.new(0, 3)),
 		Kit.stroke(UITheme.Colors.Tamahagane, 1, 0),
 	})
+	-- The Next Goal pill, above the Momentum header: the reward closest to landing (a fusion, an Awakening
+	-- node, a roll milestone or a Shard upgrade) with a bar filling toward it, updated on every roll.
+	goalPill = Kit.new("Frame", {
+		Name = "NextGoal",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 0, -29),
+		Size = UDim2.new(1, 0, 0, 20),
+		BackgroundColor3 = UITheme.Colors.UrushiInset,
+		BackgroundTransparency = 0.1,
+		ClipsDescendants = true,
+		Visible = false,
+		Parent = row,
+	}, {
+		Kit.corner(UDim.new(1, 0)),
+		Kit.stroke(UITheme.Colors.TamahaganeSlate, 1, 0),
+	})
+	Kit.new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = UITheme.Colors.SurgeGold,
+		BackgroundTransparency = 0.55,
+		BorderSizePixel = 0,
+		Parent = goalPill,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	local goalText = Kit.label({
+		Name = "Text",
+		Text = "",
+		Font = Theme.Font.Heavy,
+		TextColor3 = UITheme.Colors.WashiParchment,
+		TextWrapped = false,
+		Position = UDim2.new(0, 8, 0, 1),
+		Size = UDim2.new(1, -16, 1, -2),
+		ZIndex = 2,
+		Parent = goalPill,
+	}, 13)
+	goalText:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 9
+	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.3).Parent = goalText
 	momentumFill = Kit.new("Frame", {
 		Name = "Fill",
 		AnchorPoint = Vector2.new(0, 1),
@@ -587,7 +626,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		TextColor3 = Theme.Color.Gold,
 		TextTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, -0.62, -18),
+		Position = UDim2.new(0.5, 0, -0.62, -42), -- above the Next Goal pill
 		Size = UDim2.fromScale(1, 0.3),
 		Parent = dock,
 	}, 22)
@@ -1077,12 +1116,43 @@ function Hud.LevelUp(ups)
 	end)
 end
 
+-- The Next Goal pill (Goals.Next): text, the bar, and a gold edge when it can be done now.
+local lastGoalText = ""
+function Hud.RefreshGoal()
+	if goalPill == nil then
+		return
+	end
+	local goal = Goals.Next({
+		Cards = State.Cards,
+		Rolls = State.Rolls(),
+		Claimed = State.Meta.Milestones,
+		Shards = State.Summary.Shards or 0,
+		Upgrades = State.Meta.Upgrades,
+	})
+	goalPill.Visible = goal ~= nil
+	if goal == nil then
+		return
+	end
+	goalPill.Text.Text = goal.Text
+	goalPill.Text.TextColor3 = if goal.Ready then UITheme.Colors.SurgeGold else UITheme.Colors.WashiParchment
+	goalPill.UIStroke.Color = if goal.Ready then UITheme.Colors.SurgeGold else UITheme.Colors.TamahaganeSlate
+	goalPill.Fill.BackgroundColor3 = if goal.Kind == "Fusion" then UITheme.Colors.VermilionHover
+		elseif goal.Kind == "Awakening" then UITheme.Colors.SpiritCyan
+		else UITheme.Colors.SurgeGold
+	Kit.tween(goalPill.Fill, 0.25, { Size = UDim2.fromScale(math.clamp(goal.Progress, 0.04, 1), 1) })
+	if goal.Text ~= lastGoalText and goal.Ready then
+		task.spawn(Effects.Pulse, goalPill:FindFirstChildOfClass("UIScale") or Kit.new("UIScale", { Parent = goalPill }), 1, 0.3, 0.06)
+	end
+	lastGoalText = goal.Text
+end
+
 function Hud.Refresh()
 	local s = State.Summary
 	setCurrency("Shards", Kit.commas(s.Shards or 0), s.Shards or 0)
 	local traitShards = s.TraitShards or State.Meta.TraitShards or 0
 	setCurrency("TraitShards", Kit.commas(traitShards), traitShards)
 	Hud.RefreshMomentum()
+	Hud.RefreshGoal()
 	setCurrency("Rolls", Kit.commas(s.TotalRolls), s.TotalRolls)
 	currency.Rolls.Odds.Text = `🍀 {string.format("%.2f", State.Luck())}x · ODDS ›`
 	rollButton.Sub.Text = string.format("%.2gs", State.Cooldown())

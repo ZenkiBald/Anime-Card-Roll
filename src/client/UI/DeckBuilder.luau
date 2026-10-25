@@ -79,6 +79,7 @@ local target: string? = nil -- the fight the deck screen was opened for (boss id
 local selected = nil -- { Row, Index }: the picked slot
 local inspectId: string? = nil -- the card in the inspector
 local inspectBorder: string? = nil -- which of its borders (each border it has copies at is its own vault tile)
+local FIRE_GOLD = Color3.fromRGB(255, 170, 60) -- Hoshi's waypoint
 local working = nil -- the deck being edited (mirrors the active preset)
 local search = ""
 local typeBy = "All"
@@ -545,6 +546,7 @@ local function drawGrid()
 			Power = Deck.PowerAt(card.Id, State.Cards, border),
 			Stats = true,
 			Awaken = Awaken.Level(own),
+			Fusable = item.Copies >= Config.FusionCopies and Borders.Next(border) ~= nil,
 			InDeck = playing and findInDeck(card.Id) ~= nil,
 			Selected = card.Id == inspectId and border == (inspectBorder or Deck.PlayBorder(own)),
 		})
@@ -589,7 +591,7 @@ local function drawInspector()
 	local own = id and entry(id)
 	if card == nil or own == nil then
 		text({
-			Text = "Tap a card to inspect it. Tap it again to put it in your squad.",
+			Text = "Tap a card to inspect it: EQUIP it, FUSE its copies or ROLL its TRAITS. Tap it again to put it in your squad.",
 			TextColor3 = Theme.Color.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextWrapped = true,
@@ -661,7 +663,7 @@ local function drawInspector()
 		BackgroundTransparency = 1,
 		Parent = inspector,
 	}, {
-		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center }),
+		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6), VerticalAlignment = Enum.VerticalAlignment.Center }),
 	})
 	local inRow, inIndex = findInDeck(card.Id)
 	local index = slotFor(card.Id)
@@ -669,26 +671,61 @@ local function drawInspector()
 		elseif inRow then `REMOVE FROM SLOT {inIndex}`
 		elseif index then (if working[card.Type][index] ~= "" then `REPLACE SLOT {index}` else `EQUIP TO SLOT {index}`)
 		else "PICK A SLOT FIRST"
+	-- Quick actions: [ EQUIP ] across the top, then [ FUSE ] (copies at this border toward 100; it warps
+	-- you to Hoshi, where fusing happens) and [ ROLL TRAITS ] (warps you to Kenshin), then the avatar.
 	local primary = Kit.button(label, if inRow and playing == best then Theme.Color.Danger else ROW_COLORS[card.Type], Color3.fromRGB(10, 40, 60), {
 		LayoutOrder = 1,
-		Size = UDim2.new(1, 0, 0, 44),
+		Size = UDim2.new(1, 0, 0, 36),
 		Parent = actions,
 	})
 	Kit.dim(primary, not inRow and index == nil)
 	primary.Activated:Connect(function()
 		equip(card.Id, best)
 	end)
-	local master = Kit.button("VISIT TRAIT MASTER", Color3.fromRGB(80, 230, 200), Color3.fromRGB(10, 50, 44), {
+	local pair = Kit.new("Frame", {
 		LayoutOrder = 2,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 32),
+		BackgroundTransparency = 1,
 		Parent = actions,
+	}, {
+		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
+	local pile = (own.BorderCopies or {})[best] or 0
+	local nextBorder = Borders.Next(best)
+	local fusable = nextBorder ~= nil and pile >= Config.FusionCopies
+	local fuseText = if nextBorder == nil then "TOP BORDER"
+		elseif fusable then `FUSE → {string.upper(Borders.Get(nextBorder).Name)}`
+		else `FUSE {math.min(pile, Config.FusionCopies)}/{Config.FusionCopies}`
+	local fuse = Kit.button(fuseText, if fusable then C.VermilionHover else C.TamahaganeSlate, if fusable then C.VermilionWax else C.UrushiBase, {
+		LayoutOrder = 1,
+		Size = UDim2.new(0.5, -3, 1, 0),
+		Parent = pair,
+	})
+	Kit.dim(fuse, nextBorder == nil)
+	local master = Kit.button("ROLL TRAITS", Color3.fromRGB(80, 230, 200), Color3.fromRGB(10, 50, 44), {
+		LayoutOrder = 2,
+		Size = UDim2.new(0.5, -3, 1, 0),
+		Parent = pair,
+	})
+	fuse.Activated:Connect(function()
+		if nextBorder == nil then
+			return
+		end
+		if not fusable then
+			hint(`{Config.FusionCopies - pile} more {border.Name} copies to fuse into {Borders.Get(nextBorder).Name}`)
+			return
+		end
+		modal:Close()
+		if Waypoint.To("fuser", "🔥 HOSHI · FUSION MASTER", FIRE_GOLD) then
+			hint("Follow the line to Hoshi in town to fuse")
+		end
+	end)
 	-- EQUIP AS AVATAR: your character wears this card's element aura (plus fire footsteps on Rainbow,
 	-- celestial motes on Secret) while walking. Tap again to take it off.
 	local worn = State.Meta.Avatar == card.Id
 	local avatar = Kit.button(if worn then "✓ WORN AS AVATAR" else "EQUIP AS AVATAR", if element then element.Color else CYAN, Color3.fromRGB(20, 26, 40), {
 		LayoutOrder = 3,
-		Size = UDim2.new(1, 0, 0, 36),
+		Size = UDim2.new(1, 0, 0, 30),
 		Parent = actions,
 	})
 	avatar.Activated:Connect(function()

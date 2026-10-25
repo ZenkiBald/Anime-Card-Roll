@@ -68,6 +68,12 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   (paste one id into a `Skin.Icons` key such as `Element:Flame` and check every badge picks it up).
 - [ ] Lower borders in the SQUAD vault: a card with Gold and Rainbow copies shows two tiles; tapping the Gold tile
   twice puts it in (or switches it) at Gold, the slot, battle card and Deck Cost follow, AUTO-BUILD goes back to Rainbow.
+- [ ] Playtest round 3 (2026-10-26): town signs only within 45 studs, 35% smaller, gone while a panel / fight /
+  reveal is open; procedural portraits look different card to card (pattern, emblem, weapon, hair); long names wrap
+  on vault tiles and splash cards (no "Starfall Wit"), no ★5 chip on splash cards; FUSE! seal and Awakening pips on
+  vault tiles, the inspector's EQUIP / FUSE / ROLL TRAITS; the squad dock 12 px higher with no Support row clipping,
+  damage numbers above the cards, the third guard clear of the dock, beams / hit flashes / lunges / camera shake in the
+  3D arena; AUTO-RETRY above SPEED; the Next Goal pill over Momentum; the new original card and boss names everywhere.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

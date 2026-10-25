@@ -46,9 +46,9 @@ local function build(character: Model, player: Player): BillboardGui?
 	end
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "NameTag"
-	gui.Size = UDim2.fromOffset(220, 58)
+	gui.Size = UDim2.fromOffset(143, 38) -- 35% under the old 220 x 58: tags no longer stack over the town
 	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.5, 0)
-	gui.MaxDistance = 90
+	gui.MaxDistance = 45
 	gui.LightInfluence = 0
 	gui.AlwaysOnTop = false
 	label(gui, {

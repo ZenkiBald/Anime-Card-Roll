@@ -26,8 +26,8 @@ local TIPS = {
 	"Beat a boss to fire a burst of reward rolls with boosted luck.",
 	"Your first clear of each fight adds a bonus card above the reward floor.",
 	"Clear Normal to open Hard, and Hard to open Nightmare.",
-	"Galactic Emperor's Crystal Spear freezes a card: it skips its next action.",
-	"Mirror Flower Overlord's Hollow Veil shrugs off Basic hits. Break it with Skills and Ultimates.",
+	"Rimeveil's Crystal Spear freezes a card: it skips its next action.",
+	"Vex's Hollow Veil shrugs off Basic hits. Break it with Skills and Ultimates.",
 	"Duplicates add stars: +5% stats each, up to 5 stars.",
 	"After 5 stars every copy counts: bring 100 to Hoshi and he fuses the card into the next rarity!",
 	"Find every card of a rarity in the INDEX for permanent luck and a prize.",
@@ -164,9 +164,32 @@ function HubFx.CameraBehind(character: Model)
 	Workspace.CurrentCamera.CFrame = CFrame.lookAt(focus - look * 12 + Vector3.new(0, 3.5, 0), focus)
 end
 
--- Portal and gate signs (tagged FadeSign by World) fade in as you walk up: solid within FADE_NEAR studs,
+-- Every world sign (tagged FadeSign by World) fades in as you walk up: solid within FADE_NEAR studs,
 -- gone at the BillboardGui's MaxDistance. Each label's 1 px shadow keeps its text in step.
 local FADE_NEAR = 28
+
+-- While a panel, a fight or a reveal is up, world signs and players' name tags hide, so no plate reads
+-- through a panel or bleeds into the top HUD. `reason` keys stack (Modal / Battle / Reveal).
+local hiddenBy: { [string]: boolean? } = {}
+local function worldHidden(): boolean
+	return next(hiddenBy) ~= nil
+end
+
+local function applyNameTags()
+	local hide = worldHidden()
+	for _, player in Players:GetPlayers() do
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local tag = root and root:FindFirstChild("NameTag")
+		if tag and tag:IsA("BillboardGui") then
+			tag.Enabled = not hide
+		end
+	end
+end
+
+function HubFx.SetWorldLabelsHidden(reason: string, on: boolean)
+	hiddenBy[reason] = if on then true else nil
+	applyNameTags()
+end
 
 local function fadeSigns()
 	local camera = Workspace.CurrentCamera
@@ -174,8 +197,13 @@ local function fadeSigns()
 		return
 	end
 	local eye = camera.CFrame.Position
+	local hide = worldHidden()
 	for _, gui in CollectionService:GetTagged("FadeSign") do
 		if not gui:IsA("BillboardGui") then
+			continue
+		end
+		gui.Enabled = not hide
+		if hide then
 			continue
 		end
 		local anchor = gui.Adornee or gui.Parent
@@ -208,6 +236,9 @@ function HubFx.Start()
 		while true do
 			task.wait(0.1)
 			fadeSigns()
+			if worldHidden() then
+				applyNameTags() -- tags of players who spawn while it's hidden
+			end
 		end
 	end)
 	local player = Players.LocalPlayer

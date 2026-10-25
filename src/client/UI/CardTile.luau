@@ -24,6 +24,9 @@ local ElementUi = require(script.Parent.ElementUi)
 
 local CardTile = {}
 
+local TweenService = game:GetService("TweenService")
+local AWAKEN_PIPS = 4 -- nodes at 20 / 40 / 60 / 80 copies (Awaken.luau); node 5 is border fusion: the FUSE! seal
+
 local C = UITheme.Colors
 
 export type Options = {
@@ -36,7 +39,8 @@ export type Options = {
 	Spin: boolean?, -- spin a Secret card's border (only for a few tiles at once)
 	Border: string?, -- the card's best border (Borders.luau): the tier and its frame
 	Stats: boolean?, -- ignored: stats moved to the inspector / tooltip (kept so callers don't break)
-	Awaken: number?, -- the card's Awakening node, for those stats
+	Awaken: number?, -- the card's Awakening node (0-4): four small pips above the name when given
+	Fusable: boolean?, -- 100+ copies at this border and a border above it: a pulsing FUSE! seal
 }
 
 local function outlined(label: TextLabel, thickness: number?)
@@ -156,31 +160,83 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		BorderFx.Apply(button, options.Border, { Corner = UDim.new(0, 6), ZIndex = 5, Spin = options.Spin, Thickness = frame.Thickness })
 	end
 
-	-- Bottom, top to bottom: name and copies, the stat line, the rarity number.
-	outlined(Kit.label({
+	-- Bottom: the name (wraps onto two lines and scales 9-14 instead of clipping), then the rarity number.
+	local nameLabel = outlined(Kit.label({
 		Name = "CardName",
 		Text = if owned then string.upper(card.Name) else "???",
 		Font = Theme.Font.Display,
 		TextColor3 = if owned then C.WashiParchment else C.WashiGhost,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromScale(0.07, 0.64),
-		Size = UDim2.fromScale(if owned and options.Copies then 0.6 else 0.86, 0.13),
+		TextYAlignment = Enum.TextYAlignment.Bottom,
+		Position = UDim2.fromScale(0.06, 0.6),
+		Size = UDim2.fromScale(0.88, 0.2),
 		ZIndex = 5,
 		Parent = button,
-	}, 15), 1.5)
+	}, 14), 1.5)
+	nameLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 9
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 2), PaddingRight = UDim.new(0, 2), Parent = nameLabel })
+	-- Copies at this border: top-left, under the stars.
 	if owned and options.Copies then
 		outlined(Kit.label({
 			Name = "Copies",
 			Text = `x{Kit.short(options.Copies)}`,
 			Font = Theme.Font.Heavy,
-			TextColor3 = C.WashiGhost,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.fromScale(0.93, 0.64),
-			Size = UDim2.fromScale(0.3, 0.13),
-			ZIndex = 5,
+			TextColor3 = if options.Fusable then C.SurgeGold else C.WashiGhost,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.fromScale(0.07, 0.15),
+			Size = UDim2.fromScale(0.42, 0.11),
+			ZIndex = 6,
 			Parent = button,
 		}, 14), 1.2)
+	end
+	-- Awakening: four small pips (20 / 40 / 60 / 80 copies), filled for each node open.
+	if owned and options.Awaken ~= nil then
+		local pips = Kit.new("Frame", {
+			Name = "Awakening",
+			Position = UDim2.fromScale(0.07, 0.53),
+			Size = UDim2.fromScale(0.4, 0.06),
+			BackgroundTransparency = 1,
+			ZIndex = 6,
+			Parent = button,
+		}, {
+			Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0.06, 0), VerticalAlignment = Enum.VerticalAlignment.Center }),
+		})
+		for i = 1, AWAKEN_PIPS do
+			local open = i <= (options.Awaken or 0)
+			Kit.new("Frame", {
+				Size = UDim2.fromScale(0.2, 1),
+				BackgroundColor3 = if open then C.SpiritCyan else C.UrushiInset,
+				BorderSizePixel = 0,
+				ZIndex = 6,
+				Parent = pips,
+			}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(if open then C.WashiParchment else C.TamahaganeSlate, 1, if open then 0.3 else 0) })
+		end
+	end
+	-- FUSE!: a vermilion wax seal over the art, pulsing, when this border has the copies to fuse (at Hoshi).
+	if owned and options.Fusable then
+		local seal = Kit.new("Frame", {
+			Name = "Fuse",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.44),
+			Size = UDim2.fromScale(0.56, 0.15),
+			BackgroundColor3 = C.VermilionWax,
+			ZIndex = 7,
+			Parent = button,
+		}, { Kit.corner(UDim.new(0.5, 0)) })
+		local rim = Kit.stroke(C.SurgeGold, 2, 0)
+		rim.Parent = seal
+		outlined(Kit.label({
+			Text = "FUSE!",
+			Font = Theme.Font.Display,
+			TextColor3 = C.WashiParchment,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 8,
+			Parent = seal,
+		}, 16), 1.2)
+		local scale = Kit.new("UIScale", { Parent = seal })
+		local pulse = TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+		TweenService:Create(scale, pulse, { Scale = 1.12 }):Play()
+		TweenService:Create(rim, pulse, { Color = C.VermilionHover }):Play()
 	end
 	local rarity = if owned then Cards.Rarity(cardId, borderId) else 0
 	outlined(Kit.label({
@@ -240,7 +296,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	if options.InDeck then
 		local seal = Kit.new("Frame", {
 			Name = "InDeck",
-			Position = UDim2.fromScale(0.06, 0.18),
+			Position = UDim2.fromScale(0.06, 0.28),
 			Size = UDim2.fromScale(0.18, 0.18),
 			BackgroundColor3 = C.VermilionWax,
 			ZIndex = 6,

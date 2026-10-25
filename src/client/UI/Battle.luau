@@ -76,6 +76,7 @@ local frontRow: Frame
 local backRow: Frame
 local autoButton: any -- children read by name
 local speedButton: any
+local retryButton: any -- AUTO-RETRY: the boss fight again after a win (AUTO CLIMB in the towers)
 local forfeitButton: any
 local intro: Frame
 local results: Frame
@@ -172,18 +173,20 @@ local function callout(text: string, color: Color3, seconds: number?)
 	end)
 end
 
--- Number or word that pops, floats up off a tile or the boss, and fades.
+-- Number or word that pops, floats up off a tile or the boss, and fades. On the squad's own cards it
+-- spawns above the card frame, so it never covers the card's name (playtest: "Cursed Pr+3,600").
 local function float(parent: GuiObject?, text: string, color: Color3, big: boolean?)
 	if parent == nil or parent.Parent == nil then
 		return
 	end
+	local onCard = parent.Name == "Card" and parent.Parent ~= nil and tiles[parent.Parent.Name] ~= nil
 	local label = Kit.label({
 		Name = "Float",
 		Text = text,
 		Font = Theme.Font.Display,
 		TextColor3 = if big then Color3.new(1, 1, 1) else color,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.25 + math.random() * 0.5, 0.42),
+		AnchorPoint = if onCard then Vector2.new(0.5, 1) else Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.25 + math.random() * 0.5, if onCard then -0.04 else 0.42),
 		Size = UDim2.fromScale(if big then 1.05 else 0.9, if big then 0.5 else 0.36),
 		Rotation = math.random(-6, 6),
 		ZIndex = 40,
@@ -332,6 +335,7 @@ end
 -- Shakes can overlap, so the stage is put back at its home position afterwards.
 local STAGE_HOME: UDim2
 local function shakeStage(intensity: number, duration: number)
+	Arena.Shake(intensity * 0.08, duration) -- the 3D camera too, when the fight is staged
 	Effects.Shake(stage, intensity, duration)
 	task.delay(duration + 0.05, function()
 		stage.Position = STAGE_HOME
@@ -458,6 +462,11 @@ local function setBadges(dock: Frame, flags: string)
 end
 
 -- Screen-space effects --------------------------------------------------------------------------
+
+-- A card's centre in viewport pixels (BattleGui ignores the GUI inset), for 3D beams.
+local function screenOf(object: GuiObject): Vector2
+	return object.AbsolutePosition + object.AbsoluteSize / 2
+end
 
 local function centerOf(object: GuiObject): Vector2
 	return object.AbsolutePosition + object.AbsoluteSize / 2 - fxLayer.AbsolutePosition
@@ -1366,6 +1375,7 @@ local function playEvent(event)
 		end
 		local guard = enemyTiles[event.U]
 		if guard then
+			Arena.Lunge(event.U)
 			-- A guard lunges down at the cards; its big moves get a callout.
 			guard.Card.Position = UDim2.fromScale(0, 0)
 			Kit.tween(guard.Card, 0.08, { Position = UDim2.fromOffset(0, 10) }, Enum.EasingStyle.Quad).Completed:Connect(function()
@@ -1384,6 +1394,17 @@ local function playEvent(event)
 			return
 		end
 		local aim = targetFrame(event.T) or bossHolder
+		-- Staged in 3D: shots fly from the card slot to the focused 3D figure (2D bolts can't reach a
+		-- world-space billboard).
+		local aimId = if event.T and (event.T == "Boss" or enemyTiles[event.T]) then event.T else "Boss"
+		local staged = Arena.Active()
+		local function shoot(color: Color3, thick: number, big: boolean?)
+			if staged then
+				Arena.Beam(screenOf(tile.Card), aimId, color, thick, big)
+			else
+				bolt(tile.Card, aim, color, thick)
+			end
+		end
 		if event.Ab == "Ultimate" then
 			cutIn(tile.CardId, event.N)
 			Effects.Flash(gui, tile.TierColor, 0.45, 0.55)
@@ -1391,7 +1412,10 @@ local function playEvent(event)
 			bump(tile.Scale, 0.15)
 			if tile.IsAttack then
 				for i = 1, 3 do
-					task.delay(i * 0.05, bolt, tile.Card, aim, tile.TierColor, 10)
+					task.delay(i * 0.05, shoot, tile.TierColor, 10, i == 3)
+				end
+				if staged then
+					task.delay(0.3, Arena.Shake, 0.6, 0.35)
 				end
 			end
 		elseif tile.IsAttack then
@@ -1400,11 +1424,11 @@ local function playEvent(event)
 			Kit.tween(tile.Card, 0.08, { Position = UDim2.new(0.5, 0, 0.5, -12) }, Enum.EasingStyle.Quad).Completed:Connect(function()
 				Kit.tween(tile.Card, 0.18, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
 			end)
-			bolt(tile.Card, aim, tile.Accent, if event.Ab == "Skill" then 9 else 6)
+			shoot(tile.Accent, if event.Ab == "Skill" then 9 else 6)
 			Sfx.Play("Whoosh", if event.Ab == "Skill" then 1.05 else 1.25 + math.random() * 0.15)
 			if event.Ab == "Skill" then
 				castTag(tile, event.N, "Skill")
-				task.delay(0.06, bolt, tile.Card, aim, tile.TierColor, 9)
+				task.delay(0.06, shoot, tile.TierColor, 9, true)
 			end
 		else
 			-- Support: a soft glow and a lift as it casts.
@@ -1441,7 +1465,11 @@ local function playEvent(event)
 				-- Sparks in the world's colour (embers, ice, void, lightning); crits burst and shake.
 				local spark = current.BossColor:Lerp(Color3.new(1, 1, 1), 0.25)
 				if event.C then
-					ring(centerOf(bossHolder), Theme.Color.Gold, 140)
+					if Arena.Active() then
+						Arena.Impact("Boss", Theme.Color.Gold, true)
+					else
+						ring(centerOf(bossHolder), Theme.Color.Gold, 140)
+					end
 					Effects.Sparks(bossHolder, spark, 14, 0.7)
 					Effects.Flash(gui, current.BossColor, 0.2, 0.85)
 					shakeStage(5, 0.18)
@@ -1480,6 +1508,11 @@ local function playEvent(event)
 				float(tile.Card, `-{Kit.commas(event.A)}`, Theme.Color.Roll)
 			else
 				float(tile.Card, `-{Kit.commas(event.A)}{elementMark(event.El)}`, if event.Sh then SHIELD_COLOR else Theme.Color.Danger)
+				-- Staged in 3D: the strike flies from the attacker's figure into this card.
+				if Arena.Active() and event.U and (event.U == "Boss" or enemyTiles[event.U]) then
+					local from = enemyTiles[event.U]
+					Arena.Strike(event.U, screenOf(tile.Card), if from then from.Color else current.BossColor)
+				end
 				Sfx.Play("Hit", 0.7)
 				slash(tile, if event.Sh then SHIELD_COLOR else Color3.fromRGB(255, 90, 90))
 				glow(tile, Theme.Color.Danger)
@@ -2410,6 +2443,18 @@ local function setAutoLabel()
 	autoButton.UIStroke.Thickness = if on then 3 else 1.5
 end
 
+-- AUTO-RETRY (boss fights: the same fight again after each win, for farming) shares the results
+-- screen's AUTO REPEAT switch; in the towers it is AUTO CLIMB; raids have no retry.
+local function setRetryLabel()
+	local raid = current ~= nil and current.Raid ~= nil
+	retryButton.Visible = not raid
+	local tower = current ~= nil and current.Tower ~= nil
+	local on = if tower then autoClimb else autoRepeat
+	retryButton.Label.Text = `{if tower then "AUTO CLIMB" else "AUTO-RETRY"}: {if on then "ON" else "OFF"}`
+	retryButton.UIStroke.Transparency = if on then 0 else 0.75
+	retryButton.UIStroke.Thickness = if on then 3 else 1.5
+end
+
 local function setSpeedLabel()
 	local speed = if current then current.Speed else 1
 	speedButton.Label.Text = `SPEED {speed}x`
@@ -2558,6 +2603,7 @@ local function begin(start, bossId: string, difficulty: string?)
 	bossStatus.Text = ""
 	setAutoLabel()
 	setSpeedLabel()
+	setRetryLabel()
 	applySnapshot(start.Snap)
 
 	gui.Enabled = true
@@ -2991,7 +3037,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	local rowsFrame = Kit.new("Frame", {
 		Name = "Rows",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -6),
+		Position = UDim2.new(0.5, 0, 1, -18), -- 12 px more bottom margin than before (the Support row clipped)
 		Size = UDim2.fromScale(0.66, 0.22),
 		BackgroundTransparency = 1,
 		Parent = stage,
@@ -3012,8 +3058,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 			}),
 		})
 	end
-	frontRow = row("Front", 0, 0.64)
-	backRow = row("Back", 0.68, 0.32)
+	frontRow = row("Front", 0, 0.66)
+	backRow = row("Back", 0.71, 0.27) -- the Support chips, a little more compact
 
 	-- Controls down the left edge (where the main menu sits outside battle).
 	local controlsFrame = Kit.new("Frame", {
@@ -3024,7 +3070,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		BackgroundTransparency = 1,
 		Parent = stage,
 	}, {
-		Kit.new("UISizeConstraint", { MinSize = Vector2.new(96, 120), MaxSize = Vector2.new(170, 220) }),
+		Kit.new("UISizeConstraint", { MinSize = Vector2.new(96, 150), MaxSize = Vector2.new(170, 260) }),
 		Kit.new("UIListLayout", {
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -3033,9 +3079,27 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	})
 	autoButton = Kit.button("AUTO ULT: OFF", Theme.Color.Accent, Theme.Color.AutoDeep, {
 		LayoutOrder = 1,
-		Size = UDim2.new(1, 0, 0.28, 0),
+		Size = UDim2.new(1, 0, 0.22, 0),
 		Parent = controlsFrame,
 	})
+	retryButton = Kit.button("AUTO-RETRY: OFF", Theme.Color.Gold, Color3.fromRGB(110, 76, 10), {
+		LayoutOrder = 2,
+		Size = UDim2.new(1, 0, 0.22, 0),
+		Parent = controlsFrame,
+	})
+	retryButton.Activated:Connect(function()
+		if current == nil then
+			return
+		end
+		if current.Tower then
+			autoClimb = not autoClimb
+		else
+			autoRepeat = not autoRepeat
+		end
+		local on = if current.Tower then autoClimb else autoRepeat
+		hint(if on then "After a win the next fight starts by itself" else "Auto-retry off")
+		setRetryLabel()
+	end)
 	autoButton.Activated:Connect(function()
 		if current == nil or current.Ended then
 			return
@@ -3049,8 +3113,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		end
 	end)
 	speedButton = Kit.button("SPEED 1x", Theme.Color.Auto, Theme.Color.AutoDeep, {
-		LayoutOrder = 2,
-		Size = UDim2.new(1, 0, 0.28, 0),
+		LayoutOrder = 3,
+		Size = UDim2.new(1, 0, 0.22, 0),
 		Parent = controlsFrame,
 	})
 	speedButton.Activated:Connect(function()
@@ -3069,8 +3133,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		setSpeedLabel()
 	end)
 	forfeitButton = Kit.button("GIVE UP", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), {
-		LayoutOrder = 3,
-		Size = UDim2.new(1, 0, 0.28, 0),
+		LayoutOrder = 4,
+		Size = UDim2.new(1, 0, 0.22, 0),
 		Parent = controlsFrame,
 	})
 	local armed = false

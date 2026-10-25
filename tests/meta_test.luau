@@ -203,3 +203,19 @@ local away = Meta.OfflineReward(3 * 3600 + 120)
 check(away ~= nil and away.Packs ~= nil and away.Packs["10"] == 6 and away.Shards == 182 * Meta.Offline.ShardsPerMinute, "3 hours away: 6 Roll Packs and 2 Shards a minute")
 local long = Meta.OfflineReward(5 * 86400)
 check(long ~= nil and long.Seconds == Meta.Offline.CapSeconds and long.Packs["10"] == 16, "days away count as 8 hours (16 packs)")
+
+-- The HUD's Next Goal pill (Goals.luau): the reward closest to landing, a ready fusion first.
+do
+	local Goals = MODULES.Goals
+	local luna = Cards.Get("luna")
+	local near = Goals.Next({ Cards = { luna = { Copies = 86, Stars = 5, BorderCopies = { Normal = 86 } } }, Rolls = 10, Shards = 0 })
+	check(near ~= nil and near.Kind == "Fusion" and near.Text == `Next Fusion: {luna.Name} Base (86/100)` and math.abs(near.Progress - 0.86) < 1e-9, "86 Base copies: the pill reads 'Next Fusion: ... (86/100)'")
+	local ready = Goals.Next({ Cards = { luna = { Copies = 140, Stars = 5, BorderCopies = { Normal = 120, Gold = 20 } } }, Rolls = 49, Shards = 9999 })
+	check(ready ~= nil and ready.Ready and ready.Kind == "Fusion" and string.find(ready.Text, "FUSE READY", 1, true) ~= nil, "100+ copies at a border: FUSE READY beats every other goal")
+	local roll = Goals.Next({ Cards = {}, Rolls = 45, Shards = 0 })
+	check(roll ~= nil and roll.Kind == "Milestone" and string.find(roll.Text, "50 rolls", 1, true) ~= nil, "no cards yet: the next roll milestone")
+	local shop = Goals.Next({ Cards = {}, Rolls = 0, Claimed = {}, Shards = 32, Upgrades = { Luck = 0 } })
+	check(shop ~= nil and shop.Kind == "Upgrade" and string.find(shop.Text, "Lucky Charm I (80%)", 1, true) ~= nil, "32 of 40 Shards: 'Next Upgrade: Lucky Charm I (80%)'")
+	local top = Goals.Next({ Cards = { luna = { Copies = 1, Stars = 0, BorderCopies = { Secret = 1 } } }, Rolls = 0, Shards = 0 })
+	check(top == nil or top.Kind ~= "Fusion", "a Secret pile has no fusion goal (no border above)")
+end

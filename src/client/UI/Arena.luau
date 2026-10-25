@@ -22,11 +22,11 @@ local ZoneFx = require(script.Parent.Parent.ZoneFx)
 local Arena = {}
 
 local GUARD_SCALE = 0.55
--- Where guards stand, in the leader's frame (it faces -Z): left, right, in front. Wide enough that their
--- tiles don't overlap from the battle camera; the front guard's tile hangs under its feet (FRONT), so it
--- never covers the leader or its plate.
-local GUARD_SPOTS = { Vector3.new(-13, 0, -3), Vector3.new(13, 0, -3), Vector3.new(0, 0, -12) }
-local FRONT = 3
+-- Where guards stand, in the leader's frame (it faces -Z): left, right, and the third further back on the
+-- left flank. Every guard's tile hangs over its head. (The third guard used to stand in front of the
+-- leader with its tile under its feet, and the squad dock covered it: playtest 2026-10-26.)
+local GUARD_SPOTS = { Vector3.new(-13, 0, -3), Vector3.new(13, 0, -3), Vector3.new(-25, 0, 5) }
+local TweenService = game:GetService("TweenService")
 -- During a fight the place's bloom is turned down (the braziers and neon blew out the middle of the
 -- screen); Stop puts it back.
 local FIGHT_BLOOM = { Intensity = 0.3, Threshold = 2.4 }
@@ -39,6 +39,7 @@ local hidden = {} -- the world's own boss NPC parts, hidden while we stand in fo
 local dof: DepthOfFieldEffect? = nil
 local stepConnection: RBXScriptConnection? = nil
 local plate = nil -- the leader's name + HP plate
+local shake = { Power = 0, Until = 0 } -- camera shake on boss skills and crits (studs of jitter)
 
 local function ground(position: Vector3, ignore: { Instance }): Vector3
 	local params = RaycastParams.new()
@@ -266,7 +267,7 @@ function Arena.Start(boss, guards: { any }, tint: Color3?): Staged?
 		local g = Bosses.GuardTypes[guard.GuardId]
 		local color = if g then g.Color else Color3.fromRGB(255, 90, 90)
 		local fig = figure(guard.Id, boss.Id, onGround(offset), GUARD_SCALE, color)
-		local lift = if i == FRONT then -(fig.Height / 2 + 2.2) else fig.Height / 2 + 2.4
+		local lift = fig.Height / 2 + 2.4
 		guardGuis[i] = billboard(`Guard{i}`, fig.Model.PrimaryPart, UDim2.fromOffset(150, 84), lift)
 	end
 
@@ -299,7 +300,12 @@ function Arena.Start(boss, guards: { any }, tint: Color3?): Staged?
 	local side = front.RightVector
 	stepConnection = RunService.RenderStepped:Connect(function(dt)
 		local t = os.clock() - start
-		camera.CFrame = CFrame.lookAt(eyeBase + side * math.sin(t * 0.18) * 4, focus)
+		local eye = eyeBase + side * math.sin(t * 0.18) * 4
+		if os.clock() < shake.Until then
+			local p = shake.Power * math.clamp((shake.Until - os.clock()) / 0.35, 0, 1)
+			eye += Vector3.new((math.random() - 0.5) * p, (math.random() - 0.5) * p, (math.random() - 0.5) * p)
+		end
+		camera.CFrame = CFrame.lookAt(eye, focus)
 		for _, f in figures do
 			f.Kick *= math.exp(-dt * 9)
 			f.Lunge *= math.exp(-dt * 7)
@@ -315,13 +321,147 @@ function Arena.Start(boss, guards: { any }, tint: Color3?): Staged?
 	return { View = view, LeaderGui = leaderGui, GuardGuis = guardGuis }
 end
 
+-- Effects (all client-side, plain neon Parts tweened and destroyed: about three per attack, no textures).
+
+local function fxPart(name: string, size: Vector3, cframe: CFrame, color: Color3, shape: Enum.PartType?): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = color
+	part.Size = size
+	part.CFrame = cframe
+	if shape then
+		part.Shape = shape
+	end
+	part.Parent = folder
+	return part
+end
+
+local function fade(part: BasePart, seconds: number, grow: Vector3?)
+	local goal: { [string]: any } = { Transparency = 1 }
+	if grow then
+		goal.Size = grow
+	end
+	local tween = TweenService:Create(part, TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), goal)
+	tween.Completed:Connect(function()
+		part:Destroy()
+	end)
+	tween:Play()
+end
+
+-- Where a figure's chest is (the beam's end), or nil.
+local function chest(id: string): Vector3?
+	local f = figures[id]
+	if f == nil or f.Model.Parent == nil then
+		return nil
+	end
+	return f.Model:GetPivot().Position + Vector3.new(0, f.Height * 0.1, 0)
+end
+
+-- A point a few studs in front of the camera under a screen position (viewport pixels).
+local function fromScreen(at: Vector2, depth: number): Vector3
+	local ray = Workspace.CurrentCamera:ViewportPointToRay(at.X, at.Y)
+	return ray.Origin + ray.Direction * depth
+end
+
+-- An impact: a neon flash that swells and fades, plus two crossing slashes facing the camera.
+function Arena.Impact(id: string, color: Color3, big: boolean?)
+	local at = chest(id)
+	if folder == nil or at == nil then
+		return
+	end
+	local f = figures[id]
+	local size = f.Height * (if big then 0.5 else 0.3)
+	local flash = fxPart("Impact", Vector3.one * size * 0.4, CFrame.new(at), color, Enum.PartType.Ball)
+	flash.Transparency = 0.2
+	fade(flash, 0.28, Vector3.one * size)
+	local face = CFrame.lookAt(at, Workspace.CurrentCamera.CFrame.Position)
+	for i, angle in { 35, -30 } do
+		local cut = fxPart("Slash", Vector3.new(0.25, 0.25, 0.1), face * CFrame.Angles(0, 0, math.rad(angle)) * CFrame.new(0, 0, -0.5), color:Lerp(Color3.new(1, 1, 1), 0.5))
+		task.delay((i - 1) * 0.05, function()
+			if cut.Parent then
+				fade(cut, 0.22, Vector3.new(size * 1.6, 0.18, 0.1))
+			end
+		end)
+	end
+end
+
+-- A beam from a card slot on screen (viewport pixels) to a figure: a glowing bolt flies there and bursts.
+function Arena.Beam(from: Vector2, toId: string, color: Color3, thick: number?, big: boolean?)
+	local target = chest(toId)
+	if folder == nil or target == nil then
+		return
+	end
+	local start = fromScreen(from, 6)
+	local width = (thick or 6) / 20
+	local bolt = fxPart("Beam", Vector3.new(width, width, 2.5), CFrame.lookAt(start, target), color)
+	local tween = TweenService:Create(bolt, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		CFrame = CFrame.lookAt(target, target + (target - start).Unit),
+		Size = Vector3.new(width, width, 5),
+	})
+	tween.Completed:Connect(function()
+		bolt:Destroy()
+		Arena.Impact(toId, color, big)
+	end)
+	tween:Play()
+end
+
+-- The other way: a figure's strike flying at a card slot on screen (boss and guard attacks).
+function Arena.Strike(fromId: string, to: Vector2, color: Color3)
+	local start = chest(fromId)
+	if folder == nil or start == nil then
+		return
+	end
+	local finish = fromScreen(to, 6)
+	local bolt = fxPart("Strike", Vector3.new(0.35, 0.35, 3), CFrame.lookAt(start, finish), color)
+	local tween = TweenService:Create(bolt, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		CFrame = CFrame.lookAt(finish, finish + (finish - start).Unit),
+	})
+	tween.Completed:Connect(function()
+		fade(bolt, 0.12)
+	end)
+	tween:Play()
+end
+
+-- A guard lunges at the squad as it attacks (the leader's lunge is View:Lunge).
+function Arena.Lunge(id: string)
+	local f = figures[id]
+	if f then
+		f.Lunge = 1
+	end
+end
+
+-- Shakes the battle camera (boss skills, crits). Overlapping shakes keep the strongest.
+function Arena.Shake(power: number, seconds: number)
+	if folder == nil then
+		return
+	end
+	local now = os.clock()
+	if now >= shake.Until or power >= shake.Power then
+		shake.Power = power
+	end
+	shake.Until = math.max(shake.Until, now + seconds)
+end
+
 -- A guard (or the leader) recoils from a hit.
 function Arena.Hit(id: string, crit: boolean?)
 	local f = figures[id]
 	if f and id ~= "Boss" then
 		f.Kick = math.min(1.6, f.Kick + (if crit then 1.1 else 0.5))
-		f.Highlight.FillTransparency = 0.3
+		-- A white hit-flash, then back to the guard's tint.
+		f.Highlight.FillColor = Color3.new(1, 1, 1)
+		f.Highlight.FillTransparency = if crit then 0.1 else 0.3
 		Kit.tween(f.Highlight, 0.25, { FillTransparency = 0.65 })
+		task.delay(0.12, function()
+			if f.Down == 0 then
+				f.Highlight.FillColor = f.Tint or Color3.new(1, 1, 1)
+			end
+		end)
 	end
 end
 
@@ -371,6 +511,7 @@ function Arena.Stop()
 		savedBloom = nil
 	end
 	plate = nil
+	shake.Power, shake.Until = 0, 0
 	if folder then
 		folder:Destroy()
 		folder = nil

@@ -729,7 +729,7 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 		oath.Used = true
 		target.HP = 1
 		target.Invuln = oath.Seconds
-		self:Emit({ K = "Signature", U = oath.Owner.Id, T = target.Id, N = "Seal's Last Gate" })
+		self:Emit({ K = "Signature", U = oath.Owner.Id, T = target.Id, N = "Last Light Oath" })
 		return
 	end
 	target.HP = 0

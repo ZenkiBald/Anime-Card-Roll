@@ -46,10 +46,12 @@ local THEMES = {
 	Rain = { Floor = Color3.fromRGB(44, 48, 66), Stone = Color3.fromRGB(56, 60, 82), Glow = Color3.fromRGB(255, 226, 90) },
 }
 
--- World signs: GothamBold with a subtle 1 px drop shadow (no heavy outlines). Portal and gate signs
--- `fade`: they only show within SIGN_RANGE studs (clients fade them in as you walk up, HubFx), so the
--- town skyline stays clear; NPC name signs stay readable from further away.
+-- World signs: GothamBold with a subtle 1 px drop shadow (no heavy outlines). Every sign (NPC plates,
+-- booths, portals, gates) only shows within SIGN_RANGE studs and fades in as you walk up (HubFx), and none
+-- draws over the world (AlwaysOnTop off), so the hub never piles plates on top of each other or the HUD.
+-- Plates are 35% smaller than the old 260 x 70 (playtest 2026-10-26: 160-stud plates stacked into a soup).
 local SIGN_RANGE = 45
+local SIGN_SIZE = UDim2.fromOffset(169, 46)
 
 local function shadowed(label: TextLabel)
 	label.TextStrokeTransparency = 1
@@ -78,6 +80,7 @@ end
 local function styleSign(gui: BillboardGui, fade: boolean, range: number?)
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 	gui.LightInfluence = 0
+	gui.AlwaysOnTop = false
 	if fade then
 		gui.MaxDistance = range or SIGN_RANGE
 		-- The size-by-distance limits aren't in every API version (and may not be scriptable): try them.
@@ -96,14 +99,12 @@ local function styleSign(gui: BillboardGui, fade: boolean, range: number?)
 	end
 end
 
-local function sign(parent: BasePart, offset: number, title: string, sub: string, color: Color3, fade: boolean?)
-	-- NPC and booth name plates are full size and seen from 160 studs (the user found 25-stud plates
-	-- unreadable); portal / gate signs fade in close (SIGN_RANGE).
+local function sign(parent: BasePart, offset: number, title: string, sub: string, color: Color3, _fade: boolean?)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Sign"
-	gui.Size = UDim2.fromOffset(260, 70)
+	gui.Size = SIGN_SIZE
 	gui.StudsOffset = Vector3.new(0, offset, 0)
-	gui.MaxDistance = 160
+	gui.MaxDistance = SIGN_RANGE
 	gui.Parent = parent
 	local top = Instance.new("TextLabel")
 	top.Name = "Title"
@@ -122,7 +123,7 @@ local function sign(parent: BasePart, offset: number, title: string, sub: string
 	bottom.TextColor3 = color
 	bottom.Text = sub
 	bottom.Parent = gui
-	styleSign(gui, fade == true)
+	styleSign(gui, true) -- every sign fades in within SIGN_RANGE
 end
 
 -- The gate signs saved in the place (tools/studio/map.luau) get the same look and fade.

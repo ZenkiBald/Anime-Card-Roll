@@ -84,8 +84,8 @@ local list: { Card } = {
 	-- ATTACK -------------------------------------------------------------
 	{
 		Id = "rook",
-		Name = "Titan Warder",
-		Title = "Armored Colossus",
+		Name = "Ashen Bulwark",
+		Title = "The Ember-Plated Vanguard",
 		Type = "Attack",
 		Role = "Warder",
 		Weight = 8,
@@ -109,8 +109,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "kaede",
-		Name = "Spirit Weaver",
-		Title = "Soul-Thread Medic",
+		Name = "Gravethread Maiden",
+		Title = "Mender of Torn Souls",
 		Type = "Attack",
 		Role = "Mender",
 		Weight = 10,
@@ -122,7 +122,7 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(120, 140, 170),
 		Abilities = {
 			ability("Basic", "Soul Thread", "2 hits x 50% ATK on random enemies", { { Kind = "Damage", Pct = 0.5, Hits = 2, Target = "RandomEnemy" } }),
-			ability("Skill", "Rejection Shield", "Every 3 actions: shield all Attack cards 80% ATK", {
+			ability("Skill", "Soul-Thread Ward", "Every 3 actions: shield all Attack cards 80% ATK", {
 				{ Kind = "Shield", Pct = 0.8, Target = "All" },
 			}, 3),
 			ability("Passive", "Thread of Return", "Mends herself for 12% ATK each time she acts", { { Kind = "Heal", Pct = 0.12, Target = "Self", When = "OnAct" } }),
@@ -130,8 +130,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "tomo",
-		Name = "Solar Blade",
-		Title = "Dawn Swordsman",
+		Name = "Dawnfire Ronin",
+		Title = "Blade of the First Light",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 8,
@@ -149,7 +149,7 @@ local list: { Card } = {
 			ability("Passive", "Rising Sun Rhythm", "+15% damage while the enemy leader is above 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.15, When = "BossAbove50" },
 			}),
-			ability("Ultimate", "Sun Dance", "400% ATK + Burn (6% ATK per turn, 3 turns)", {
+			ability("Ultimate", "Dawnfire Dance", "400% ATK + Burn (6% ATK per turn, 3 turns)", {
 				{ Kind = "Damage", Pct = 4 },
 				{ Kind = "Burn", Pct = 0.06, Turns = 3 },
 			}),
@@ -157,8 +157,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "mirai",
-		Name = "Limitless Sage",
-		Title = "The Untouchable",
+		Name = "Stillstorm Hermit",
+		Title = "Sage of the Unbroken Ward",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 1.5,
@@ -169,23 +169,23 @@ local list: { Card } = {
 		Glyph = "MR",
 		Accent = Color3.fromRGB(255, 220, 90),
 		Abilities = {
-			ability("Basic", "Hollow Orb", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
+			ability("Basic", "Storm Orb", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
 			ability("Skill", "Infinity Barrage", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 1, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
-			ability("Ultimate", "Hollow Convergence", "900% ATK + the target takes +25% damage for 3 turns", {
+			ability("Ultimate", "Stillstorm Convergence", "900% ATK + the target takes +25% damage for 3 turns", {
 				{ Kind = "Damage", Pct = 9 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.25, Turns = 3 },
 			}),
-			ability("Aura", "Limitless Field", "All Attack cards +10% ATK", {
+			ability("Aura", "Unbroken Ward", "All Attack cards +10% ATK", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
 			}),
 		},
 	},
 	{
 		Id = "sora",
-		Name = "Cursed Prodigy",
-		Title = "Shadow Familiar Tamer",
+		Name = "Hexblood Prodigy",
+		Title = "Master of Storm Shikigami",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 4,
@@ -197,10 +197,10 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(90, 180, 255),
 		Abilities = {
 			ability("Basic", "Cursed Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Familiar's Rush", "Every 3 actions: 3 hits x 80% ATK", {
+			ability("Skill", "Shikigami Rush", "Every 3 actions: 3 hits x 80% ATK", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 3 },
 			}, 3),
-			ability("Passive", "Familiar's Hunger", "+20% ATK below 50% HP", {
+			ability("Passive", "Shikigami Hunger", "+20% ATK below 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
 			}),
 			ability("Ultimate", "Hundred Familiars", "3 hits x 80% ATK on random enemies", {
@@ -210,8 +210,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "akane",
-		Name = "Crimson Scourge",
-		Title = "King of Malice",
+		Name = "Crimson Oni Warlord",
+		Title = "Lord of the Burning Shrine",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 1.5,
@@ -223,25 +223,25 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(230, 60, 70),
 		Abilities = {
 			ability("Basic", "Rend", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Spatial Cleave", "Every 3 actions: 250% ATK + target DEF -15% for 2 turns", {
+			ability("Skill", "Oni Cleave", "Every 3 actions: 250% ATK + target DEF -15% for 2 turns", {
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 2 },
 				{ Kind = "Damage", Pct = 2.5 },
 			}, 3),
-			ability("Passive", "Malice Edge", "Crits deal 200% instead of 150%", {
+			ability("Passive", "Oni's Edge", "Crits deal 200% instead of 150%", {
 				{ Kind = "Buff", Stat = "CritDamage", Amount = 0.5 },
 			}),
-			ability("Ultimate", "Dismantle Storm", "6 hits x 130% ATK on random enemies", {
+			ability("Ultimate", "Thousand Cuts", "6 hits x 130% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 1.3, Hits = 6, Target = "RandomEnemy" },
 			}),
-			ability("Aura", "Malevolent Domain", "All Attack cards +10% ATK", {
+			ability("Aura", "Burning Shrine", "All Attack cards +10% ATK", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
 			}),
 		},
 	},
 	{
 		Id = "kaito",
-		Name = "Ascended Golden Warrior",
-		Title = "Prince of Pride",
+		Name = "Frostcrown Prince",
+		Title = "Pride of the Glacier Blade",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 2.5,
@@ -250,14 +250,14 @@ local list: { Card } = {
 		HP = 1028,
 		SPD = 110,
 		Glyph = "KR",
-		Accent = Color3.fromRGB(255, 200, 70),
+		Accent = Color3.fromRGB(130, 205, 255),
 		Abilities = {
 			ability("Basic", "Proud Strike", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Radiant Surge", "Every 3 actions: 300% ATK", { { Kind = "Damage", Pct = 3 } }, 3),
+			ability("Skill", "Glacier Surge", "Every 3 actions: 300% ATK", { { Kind = "Damage", Pct = 3 } }, 3),
 			ability("Passive", "Pride Awakened", "+20% ATK below 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
 			}),
-			ability("Ultimate", "Golden Barrage", "8 hits x 90% ATK on random enemies", {
+			ability("Ultimate", "Frostfall Barrage", "8 hits x 90% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.9, Hits = 8, Target = "RandomEnemy" },
 			}),
 		},
@@ -277,13 +277,13 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(150, 110, 255),
 		Abilities = {
 			ability("Basic", "Shade Bolt", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Divine Hounds", "Every 3 actions: 3 hits x 70% ATK on random enemies", {
+			ability("Skill", "Shade Hounds", "Every 3 actions: 3 hits x 70% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.7, Hits = 3, Target = "RandomEnemy" },
 			}, 3),
 			ability("Passive", "Shadow Brand", "15% chance to Burn (5% ATK per turn, 3 turns)", {
 				{ Kind = "Burn", Pct = 0.05, Turns = 3, Chance = 0.15, When = "OnHit" },
 			}),
-			ability("Ultimate", "Shadow Garden", "350% ATK + target DEF -15% for 3 turns", {
+			ability("Ultimate", "Garden of Black Thorns", "350% ATK + target DEF -15% for 3 turns", {
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
 				{ Kind = "Damage", Pct = 3.5 },
 			}),
@@ -291,8 +291,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "raijen",
-		Name = "Autonomous God State",
-		Title = "The Silver Instinct",
+		Name = "Eclipse Sovereign",
+		Title = "The Thoughtless Blade",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 1,
@@ -305,7 +305,7 @@ local list: { Card } = {
 		Abilities = {
 			ability("Basic", "Reflex Strike", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
 			ability("Skill", "Afterimage Cross", "Every 3 actions: 400% ATK", { { Kind = "Damage", Pct = 4 } }, 3),
-			ability("Ultimate", "Unthinking Divinity", "1,500% ATK, ignores DEF and Warders", {
+			ability("Ultimate", "Eclipse Verdict", "1,500% ATK, ignores DEF and Warders", {
 				{ Kind = "Damage", Pct = 15, IgnoreDef = true },
 			}),
 			ability("Signature", "Moving Without Thought", "Every 5th action, he acts again at once", {
@@ -317,8 +317,8 @@ local list: { Card } = {
 	-- SUPPORT ------------------------------------------------------------
 	{
 		Id = "hana",
-		Name = "Lotus Blossom",
-		Title = "Hundred-Healing Medic",
+		Name = "Lotus Shrine Healer",
+		Title = "Hundred-Petal Mender",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 10,
@@ -335,7 +335,7 @@ local list: { Card } = {
 			ability("Skill", "Healing Palm Burst", "Every 3 actions: heal all Attack cards 90% PWR", {
 				{ Kind = "Heal", Pct = 0.9, Target = "All" },
 			}, 3),
-			ability("Ultimate", "Hundred Healings", "Heal all Attack cards 150% PWR + cleanse 1 debuff", {
+			ability("Ultimate", "Hundred Petals", "Heal all Attack cards 150% PWR + cleanse 1 debuff", {
 				{ Kind = "Heal", Pct = 1.5, Target = "All" },
 				{ Kind = "Cleanse", Amount = 1, Target = "All" },
 			}),
@@ -343,8 +343,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "goro",
-		Name = "Fist of Severance",
-		Title = "Blood-Pact Brawler",
+		Name = "Iron-Vow Monk",
+		Title = "Bearer of the Blood Oath",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 4,
@@ -374,8 +374,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "suzu",
-		Name = "Thunder Flash",
-		Title = "Sleeping Lightning",
+		Name = "Thunderclap Duelist",
+		Title = "The Sleepwalking Storm",
 		Type = "Support",
 		Role = "Striker",
 		Weight = 10,
@@ -400,7 +400,7 @@ local list: { Card } = {
 	},
 	{
 		Id = "ibuki",
-		Name = "Phantom Blade",
+		Name = "Mistveil Shinobi",
 		Title = "Cloud-Step Assassin",
 		Type = "Support",
 		Role = "Warder",
@@ -426,8 +426,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "yume",
-		Name = "Dream Reaper",
-		Title = "Mirror of Hypnosis",
+		Name = "Moon-Mirror Priestess",
+		Title = "Keeper of Frozen Dreams",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 1.5,
@@ -446,7 +446,7 @@ local list: { Card } = {
 				{ Kind = "Cleanse", Amount = 1, Target = "All" },
 				{ Kind = "Debuff", Stat = "SPD", Amount = 0.1, Turns = 2, Target = "Enemies" },
 			}, 3),
-			ability("Ultimate", "Total Hypnosis", "Heal all Attack cards 200% PWR + every enemy -20% ATK for 3 turns", {
+			ability("Ultimate", "Frozen Lullaby", "Heal all Attack cards 200% PWR + every enemy -20% ATK for 3 turns", {
 				{ Kind = "Heal", Pct = 2, Target = "All" },
 				{ Kind = "Debuff", Stat = "ATK", Amount = 0.2, Turns = 3, Target = "Enemies" },
 			}),
@@ -455,8 +455,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "tetsu",
-		Name = "Iron Bastion",
-		Title = "Living Sand Fortress",
+		Name = "Blacksand Bastion",
+		Title = "The Living Rampart",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 6,
@@ -477,7 +477,7 @@ local list: { Card } = {
 			ability("Passive", "Floating Wall", "Attack cards take 10% less damage", {
 				{ Kind = "Buff", Stat = "Guard", Amount = 0.1, Target = "Attack" },
 			}),
-			ability("Ultimate", "Sand Coffin", "Shield all Attack cards 220% PWR + every enemy -15% ATK for 2 turns", {
+			ability("Ultimate", "Black Sand Tomb", "Shield all Attack cards 220% PWR + every enemy -15% ATK for 2 turns", {
 				{ Kind = "Shield", Pct = 2.2, Target = "All" },
 				{ Kind = "Debuff", Stat = "ATK", Amount = 0.15, Turns = 2, Target = "Enemies" },
 			}),
@@ -486,7 +486,7 @@ local list: { Card } = {
 	{
 		Id = "luna",
 		Name = "Celestial Strategist",
-		Title = "Wisteria Tactician",
+		Title = "Reader of the Star Charts",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 10,
@@ -497,10 +497,10 @@ local list: { Card } = {
 		Glyph = "LM",
 		Accent = Color3.fromRGB(110, 140, 255),
 		Abilities = {
-			ability("Basic", "Butterfly Mend", "Heal the most hurt Attack card 100% PWR", {
+			ability("Basic", "Starlight Mend", "Heal the most hurt Attack card 100% PWR", {
 				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
 			}),
-			ability("Skill", "Wisteria Sting", "Every 3 actions: heal the most hurt Attack card 120% PWR + enemy ATK -10% for 3 turns", {
+			ability("Skill", "Star-Needle Sting", "Every 3 actions: heal the most hurt Attack card 120% PWR + enemy ATK -10% for 3 turns", {
 				{ Kind = "Heal", Pct = 1.2, Target = "Lowest" },
 				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 3 },
 			}, 3),
@@ -538,30 +538,30 @@ local list: { Card } = {
 	},
 	{
 		Id = "aurelia",
-		Name = "Nine-Tails Sovereign",
-		Title = "Vessel of the Nine Tails",
+		Name = "Dawn Empress",
+		Title = "Vessel of the Sealed Dawn",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 1,
 		Element = "Cosmic",
-		Link = { Name = "Fox Mantle Link", Stat = "ATK", Amount = 0.12, Text = "The Attack card in front +12% ATK" },
+		Link = { Name = "Daybreak Link", Stat = "ATK", Amount = 0.12, Text = "The Attack card in front +12% ATK" },
 		Main = 308,
 		SPD = 110,
 		Glyph = "AU",
 		Accent = Color3.fromRGB(255, 214, 140),
 		Abilities = {
-			ability("Basic", "Foxfire Mend", "Heal all Attack cards 80% PWR", {
+			ability("Basic", "Dawnfire Mend", "Heal all Attack cards 80% PWR", {
 				{ Kind = "Heal", Pct = 0.8, Target = "All" },
 			}),
-			ability("Skill", "Fox Mantle", "Every 3 actions: shield all Attack cards 200% PWR", {
+			ability("Skill", "Mantle of Daybreak", "Every 3 actions: shield all Attack cards 200% PWR", {
 				{ Kind = "Shield", Pct = 2, Target = "All" },
 			}, 3),
-			ability("Ultimate", "Beast Unsealed", "All Attack cards +50% damage for 2 turns", {
+			ability("Ultimate", "Daybreak Unsealed", "All Attack cards +50% damage for 2 turns", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.5, Turns = 2, Target = "Attack" },
 			}),
 			ability(
 				"Signature",
-				"Seal's Last Gate",
+				"Last Light Oath",
 				"Once per battle, an Attack card that would be KO'd survives at 1 HP, invulnerable for 1 turn",
 				{ { Kind = "DawnOath", Turns = 1 } }
 			),
@@ -571,8 +571,8 @@ local list: { Card } = {
 	-- World 4 (Stormspire Isle) cards. New cards go at the end: the leaderboards store list positions.
 	{
 		Id = "hayate",
-		Name = "Infernal Warden",
-		Title = "Purgatory Flamekeeper",
+		Name = "Pyregate Warden",
+		Title = "Keeper of the Funeral Flame",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 6,
@@ -600,7 +600,7 @@ local list: { Card } = {
 	},
 	{
 		Id = "amane",
-		Name = "Shadow Puppeteer",
+		Name = "Stormstring Puppeteer",
 		Title = "Mistress of Strings",
 		Type = "Support",
 		Role = "Mender",
@@ -628,8 +628,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "tsubasa",
-		Name = "Lunar Reaper",
-		Title = "Crescent Soul Blade",
+		Name = "Moonlit Executioner",
+		Title = "Crescent of the Last Rite",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 2.5,
@@ -684,8 +684,8 @@ local list: { Card } = {
 	-- BOSS CARDS: unlocked into the pool by each boss's first Normal clear -----------------------
 	{
 		Id = "kurogane_card",
-		Name = "Tailed Beast Calamity",
-		Title = "The Ember Fox",
+		Name = "Kurogane",
+		Title = "The Ash Ronin",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 0.9,
@@ -705,15 +705,15 @@ local list: { Card } = {
 			ability("Passive", "Calamity's Wrath", "+20% ATK below 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
 			}),
-			ability("Ultimate", "Fox's Slagfall", "6 hits x 80% ATK on random enemies", {
+			ability("Ultimate", "Ashen Slagfall", "6 hits x 80% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 6, Target = "RandomEnemy" },
 			}),
 		},
 	},
 	{
 		Id = "rimeveil_card",
-		Name = "Galactic Emperor",
-		Title = "The Frost Tyrant",
+		Name = "Rimeveil",
+		Title = "The Glacier Queen",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 0.85,
@@ -738,8 +738,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "vex_card",
-		Name = "Mirror Flower Overlord",
-		Title = "The Hollow Betrayer",
+		Name = "Vex",
+		Title = "The Void Tyrant",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 0.8,
@@ -767,8 +767,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "tenrai_card",
-		Name = "Demon Progenitor",
-		Title = "The Thousand-Year Storm",
+		Name = "Tenrai",
+		Title = "The Storm Sovereign",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 0.6,

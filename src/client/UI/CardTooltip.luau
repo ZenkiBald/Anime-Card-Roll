@@ -199,6 +199,26 @@ local function build(cardId: string, border: string): Frame?
 	local stars = if own then own.Stars else 0
 	local node = if own then Awaken.Level(own) else 0
 	line(Kit.statsText(card, stars, border, node, true), Theme.Font.Heavy, UITheme.Colors.WashiParchment, 14)
+	-- What its duplicates are for: the next Awakening node, and fusing this border's pile at Hoshi.
+	if own then
+		local nextNode = Awaken.Nodes[node + 1]
+		if nextNode and nextNode.Node <= 4 then
+			line(`AWAKENING <font color="#4FC3F7">{Kit.commas(own.Copies)}/{nextNode.Copies}</font> → {nextNode.Name}: {nextNode.Text}`, Theme.Font.Bold, UITheme.Colors.WashiGhost, 12)
+		end
+		local pile = (own.BorderCopies or {})[border] or 0
+		local nextBorder = Borders.Next(border)
+		if nextBorder then
+			local ready = pile >= Config.FusionCopies
+			line(
+				if ready
+					then `<font color="#FFD700"><b>FUSE!</b></font> {pile} {Borders.Get(border).Name} copies: fuse 100 into a {Borders.Get(nextBorder).Name} at Hoshi`
+					else `FUSION <font color="#FFD700">{pile}/{Config.FusionCopies}</font> {Borders.Get(border).Name} copies → 1 {Borders.Get(nextBorder).Name} (at Hoshi)`,
+				Theme.Font.Bold,
+				UITheme.Colors.WashiGhost,
+				12
+			)
+		end
+	end
 
 	-- Abilities: Basic, Skill, Ultimate (passives / auras / signatures follow in plain rows).
 	local basic, skill, ult = Cards.Ability(card, "Basic"), Cards.Ability(card, "Skill"), Cards.Ability(card, "Ultimate")
