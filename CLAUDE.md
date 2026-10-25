@@ -38,11 +38,12 @@ Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET B
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
 
-**Cards.** 22 cards + 4 boss cards (original characters only). Every card sits on one stat line (ATK ~500 +-10%, HP = 2
+**Cards.** 22 cards + 4 boss cards (anime-style epithet names for the private prototype, see Rules). Every card sits on one stat line (ATK ~500 +-10%, HP = 2
 x ATK; Support PWR ~300, no HP), scaled by rarity (`Cards.Scale`: a Weight 10 card 1x, Weight 1 about 1.41x, boss cards
 up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
-`Cards.luau`. Stars +5% each (max 5). Copies pile up per border (`BorderCopies`); Awakening nodes at 20 / 40 / 60 / 80
+`Cards.luau`; a rarer card never carries a smaller kit (Weight 6 and rarer have an Ultimate, boss cards a passive too)
+and its subtitle (`Title`) and colour (`Accent`) fit its name and element. Stars +5% each (max 5). Copies pile up per border (`BorderCopies`); Awakening nodes at 20 / 40 / 60 / 80
 copies (+10% stats, +15% Skill DMG, 400% bond, trait slot 2). **Border fusion** at Hoshi: 100 copies at one border -> 1
 copy at the next (FUSE or FUSE ALL, which cascades); the card at the next border is the whole reward (no luck, Trait
 Shards or XP). Traits are bought at Kenshin with Trait Shards (battle-only: SPD / crit / guard / energy, never ATK /

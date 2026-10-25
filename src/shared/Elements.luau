@@ -145,7 +145,7 @@ Elements.Bonds = {
 	{ Id = "village", Name = "Martial Oath", Cards = { "rook", "tomo" }, Pct = 3, Text = "Titan Warder holds the line while Solar Blade cuts through it." },
 	{ Id = "mist", Name = "Shadow and Mist", Cards = { "kaede", "ibuki" }, Pct = 3, Text = "Spirit Weaver's strikes fly out of Phantom Blade's fog where no one can see them coming." },
 	{ Id = "drum", Name = "Thunder Rhythm", Cards = { "mirai", "suzu" }, Pct = 3, Text = "Thunder Flash drums the rhythm, Limitless Sage looses on the beat." },
-	{ Id = "tempest", Name = "Rival Tempest", Cards = { "sora", "hayate" }, Pct = 3, Text = "Cursed Prodigy and Infernal Warden: rivals since the dojo." },
+	{ Id = "tempest", Name = "Shadow and Hellfire", Cards = { "sora", "hayate" }, Pct = 3, Text = "Cursed Prodigy and Infernal Warden: rivals since the dojo, shadow against flame." },
 	{ Id = "crimson", Name = "Crimson Dragon", Cards = { "akane", "kaito" }, Pct = 3, Text = "Crimson Scourge and Ascended Golden Warrior never agree, except on who falls first." },
 	{ Id = "starfall", Name = "Celestial Gambit", Cards = { "noa", "luna" }, Pct = 3, Text = "Celestial Strategist reads the stars, Starfall Witch drops them." },
 	{ Id = "skyfall", Name = "Sky Sovereigns", Cards = { "tsubasa", "amaya" }, Pct = 3, Text = "Lunar Reaper rides the Storm Oracle's lightning down." },

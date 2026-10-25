@@ -85,7 +85,7 @@ local list: { Card } = {
 	{
 		Id = "rook",
 		Name = "Titan Warder",
-		Title = "Iron Knuckle Brawler",
+		Title = "Armored Colossus",
 		Type = "Attack",
 		Role = "Warder",
 		Weight = 8,
@@ -110,7 +110,7 @@ local list: { Card } = {
 	{
 		Id = "kaede",
 		Name = "Spirit Weaver",
-		Title = "Kunai Thrower",
+		Title = "Soul-Thread Medic",
 		Type = "Attack",
 		Role = "Mender",
 		Weight = 10,
@@ -131,7 +131,7 @@ local list: { Card } = {
 	{
 		Id = "tomo",
 		Name = "Solar Blade",
-		Title = "Lantern Swordsman",
+		Title = "Dawn Swordsman",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 8,
@@ -158,7 +158,7 @@ local list: { Card } = {
 	{
 		Id = "mirai",
 		Name = "Limitless Sage",
-		Title = "Spark Archer",
+		Title = "The Untouchable",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 1.5,
@@ -170,7 +170,7 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(255, 220, 90),
 		Abilities = {
 			ability("Basic", "Hollow Orb", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
-			ability("Skill", "Void Barrage", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
+			ability("Skill", "Infinity Barrage", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 1, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
 			ability("Ultimate", "Hollow Convergence", "900% ATK + the target takes +25% damage for 3 turns", {
@@ -185,7 +185,7 @@ local list: { Card } = {
 	{
 		Id = "sora",
 		Name = "Cursed Prodigy",
-		Title = "Storm Blade",
+		Title = "Shadow Familiar Tamer",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 4,
@@ -203,12 +203,15 @@ local list: { Card } = {
 			ability("Passive", "Familiar's Hunger", "+20% ATK below 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
 			}),
+			ability("Ultimate", "Hundred Familiars", "3 hits x 80% ATK on random enemies", {
+				{ Kind = "Damage", Pct = 0.8, Hits = 3, Target = "RandomEnemy" },
+			}),
 		},
 	},
 	{
 		Id = "akane",
 		Name = "Crimson Scourge",
-		Title = "Crimson Lance Duelist",
+		Title = "King of Malice",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 1.5,
@@ -238,7 +241,7 @@ local list: { Card } = {
 	{
 		Id = "kaito",
 		Name = "Ascended Golden Warrior",
-		Title = "Dragon-Eye Ronin",
+		Title = "Prince of Pride",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 2.5,
@@ -247,7 +250,7 @@ local list: { Card } = {
 		HP = 1028,
 		SPD = 110,
 		Glyph = "KR",
-		Accent = Color3.fromRGB(70, 200, 160),
+		Accent = Color3.fromRGB(255, 200, 70),
 		Abilities = {
 			ability("Basic", "Proud Strike", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
 			ability("Skill", "Radiant Surge", "Every 3 actions: 300% ATK", { { Kind = "Damage", Pct = 3 } }, 3),
@@ -262,7 +265,7 @@ local list: { Card } = {
 	{
 		Id = "noa",
 		Name = "Starfall Witch",
-		Title = "Void Hexer",
+		Title = "Mistress of Hounds",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 8,
@@ -289,7 +292,7 @@ local list: { Card } = {
 	{
 		Id = "raijen",
 		Name = "Autonomous God State",
-		Title = "Eclipse Sovereign",
+		Title = "The Silver Instinct",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 1,
@@ -315,7 +318,7 @@ local list: { Card } = {
 	{
 		Id = "hana",
 		Name = "Lotus Blossom",
-		Title = "Herb Healer",
+		Title = "Hundred-Healing Medic",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 10,
@@ -341,7 +344,7 @@ local list: { Card } = {
 	{
 		Id = "goro",
 		Name = "Fist of Severance",
-		Title = "Shield Monk",
+		Title = "Blood-Pact Brawler",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 4,
@@ -363,21 +366,25 @@ local list: { Card } = {
 			ability("Passive", "Battle Hide", "Attack cards take 5% less damage", {
 				{ Kind = "Buff", Stat = "Guard", Amount = 0.05, Target = "Attack" },
 			}),
+			ability("Ultimate", "Severing Pact", "Shield all Attack cards 250% PWR + they take 25% less damage for 2 turns", {
+				{ Kind = "Shield", Pct = 2.5, Target = "All" },
+				{ Kind = "Buff", Stat = "Guard", Amount = 0.25, Turns = 2, Target = "Attack" },
+			}),
 		},
 	},
 	{
 		Id = "suzu",
 		Name = "Thunder Flash",
-		Title = "Shrine Drummer",
+		Title = "Sleeping Lightning",
 		Type = "Support",
 		Role = "Striker",
 		Weight = 10,
-		Element = "Flame",
+		Element = "Storm",
 		Link = { Name = "Flash Tempo", Stat = "ATK", Amount = 0.06, Text = "The Attack card in front +6% ATK" },
 		Main = 312,
 		SPD = 105,
 		Glyph = "SZ",
-		Accent = Color3.fromRGB(240, 110, 150),
+		Accent = Color3.fromRGB(255, 210, 70),
 		Abilities = {
 			ability("Basic", "Flash Draw", "All Attack cards +8% ATK for 1 turn", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.08, Turns = 1, Target = "Attack" },
@@ -394,7 +401,7 @@ local list: { Card } = {
 	{
 		Id = "ibuki",
 		Name = "Phantom Blade",
-		Title = "Fog Weaver",
+		Title = "Cloud-Step Assassin",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 8,
@@ -420,7 +427,7 @@ local list: { Card } = {
 	{
 		Id = "yume",
 		Name = "Dream Reaper",
-		Title = "Moonlight Priestess",
+		Title = "Mirror of Hypnosis",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 1.5,
@@ -449,7 +456,7 @@ local list: { Card } = {
 	{
 		Id = "tetsu",
 		Name = "Iron Bastion",
-		Title = "Iron Wall Guardian",
+		Title = "Living Sand Fortress",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 6,
@@ -470,12 +477,16 @@ local list: { Card } = {
 			ability("Passive", "Floating Wall", "Attack cards take 10% less damage", {
 				{ Kind = "Buff", Stat = "Guard", Amount = 0.1, Target = "Attack" },
 			}),
+			ability("Ultimate", "Sand Coffin", "Shield all Attack cards 220% PWR + every enemy -15% ATK for 2 turns", {
+				{ Kind = "Shield", Pct = 2.2, Target = "All" },
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.15, Turns = 2, Target = "Enemies" },
+			}),
 		},
 	},
 	{
 		Id = "luna",
 		Name = "Celestial Strategist",
-		Title = "Light Mender",
+		Title = "Wisteria Tactician",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 10,
@@ -493,12 +504,15 @@ local list: { Card } = {
 				{ Kind = "Heal", Pct = 1.2, Target = "Lowest" },
 				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 3 },
 			}, 3),
+			ability("Passive", "Star Chart", "All Attack cards +5% crit chance", {
+				{ Kind = "Buff", Stat = "Crit", Amount = 0.05, Target = "Attack" },
+			}),
 		},
 	},
 	{
 		Id = "orin",
 		Name = "Time Weaver",
-		Title = "Void Mender",
+		Title = "Keeper of Hours",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 2.5,
@@ -525,7 +539,7 @@ local list: { Card } = {
 	{
 		Id = "aurelia",
 		Name = "Nine-Tails Sovereign",
-		Title = "Dawn Empress",
+		Title = "Vessel of the Nine Tails",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 1,
@@ -558,16 +572,16 @@ local list: { Card } = {
 	{
 		Id = "hayate",
 		Name = "Infernal Warden",
-		Title = "Gale Dancer",
+		Title = "Purgatory Flamekeeper",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 6,
-		Element = "Storm",
+		Element = "Flame",
 		Main = 490,
 		HP = 980,
 		SPD = 128,
 		Glyph = "HY",
-		Accent = Color3.fromRGB(110, 220, 170),
+		Accent = Color3.fromRGB(255, 110, 50),
 		Abilities = {
 			ability("Basic", "Scorching Cut", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
 			ability("Skill", "Cinder Vow", "Every 3 actions: 2 hits x 70% ATK on every enemy, this card +20% SPD for 2 turns, and a 30% ATK shield on every Attack card", {
@@ -575,12 +589,19 @@ local list: { Card } = {
 				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2, Target = "Self" },
 				{ Kind = "Shield", Pct = 0.3, Target = "Attack" },
 			}, 3),
+			ability("Passive", "Ember Trail", "15% chance to Burn (5% ATK per turn, 3 turns)", {
+				{ Kind = "Burn", Pct = 0.05, Turns = 3, Chance = 0.15, When = "OnHit" },
+			}),
+			ability("Ultimate", "Purgatory Gate", "160% ATK to every enemy + Burn them (6% ATK per turn, 3 turns)", {
+				{ Kind = "Damage", Pct = 1.6, Target = "Enemies" },
+				{ Kind = "Burn", Pct = 0.06, Turns = 3, Target = "Enemies" },
+			}),
 		},
 	},
 	{
 		Id = "amane",
 		Name = "Shadow Puppeteer",
-		Title = "Rain Priestess",
+		Title = "Mistress of Strings",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 6,
@@ -599,12 +620,16 @@ local list: { Card } = {
 				{ Kind = "Heal", Pct = 0.6, Target = "All" },
 			}, 3),
 			ability("Passive", "Cursed Strings", "Every enemy -8% ATK", { { Kind = "Debuff", Stat = "ATK", Amount = 0.08, Target = "Enemies" } }),
+			ability("Ultimate", "Puppet Theater", "Heal all Attack cards 100% PWR + every enemy -20% SPD for 3 turns", {
+				{ Kind = "Heal", Pct = 1, Target = "All" },
+				{ Kind = "Debuff", Stat = "SPD", Amount = 0.2, Turns = 3, Target = "Enemies" },
+			}),
 		},
 	},
 	{
 		Id = "tsubasa",
 		Name = "Lunar Reaper",
-		Title = "Sky Knight",
+		Title = "Crescent Soul Blade",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 2.5,
@@ -629,7 +654,7 @@ local list: { Card } = {
 	{
 		Id = "amaya",
 		Name = "Storm Oracle",
-		Title = "Storm Warder",
+		Title = "Voice of the Storm",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 4,
@@ -650,6 +675,10 @@ local list: { Card } = {
 			ability("Passive", "Live Current", "All Attack cards +10% ATK", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
 			}),
+			ability("Ultimate", "Oracle's Tempest", "200% PWR to every enemy + shield all Attack cards 150% PWR", {
+				{ Kind = "Damage", Pct = 2, Target = "Enemies" },
+				{ Kind = "Shield", Pct = 1.5, Target = "All" },
+			}),
 		},
 	},
 	-- BOSS CARDS: unlocked into the pool by each boss's first Normal clear -----------------------
@@ -669,10 +698,13 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(230, 90, 40),
 		Abilities = {
 			ability("Basic", "Magma Claw", "110% ATK", { { Kind = "Damage", Pct = 1.1 } }),
-			ability("Skill", "Forge Brand", "Every 3 actions: 220% ATK and burns for 10% a turn", {
+			ability("Skill", "Forge Brand", "Every 3 actions: 220% ATK + Burn (10% ATK per turn, 3 turns)", {
 				{ Kind = "Damage", Pct = 2.2 },
 				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
 			}, 3),
+			ability("Passive", "Calamity's Wrath", "+20% ATK below 50% HP", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
+			}),
 			ability("Ultimate", "Fox's Slagfall", "6 hits x 80% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 6, Target = "RandomEnemy" },
 			}),
@@ -724,7 +756,10 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 1.8 },
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
 			}, 3),
-			ability("Ultimate", "Devour All", "4 hits x 120% ATK, enemies take +15% damage", {
+			ability("Passive", "Perfect Illusion", "The first 2 enemy hits on this card miss", {
+				{ Kind = "Evade", Hits = 2, Target = "Self" },
+			}),
+			ability("Ultimate", "Devour All", "4 hits x 120% ATK + every enemy takes 15% more damage for 3 turns", {
 				{ Kind = "Damage", Pct = 1.2, Hits = 4 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.15, Turns = 3, Target = "Enemies" },
 			}),
@@ -749,6 +784,12 @@ local list: { Card } = {
 			ability("Skill", "Forked Storm", "Every 3 actions: 4 hits x 60% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.6, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
+			ability("Passive", "Endless Regeneration", "Heals itself 10% ATK each time it acts", {
+				{ Kind = "Heal", Pct = 0.1, Target = "Self", When = "OnAct" },
+			}),
+			ability("Aura", "Progenitor's Blood", "All Attack cards +8% ATK", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.08, Target = "Attack" },
+			}),
 			ability("Ultimate", "Judgment Bolt", "300% ATK to every enemy", {
 				{ Kind = "Damage", Pct = 3, Target = "Enemies" },
 			}),

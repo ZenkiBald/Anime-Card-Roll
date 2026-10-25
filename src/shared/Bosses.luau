@@ -119,7 +119,7 @@ local list: { Boss } = {
 		Difficulties = {
 			Normal = { D = 1, Recommended = 45000, HP = 123548, ATK = 442, WarnSeconds = 2 },
 			Hard = { D = 2, Recommended = 67000, HP = 182952, ATK = 547, WarnSeconds = 2 },
-			Nightmare = { D = 3, Recommended = 101000, HP = 226600, ATK = 821, WarnSeconds = 1 },
+			Nightmare = { D = 3, Recommended = 101000, HP = 312000, ATK = 821, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -145,8 +145,8 @@ local list: { Boss } = {
 		},
 		Difficulties = {
 			Normal = { D = 4, Recommended = 122000, HP = 257000, ATK = 2206, WarnSeconds = 2 },
-			Hard = { D = 5, Recommended = 199000, HP = 625500, ATK = 3037, WarnSeconds = 2 },
-			Nightmare = { D = 6, Recommended = 242000, HP = 819500, ATK = 4305, WarnSeconds = 1 },
+			Hard = { D = 5, Recommended = 199000, HP = 688000, ATK = 3037, WarnSeconds = 2 },
+			Nightmare = { D = 6, Recommended = 242000, HP = 967000, ATK = 4305, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -172,7 +172,7 @@ local list: { Boss } = {
 			{ Name = "Rend", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 7, Recommended = 219000, HP = 630000, ATK = 4287, WarnSeconds = 2 },
+			Normal = { D = 7, Recommended = 219000, HP = 756000, ATK = 4287, WarnSeconds = 2 },
 			Hard = { D = 8, Recommended = 323000, HP = 1610000, ATK = 5288, WarnSeconds = 2 },
 			Nightmare = { D = 9, Recommended = 366000, HP = 2930000, ATK = 6326, WarnSeconds = 1 },
 		},
