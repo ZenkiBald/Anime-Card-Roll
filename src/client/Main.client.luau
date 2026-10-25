@@ -10,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Borders = require(Shared.Borders)
+local Deck = require(Shared.Deck)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local UI = script.Parent:WaitForChild("UI")
@@ -399,6 +400,35 @@ State.Changed:Connect(function(kind)
 	end
 end)
 
+-- Nudges: AUTO-BUILD would make a deck at least this much stronger than the active one (a SQUAD badge and
+-- one hint each time it becomes true), and a card reached the copies to fuse (one hint, fusing is at Hoshi).
+local BETTER_DECK = 1.05
+local function deckGain(): number
+	local active = State.ActiveDeck()
+	local now = if active then Deck.Power(active, State.Cards) else 0
+	local best = Deck.Power(Deck.AutoBuild(State.Cards), State.Cards)
+	return if now > 0 then best / now else (if best > 0 then math.huge else 1)
+end
+local betterDeck, fuseReady = false, 0
+local function checkNudges(announce: boolean)
+	local gain = deckGain()
+	local better = gain >= BETTER_DECK
+	local ready = Fusion.ReadyCount()
+	if announce and better and not betterDeck then
+		local pct = if gain == math.huge then "" else ` (+{math.floor((gain - 1) * 100 + 0.5)}% power)`
+		Hud.Hint(`⚡ A stronger deck is ready{pct}: SQUAD > AUTO-BUILD`)
+	elseif announce and ready > fuseReady then
+		Hud.Hint(`🔥 {ready} card{if ready == 1 then "" else "s"} can fuse to the next border: see Hoshi in town`)
+	end
+	betterDeck, fuseReady = better, ready
+end
+State.Changed:Connect(function(kind)
+	if kind == "roll" or kind == "cards" or kind == "decks" or kind == "all" then
+		checkNudges(kind ~= "all")
+		Hud.RefreshBadges()
+	end
+end)
+
 -- Server raids: the live state (pool, timer, top hitters) and, when a raid ends, this player's payout.
 Remotes.RaidState.OnClientEvent:Connect(function(message)
 	if type(message) ~= "table" then
@@ -457,15 +487,16 @@ Reveal.OnBusy = function(on: boolean)
 	PlayerList.SetHidden("Reveal", on)
 end
 
--- Red badges: gifts and Kenji's quest ready in QUESTS, Index rewards and stat points in SQUAD, potions
+-- Red badges: gifts and Kenji's quest ready in QUESTS, Index rewards, stat points and a stronger AUTO-BUILD in SQUAD, potions
 -- and packs in the BAG.
 Hud.SetBadgeSource(function()
 	return {
 		QUESTS = MetaClient.GiftsClaimable() + (if TutorialUi.Ready() then 1 else 0),
-		SQUAD = MetaClient.IndexClaimable() + (State.Meta.StatPoints or 0),
+		SQUAD = MetaClient.IndexClaimable() + (State.Meta.StatPoints or 0) + (if betterDeck then 1 else 0),
 		BAG = MetaClient.PotionCount() + MetaClient.PackCount(),
 	}
 end)
+checkNudges(false)
 Hud.RefreshBadges()
 
 -- Kenji's questline: the tracker banner and KENJI'S PATH (rewards and his lines go through the HUD toasts).

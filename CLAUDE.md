@@ -61,7 +61,7 @@ The engine (`BattleEngine`) is pure and runs headless in tests. Fights are stage
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended power 45k ... 388k; the fixtures are Base in
 World 1, Gold after, World 4 Gold 5-star with Awakening 1-3). Boss wins pay reward rolls (luck / floors by D), Shards,
-Roll Packs and Trait Shards (no gear). Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
+Roll Packs and Trait Shards (no gear); after a win AUTO REPEAT (opt-in) restarts the same fight. Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
 affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 33k x 1.068^(floor-1)); every floor
 pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
 SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past
@@ -77,7 +77,8 @@ infuses them.
 drops only) and **artifacts** (`Items.TowerArtifacts`, one per finite tower's last floor, always on); daily streak,
 daily quests, playtime gifts, time-away rewards (`Meta.OfflineReward`: a Roll Pack per 30 min and 2 Shards a minute
 offline, after 10 min, up to 8 h; `LastSeen` in the save), roll milestones, Lucky Wheel, server events (LUCKY STORM /
-ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Social: server list with favourite cards, profiles, name
+ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.client`): a SQUAD badge + hint when AUTO-BUILD would
+beat the active deck by 5%, and a hint when a card can fuse at Hoshi. Social: server list with favourite cards, profiles, name
 tags, three town leaderboards.
 
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches

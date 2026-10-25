@@ -1841,6 +1841,7 @@ local startFight
 
 local AUTO_CLIMB_SECONDS = 4
 local autoClimb = true -- tower: start the next floor by itself after a win (AUTO CLIMB toggles, for the session)
+local autoRepeat = false -- boss fights: start the same fight again after a win (AUTO REPEAT, opt-in, for the session)
 
 local function showResults(summary)
 	current.Ended = true
@@ -2345,34 +2346,57 @@ local function showResults(summary)
 		current.StopClimb = true
 		goAgain()
 	end)
-	-- Auto-climb: after a tower win the next floor starts by itself after a short countdown, unless the
-	-- player opens their rolls, leaves, or switches it off.
-	if tower and summary.Result == "Win" and not conquered then
-		local auto = Kit.button(if autoClimb then "AUTO CLIMB: ON" else "AUTO CLIMB: OFF", Theme.Color.PanelLight, Theme.Color.Panel, {
+	-- Auto-climb / auto-repeat: after a tower win the next floor starts by itself after a short countdown
+	-- (AUTO CLIMB, on by default); after a boss win the same fight can do the same (AUTO REPEAT, opt-in, for
+	-- farming). Opening the rolls, leaving or switching it off stops it; a loss never repeats.
+	if summary.Result == "Win" and not conquered and current.Raid == nil then
+		local name = if tower then "AUTO CLIMB" else "AUTO REPEAT"
+		local function isOn(): boolean
+			return if tower then autoClimb else autoRepeat
+		end
+		local auto = Kit.button(`{name}: {if isOn() then "ON" else "OFF"}`, Theme.Color.PanelLight, Theme.Color.Panel, {
 			LayoutOrder = 3,
 			Size = UDim2.new(0, 190, 1, 0),
 			Parent = buttons,
 		})
 		local fight = current
+		local counting = false
+		local function countdown()
+			if counting then
+				return
+			end
+			counting = true
+			task.spawn(function()
+				for left = AUTO_CLIMB_SECONDS, 1, -1 do
+					if current ~= fight or fight.StopClimb or not isOn() or again.Parent == nil then
+						counting = false
+						return
+					end
+					again.Label.Text = `{againText} · {left}`
+					task.wait(1)
+				end
+				counting = false
+				if current == fight and not fight.StopClimb and isOn() and again.Parent then
+					goAgain()
+				end
+			end)
+		end
 		auto.Activated:Connect(function()
-			autoClimb = not autoClimb
-			auto.Label.Text = if autoClimb then "AUTO CLIMB: ON" else "AUTO CLIMB: OFF"
-			if not autoClimb then
+			if tower then
+				autoClimb = not autoClimb
+			else
+				autoRepeat = not autoRepeat
+			end
+			auto.Label.Text = `{name}: {if isOn() then "ON" else "OFF"}`
+			if isOn() then
+				countdown()
+			else
 				again.Label.Text = againText
 			end
 		end)
-		task.spawn(function()
-			for left = AUTO_CLIMB_SECONDS, 1, -1 do
-				if current ~= fight or fight.StopClimb or not autoClimb or again.Parent == nil then
-					return
-				end
-				again.Label.Text = `{againText} · {left}`
-				task.wait(1)
-			end
-			if current == fight and not fight.StopClimb and autoClimb and again.Parent then
-				goAgain()
-			end
-		end)
+		if isOn() then
+			countdown()
+		end
 	end
 end
 

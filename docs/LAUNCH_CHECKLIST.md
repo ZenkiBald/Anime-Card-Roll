@@ -63,6 +63,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   seals, BOSS SCOUT trays and chips, the sunken boss well, vermilion tab underlines everywhere.
 - [ ] The featured card in the event pill / ODDS / Index; a "While you were away" toast after 10+ min offline; a
   [GLOBAL] Secret banner across two live servers (MessagingService only works in a published game).
+- [ ] QoL pass: AUTO REPEAT after a boss win (off by default, counts down, stops on a loss / opening rolls / BACK),
+  the "stronger deck is ready" hint and SQUAD badge after a good pull, the "can fuse, see Hoshi" hint, and badge art
+  (paste one id into a `Skin.Icons` key such as `Element:Flame` and check every badge picks it up).
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)
