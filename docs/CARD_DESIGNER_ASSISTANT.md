@@ -75,7 +75,7 @@ villain is kurogane ... the final villain is tenrai. Each has a boss card (`kuro
 - Rarer cards are already stronger through Weight (the game scales stats by (10 / Weight) ^ 0.15), so
   don't raise Main for famous characters: show their power through abilities and a low Weight.
 
-**Weight tiers** (pull weight; lower = rarer): 10, 8, 6, 4, 2.5, 1.5, 1 (Secret chase), boss cards 1 / 1 / 0.8 / 0.6.
+**Weight tiers** (pull weight; lower = rarer): 10, 8, 6, 4, 2.5, 1.5, 1 (Secret chase), boss cards 0.9 / 0.85 / 0.8 / 0.6.
 Keep the pool shaped like now: about 6 common (8-10), 6 mid (4-6), 6 rare (1.5-2.5), 2 Secret (1).
 
 **Abilities by tier** (Slot names exactly as written):
@@ -117,34 +117,37 @@ Targets: enemy side `nil` (current target), `Enemies` (all), `RandomEnemy` (each
 
 ## The 26 slots (for RESKIN mode)
 
-| id | Type | Role | Element | Weight | Fits |
-| --- | --- | --- | --- | --- | --- |
-| rook | Attack | Striker | Flame | 10 | the main hero (early form) |
-| kaede | Attack | Striker | Void | 10 | the hero's quick friend / ninja |
-| tomo | Attack | Striker | Flame | 8 | a calm swordsman ally |
-| mirai | Attack | Hexer | Storm | 8 | a trickster / ranged ally |
-| sora | Attack | Striker | Storm | 6 | the rival |
-| hayate | Attack | Striker | Storm | 6 | the rival's partner |
-| akane | Attack | Hexer | Flame | 4 | an anti-hero / reformed villain |
-| kaito | Attack | Striker | Frost | 2.5 | a legendary swordsman / mentor |
-| tsubasa | Attack | Hexer | Light | 2.5 | an elite champion |
-| noa | Attack | Hexer | Void | 1.5 | a dark prodigy / witch |
-| raijen | Attack | Striker | Cosmic | 1 | the strongest fighter (Secret) |
-| hana | Support | Mender | Light | 10 | the team healer |
-| goro | Support | Warder | Light | 10 | the big protector |
-| suzu | Support | Striker | Flame | 8 | the hype / buffer friend |
-| ibuki | Support | Warder | Frost | 8 | the illusionist / spy |
-| yume | Support | Mender | Frost | 6 | a priestess / sage healer |
-| tetsu | Support | Warder | Void | 4 | the iron-wall defender |
-| amane | Support | Mender | Storm | 4 | a rival-side healer |
-| luna | Support | Mender | Light | 2.5 | the strategist / genius |
-| orin | Support | Mender | Void | 1.5 | a time / reality manipulator |
-| amaya | Support | Warder | Storm | 1.5 | an oracle / commander |
-| aurelia | Support | Mender | Cosmic | 1 | the god-tier support (Secret) |
-| kurogane_card | Attack | Hexer | Flame | 1 | World 1 villain (boss card) |
-| rimeveil_card | Attack | Hexer | Frost | 1 | World 2 villain (boss card) |
-| vex_card | Attack | Hexer | Void | 0.8 | World 3 villain (boss card) |
-| tenrai_card | Attack | Striker | Storm | 0.6 | the final villain (boss card) |
+| id | Type | Role | Element | Weight | Now (name, subtitle) | Headline move |
+| --- | --- | --- | --- | --- | --- | --- |
+| kaede | Attack | Mender | Void | 10 | Spirit Weaver, Soul-Thread Medic | – |
+| rook | Attack | Warder | Flame | 8 | Titan Warder, Armored Colossus | Colossal Stomp |
+| tomo | Attack | Striker | Flame | 8 | Solar Blade, Dawn Swordsman | Sun Dance |
+| noa | Attack | Hexer | Void | 8 | Starfall Witch, Mistress of Hounds | Shadow Garden |
+| hayate | Attack | Striker | Flame | 6 | Infernal Warden, Purgatory Flamekeeper | Purgatory Gate |
+| sora | Attack | Striker | Storm | 4 | Cursed Prodigy, Shadow Familiar Tamer | Hundred Familiars |
+| kaito | Attack | Striker | Frost | 2.5 | Ascended Golden Warrior, Prince of Pride | Golden Barrage |
+| tsubasa | Attack | Hexer | Light | 2.5 | Lunar Reaper, Crescent Soul Blade | Moonfall Cleave |
+| mirai | Attack | Hexer | Storm | 1.5 | Limitless Sage, The Untouchable | Hollow Convergence |
+| akane | Attack | Hexer | Flame | 1.5 | Crimson Scourge, King of Malice | Dismantle Storm |
+| raijen | Attack | Striker | Cosmic | 1 | Autonomous God State, The Silver Instinct | Moving Without Thought |
+| hana | Support | Mender | Light | 10 | Lotus Blossom, Hundred-Healing Medic | Hundred Healings |
+| suzu | Support | Striker | Storm | 10 | Thunder Flash, Sleeping Lightning | – |
+| luna | Support | Mender | Light | 10 | Celestial Strategist, Wisteria Tactician | – |
+| ibuki | Support | Warder | Frost | 8 | Phantom Blade, Cloud-Step Assassin | – |
+| tetsu | Support | Warder | Void | 6 | Iron Bastion, Living Sand Fortress | Sand Coffin |
+| amane | Support | Mender | Storm | 6 | Shadow Puppeteer, Mistress of Strings | Puppet Theater |
+| goro | Support | Warder | Light | 4 | Fist of Severance, Blood-Pact Brawler | Severing Pact |
+| amaya | Support | Warder | Storm | 4 | Storm Oracle, Voice of the Storm | Oracle's Tempest |
+| orin | Support | Mender | Void | 2.5 | Time Weaver, Keeper of Hours | Rewind |
+| yume | Support | Mender | Frost | 1.5 | Dream Reaper, Mirror of Hypnosis | Total Hypnosis |
+| aurelia | Support | Mender | Cosmic | 1 | Nine-Tails Sovereign, Vessel of the Nine Tails | Seal's Last Gate |
+| kurogane_card | Attack | Hexer | Flame | 0.9 | Tailed Beast Calamity, The Ember Fox | Fox's Slagfall |
+| rimeveil_card | Attack | Hexer | Frost | 0.85 | Galactic Emperor, The Frost Tyrant | Crystal Sovereignty |
+| vex_card | Attack | Hexer | Void | 0.8 | Mirror Flower Overlord, The Hollow Betrayer | Devour All |
+| tenrai_card | Attack | Striker | Storm | 0.6 | Demon Progenitor, The Thousand-Year Storm | Judgment Bolt |
+
+Weight sets the rarity (lower is rarer); the kit has to match it: a rarer card never carries fewer or smaller
+abilities than a commoner one (Weight 6 and rarer: an Ultimate; boss cards: a passive too).
 
 If a character's real element doesn't match a slot, pick the slot by role and power first, then change
 the Element to fit the character only if the user allows (it affects bonds and synergies).
