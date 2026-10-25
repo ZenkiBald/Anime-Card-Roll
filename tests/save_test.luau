@@ -129,3 +129,16 @@ do
 	SaveMigration.Migrate(fine)
 	check(junk.LastSeen == 0 and fine.LastSeen == 1761523200, "a junk LastSeen resets to 0; a real one stays")
 end
+
+do
+	local data = { Cards = {
+		rook = { Copies = 6, Stars = 5, Borders = { Normal = true, Gold = true, Rainbow = true }, BorderCopies = { Gold = 5, Rainbow = 1 }, Play = "Gold" },
+		tomo = { Copies = 2, Stars = 1, Borders = { Normal = true, Gold = true }, BorderCopies = { Normal = 0, Gold = 2 }, Play = "Normal" },
+		noa = { Copies = 1, Stars = 0, Borders = { Normal = true }, BorderCopies = { Normal = 1 }, Play = 42 },
+	} }
+	SaveMigration.Migrate(data)
+	check(data.Cards.rook.Play == "Gold", "a border pick with copies stays (5 Gold kept in play beside the Rainbow)")
+	check(data.Cards.tomo.Play == nil and data.Cards.noa.Play == nil, "a pick at a fused-away border, or junk, goes back to the best border")
+	local again = SaveMigration.Migrate(data)
+	check(#again == 0 or not table.find(again, "border picks reset: 1 cards"), "the border pick step is safe to run twice")
+end

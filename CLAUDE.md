@@ -43,7 +43,9 @@ x ATK; Support PWR ~300, no HP), scaled by rarity (`Cards.Scale`: a Weight 10 ca
 up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
 `Cards.luau`; a rarer card never carries a smaller kit (Weight 6 and rarer have an Ultimate, boss cards a passive too)
-and its subtitle (`Title`) and colour (`Accent`) fit its name and element. Stars +5% each (max 5). Copies pile up per border (`BorderCopies`); Awakening nodes at 20 / 40 / 60 / 80
+and its subtitle (`Title`) and colour (`Accent`) fit its name and element. Stars +5% each (max 5). Copies pile up per border (`BorderCopies`); every border with copies is its own
+tile in the SQUAD vault (Gold x5 beside Rainbow x1), and the tile put in the deck is the border the card fights at
+(`Deck.PlayBorder`, the save's `Play`; DeckService `PlayAs`; AUTO-BUILD resets to the best border); Awakening nodes at 20 / 40 / 60 / 80
 copies (+10% stats, +15% Skill DMG, 400% bond, trait slot 2). **Border fusion** at Hoshi: 100 copies at one border -> 1
 copy at the next (FUSE or FUSE ALL, which cascades); the card at the next border is the whole reward (no luck, Trait
 Shards or XP). Traits are bought at Kenshin with Trait Shards (battle-only: SPD / crit / guard / energy, never ATK /

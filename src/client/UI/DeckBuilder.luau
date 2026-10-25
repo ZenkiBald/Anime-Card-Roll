@@ -78,6 +78,7 @@ local returnTo: (() -> ())? = nil
 local target: string? = nil -- the fight the deck screen was opened for (boss id, Tower.Id, Raid.Id)
 local selected = nil -- { Row, Index }: the picked slot
 local inspectId: string? = nil -- the card in the inspector
+local inspectBorder: string? = nil -- which of its borders (each border it has copies at is its own vault tile)
 local working = nil -- the deck being edited (mirrors the active preset)
 local search = ""
 local typeBy = "All"
@@ -159,13 +160,41 @@ local function slotFor(id: string): number?
 	return firstEmpty(card.Type)
 end
 
--- Puts the card in (or takes it out if it's in already).
-local function equip(id: string)
+-- Makes the card fight at `border` (the server keeps the pick; its best border clears it).
+local function playAs(id: string, border: string): boolean
+	local own = entry(id)
+	if own == nil or Deck.PlayBorder(own) == border then
+		return true
+	end
+	local ok, result = pcall(function()
+		return Remotes.Deck:InvokeServer("PlayAs", State.Decks.Active, { Card = id, Border = border })
+	end)
+	if ok and result and result.Ok then
+		own.Play = result.Play
+		State.ApplyCard(id, own)
+		return true
+	end
+	hint("Couldn't switch the border, try again")
+	return false
+end
+
+-- Puts the card in at `border` (default: the border it fights at), switches its border if it's in at
+-- another one, or takes it out if it's in at this one.
+local function equip(id: string, border: string?)
 	local card = Cards.Get(id)
 	if card == nil then
 		return
 	end
 	local fromRow, fromIndex = findInDeck(id)
+	local want = border or Deck.PlayBorder(entry(id))
+	if fromRow and Deck.PlayBorder(entry(id)) ~= want then
+		if playAs(id, want) then
+			Sfx.Play("Click", 1.2)
+			hint(`{card.Name} now fights as {Borders.Get(want).Name}`)
+			refresh()
+		end
+		return
+	end
 	if fromRow then
 		working[fromRow][fromIndex] = ""
 		selected = { Row = fromRow, Index = fromIndex }
@@ -177,6 +206,9 @@ local function equip(id: string)
 	local index = slotFor(id)
 	if index == nil then
 		hint(`Your {string.lower(card.Type)} line is full: tap a slot to replace it`)
+		return
+	end
+	if not playAs(id, want) then
 		return
 	end
 	working[card.Type][index] = id
@@ -273,12 +305,12 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	local tile = CardTile.new(id, {
 		Owned = true,
 		Stars = if own then own.Stars else 0,
-		Border = if own then Borders.Best(own.Borders) else nil,
+		Border = if own then Deck.PlayBorder(own) else nil,
 		Spin = true,
 	})
 	CardTooltip.Attach(tile, function()
 		local now = entry(id)
-		return id, if now then Borders.Best(now.Borders) else nil
+		return id, if now then Deck.PlayBorder(now) else nil
 	end)
 	tile.AnchorPoint = Vector2.new(0, 0.5)
 	tile.Position = UDim2.new(0, 26, 0.5, 0)
@@ -288,7 +320,7 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	tile.Activated:Connect(function()
 		plate:SetAttribute("Tap", ((plate:GetAttribute("Tap") or 0) :: number) + 1)
 	end)
-	local border = Borders.Get(if own then Borders.Best(own.Borders) else nil)
+	local border = Borders.Get(if own then Deck.PlayBorder(own) else nil)
 	local info = Kit.new("Frame", {
 		Name = "Info",
 		Position = UDim2.new(0.28, 32, 0, 0),
@@ -442,26 +474,26 @@ end
 
 -- Vault ------------------------------------------------------------------------------------------------
 
+-- Every border a card has copies at is its own vault tile: { Card, Border, Copies at that border }.
 local SORTS = {
 	Power = function(a, b)
-		return Deck.CardPower(a.Id, State.Cards) > Deck.CardPower(b.Id, State.Cards)
+		return Deck.PowerAt(a.Card.Id, State.Cards, a.Border) > Deck.PowerAt(b.Card.Id, State.Cards, b.Border)
 	end,
 	Border = function(a, b)
-		local ea, eb = entry(a.Id), entry(b.Id)
-		return Borders.Index(Borders.Best(ea and ea.Borders)) > Borders.Index(Borders.Best(eb and eb.Borders))
+		return Borders.Index(a.Border) > Borders.Index(b.Border)
 	end,
 	Stars = function(a, b)
-		return (entry(a.Id) and entry(a.Id).Stars or 0) > (entry(b.Id) and entry(b.Id).Stars or 0)
+		return (entry(a.Card.Id) and entry(a.Card.Id).Stars or 0) > (entry(b.Card.Id) and entry(b.Card.Id).Stars or 0)
 	end,
 	Copies = function(a, b)
-		return (entry(a.Id) and entry(a.Id).Copies or 0) > (entry(b.Id) and entry(b.Id).Copies or 0)
+		return a.Copies > b.Copies
 	end,
 	Name = function(a, b)
-		return a.Name < b.Name
+		return a.Card.Name < b.Card.Name
 	end,
 }
 
-local function passesChips(own): boolean
+local function passesChips(own, border: string): boolean
 	if chips.Star5 and (own.Stars or 0) < 5 then
 		return false
 	end
@@ -469,8 +501,7 @@ local function passesChips(own): boolean
 	if not wantBorder then
 		return true
 	end
-	local found = own.Borders or {}
-	return (chips.Gold and found.Gold == true) or (chips.Rainbow and found.Rainbow == true) or (chips.Secret and found.Secret == true)
+	return (chips.Gold and border == "Gold") or (chips.Rainbow and border == "Rainbow") or (chips.Secret and border == "Secret") or false
 end
 
 local function drawGrid()
@@ -481,8 +512,13 @@ local function drawGrid()
 		if card and (typeBy == "All" or card.Type == typeBy) then
 			local matchesSearch = search == "" or string.find(string.lower(card.Name), search, 1, true) ~= nil
 			local matchesElement = elementBy == "Any" or card.Element == elementBy
-			if matchesSearch and matchesElement and passesChips(own) then
-				table.insert(list, card)
+			if matchesSearch and matchesElement then
+				local copies = own.BorderCopies or {}
+				for _, border in Deck.OwnedBorders(own) do
+					if passesChips(own, border) then
+						table.insert(list, { Card = card, Border = border, Copies = copies[border] or own.Copies or 1 })
+					end
+				end
 			end
 		end
 	end
@@ -492,32 +528,36 @@ local function drawGrid()
 		if before ~= after then
 			return before
 		end
-		return a.Id < b.Id
+		if a.Card.Id ~= b.Card.Id then
+			return a.Card.Id < b.Card.Id
+		end
+		return Borders.Index(a.Border) > Borders.Index(b.Border)
 	end)
-	for i, card in list do
+	for i, item in list do
+		local card, border = item.Card, item.Border
 		local own = entry(card.Id)
+		local playing = Deck.PlayBorder(own) == border
 		local tile = CardTile.new(card.Id, {
 			Owned = true,
 			Stars = own.Stars,
-			Border = Borders.Best(own.Borders),
-			Copies = own.Copies,
-			Power = Deck.CardPower(card.Id, State.Cards),
+			Border = border,
+			Copies = item.Copies, -- copies at this border
+			Power = Deck.PowerAt(card.Id, State.Cards, border),
 			Stats = true,
 			Awaken = Awaken.Level(own),
-			InDeck = findInDeck(card.Id) ~= nil,
-			Selected = card.Id == inspectId,
+			InDeck = playing and findInDeck(card.Id) ~= nil,
+			Selected = card.Id == inspectId and border == (inspectBorder or Deck.PlayBorder(own)),
 		})
 		tile.LayoutOrder = i
 		tile.Parent = grid
 		CardTooltip.Attach(tile, function()
-			local now = entry(card.Id)
-			return card.Id, if now then Borders.Best(now.Borders) else nil
+			return card.Id, border
 		end)
 		tile.Activated:Connect(function()
-			if inspectId == card.Id then
-				equip(card.Id) -- a second tap puts it in (or takes it out)
+			if inspectId == card.Id and (inspectBorder or Deck.PlayBorder(own)) == border then
+				equip(card.Id, border) -- a second tap puts it in at this border (or takes it out)
 			else
-				inspectId = card.Id
+				inspectId, inspectBorder = card.Id, border
 				Sfx.Play("Click", 1)
 				refresh()
 			end
@@ -560,7 +600,9 @@ local function drawInspector()
 		}, 15)
 		return
 	end
-	local best = Borders.Best(own.Borders)
+	local playing = Deck.PlayBorder(own)
+	local owns = Deck.OwnedBorders(own)
+	local best = if inspectBorder and table.find(owns, inspectBorder) then inspectBorder else playing
 	local border = Borders.Get(best)
 	local element = Elements.Get(card.Element)
 	local left = Kit.new("Frame", { Size = UDim2.new(0.58, -8, 1, 0), BackgroundTransparency = 1, Parent = inspector })
@@ -588,15 +630,28 @@ local function drawInspector()
 			else `<font color="#8A94AC">None yet</font>`
 		text({ Text = `TRAIT {slot}  {value}`, Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 14)
 	end
-	traitLine(1, own.Trait, 48)
-	traitLine(2, own.Trait2, 70)
+	traitLine(1, own.Trait, 44)
+	traitLine(2, own.Trait2, 63)
 	-- Awakening: five pips, one per node.
 	local pips = {}
 	for node = 1, #Awaken.Nodes do
 		table.insert(pips, if level >= node then `<font color="#3CDCFF">[●]</font>` else `<font color="#5A6480">[○]</font>`)
 	end
+	-- Copies at every border (each is its own card in the vault) and the border it fights at.
+	local piles = {}
+	for _, b in owns do
+		local info = Borders.Get(b)
+		table.insert(piles, `<font color="#{info.Color:ToHex()}">{info.Name} x{Kit.commas((own.BorderCopies or {})[b] or 0)}</font>`)
+	end
+	text({
+		Text = `COPIES  {table.concat(piles, " · ")}   <font color="#8A94AC">fights as {Borders.Get(playing).Name}</font>`,
+		RichText = true,
+		Position = UDim2.fromOffset(0, 101),
+		Size = UDim2.new(1, 0, 0, 18),
+		Parent = left,
+	}, 13)
 	local copies = `{Kit.commas(own.Copies)} dupes`
-	text({ Text = `AWAKENING  {table.concat(pips, "")}  <font color="#8A94AC">({copies})</font>`, Position = UDim2.fromOffset(0, 94), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 14)
+	text({ Text = `AWAKENING  {table.concat(pips, "")}  <font color="#8A94AC">({copies})</font>`, Position = UDim2.fromOffset(0, 82), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 14)
 
 	-- Actions.
 	local actions = Kit.new("Frame", {
@@ -610,17 +665,18 @@ local function drawInspector()
 	})
 	local inRow, inIndex = findInDeck(card.Id)
 	local index = slotFor(card.Id)
-	local label = if inRow then `REMOVE FROM SLOT {inIndex}`
+	local label = if inRow and playing ~= best then `FIGHT AS {string.upper(border.Name)}`
+		elseif inRow then `REMOVE FROM SLOT {inIndex}`
 		elseif index then (if working[card.Type][index] ~= "" then `REPLACE SLOT {index}` else `EQUIP TO SLOT {index}`)
 		else "PICK A SLOT FIRST"
-	local primary = Kit.button(label, if inRow then Theme.Color.Danger else ROW_COLORS[card.Type], Color3.fromRGB(10, 40, 60), {
+	local primary = Kit.button(label, if inRow and playing == best then Theme.Color.Danger else ROW_COLORS[card.Type], Color3.fromRGB(10, 40, 60), {
 		LayoutOrder = 1,
 		Size = UDim2.new(1, 0, 0, 44),
 		Parent = actions,
 	})
 	Kit.dim(primary, not inRow and index == nil)
 	primary.Activated:Connect(function()
-		equip(card.Id)
+		equip(card.Id, best)
 	end)
 	local master = Kit.button("VISIT TRAIT MASTER", Color3.fromRGB(80, 230, 200), Color3.fromRGB(10, 50, 44), {
 		LayoutOrder = 2,
@@ -870,7 +926,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 				local id = working[deckRow][i]
 				if not isSelected then
 					if id ~= "" then
-						inspectId = id
+						inspectId, inspectBorder = id, nil -- the border it fights at
 					end
 					typeBy = deckRow -- the vault shows what this slot takes
 				end
@@ -954,6 +1010,18 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 	autoButton = Kit.button("AUTO-BUILD", C.VermilionHover, C.VermilionWax, { LayoutOrder = 1, Size = UDim2.new(0.28, 0, 1, 0), Parent = actions })
 	autoButton.Activated:Connect(function()
 		if call("AutoBuild", State.Decks.Active, target) then
+			-- The server fights every auto-built card at its best border: drop their border picks here too.
+			local built = State.ActiveDeck()
+			for _, row in Deck.Rows do
+				for _, id in (if built then built[row] else {}) do
+					local own = State.Cards[id]
+					if own then
+						own.Play = nil
+					end
+				end
+			end
+			loadWorking()
+			refresh()
 			Sfx.Play("Upgrade", 1.1)
 			hint(if target then "Rebuilt to counter this fight's elements" else "Filled with your strongest cards")
 		end
@@ -1038,7 +1106,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 	grid = Kit.new("ScrollingFrame", {
 		Name = "Grid",
 		Position = UDim2.fromOffset(0, 74),
-		Size = UDim2.new(1, 0, 1, -74 - 132),
+		Size = UDim2.new(1, 0, 1, -74 - 148),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
@@ -1065,7 +1133,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		Name = "Inspector",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, 0, 0, 124),
+		Size = UDim2.new(1, 0, 0, 140), -- name, stats, two traits, Awakening, copies per border
 		Parent = right,
 	}, CYAN:Lerp(Theme.Color.Line, 0.5))
 	Kit.padding(10).Parent = inspector
@@ -1077,7 +1145,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -136),
+		Position = UDim2.new(0.5, 0, 1, -152),
 		Size = UDim2.new(1, 0, 0, 24),
 		ZIndex = 10,
 		Parent = right,

@@ -1,12 +1,13 @@
 --!nonstrict
--- Deck presets: save, switch and auto-build. Every deck a client sends goes through
--- Deck.Validate (4 + 4 slots, right types, no copies, owned cards only).
+-- Deck presets: save, switch and auto-build, and which border a card fights at. Every deck a client
+-- sends goes through Deck.Validate (4 + 4 slots, right types, no copies, owned cards only).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
+local Borders = require(Shared.Borders)
 local Bosses = require(Shared.Bosses)
 local Tower = require(Shared.Tower)
 local Raid = require(Shared.Raid)
@@ -81,7 +82,26 @@ function DeckService.Start()
 					against = Bosses.SquadElements(deck)
 				end
 			end
-			data.Decks.Presets[preset] = Deck.AutoBuild(data.Cards, against)
+			local built = Deck.AutoBuild(data.Cards, against)
+			for _, row in Deck.Rows do
+				for _, id in built[row] do
+					if data.Cards[id] then
+						data.Cards[id].Play = nil -- auto-build fights every card at its best border
+					end
+				end
+			end
+			data.Decks.Presets[preset] = built
+		elseif action == "PlayAs" then
+			-- `deck` is { Card = id, Border = border id }: that card fights at that border from now on
+			-- (in every preset). Only a border it has copies at; its best border clears the pick.
+			local request = if type(deck) == "table" then deck else {}
+			local cardId, border = request.Card, request.Border
+			local entry = type(cardId) == "string" and data.Cards[cardId] or nil
+			if entry == nil or type(border) ~= "string" or ((entry.BorderCopies or {})[border] or 0) <= 0 then
+				return { Ok = false, Reason = "BadRequest" }
+			end
+			entry.Play = if border == Borders.Best(entry.Borders) then nil else border
+			return { Ok = true, Card = cardId, Play = entry.Play, Decks = DeckService.State(data, player) }
 		else
 			return { Ok = false, Reason = "BadRequest" }
 		end

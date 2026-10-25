@@ -284,7 +284,7 @@ local function deckUnits(data, deck, mutator: Tower.Mutator?)
 					Id = `{string.sub(row, 1, 1)}{i}`,
 					CardId = id,
 					Stars = owned.Stars,
-					Border = Borders.Best(owned.Borders),
+					Border = Deck.PlayBorder(owned),
 					Awaken = node,
 					Trait = effects,
 				})

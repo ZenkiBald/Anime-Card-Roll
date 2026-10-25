@@ -406,7 +406,7 @@ local BETTER_DECK = 1.05
 local function deckGain(): number
 	local active = State.ActiveDeck()
 	local now = if active then Deck.Power(active, State.Cards) else 0
-	local best = Deck.Power(Deck.AutoBuild(State.Cards), State.Cards)
+	local best = Deck.BestPower(Deck.AutoBuild(State.Cards), State.Cards)
 	return if now > 0 then best / now else (if best > 0 then math.huge else 1)
 end
 local betterDeck, fuseReady = false, 0

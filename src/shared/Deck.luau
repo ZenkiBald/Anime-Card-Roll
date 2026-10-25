@@ -10,7 +10,7 @@ local Elements = require(script.Parent.Elements)
 local Awaken = require(script.Parent.Awaken)
 
 export type Deck = { Attack: { string }, Support: { string } }
-export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, BorderCopies: { [string]: number }?, Awaken: number? } }
+export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, BorderCopies: { [string]: number }?, Awaken: number?, Play: string? } }
 
 local Deck = {}
 
@@ -96,7 +96,47 @@ function Deck.Clean(deck: Deck, owned: Owned): Deck
 	return clean
 end
 
--- Card power with the owner's stars, best border (the tier) and Awakening.
+-- The borders a card has copies at, lowest first: each is its own card in the SQUAD vault.
+function Deck.OwnedBorders(entry: any): { string }
+	local list = {}
+	local copies = (entry and entry.BorderCopies or {}) :: { [string]: number }
+	for _, id in Borders.Order do
+		if (copies[id] or 0) > 0 then
+			table.insert(list, id)
+		end
+	end
+	if #list == 0 then
+		table.insert(list, Borders.Best(entry and entry.Borders))
+	end
+	return list
+end
+
+-- The border a card fights at: the one the player picked (`Play`, while it still has copies there),
+-- else its best. Picking a lower border keeps that card in play at it (cheaper for the Cost Challenge).
+function Deck.PlayBorder(entry: any): string
+	if entry == nil then
+		return "Normal"
+	end
+	local play = entry.Play
+	if type(play) == "string" and ((entry.BorderCopies or {})[play] or 0) > 0 then
+		return play
+	end
+	return Borders.Best(entry.Borders)
+end
+
+-- A card's power at a border (default: the one it fights at), with the owner's stars and Awakening.
+function Deck.PowerAt(id: string, owned: Owned, border: string?): number
+	local card = Cards.Get(id)
+	if card == nil then
+		return 0
+	end
+	local entry = owned[id]
+	return if entry
+		then Cards.Power(card, entry.Stars, border or Deck.PlayBorder(entry), Awaken.Level(entry :: any))
+		else Cards.Power(card, 0)
+end
+
+-- Card power with the owner's stars, the border it fights at (the tier) and Awakening.
 function Deck.CardPower(id: string, owned: Owned): number
 	local card = Cards.Get(id)
 	if card == nil then
@@ -104,7 +144,7 @@ function Deck.CardPower(id: string, owned: Owned): number
 	end
 	local entry = owned[id]
 	return if entry
-		then Cards.Power(card, entry.Stars, Borders.Best(entry.Borders), Awaken.Level(entry :: any))
+		then Cards.Power(card, entry.Stars, Deck.PlayBorder(entry), Awaken.Level(entry :: any))
 		else Cards.Power(card, 0)
 end
 
@@ -147,7 +187,7 @@ function Deck.Cost(deck: Deck, owned: Owned?): number
 			local card = Cards.Get(id)
 			if card then
 				local entry = owned and owned[id]
-				total += Cards.Cost(if entry then Borders.Best(entry.Borders) else nil)
+				total += Cards.Cost(if entry then Deck.PlayBorder(entry) else nil)
 			end
 		end
 	end
@@ -197,8 +237,23 @@ function Deck.Elements(deck: Deck): { string }
 	return list
 end
 
--- The strongest 4 + 4. With `against` (the enemy squad's elements) it counter-builds: each card's power
--- is weighed by Deck.MatchupValue, so cards that beat the squad's elements move up.
+-- Deck Power if every card in it fought at its best border (what AUTO-BUILD aims for).
+function Deck.BestPower(deck: Deck, owned: Owned): number
+	local total = 0
+	for _, row in Deck.Rows do
+		for _, id in (deck :: any)[row] :: { string } do
+			local entry = owned[id]
+			if id ~= "" and entry then
+				total += Deck.PowerAt(id, owned, Borders.Best(entry.Borders))
+			end
+		end
+	end
+	return total
+end
+
+-- The strongest 4 + 4, every card at its best border (DeckService clears their `Play` picks). With
+-- `against` (the enemy squad's elements) it counter-builds: each card's power is weighed by
+-- Deck.MatchupValue, so cards that beat the squad's elements move up.
 function Deck.AutoBuild(owned: Owned, against: { string }?): Deck
 	local deck = Deck.Empty()
 	for _, row in Deck.Rows do
@@ -210,7 +265,9 @@ function Deck.AutoBuild(owned: Owned, against: { string }?): Deck
 			end
 		end
 		table.sort(pool, function(a, b)
-			local pa, pb = Deck.CardPower(a, owned) * Deck.MatchupValue(a, against), Deck.CardPower(b, owned) * Deck.MatchupValue(b, against)
+			local ea, eb = owned[a], owned[b]
+			local pa = Deck.PowerAt(a, owned, Borders.Best(ea.Borders)) * Deck.MatchupValue(a, against)
+			local pb = Deck.PowerAt(b, owned, Borders.Best(eb.Borders)) * Deck.MatchupValue(b, against)
 			if pa ~= pb then
 				return pa > pb
 			end

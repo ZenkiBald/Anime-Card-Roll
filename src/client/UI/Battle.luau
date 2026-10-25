@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
+local Deck = require(Shared.Deck)
 local Bosses = require(Shared.Bosses)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
@@ -264,7 +265,7 @@ local function showCardInfo(cardId: string)
 		return
 	end
 	local entry = State.Cards[cardId]
-	local tier = Borders.Get(Borders.Best(entry and entry.Borders))
+	local tier = Borders.Get(Deck.PlayBorder(entry)) -- the border it fights at
 	local cover = Kit.new("TextButton", {
 		Name = "CardInfo",
 		Size = UDim2.fromScale(1, 1),
@@ -689,7 +690,7 @@ local function makeTile(unit, order: number)
 	if entry then
 		stars = entry.Stars
 	end
-	local borderId = Borders.Best(entry and entry.Borders) -- the border is the tier
+	local borderId = Deck.PlayBorder(entry) -- the border it fights at is the tier
 	local tier = Borders.Get(borderId)
 	local isAttack = card.Type == "Attack"
 

@@ -92,6 +92,22 @@ function SaveMigration.Migrate(data: any): { string }
 	if cards > 0 then
 		table.insert(done, `border copies: {cards} cards`)
 	end
+	-- A card's picked border (`Play`, Deck.PlayBorder) must be a border it has copies at; anything else
+	-- (junk, or a pile fused away) goes back to fighting at its best border.
+	local plays = 0
+	for _, entry in data.Cards or {} do
+		if type(entry) == "table" and entry.Play ~= nil then
+			local play = entry.Play
+			local copies = if type(entry.BorderCopies) == "table" then entry.BorderCopies else {}
+			if type(play) ~= "string" or Borders.ById[play] == nil or type(copies[play]) ~= "number" or copies[play] <= 0 then
+				entry.Play = nil
+				plays += 1
+			end
+		end
+	end
+	if plays > 0 then
+		table.insert(done, `border picks reset: {plays} cards`)
+	end
 	local settings = data.Settings
 	if type(settings) == "table" and settings.AutoStop ~= nil then
 		settings.AutoStop = nil

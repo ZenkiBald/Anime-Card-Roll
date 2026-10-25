@@ -66,6 +66,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 - [ ] QoL pass: AUTO REPEAT after a boss win (off by default, counts down, stops on a loss / opening rolls / BACK),
   the "stronger deck is ready" hint and SQUAD badge after a good pull, the "can fuse, see Hoshi" hint, and badge art
   (paste one id into a `Skin.Icons` key such as `Element:Flame` and check every badge picks it up).
+- [ ] Lower borders in the SQUAD vault: a card with Gold and Rainbow copies shows two tiles; tapping the Gold tile
+  twice puts it in (or switches it) at Gold, the slot, battle card and Deck Cost follow, AUTO-BUILD goes back to Rainbow.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

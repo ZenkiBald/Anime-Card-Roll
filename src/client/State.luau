@@ -214,6 +214,7 @@ function State.ApplyRoll(result)
 			Trait = result.CardTrait,
 			Trait2 = old.Trait2,
 			Pending = old.Pending,
+			Play = old.Play,
 		}
 	end
 	for _, extra in result.Extra or {} do

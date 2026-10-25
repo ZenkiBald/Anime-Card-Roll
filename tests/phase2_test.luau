@@ -75,6 +75,21 @@ check(starterCost == 16, "an all-Base deck costs 16")
 local topDeck, topOwned = F.fixtureDeck(F.FIGHTS[12])
 local topCost = Deck.Cost(topDeck, topOwned)
 check(topCost > Config.Deck.CostCap, `a Rainbow / Gold deck ({topCost}) breaks the {Config.Deck.CostCap}-point Cost Challenge`)
+do -- Lower borders stay playable: a card with Rainbow and Gold copies can fight as either.
+	local owned = { rook = { Copies = 6, Stars = 5, Borders = { Normal = true, Gold = true, Rainbow = true }, BorderCopies = { Gold = 5, Rainbow = 1 } } }
+	local one = F.deck({ "rook" }, {})
+	local list = Deck.OwnedBorders(owned.rook)
+	check(#list == 2 and list[1] == "Gold" and list[2] == "Rainbow", "the vault lists every border a card has copies at (Gold x5 and Rainbow x1)")
+	local rainbowPower, rainbowCost = Deck.Power(one, owned), Deck.Cost(one, owned)
+	owned.rook.Play = "Gold"
+	check(Deck.PlayBorder(owned.rook) == "Gold" and Deck.Power(one, owned) < rainbowPower and Deck.Cost(one, owned) < rainbowCost, "picking Gold fights at Gold: less power, cheaper Deck Cost")
+	check(Deck.BestPower(one, owned) == rainbowPower, "Deck.BestPower still counts its best border")
+	owned.rook.BorderCopies.Gold = 0
+	check(Deck.PlayBorder(owned.rook) == "Rainbow", "a pick with no copies left falls back to the best border")
+	owned.rook.BorderCopies.Gold = 5
+	local built = Deck.AutoBuild(owned)
+	check(built.Attack[1] == "rook", "AUTO-BUILD still picks the card")
+end
 check(Rewards.TraitShards(1, false) == 1 and Rewards.TraitShards(12, false) == 5 and Rewards.TraitShards(6, true) == 2 * Rewards.TraitShards(6, false), "bosses pay 1-5 Trait Shards by D, doubled on a first clear")
 check(Tower.Reward(3).TraitShards >= 1 and Tower.Reward(10).TraitShards >= 10 and Tower.Reward(50).TraitShards > Tower.Reward(10).TraitShards, "every tower floor pays Trait Shards, Guardians a big bundle")
 local raidClear = Raid.Reward(true, 1e9, 30000, false)

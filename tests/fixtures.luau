@@ -56,7 +56,7 @@ function Fixtures.units(deck, owned)
 					Id = `{string.sub(row, 1, 1)}{i}`,
 					CardId = id,
 					Stars = owned[id].Stars,
-					Border = Borders.Best(owned[id].Borders),
+					Border = Deck.PlayBorder(owned[id]),
 					Awaken = node,
 					Trait = if #effects > 0 then effects else nil,
 				})

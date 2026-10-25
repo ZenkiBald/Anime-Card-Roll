@@ -129,6 +129,7 @@ function DataService.CardState(entry)
 		Trait = entry.Trait,
 		Trait2 = entry.Trait2,
 		Pending = entry.Pending,
+		Play = entry.Play,
 	}
 end
 

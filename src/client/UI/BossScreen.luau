@@ -482,7 +482,7 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 			if card then
 				local own = State.Cards[card.Id]
 				CardView.Portrait(id, true).Parent = chip
-				CardView.Bevel(chip, Borders.Best(own and own.Borders), 2)
+				CardView.Bevel(chip, Deck.PlayBorder(own), 2)
 			else
 				Kit.label({
 					Text = "-",
