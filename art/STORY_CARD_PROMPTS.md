@@ -1,52 +1,38 @@
-# Story card prompt pack: allies, rivals, mentors and villains
+# Card art prompts: the current roster
 
-A shonen story told through the cards, so players read every card at a glance by its **role in the story**
-(the hot-headed hero, the cool rival, the masked mentor, the tyrant) instead of by stats. Every character
-is original: familiar archetypes, never a copy of a real anime character's design, outfit, markings or
-name. That's what keeps the game safe from takedowns while still feeling like a classic anime.
+One prompt per card, written for the cards as they are now in `src/shared/Cards.luau`: each card's **name**,
+**subtitle**, **element** and **signature move**, so the art tells you what the card does at a glance. The names
+are anime-style epithets for the private prototype; every design below is original (archetype, outfit,
+pose and move are ours), so the art keeps working when the names are swapped for fully original ones before
+any publish.
 
 Works in Niji Journey, Midjourney (`--niji 6`), ForgeGUI / Stable Diffusion (an anime checkpoint), Leonardo,
 ChatGPT / Gemini image generation.
 
-## The story: Shards of the Four Calamities
-
-The Four Spirits once sealed the world's elements. Four Calamities broke the seal: **Kurogane** the Ash
-Ronin burned Ember Village, **Rimeveil** the Glacier Queen froze Frostfang Peaks, **Vex** the Void Tyrant
-swallowed the Neon Abyss, and **Tenrai** the Storm Sovereign rules Stormspire Isle. Every card is a fighter
-who joined (or opposed) the hunt for the shards. Factions, shown in each card's background:
-
-| Faction | Story role | Look |
-| --- | --- | --- |
-| **Ember Squad** | the heroes: young fighters from the burned village | warm sunset, village rooftops, red cloth details |
-| **Storm Academy** | the rivals: elite students who look down on the squad | white-and-blue uniforms, sky arenas, wind |
-| **Wandering Masters** | the mentors and legends | worn travelling clothes, temples, mountains, calm power |
-| **The Four Calamities** | the villains (the bosses) and their generals | dark armour, ruined worlds, oppressive skies |
-| **Fallen / Ascended** | the Secret-tier sovereigns, beyond sides | cosmic skies, eclipses, divine light |
-
 ## How to use
 
-1. Paste **Style** + the card's **prompt**, and put **Avoid** in the negative prompt.
-2. Generate 4 per card, keep the best. Reuse your favourite image as a **style reference** (Midjourney
-   `--sref`, Niji style reference, ForgeGUI IP-Adapter) for every other card, so the whole set matches.
-3. Square PNG, 1024 x 1024, face in the upper middle (the name and rarity sit on the bottom edge).
-   Name it after the card id (`rook.png`) and drop it in `art/cards/`.
-4. The game adds the border (Base / Gold / Rainbow / Secret) itself, so the art never shows a frame, and the
-   same art works for every border.
+1. Paste **Style** + the card's **prompt**; put **Avoid** in the negative prompt.
+2. Generate 4 per card and keep the best. Use your favourite result as a **style reference** (Midjourney
+   `--sref`, Niji style reference, ForgeGUI IP-Adapter) for every other card so the set matches.
+3. Square PNG, 1024 x 1024, face in the upper middle (name and rarity sit on the bottom edge). Name it after
+   the card id (`rook.png`) and drop it in `art/cards/`.
+4. No frame in the art: the game draws the border (Base / Gold / Rainbow / Secret), so one image serves every
+   border.
+5. Rarer cards get more spectacle: commons a clean action pose, the Weight 1-2.5 cards a full-power moment,
+   Secrets and boss cards a world-ending scene.
 
 ## Style (add to every prompt)
 
-> anime gacha card illustration, shonen battle anime style, single character, upper body to knees,
-> dynamic action pose, dramatic rim lighting, glowing {ELEMENT} aura with energy particles, detailed
-> background showing their story faction, vibrant saturated colours, sharp clean lineart, cel shading
-> with soft gradients, expressive eyes, character centred, square 1:1
+> anime gacha card illustration, shonen battle anime style, single character, upper body to knees, dynamic
+> action pose, dramatic rim lighting, glowing {ELEMENT} aura with energy particles, detailed background,
+> vibrant saturated colours, sharp clean lineart, cel shading with soft gradients, expressive eyes,
+> character centred, square 1:1
 
 **Avoid:** text, letters, logo, watermark, signature, border, frame, card template, multiple characters,
-blurry, extra fingers, deformed hands, cropped head, famous anime character, copyrighted character,
+blurry, extra fingers, deformed hands, cropped head, existing anime character, copyrighted character,
 recognisable costume from an existing series
 
-**{ELEMENT} aura** (matches the card's element in the game):
-
-| Element | Aura |
+| Element | {ELEMENT} aura |
 | --- | --- |
 | Flame | roaring orange-red fire |
 | Frost | pale blue ice crystals and frost mist |
@@ -55,136 +41,129 @@ recognisable costume from an existing series
 | Void | violet-black shadow tendrils and dark stars |
 | Cosmic | swirling galaxy light with a black eclipse halo |
 
-## Ember Squad (the heroes)
+## Commons (Weight 8-10): the starter squad
 
-**rook: Rook, Iron Knuckle Brawler (Flame, hero / protagonist).**
-> loud, fearless teen brawler, wild red-brown hair, scarred knuckles wrapped in burnt cloth, torn red
-> jacket over a dark shirt, mid-punch with fire exploding from his fist, burning village gate behind him,
-> determined grin, the "I'll protect everyone" hero
+**rook · Titan Warder, Armored Colossus (Flame, Attack Warder; Colossal Stomp).**
+> towering young warrior in heavy ember-red plate armour with glowing seams, shoulders like fortress walls,
+> stamping the ground so a ring of fire and cracked stone bursts outward, burning gate behind him
 
-**kaede: Kaede, Kunai Thrower (Void, hero's best friend).**
-> quick-witted kunoichi girl, long navy ponytail, half-mask, dark violet stealth outfit with red cord,
-> flipping backwards while throwing shadow-wrapped kunai, moonlit rooftops of the ruined village
+**kaede · Spirit Weaver, Soul-Thread Medic (Void, Attack Mender; Rejection Shield).**
+> calm girl with long navy hair and a violet hair cord, sleeves trailing glowing soul threads that knit a
+> translucent shield around her allies, a swarm of shadow sparks, moonlit shrine courtyard
 
-**tomo: Tomo, Lantern Swordsman (Flame, the calm senpai).**
-> gentle older teen swordsman, swept black hair, long amber coat, a paper lantern at his belt, drawing a
-> straight sword trailing warm lantern fire, night festival street being rebuilt behind him
+**tomo · Solar Blade, Dawn Swordsman (Flame, Attack Striker; Sun Dance).**
+> earnest young swordsman in a long amber coat, a straight blade trailing a spiral of
+> sun-fire as he spins through a dance-like cut, dawn breaking over a mountain village
 
-**mirai: Mirai, Spark Archer (Storm, the joker).**
-> cheeky archer boy, messy blond hair under a goggles headband, mismatched jacket covered in patches,
-> drawing a bow of crackling lightning with a wink, village watchtower at dusk
+**noa · Starfall Witch, Mistress of Hounds (Void, Attack Hexer; Shadow Garden).**
+> smug young witch with wild violet hair and a crescent-pinned hat, two hounds made of shadow lunging from
+> her cape, a garden of black thorns blooming under a ruined neon skyline
 
-**hana: Hana, Herb Healer (Light, the heart of the squad).**
-> kind healer girl, soft green braid with flower pins, apron over a white kimono, herb satchel, raising
-> glowing hands of golden light over the wounded, herb garden among village ruins
+**hana · Lotus Blossom, Hundred-Healing Medic (Light, Support Mender; Hundred Healings).**
+> kind healer with a soft green braid and lotus pins, white field-medic coat, palms glowing gold as a
+> hundred lotus petals of light heal the wounded around her, temple garden
 
-**suzu: Suzu, Shrine Drummer (Flame, the hype-man).**
-> energetic shrine drummer girl, short orange hair, red-and-white shrine outfit with rolled sleeves,
-> striking a big taiko drum that bursts into fire rings, shrine steps at sunrise
+**suzu · Thunder Flash, Sleeping Lightning (Storm, Support Striker; Thunder Clap).**
+> sleepy-eyed swordswoman with short copper hair, teal-and-white travelling coat, half asleep yet already mid-draw,
+> a single lightning-fast cut leaving a crack of thunder, rain-soaked wooden bridge
 
-## Storm Academy (the rivals)
+**ibuki · Phantom Blade, Cloud-Step Assassin (Frost, Support Warder; Playful Cloud Strike).**
+> masked assassin in a grey hooded cloak, stepping on drifting frost clouds, a thin blade hidden in the mist
+> as afterimages fan out around him, misty bamboo forest
 
-**sora: Sora Ikazuchi, Storm Blade (Storm, the hero's rival).**
-> cool, arrogant prodigy swordsman, sharp silver hair, white-and-blue academy uniform with a high
-> collar, lightning running along a thin blade, one eye half-closed in contempt, sky arena above clouds
+**luna · Celestial Strategist, Wisteria Tactician (Light, Support Mender; Wisteria Sting).**
+> elegant strategist with long black hair and star hairpins, layered white-and-lilac robes, a slim
+> needle-blade glowing with light, wisteria petals and a floating star map around her, night garden
 
-**hayate: Hayate, Gale Dancer (Storm, the rival's partner).**
-> graceful twin-blade dancer, long teal hair tied high, flowing academy sash, spinning mid-air in a
-> cyclone of wind and sparks, floating academy towers
+## Uncommons (Weight 4-6)
 
-**tsubasa: Tsubasa, Sky Knight (Light, the academy champion).**
-> noble knight with short golden hair, polished white armour with feathered pauldrons, diving with a
-> radiant lance, wings of light behind her, academy colosseum in the sky
+**sora · Cursed Prodigy, Shadow Familiar Tamer (Storm, Attack Striker; Hundred Familiars).**
+> cool, sharp-eyed prodigy in a dark high-collared uniform, hand sign raised as familiars made of crackling
+> storm shadows (wolves, a great bird) charge out of his shadow, stormy rooftop
 
-**amane: Amane, Rain Priestess (Storm, the academy healer).**
-> serene priestess with long grey-blue hair, academy robes soaked by rain, holding a bell staff that calls
-> a cleansing lightning storm, rain-washed academy courtyard
+**hayate · Infernal Warden, Purgatory Flamekeeper (Flame, Attack Striker; Purgatory Gate).**
+> stern warden in black armour with a flowing crimson cape, a burning gate of hellfire opening behind him,
+> sweeping a long blade so flames wash over every enemy, ash falling over a ruined citadel
 
-**amaya: Amaya, Storm Oracle (Storm, the academy headmistress).**
-> commanding oracle woman, white hair in a crown braid, storm-cloud cloak, eyes glowing yellow, raising a
-> shield of lightning around her students, eye of a storm over the academy
+**tetsu · Iron Bastion, Living Sand Fortress (Void, Support Warder; Sand Coffin).**
+> silent guardian in dark iron armour, violet-black sand rising from the ground that rises
+> into walls and shields, desert fortress at dusk
 
-## Wandering Masters (the mentors and legends)
+**amane · Shadow Puppeteer, Mistress of Strings (Storm, Support Mender; Puppet Theater).**
+> composed puppeteer with grey-blue hair, gloves trailing lightning-charged strings tied to wooden puppets
+> that shield her allies, a stage curtain of storm clouds
 
-**goro: Goro, Shield Monk (Light, the first mentor).**
-> huge, kind bald monk with a long beard, prayer beads, raising a palm that forms a golden barrier, calm
-> smile, mountain temple gate
+**goro · Fist of Severance, Blood-Pact Brawler (Light, Support Warder; Severing Pact).**
+> huge scarred brawler with a shaved head and prayer beads, fists wrapped in glowing gold seals, punching
+> through the air so a wall of golden light shields his team, mountain temple gate
 
-**kaito: Kaito, Dragon-Eye Ronin (Frost, the legendary swordsman).**
-> wandering ronin, long white hair tied back, one icy glowing eye, tattered grey haori, mid-slash
-> releasing an ice dragon, snowstorm on a mountain pass
+**amaya · Storm Oracle, Voice of the Storm (Storm, Support Warder; Oracle's Tempest).**
+> commanding oracle woman with white hair in a crown braid and a storm-cloud cloak, eyes glowing yellow,
+> calling a tempest down on her enemies while lightning shields wrap her allies, eye of a storm
 
-**akane: Akane, Crimson Lance Duelist (Flame, the villain who switched sides).**
-> fierce duelist woman, short crimson hair, black-and-red armour with a broken Calamity crest, spinning a
-> spiral lance wrapped in flame, burning bridge behind her, defiant stare
+## Rares (Weight 1.5-2.5): full-power moments
 
-**yume: Yume Aoi, Moonlight Priestess (Frost, the quiet sage).**
-> serene priestess, long silver-blue hair, white-and-indigo robes, moon-shaped mirror glowing with frost
-> light, lotus pond under a full moon
+**kaito · Ascended Golden Warrior, Prince of Pride (Frost, Attack Striker; Golden Barrage).**
+> proud warrior prince with long hair blazing gold, a frost-blue aura crackling with golden sparks around
+> him, unleashing a barrage of glowing ki blasts across a frozen battlefield, arrogant smirk
 
-**ibuki: Ibuki, Fog Weaver (Frost, the spy master).**
-> mysterious masked figure, grey hooded cloak, fingers weaving threads of frost fog that hide allies,
-> misty bamboo forest
+**tsubasa · Lunar Reaper, Crescent Soul Blade (Light, Attack Hexer; Moonfall Cleave).**
+> fierce reaper with short golden hair and a black-and-white hakama, a huge crescent-shaped blade of
+> moonlight, cleaving a glowing crescent wave down from the sky, full moon behind
 
-**tetsu: Tetsu, Iron Wall Guardian (Void, the unbreakable wall).**
-> towering guardian in dark iron armour, huge tower shield cracked with violet light, planting it in the
-> ground against a shadow storm, ruined fortress gate
+**orin · Time Weaver, Keeper of Hours (Void, Support Mender; Rewind).**
+> ageless hermit with long silver hair, robes stitched with clock faces, a violet hourglass turning in
+> mid-air as fallen allies reform from light, broken clock tower
 
-**luna: Luna Mei, Celestial Strategist (Light, the tactician).**
-> elegant strategist, long black hair with star hairpins, layered white-and-gold robes, moving glowing
-> constellation pieces on a floating star map, observatory at night
+**mirai · Limitless Sage, The Untouchable (Storm, Attack Hexer; Hollow Convergence).**
+> carefree sage with storm-blue glowing eyes and a light grey travelling coat, untouched by the attacks freezing in mid-air around him,
+> two orbs of crackling lightning and void colliding into one blinding sphere, shattered city
 
-**orin: Orin, Time Weaver (Void, the hermit who can rewind battles).**
-> ageless hermit, long silver hair, robes stitched with clock patterns, hourglass of violet sand turning
-> in mid-air, fallen allies reforming from light, broken clock tower
+**akane · Crimson Scourge, King of Malice (Flame, Attack Hexer; Dismantle Storm).**
+> menacing warlord with a cruel grin, crimson runes burning along his arms, a cloak of shadow and flame,
+> invisible slashes carving a storm of cuts through the air, a shrine of skulls burning behind him
 
-**noa: Noa, Starfall Witch (Void, the anti-hero).**
-> smug young witch, wild violet hair, black witch hat with a crescent pin, calling down a meteor storm,
-> ruined Neon Abyss skyline, fights the Calamities for her own reasons
+**yume · Dream Reaper, Mirror of Hypnosis (Frost, Support Mender; Total Hypnosis).**
+> serene priestess with long silver-blue hair and indigo robes, holding a moon mirror that reflects a frozen
+> dream world, enemies drifting asleep in frost mist, lotus pond under a full moon
 
-## Fallen / Ascended (the Secret sovereigns)
+## Sovereigns (Weight 1): the Secret chase
 
-**raijen: Raijen, Eclipse Sovereign (Cosmic, the fallen hero).**
-> former hero who ascended, long black hair turning to starlight at the tips, ornate black-and-gold robes,
-> a black sun burning behind him, cold eyes, floating above a shattered battlefield
+**raijen · Autonomous God State, The Silver Instinct (Cosmic, Attack Striker; Moving Without Thought).**
+> calm martial artist with dark hair turning to starlight at the tips, a galaxy aura, dodging every strike without
+> looking, afterimages and a black eclipse halo behind him, floating above a shattered battlefield
 
-**aurelia: Aurelia, Dawn Empress (Cosmic, the goddess of the dawn).**
-> radiant empress, long golden hair flowing into sunrise light, white-and-gold armour gown, a crown of
-> light rays, raising her hand as dawn breaks over a war-torn world
+**aurelia · Nine-Tails Sovereign, Vessel of the Nine Tails (Cosmic, Support Mender; Seal's Last Gate).**
+> radiant young sovereign with golden hair, nine tails of cosmic fire spreading behind her like wings, a
+> glowing seal-ring half-open around her wrist, shielding her allies as dawn breaks over a war-torn world
 
-## The Four Calamities (the villains: bosses and boss cards)
+## The Four Calamities (boss cards, rarer than any Sovereign)
 
-Same prompts for the boss card art (`kurogane_card.png` ...) and for promo art.
+**kurogane_card · Tailed Beast Calamity, The Ember Fox (Flame, Attack Hexer; Fox's Slagfall).**
+> colossal beast of molten magma with burning tails, roaring as slag rains from the sky, a
+> burning village far below
 
-**Kurogane, the Ash Ronin (Flame).**
-> towering demon samurai in blackened armour, burning crown-like helmet horns, a giant cleaver dripping
-> embers, ash storm over a burning village, glowing red eyes behind the mask
+**rimeveil_card · Galactic Emperor, The Frost Tyrant (Frost, Attack Hexer; Crystal Sovereignty).**
+> cold, regal alien emperor in crystal-plated armour and a crystal crown, one finger raised as a lance of
+> ice pierces the sky, frozen soldiers kneeling, endless blizzard
 
-**Rimeveil, the Glacier Queen (Frost).**
-> cold, beautiful ice queen, towering crystal crown, gown of glacier shards, frozen soldiers kneeling
-> around her throne, endless blizzard, icy contempt
+**vex_card · Mirror Flower Overlord, The Hollow Betrayer (Void, Attack Hexer; Devour All).**
+> serene, smiling overlord in layered violet robes, a shattered mirror of void flowers reflecting
+> a false world around him, the real one dissolving behind, broken neon city
 
-**Vex, the Void Tyrant (Void).**
-> tall void emperor with a featureless mask split by a violet eye, robes of living shadow, floating
-> broken neon city around him, a barrier of black glass
-
-**Tenrai, the Storm Sovereign (Storm).**
-> massive storm god warlord, long white hair whipping in the wind, armour of thunderclouds and gold,
-> drums of lightning circling him, a sky island torn by hurricanes
-
-**Generals (the 12 guards, optional promo art).** Use this template with each guard's name, element and
-role from `src/shared/Bosses.luau`:
-> elite general of {Calamity}, {role: brutal warrior / dark sorcerer / battle healer / shield bearer},
-> {element} themed armour in that Calamity's colours, menacing pose, {Calamity's world} behind
+**tenrai_card · Demon Progenitor, The Thousand-Year Storm (Storm, Attack Striker; Judgment Bolt).**
+> ancient demon lord in an immaculate black-and-gold formal coat, burning eyes, flesh-like whips of storm lightning lashing out
+> from his back, a thousand-year storm over a sky island, cold contempt
 
 ## Making new characters later (paste into ChatGPT / Gemini)
 
-> You write anime gacha card prompts for my Roblox game "Anime Card Roll". The story: Shards of the Four
-> Calamities (Ember Squad heroes, Storm Academy rivals, Wandering Masters, the Four Calamities villains,
-> the Fallen / Ascended sovereigns). Create {N} NEW original characters for the {faction} faction. For
-> each give: card id (lowercase), name (Japanese-style, original), a 2-5 word title, element (Flame,
-> Frost, Storm, Light, Void or Cosmic), story role in one line, and a 2-3 line image prompt (look, outfit,
-> pose, signature move, background). Use classic shonen archetypes, but never copy or closely resemble any
-> existing anime character's design, costume, markings, hairstyle combination or name.
+> You write anime gacha card prompts for my Roblox game "Anime Card Roll". Each card has a name (an
+> anime-style epithet), a subtitle, an element (Flame, Frost, Storm, Light, Void or Cosmic), a role
+> (Striker, Hexer, Mender or Warder) and a signature move. Create {N} NEW cards. For each give: card id
+> (lowercase), name, subtitle, element, role, a 2-5 word signature move, and a 2-3 line image prompt (look,
+> outfit, pose doing the signature move, background). The more spectacular the move, the rarer the card.
+> Classic shonen archetypes, but never copy any existing character's design, costume, markings,
+> hairstyle combination or name.
 
-Then add each character to `src/shared/Cards.luau` (one entry) and drop the PNG in `art/cards/`.
+Then add the card to `src/shared/Cards.luau` (one entry; `docs/CARD_DESIGNER_ASSISTANT.md` has the rules) and
+drop its PNG in `art/cards/`.

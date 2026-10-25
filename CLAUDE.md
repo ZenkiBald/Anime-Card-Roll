@@ -99,7 +99,7 @@ tags; the boss well is sunken with a vignette; every tab strip uses the vermilio
 crests (monograms, no emoji) and solid vermilion R$ buttons. Components: `JuicyButton` (sheen, spring, sounds,
 CanvasGroup content; roll console + battle pods) and `IconBadge` (diamond badges for element / role / currency). Card
 portraits use the 2D `Image` when set, else an element-lit bust (the user is making the illustrations:
-`art/CARD_ART_PROMPTS.md`, PNGs in `art/cards/<cardId>.png`).
+`art/STORY_CARD_PROMPTS.md` has a prompt per current card, PNGs in `art/cards/<cardId>.png`).
 
 ## Layout (Rojo project, `default.project.json`)
 
