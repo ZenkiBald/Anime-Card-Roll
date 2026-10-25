@@ -85,7 +85,7 @@ local list: { Card } = {
 	{
 		Id = "rook",
 		Name = "Rook",
-		Title = "Iron Knuckle Brawler",
+		Title = "Titan Warder",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 10,
@@ -100,7 +100,7 @@ local list: { Card } = {
 	{
 		Id = "kaede",
 		Name = "Kaede",
-		Title = "Kunai Thrower",
+		Title = "Spirit Weaver",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 10,
@@ -115,7 +115,7 @@ local list: { Card } = {
 	{
 		Id = "tomo",
 		Name = "Tomo",
-		Title = "Lantern Swordsman",
+		Title = "Solar Blade",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 8,
@@ -135,7 +135,7 @@ local list: { Card } = {
 	{
 		Id = "mirai",
 		Name = "Mirai",
-		Title = "Spark Archer",
+		Title = "Limitless Sage",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 8,
@@ -154,8 +154,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "sora",
-		Name = "Sora Ikazuchi",
-		Title = "Storm Blade",
+		Name = "Ren",
+		Title = "Cursed Prodigy",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 6,
@@ -175,7 +175,7 @@ local list: { Card } = {
 	{
 		Id = "akane",
 		Name = "Akane",
-		Title = "Crimson Lance Duelist",
+		Title = "Crimson Scourge",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 4,
@@ -199,7 +199,7 @@ local list: { Card } = {
 	{
 		Id = "kaito",
 		Name = "Kaito",
-		Title = "Dragon-Eye Ronin",
+		Title = "Ascended Golden Warrior",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 2.5,
@@ -250,7 +250,7 @@ local list: { Card } = {
 	{
 		Id = "raijen",
 		Name = "Raijen",
-		Title = "Eclipse Sovereign",
+		Title = "Autonomous God State",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 1,
@@ -276,7 +276,7 @@ local list: { Card } = {
 	{
 		Id = "hana",
 		Name = "Hana",
-		Title = "Herb Healer",
+		Title = "Lotus Blossom",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 10,
@@ -295,7 +295,7 @@ local list: { Card } = {
 	{
 		Id = "goro",
 		Name = "Goro",
-		Title = "Shield Monk",
+		Title = "Fist of Severance",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 10,
@@ -314,7 +314,7 @@ local list: { Card } = {
 	{
 		Id = "suzu",
 		Name = "Suzu",
-		Title = "Shrine Drummer",
+		Title = "Thunder Flash",
 		Type = "Support",
 		Role = "Striker",
 		Weight = 8,
@@ -336,7 +336,7 @@ local list: { Card } = {
 	{
 		Id = "ibuki",
 		Name = "Ibuki",
-		Title = "Fog Weaver",
+		Title = "Phantom Blade",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 8,
@@ -359,7 +359,7 @@ local list: { Card } = {
 	{
 		Id = "yume",
 		Name = "Yume Aoi",
-		Title = "Moonlight Priestess",
+		Title = "Dream Reaper",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 6,
@@ -382,7 +382,7 @@ local list: { Card } = {
 	{
 		Id = "tetsu",
 		Name = "Tetsu",
-		Title = "Iron Wall Guardian",
+		Title = "Iron Bastion",
 		Type = "Support",
 		Role = "Warder",
 		Weight = 4,
@@ -463,7 +463,7 @@ local list: { Card } = {
 	{
 		Id = "aurelia",
 		Name = "Aurelia",
-		Title = "Dawn Empress",
+		Title = "Nine-Tails Sovereign",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 1,
@@ -495,8 +495,8 @@ local list: { Card } = {
 	-- World 4 (Stormspire Isle) cards. New cards go at the end: the leaderboards store list positions.
 	{
 		Id = "hayate",
-		Name = "Hayate",
-		Title = "Gale Dancer",
+		Name = "Shin",
+		Title = "Infernal Warden",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 6,
@@ -517,7 +517,7 @@ local list: { Card } = {
 	{
 		Id = "amane",
 		Name = "Amane",
-		Title = "Rain Priestess",
+		Title = "Shadow Puppeteer",
 		Type = "Support",
 		Role = "Mender",
 		Weight = 4,
@@ -541,7 +541,7 @@ local list: { Card } = {
 	{
 		Id = "tsubasa",
 		Name = "Tsubasa",
-		Title = "Sky Knight",
+		Title = "Lunar Reaper",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 2.5,
@@ -597,7 +597,7 @@ local list: { Card } = {
 	{
 		Id = "kurogane_card",
 		Name = "Kurogane",
-		Title = "The Ash Ronin",
+		Title = "Iron Warlord",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 1,
@@ -622,7 +622,7 @@ local list: { Card } = {
 	{
 		Id = "rimeveil_card",
 		Name = "Rimeveil",
-		Title = "The Glacier Queen",
+		Title = "Glacial Sovereign",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 1,
@@ -647,7 +647,7 @@ local list: { Card } = {
 	{
 		Id = "vex_card",
 		Name = "Vex",
-		Title = "The Void Tyrant",
+		Title = "Abyssal Primordial",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 0.8,
@@ -673,7 +673,7 @@ local list: { Card } = {
 	{
 		Id = "tenrai_card",
 		Name = "Tenrai",
-		Title = "The Storm Sovereign",
+		Title = "Storm Calamity",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 0.6,
