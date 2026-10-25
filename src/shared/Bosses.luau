@@ -117,9 +117,9 @@ local list: { Boss } = {
 			{ Name = "Slag Cut", Target = "Single", Pct = 1, Burn = { Pct = 0.15, Turns = 2 } },
 		},
 		Difficulties = {
-			Normal = { D = 1, Recommended = 45000, HP = 65025, ATK = 384, WarnSeconds = 2 },
-			Hard = { D = 2, Recommended = 67000, HP = 83160, ATK = 476, WarnSeconds = 2 },
-			Nightmare = { D = 3, Recommended = 101000, HP = 206000, ATK = 821, WarnSeconds = 1 },
+			Normal = { D = 1, Recommended = 45000, HP = 123548, ATK = 442, WarnSeconds = 2 },
+			Hard = { D = 2, Recommended = 67000, HP = 182952, ATK = 547, WarnSeconds = 2 },
+			Nightmare = { D = 3, Recommended = 101000, HP = 226600, ATK = 821, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -146,7 +146,7 @@ local list: { Boss } = {
 		Difficulties = {
 			Normal = { D = 4, Recommended = 122000, HP = 257000, ATK = 2206, WarnSeconds = 2 },
 			Hard = { D = 5, Recommended = 199000, HP = 625500, ATK = 3037, WarnSeconds = 2 },
-			Nightmare = { D = 6, Recommended = 242000, HP = 745000, ATK = 4305, WarnSeconds = 1 },
+			Nightmare = { D = 6, Recommended = 242000, HP = 819500, ATK = 4305, WarnSeconds = 1 },
 		},
 	},
 	{

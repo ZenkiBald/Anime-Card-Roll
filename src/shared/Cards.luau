@@ -97,7 +97,14 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(196, 120, 72),
 		Abilities = {
 			ability("Basic", "Bulwark Jab", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Armored Charge", "Every 3 actions: taunt 2 turns + 160% ATK", {
+				{ Kind = "Taunt", Turns = 2 },
+				{ Kind = "Damage", Pct = 1.6 },
+			}, 3),
 			ability("Passive", "Plated Hide", "Takes 10% less damage", { { Kind = "Buff", Stat = "Guard", Amount = 0.1 } }),
+			ability("Ultimate", "Colossal Stomp", "180% ATK to every enemy", {
+				{ Kind = "Damage", Pct = 1.8, Target = "Enemies" },
+			}),
 		},
 	},
 	{
@@ -115,6 +122,9 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(120, 140, 170),
 		Abilities = {
 			ability("Basic", "Soul Thread", "2 hits x 50% ATK on random enemies", { { Kind = "Damage", Pct = 0.5, Hits = 2, Target = "RandomEnemy" } }),
+			ability("Skill", "Rejection Shield", "Every 3 actions: shield all Attack cards 80% ATK", {
+				{ Kind = "Shield", Pct = 0.8, Target = "All" },
+			}, 3),
 			ability("Passive", "Thread of Return", "Mends herself for 12% ATK each time she acts", { { Kind = "Heal", Pct = 0.12, Target = "Self", When = "OnAct" } }),
 		},
 	},
@@ -133,8 +143,15 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(255, 160, 70),
 		Abilities = {
 			ability("Basic", "Dawn Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Rolling Tide", "Every 3 actions: 2 hits x 90% ATK", {
+				{ Kind = "Damage", Pct = 0.9, Hits = 2 },
+			}, 3),
 			ability("Passive", "Rising Sun Rhythm", "+15% damage while the enemy leader is above 50% HP", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.15, When = "BossAbove50" },
+			}),
+			ability("Ultimate", "Sun Dance", "400% ATK + Burn (6% ATK per turn, 3 turns)", {
+				{ Kind = "Damage", Pct = 4 },
+				{ Kind = "Burn", Pct = 0.06, Turns = 3 },
 			}),
 		},
 	},
@@ -257,8 +274,15 @@ local list: { Card } = {
 		Accent = Color3.fromRGB(150, 110, 255),
 		Abilities = {
 			ability("Basic", "Shade Bolt", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Skill", "Divine Hounds", "Every 3 actions: 3 hits x 70% ATK on random enemies", {
+				{ Kind = "Damage", Pct = 0.7, Hits = 3, Target = "RandomEnemy" },
+			}, 3),
 			ability("Passive", "Shadow Brand", "15% chance to Burn (5% ATK per turn, 3 turns)", {
 				{ Kind = "Burn", Pct = 0.05, Turns = 3, Chance = 0.15, When = "OnHit" },
+			}),
+			ability("Ultimate", "Shadow Garden", "350% ATK + target DEF -15% for 3 turns", {
+				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
+				{ Kind = "Damage", Pct = 3.5 },
 			}),
 		},
 	},
@@ -304,6 +328,13 @@ local list: { Card } = {
 		Abilities = {
 			ability("Basic", "Blossom Palm", "Heal the most hurt Attack card 100% PWR", {
 				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
+			}),
+			ability("Skill", "Healing Palm Burst", "Every 3 actions: heal all Attack cards 90% PWR", {
+				{ Kind = "Heal", Pct = 0.9, Target = "All" },
+			}, 3),
+			ability("Ultimate", "Hundred Healings", "Heal all Attack cards 150% PWR + cleanse 1 debuff", {
+				{ Kind = "Heal", Pct = 1.5, Target = "All" },
+				{ Kind = "Cleanse", Amount = 1, Target = "All" },
 			}),
 		},
 	},
@@ -351,6 +382,10 @@ local list: { Card } = {
 			ability("Basic", "Flash Draw", "All Attack cards +8% ATK for 1 turn", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.08, Turns = 1, Target = "Attack" },
 			}),
+			ability("Skill", "Thunder Clap", "Every 3 actions: 150% PWR + all Attack cards +10% SPD for 2 turns", {
+				{ Kind = "Damage", Pct = 1.5 },
+				{ Kind = "Buff", Stat = "SPD", Amount = 0.1, Turns = 2, Target = "Attack" },
+			}, 3),
 			ability("Passive", "Flash Cadence", "+5 energy to a random card with an Ultimate each time she acts", {
 				{ Kind = "Energy", Amount = 5, Target = "Random", When = "OnAct" },
 			}),
@@ -374,6 +409,9 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 0.6 },
 				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 1 },
 			}),
+			ability("Skill", "Playful Cloud Strike", "Every 3 actions: 200% PWR, ignores DEF", {
+				{ Kind = "Damage", Pct = 2, IgnoreDef = true },
+			}, 3),
 			ability("Passive", "Zero Presence", "The first enemy hit on each Attack card misses", {
 				{ Kind = "Evade", Hits = 1, Target = "Attack" },
 			}),
@@ -451,6 +489,10 @@ local list: { Card } = {
 			ability("Basic", "Butterfly Mend", "Heal the most hurt Attack card 100% PWR", {
 				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
 			}),
+			ability("Skill", "Wisteria Sting", "Every 3 actions: heal the most hurt Attack card 120% PWR + enemy ATK -10% for 3 turns", {
+				{ Kind = "Heal", Pct = 1.2, Target = "Lowest" },
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 3 },
+			}, 3),
 		},
 	},
 	{
