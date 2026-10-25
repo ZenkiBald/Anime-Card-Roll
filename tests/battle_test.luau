@@ -1,20 +1,21 @@
 -- Deck rules, the battle engine, boss mechanics, rewards, and the tuning targets:
--- the first all-Base deck (about 53k Deck Power) beats Kurogane Normal in 60-90 s,
+-- the first all-Base deck (about 54.6k Deck Power) beats Kurogane Normal in 60-90 s,
 -- and a deck at each fight's recommended power wins it in 60-90 s.
 local Config = MODULES.Config
 local Deck = MODULES.Deck
+local Cards = MODULES.Cards
 local Bosses = MODULES.Bosses
 local Rewards = MODULES.Rewards
 local Engine = MODULES.BattleEngine
 local F = FIXTURES
 
 -- 1. Deck rules ---------------------------------------------------------------------
-local starterIds = { "rook", "kaede", "tomo", "mirai", "hana", "goro", "suzu", "ibuki" }
+local starterIds = { "rook", "kaede", "tomo", "noa", "hana", "luna", "suzu", "ibuki" }
 local starterOwned = F.own(starterIds)
 local starter = Deck.AutoBuild(starterOwned)
 local starterPower = Deck.Power(starter, starterOwned)
 print(`   starter deck: {table.concat(starter.Attack, ",")} / {table.concat(starter.Support, ",")} = {starterPower} power`)
-check(math.abs(starterPower - 53200) <= 600, `the first all-Base deck is about 53k power ({starterPower})`)
+check(math.abs(starterPower - 54600) <= 600, `the first all-Base deck is about 54.6k power ({starterPower})`)
 check(Deck.Count(starter, "Attack") == 4 and Deck.Count(starter, "Support") == 4, "auto-build fills 4 Attack + 4 Support")
 check(starter.Attack[1] == "rook" and starter.Support[1] == "suzu", "auto-build puts the strongest card on the left")
 
@@ -45,8 +46,8 @@ check(allBad, "malformed decks are refused")
 
 -- 2. Engine rules ----------------------------------------------------------------------
 do
-	-- Damage formula: Rook's first hit = 550 ATK x 100% x (1 - target DEF), or x1.5 on a crit. His
-	-- first target is Kurogane's Warder (the Ironclad taunts, 15% DEF): 468, or 701 on a crit.
+	-- Damage formula: Rook's first hit = his ATK (550 x the rarity scale) x 100% x (1 - target DEF), or x1.5 on a
+	-- crit. His first target is Kurogane's Warder (the Ironclad taunts, 15% DEF).
 	local deck = F.deck({ "rook" }, {})
 	local battle, events = F.fight("kurogane", "Normal", deck, starterOwned, 3)
 	local first
@@ -57,7 +58,8 @@ do
 		end
 	end
 	local def = first and battle.ById[first.T].DEF or 0
-	local plain, crit = math.floor(550 * (1 - def) + 0.5), math.floor(550 * 1.5 * (1 - def) + 0.5)
+	local rookAtk = Cards.Stat(Cards.Get("rook") :: any, 550, 0, "Normal") -- 550 x the rarity scale
+	local plain, crit = math.floor(rookAtk * (1 - def) + 0.5), math.floor(rookAtk * 1.5 * (1 - def) + 0.5)
 	check(first ~= nil and first.T == "G3" and (first.A == plain or (first.C and first.A == crit)), `damage formula (Rook's first hit {first and first.A} on {first and first.T})`)
 end
 
@@ -278,7 +280,7 @@ for _, t in times do
 end
 print(
 	string.format(
-		"   53k all-Base starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
+		"   54.6k all-Base starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
 		rate * 100,
 		F.percentile(times, 0.1),
 		F.percentile(times, 0.5),

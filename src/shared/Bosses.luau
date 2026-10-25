@@ -174,7 +174,7 @@ local list: { Boss } = {
 		Difficulties = {
 			Normal = { D = 7, Recommended = 219000, HP = 630000, ATK = 1429, WarnSeconds = 2 },
 			Hard = { D = 8, Recommended = 323000, HP = 1610000, ATK = 1322, WarnSeconds = 2 },
-			Nightmare = { D = 9, Recommended = 366000, HP = 3760000, ATK = 3954, WarnSeconds = 1 },
+			Nightmare = { D = 9, Recommended = 366000, HP = 2930000, ATK = 3954, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -200,9 +200,9 @@ local list: { Boss } = {
 		},
 		Difficulties = {
 			-- Nightmare's recommended deck needs a few fusions (see tests/fixtures.luau).
-			Normal = { D = 10, Recommended = 388000, HP = 6265000, ATK = 8247, WarnSeconds = 2 },
-			Hard = { D = 11, Recommended = 388000, HP = 7220000, ATK = 7400, WarnSeconds = 2 },
-			Nightmare = { D = 12, Recommended = 388000, HP = 7450000, ATK = 7600, WarnSeconds = 1 },
+			Normal = { D = 10, Recommended = 388000, HP = 4880000, ATK = 8247, WarnSeconds = 2 },
+			Hard = { D = 11, Recommended = 388000, HP = 5500000, ATK = 7400, WarnSeconds = 2 },
+			Nightmare = { D = 12, Recommended = 388000, HP = 5350000, ATK = 7600, WarnSeconds = 1 },
 		},
 	},
 }

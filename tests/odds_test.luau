@@ -121,8 +121,8 @@ for _, typ in { "Attack", "Support" } do
 	end
 end
 check(winsOk, "a maxed card on one border never out-powers a 0-star card on the next")
-local rook = Cards.Get("rook") :: any
-check(Cards.Stat(rook, rook.Main, 0, "Gold") == 4 * rook.Main and Cards.Stat(rook, rook.HP, 0, "Secret") == 64 * rook.HP, "a Gold card has 4x, a Secret card 64x the base stats")
+local kaede = Cards.Get("kaede") :: any -- a Weight 10 card, so the rarity scale is 1
+check(Cards.Stat(kaede, kaede.Main, 0, "Gold") == 4 * kaede.Main and Cards.Stat(kaede, kaede.HP, 0, "Secret") == 64 * kaede.HP, "a Gold card has 4x, a Secret card 64x the base stats")
 
 -- 8. Borders: helpers.
 check(Borders.Best({ Gold = true, Secret = true }) == "Secret" and Borders.Best(nil) == "Normal", "a card wears its best border")

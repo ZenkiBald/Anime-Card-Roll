@@ -88,7 +88,7 @@ local list: { Card } = {
 		Title = "Iron Knuckle Brawler",
 		Type = "Attack",
 		Role = "Warder",
-		Weight = 10,
+		Weight = 8,
 		Element = "Flame",
 		Main = 550,
 		HP = 1100,
@@ -144,7 +144,7 @@ local list: { Card } = {
 		Title = "Spark Archer",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 8,
+		Weight = 1.5,
 		Element = "Storm",
 		Main = 469,
 		HP = 938,
@@ -152,9 +152,16 @@ local list: { Card } = {
 		Glyph = "MR",
 		Accent = Color3.fromRGB(255, 220, 90),
 		Abilities = {
-			ability("Basic", "Hollow Orb", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Passive", "Folded Gap", "15% chance to Burn (5% ATK per turn, 3 turns)", {
-				{ Kind = "Burn", Pct = 0.05, Turns = 3, Chance = 0.15, When = "OnHit" },
+			ability("Basic", "Hollow Orb", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
+			ability("Skill", "Void Barrage", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
+				{ Kind = "Damage", Pct = 1, Hits = 4, Target = "RandomEnemy" },
+			}, 3),
+			ability("Ultimate", "Hollow Convergence", "900% ATK + the target takes +25% damage for 3 turns", {
+				{ Kind = "Damage", Pct = 9 },
+				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.25, Turns = 3 },
+			}),
+			ability("Aura", "Limitless Field", "All Attack cards +10% ATK", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
 			}),
 		},
 	},
@@ -164,7 +171,7 @@ local list: { Card } = {
 		Title = "Storm Blade",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 6,
+		Weight = 4,
 		Element = "Storm",
 		Main = 519,
 		HP = 1038,
@@ -176,6 +183,9 @@ local list: { Card } = {
 			ability("Skill", "Familiar's Rush", "Every 3 actions: 3 hits x 80% ATK", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 3 },
 			}, 3),
+			ability("Passive", "Familiar's Hunger", "+20% ATK below 50% HP", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
+			}),
 		},
 	},
 	{
@@ -184,7 +194,7 @@ local list: { Card } = {
 		Title = "Crimson Lance Duelist",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 4,
+		Weight = 1.5,
 		Element = "Flame",
 		Main = 512,
 		HP = 1024,
@@ -199,6 +209,12 @@ local list: { Card } = {
 			}, 3),
 			ability("Passive", "Malice Edge", "Crits deal 200% instead of 150%", {
 				{ Kind = "Buff", Stat = "CritDamage", Amount = 0.5 },
+			}),
+			ability("Ultimate", "Dismantle Storm", "6 hits x 130% ATK on random enemies", {
+				{ Kind = "Damage", Pct = 1.3, Hits = 6, Target = "RandomEnemy" },
+			}),
+			ability("Aura", "Malevolent Domain", "All Attack cards +10% ATK", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
 			}),
 		},
 	},
@@ -232,7 +248,7 @@ local list: { Card } = {
 		Title = "Void Hexer",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 1.5,
+		Weight = 8,
 		Element = "Void",
 		Main = 521,
 		HP = 1042,
@@ -240,16 +256,9 @@ local list: { Card } = {
 		Glyph = "NO",
 		Accent = Color3.fromRGB(150, 110, 255),
 		Abilities = {
-			ability("Basic", "Shade Bolt", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
-			ability("Skill", "Shikigami Swarm", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
-				{ Kind = "Damage", Pct = 1, Hits = 4, Target = "RandomEnemy" },
-			}, 3),
-			ability("Ultimate", "Abyssal Summoning", "900% ATK + the target takes +25% damage for 3 turns", {
-				{ Kind = "Damage", Pct = 9 },
-				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.25, Turns = 3 },
-			}),
-			ability("Aura", "Abyss Veil", "All Attack cards +10% ATK", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
+			ability("Basic", "Shade Bolt", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
+			ability("Passive", "Shadow Brand", "15% chance to Burn (5% ATK per turn, 3 turns)", {
+				{ Kind = "Burn", Pct = 0.05, Turns = 3, Chance = 0.15, When = "OnHit" },
 			}),
 		},
 	},
@@ -304,7 +313,7 @@ local list: { Card } = {
 		Title = "Shield Monk",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 10,
+		Weight = 4,
 		Element = "Light",
 		Link = { Name = "Stone Shoulder", Stat = "Guard", Amount = 0.08, Text = "The Attack card in front takes 8% less damage" },
 		Main = 275,
@@ -316,6 +325,13 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 0.5 },
 				{ Kind = "Shield", Pct = 1, Target = "Lowest" },
 			}),
+			ability("Skill", "Blood Pact", "Every 3 actions: shield all Attack cards 100% PWR + they take 15% less damage for 2 turns", {
+				{ Kind = "Shield", Pct = 1, Target = "All" },
+				{ Kind = "Buff", Stat = "Guard", Amount = 0.15, Turns = 2, Target = "Attack" },
+			}, 3),
+			ability("Passive", "Battle Hide", "Attack cards take 5% less damage", {
+				{ Kind = "Buff", Stat = "Guard", Amount = 0.05, Target = "Attack" },
+			}),
 		},
 	},
 	{
@@ -324,7 +340,7 @@ local list: { Card } = {
 		Title = "Shrine Drummer",
 		Type = "Support",
 		Role = "Striker",
-		Weight = 8,
+		Weight = 10,
 		Element = "Flame",
 		Link = { Name = "Flash Tempo", Stat = "ATK", Amount = 0.06, Text = "The Attack card in front +6% ATK" },
 		Main = 312,
@@ -369,7 +385,7 @@ local list: { Card } = {
 		Title = "Moonlight Priestess",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 6,
+		Weight = 1.5,
 		Element = "Frost",
 		Link = { Name = "Mirror Sight", Stat = "Crit", Amount = 0.06, Text = "The Attack card in front +6% crit chance" },
 		Main = 308,
@@ -385,6 +401,11 @@ local list: { Card } = {
 				{ Kind = "Cleanse", Amount = 1, Target = "All" },
 				{ Kind = "Debuff", Stat = "SPD", Amount = 0.1, Turns = 2, Target = "Enemies" },
 			}, 3),
+			ability("Ultimate", "Total Hypnosis", "Heal all Attack cards 200% PWR + every enemy -20% ATK for 3 turns", {
+				{ Kind = "Heal", Pct = 2, Target = "All" },
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.2, Turns = 3, Target = "Enemies" },
+			}),
+			ability("Aura", "Mirage Veil", "Every enemy -8% SPD", { { Kind = "Debuff", Stat = "SPD", Amount = 0.08, Target = "Enemies" } }),
 		},
 	},
 	{
@@ -393,7 +414,7 @@ local list: { Card } = {
 		Title = "Iron Wall Guardian",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 4,
+		Weight = 6,
 		Element = "Void",
 		Link = { Name = "Iron Back", Stat = "Guard", Amount = 0.1, Text = "The Attack card in front takes 10% less damage" },
 		Main = 292,
@@ -419,7 +440,7 @@ local list: { Card } = {
 		Title = "Light Mender",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 2.5,
+		Weight = 10,
 		Element = "Light",
 		Link = { Name = "Wing Chart", Stat = "CritDamage", Amount = 0.2, Text = "The Attack card in front +20% crit damage" },
 		Main = 307,
@@ -430,15 +451,6 @@ local list: { Card } = {
 			ability("Basic", "Butterfly Mend", "Heal the most hurt Attack card 100% PWR", {
 				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
 			}),
-			ability("Skill", "Wing Tactics", "Every 3 actions: all Attack cards +25% ATK for 2 turns", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.25, Turns = 2, Target = "Attack" },
-			}, 3),
-			ability("Passive", "Mist Tempo", "+5 energy to every card each time she acts", {
-				{ Kind = "Energy", Amount = 5, Target = "All", When = "OnAct" },
-			}),
-			ability("Ultimate", "Mist Formation", "Reset all Attack Skill cooldowns + 30 energy each", {
-				{ Kind = "Energy", Amount = 30, Target = "Attack", ResetSkill = true },
-			}),
 		},
 	},
 	{
@@ -447,7 +459,7 @@ local list: { Card } = {
 		Title = "Void Mender",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 1.5,
+		Weight = 2.5,
 		Element = "Void",
 		Link = { Name = "Borrowed Time", Stat = "StartEnergy", Amount = 0.25, Text = "The Attack card in front starts with 25 Ultimate energy" },
 		Main = 308,
@@ -461,11 +473,11 @@ local list: { Card } = {
 			ability("Skill", "Quickened Gears", "Every 3 actions: every card +20% SPD for 2 turns", {
 				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2, Target = "All" },
 			}, 3),
+			ability("Passive", "Slow Clock", "Every enemy -15% SPD", { { Kind = "Debuff", Stat = "SPD", Amount = 0.15, Target = "Enemies" } }),
 			ability("Ultimate", "Rewind", "Revive all KO'd Attack cards at 40% HP + heal them 200% PWR", {
 				{ Kind = "Revive", Pct = 0.4 },
 				{ Kind = "Heal", Pct = 2, Target = "All" },
 			}),
-			ability("Aura", "Slow Clock", "Every enemy -15% SPD", { { Kind = "Debuff", Stat = "SPD", Amount = 0.15, Target = "Enemies" } }),
 		},
 	},
 	{
@@ -529,7 +541,7 @@ local list: { Card } = {
 		Title = "Rain Priestess",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 4,
+		Weight = 6,
 		Element = "Storm",
 		Link = { Name = "Thread Step", Stat = "SPD", Amount = 0.08, Text = "The Attack card in front +8% SPD" },
 		Main = 298,
@@ -578,7 +590,7 @@ local list: { Card } = {
 		Title = "Storm Warder",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 1.5,
+		Weight = 4,
 		Element = "Storm",
 		Link = { Name = "Live Current Link", Stat = "ATK", Amount = 0.1, Text = "The Attack card in front +10% ATK" },
 		Main = 317,
@@ -593,11 +605,7 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 1, Target = "Enemies" },
 				{ Kind = "Buff", Stat = "Crit", Amount = 0.15, Turns = 2, Target = "Attack" },
 			}, 3),
-			ability("Ultimate", "Thunderveil", "All Attack cards dodge the next 2 enemy hits + 40 energy each", {
-				{ Kind = "Evade", Hits = 2, Target = "All" },
-				{ Kind = "Energy", Amount = 40, Target = "Attack" },
-			}),
-			ability("Aura", "Live Current", "All Attack cards +10% ATK", {
+			ability("Passive", "Live Current", "All Attack cards +10% ATK", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
 			}),
 		},
@@ -609,7 +617,7 @@ local list: { Card } = {
 		Title = "The Ash Ronin",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 1,
+		Weight = 0.9,
 		Boss = "kurogane",
 		Element = "Flame",
 		Main = 550,
@@ -634,7 +642,7 @@ local list: { Card } = {
 		Title = "The Glacier Queen",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 1,
+		Weight = 0.85,
 		Boss = "rimeveil",
 		Element = "Frost",
 		Main = 540,
