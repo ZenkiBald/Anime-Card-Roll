@@ -613,8 +613,8 @@ local list: { Card } = {
 	-- BOSS CARDS: unlocked into the pool by each boss's first Normal clear -----------------------
 	{
 		Id = "kurogane_card",
-		Name = "Iron Warlord",
-		Title = "The Ash Ronin",
+		Name = "Tailed Beast Calamity",
+		Title = "The Ember Fox",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 0.9,
@@ -631,15 +631,15 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 2.2 },
 				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
 			}, 3),
-			ability("Ultimate", "Warlord's Slagfall", "6 hits x 80% ATK on random enemies", {
+			ability("Ultimate", "Fox's Slagfall", "6 hits x 80% ATK on random enemies", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 6, Target = "RandomEnemy" },
 			}),
 		},
 	},
 	{
 		Id = "rimeveil_card",
-		Name = "Glacial Sovereign",
-		Title = "The Glacier Queen",
+		Name = "Galactic Emperor",
+		Title = "The Frost Tyrant",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 0.85,
@@ -664,8 +664,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "vex_card",
-		Name = "Abyssal Primordial",
-		Title = "The Void Tyrant",
+		Name = "Mirror Flower Overlord",
+		Title = "The Hollow Betrayer",
 		Type = "Attack",
 		Role = "Hexer",
 		Weight = 0.8,
@@ -690,8 +690,8 @@ local list: { Card } = {
 	},
 	{
 		Id = "tenrai_card",
-		Name = "Storm Calamity",
-		Title = "The Storm Sovereign",
+		Name = "Demon Progenitor",
+		Title = "The Thousand-Year Storm",
 		Type = "Attack",
 		Role = "Striker",
 		Weight = 0.6,
