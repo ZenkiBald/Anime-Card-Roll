@@ -24,6 +24,10 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
+- 2026-10-26 · Claude Code · this commit · Card art wiring: the game only draws `Card.Image` (a Roblox asset id), so PNGs in
+  `art/cards/` never showed. Added an `ART` id table at the bottom of `src/shared/Cards.luau` (all 0 until the user pastes ids);
+  steps in `art/cards/README.md`. Also earlier this day (bosses hit back in Worlds 1-3, common cards got Skills) is in git log.
+  Tests pass; not seen in Studio.
 - 2026-10-26 · Claude Code · this commit · HUD polish on Codex's lacquer kit, from the user's desktop screenshot:
   ROLL is the one big button (AUTO / QUICK smaller toggles), the RECENT PULLS label only shows over pulls, MOUNT
   label no longer clipped, ODDS line bigger, Next Goal pill larger on desktop and pulses every 3 s while it can be

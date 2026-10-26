@@ -797,6 +797,38 @@ local list: { Card } = {
 	},
 }
 
+-- Card illustrations: paste each card's Roblox image asset id here (0 = no art yet, the card shows its
+-- element-lit bust). Upload the PNG from art/cards/ in Studio (Asset Manager > Bulk Import), right-click it,
+-- Copy Asset ID. The picture must belong to the same account or group that owns the game.
+local ART: { [string]: number } = {
+	rook = 0,
+	kaede = 0,
+	tomo = 0,
+	mirai = 0,
+	sora = 0,
+	akane = 0,
+	kaito = 0,
+	noa = 0,
+	raijen = 0,
+	hana = 0,
+	goro = 0,
+	suzu = 0,
+	ibuki = 0,
+	yume = 0,
+	tetsu = 0,
+	luna = 0,
+	orin = 0,
+	aurelia = 0,
+	hayate = 0,
+	amane = 0,
+	tsubasa = 0,
+	amaya = 0,
+	kurogane_card = 0,
+	rimeveil_card = 0,
+	vex_card = 0,
+	tenrai_card = 0,
+}
+
 local Cards = {}
 
 Cards.List = list
@@ -805,6 +837,10 @@ Cards.ById = {} :: { [string]: Card }
 for _, card in list do
 	assert(Cards.ById[card.Id] == nil, `Duplicate card id "{card.Id}"`)
 	Cards.ById[card.Id] = card
+	local art = ART[card.Id]
+	if art ~= nil and art > 0 and card.Image == nil then
+		card.Image = `rbxassetid://{art}`
+	end
 end
 
 function Cards.Get(id: string): Card?
