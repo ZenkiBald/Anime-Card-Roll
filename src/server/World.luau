@@ -519,8 +519,8 @@ end
 -- between them, a crystal spinning at the top (HubFx spins parts marked Spin) and a glowing doorway
 -- whose prompt opens the tower screen. LeaderboardService hangs the highest-floor board on the
 -- BoardSpot beside it. `ground` stands on the floor, facing -Z (towards the players).
-local TOWER_TEAL = Color3.fromRGB(90, 230, 220)
-local TOWER_STONE = Color3.fromRGB(52, 46, 78)
+local TOWER_TEAL = Color3.fromRGB(122, 180, 151)
+local TOWER_STONE = Color3.fromRGB(79, 88, 82)
 
 local function towerAt(hub: Instance, ground: CFrame)
 	local gate = Instance.new("Model")
@@ -532,7 +532,7 @@ local function towerAt(hub: Instance, ground: CFrame)
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(1, 15, 15),
 		CFrame = ground * CFrame.new(0, 0.5, 3) * FLAT,
-		Color = Color3.fromRGB(70, 64, 92),
+		Color = Color3.fromRGB(109, 115, 104),
 		Material = Enum.Material.Slate,
 		Parent = gate,
 	})
@@ -542,7 +542,7 @@ local function towerAt(hub: Instance, ground: CFrame)
 		Size = Vector3.new(0.3, 15.4, 15.4),
 		CFrame = ground * CFrame.new(0, 0.8, 3) * FLAT,
 		Color = TOWER_TEAL,
-		Material = Enum.Material.Neon,
+		Material = Enum.Material.SmoothPlastic,
 		CanCollide = false,
 		Parent = gate,
 	})
@@ -565,7 +565,7 @@ local function towerAt(hub: Instance, ground: CFrame)
 			Size = Vector3.new(width + 0.6, 0.5, width + 0.6),
 			CFrame = ground * CFrame.new(0, y - 0.25, 3) * turn,
 			Color = TOWER_TEAL,
-			Material = Enum.Material.Neon,
+			Material = Enum.Material.SmoothPlastic,
 			CanCollide = false,
 			Parent = gate,
 		})

@@ -9,6 +9,15 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- User review of the existing-town polish, applied in the actual place (not a concept): fountain border,
+  service paving, benches / planters, roomier NPC / stall positions and a jade-and-slate tower set northwest.
+  Local saved place: `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl` (ignored by Git; verified it contains
+  the geometry / markers / backup). The currently open cloud place also has the edits, but they are NOT published.
+  Map changes do not travel through Rojo / git pull: use that local copy or apply `tools/studio/town-polish.luau`
+  to the original map and save from Studio. Do not use `rojo build`. Cloudspire / a replacement world were NOT
+  approved; the user rejected the concepts and chose to improve the current town. UI changes are parked.
+- Separate existing startup bug observed in Play: `UI/Hud:330`, `setCurrency`, called by Main's StoreState event
+  before currency chips exist (two errors). No HUD code changed in the town pass. Fix this in a separate pass.
 - User review of the implemented illustrated UI kit: gold icon menu, lacquer panels, vermilion buttons,
   Gotham typography, BAG emblems and matching battle intro / controls. The user asked to put phone work aside
   and implement the visual concept. Source art / prompts / asset ids: `art/ui/occult/README.md`.
@@ -24,6 +33,17 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
+- 2026-10-26 · Codex · this commit · Polished the existing spawn town in Studio: restrained fountain materials,
+  thin stone border / service approaches, two wood benches with flower planters, moved the three existing stalls,
+  explicit Sage / Fusion / TraitMaster / Wheel / Tower markers and a clearer leaderboard position. Tower palette
+  is jade / slate with non-neon bands (door / crystal keep their glow). Reproducible edit script has one-run guard
+  and original fountain / stalls / markers backup in `ServerStorage.TownPolishBackup_20261026`; prior World source
+  is also stored there. Real Edit / Play previews checked; five no-jump paths from spawn succeed; actual game-script
+  NpcRange checks accept near / reject far for Hoshi, Kenshin and Fortuna. Map has 10,137 parts. Local place saved
+  and its contents verified; Studio left in Edit. No publishing, UI changes, renames, save or gameplay changes.
+  Type check 0 errors (existing warnings); 5,505 props checked, 0 problems; headless ALL CHECKS PASSED.
+  Re-running map polish does nothing, as expected. User ground-level view / actual prompt actions remain to check;
+  existing HUD startup error recorded above. Leave the user's untracked card PNGs and `.codex/` alone.
 - 2026-10-26 · Claude Code · this commit · Card art wiring: the game only draws `Card.Image` (a Roblox asset id), so PNGs in
   `art/cards/` never showed. Added an `ART` id table at the bottom of `src/shared/Cards.luau` (all 0 until the user pastes ids);
   steps in `art/cards/README.md`. Also earlier this day (bosses hit back in Worlds 1-3, common cards got Skills) is in git log.

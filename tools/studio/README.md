@@ -15,6 +15,15 @@ Edit-mode scripts that built the world saved in the place (`workspace.Map`, Terr
   command bar" screen, and deletes the flagged ones when `DELETE = true`. Never paste code a game screen asks for.
 - `lighting.luau` - sets the place's Lighting to the bright town day and `Technology = Future` (only
   settable in Studio; `src/client/LightingSetup.luau` applies the rest on every client). Save after.
+- `town-polish.luau` - optional polish for the existing town, applied after `map.luau`: fountain stone /
+  water materials, a thin stone border, service paving, two benches with flower planters, three stall moves
+  and explicit NPC / Tower markers around the plaza. Does not rebuild Terrain or the world zones.
+  Re-running is a no-op. First run backs up the fountain, stalls and entire Markers folder to
+  `ServerStorage.TownPolishBackup_20261026`. `{ Restore = true }` replaces those specific assets with their
+  saved copies and removes `Town.PlazaPolish`; later edits to those assets would be replaced too.
+  Stop / restart Play after applying or restoring so `World` rebuilds NPCs and registers their service ranges.
+  Save the place from Studio; Git / Rojo alone cannot carry these map edits. Local copy from the 2026-10-26
+  pass: `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl` (ignored by Git). Not published.
 - `sync.luau` - stopgap for when Rojo isn't connected: pulls `src/` from `python -m http.server 34875
   --directory src` into the open place (only the Shared / Server / Client script folders).
 

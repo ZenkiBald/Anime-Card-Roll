@@ -46,6 +46,13 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Existing town polish (2026-10-26): real Edit / Play previews, fountain border / service paving / benches,
+  moved stalls / NPC markers and jade tower. Pathfinding reaches all five service approaches from spawn without
+  jumping; Hoshi / Kenshin / Fortuna range checks accept nearby and reject far-away positions. Map 10,137 parts.
+  Local place copy saved in `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl`; nothing published.
+- [ ] User view at ground level: fountain / stall sightlines, benches, each NPC's prompt and the Tower / leaderboards.
+  A pre-existing startup error logged twice at `UI/Hud:330` (`setCurrency`, StoreState before HUD initialization);
+  investigate separately. It was not introduced or changed by the town pass.
 - [x] Illustrated UI kit (2026-10-26): desktop Studio HUD, SQUAD, BAG, battle controls / intro; uploaded
   navigation / inventory atlases and frames load. Vault / BAG names fit; border-filter labels are visible.
 - [ ] User visual review of the implemented kit: menu / roll console, claim seal, selected SQUAD inspector,

@@ -24,7 +24,11 @@ intro): the uploaded textures loaded, names and filter chips fit, and there were
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and
 its boss. Town NPCs: Kenji (guide), Hoshi (fusion + pack alchemy), Kenshin (traits), Madame Fortuna (Lucky Wheel), the
-tower gate and leaderboards. Town services only work beside their NPC (server `NpcRange`, 24 studs); every world sign and NPC plate shows
+tower gate and leaderboards. The spawn plaza has a thin stone fountain border, short service approaches and two
+wooden benches with flower planters. Stalls / services sit around the edge; an explicit Tower marker puts the
+jade-and-slate spire northwest of the fountain. `tools/studio/town-polish.luau` applies these place-only edits once
+and keeps a reversible backup in ServerStorage. The local saved place is under `studio-local/` (ignored by Git).
+Town services only work beside their NPC (server `NpcRange`, 24 studs); every world sign and NPC plate shows
 within 45 studs only, fades in (HubFx), never draws over the world, and hides with player name tags while a panel,
 fight or reveal is up (`Modal.Changed`, `HubFx.SetWorldLabelsHidden`). TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
 double jump. Lighting: a bright town afternoon (`LightingSetup`); each world has its own theme (`ZoneFx` moods: Ember golden sunset, Frostfang snowy morning, Neon Abyss violet night, Stormspire grey storm with lightning) and zone music.
