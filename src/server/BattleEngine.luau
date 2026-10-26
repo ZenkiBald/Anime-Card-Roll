@@ -16,7 +16,12 @@
 --   * Cards hit the player's focus target (SetFocus, tapped on screen) when it's alive, otherwise a
 --     taunting guard, otherwise the enemy with the least HP left. Abilities with Target "Enemies" hit
 --     every enemy, "RandomEnemy" picks again for each hit.
---   * Ultimates cost 100 energy (+20 per action, +10 per hit taken); fired by UseUltimate or AutoUlt.
+--   * Ultimates cost 100 energy (+20 per action, +10 per hit taken); fired by UseUltimate or AutoUlt (one
+--     auto Ultimate per tick, never from a card that acted that tick).
+--   * Rhythm: bars start part-filled (Config.Battle.StartGauge, by SPD and slot) and at most one unit acts per
+--     tick (OneActionPerTick): a fight is a run of turns, not one burst.
+--   * Threat: an enemy hit takes at least Config.Battle.MinHit of the target's max HP (before Guard); a
+--     leader's warned move pierces SkillPierce of shields.
 --   * Big enemy moves show a warning first. At 50% HP the leader adds its phase-2 move; at 20% it enrages.
 --   * Win when the leader falls. Lose when every Attack card is KO'd or the timer runs out.
 --   * Damage = ATK x Skill% x (1 + sum of buffs) x Crit x (1 - target DEF) x (1 - Protect on the leader)
@@ -342,6 +347,18 @@ function Engine.new(setup: Setup)
 		end
 	end
 	self.Events = {} -- start-of-battle effects are part of the initial state, not news
+	-- Staggered start: bars begin part-filled (by SPD and slot, the same every fight) so units act in turn.
+	local g = B.StartGauge
+	local function start(unit, order: number)
+		local spread = (order * 0.37 + (unit.SPD or 100) / 100) % 1
+		unit.Gauge = g.Min + (g.Max - g.Min) * spread
+	end
+	for i, unit in self.Allies do
+		start(unit, i)
+	end
+	for i, enemy in self.Enemies do
+		start(enemy, i + #self.Allies)
+	end
 	return self
 end
 
@@ -708,7 +725,7 @@ function Engine:FillStagger(enemy, element: string?)
 	self:Emit({ K = "Stagger", T = enemy.Id, S = B.StaggerSeconds, N = cancelled })
 end
 
-function Engine:DamageAlly(target, amount: number, kind: string, sourceId: string?, el: number?)
+function Engine:DamageAlly(target, amount: number, kind: string, sourceId: string?, el: number?, pierce: number?)
 	if not target.Alive or not target.HasHP or self.Over then
 		return
 	end
@@ -716,7 +733,7 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 		self:Emit({ K = kind, U = sourceId, T = target.Id, A = 0 })
 		return
 	end
-	local absorbed = math.min(target.Shield, amount)
+	local absorbed = math.min(target.Shield, round(amount * (1 - (pierce or 0)))) -- a pierce goes past shields
 	target.Shield -= absorbed
 	target.HP -= amount - absorbed
 	self:Emit({ K = kind, U = sourceId, T = target.Id, A = amount, Sh = if absorbed > 0 then absorbed else nil, El = el })
@@ -757,8 +774,11 @@ function Engine:HitAlly(enemy, target, move)
 	end
 	local element = Elements.Multiplier(enemy.Element, target.Element)
 	local atk = self:EnemyATK(enemy) * element
-	local amount = math.max(1, round(atk * move.Pct * (1 - math.min(0.8, self:Buff(target, "Guard")))))
-	self:DamageAlly(target, amount, "Hit", enemy.Id, elementFlag(element))
+	-- Threat floor: every hit takes at least a share of the card's max HP (B.MinHit), before Guard.
+	local floorShare = if enemy.Leader then (if move.Warn then B.MinHit.LeaderSkill else B.MinHit.Leader) else B.MinHit.Guard
+	local raw = math.max(atk * move.Pct, (target.MaxHP or 0) * floorShare)
+	local amount = math.max(1, round(raw * (1 - math.min(0.8, self:Buff(target, "Guard")))))
+	self:DamageAlly(target, amount, "Hit", enemy.Id, elementFlag(element), if enemy.Leader and move.Warn then B.SkillPierce else nil)
 	if not target.Alive then
 		return
 	end
@@ -958,6 +978,25 @@ function Engine:CardAct(unit)
 		self:Emit({ K = "Signature", U = unit.Id, N = "Moving Without Thought" })
 		self:CardAct(unit)
 	end
+end
+
+-- The leader's next warned (big) move and how many of its actions until it: { N, In } (In 1 = its next).
+function Engine:NextBigMove(enemy)
+	if enemy.Pending then
+		return { N = enemy.Pending.Move.Name, In = 0 }
+	end
+	local best = nil
+	for _, move in enemy.Moves do
+		local phase = move.Phase or 1
+		if move.Warn and move.Every and phase <= enemy.Phase then
+			local count = if phase >= 2 then enemy.PhaseActions else enemy.Actions
+			local left = move.Every - (count % move.Every)
+			if best == nil or left < best.In then
+				best = { N = move.Name, In = left }
+			end
+		end
+	end
+	return best
 end
 
 function Engine:ChooseMove(enemy)
@@ -1242,11 +1281,17 @@ function Engine:Step(dt: number)
 		end
 		return a.Order < b.Order
 	end)
+	local acted = 0
 	for _, unit in ready do
 		if self.Over then
 			return
 		end
+		if B.OneActionPerTick and acted >= 1 then
+			break -- the rest keep a full bar and go next tick, in turn
+		end
 		if unit.Alive and unit.Gauge >= 1 then
+			acted += 1
+			unit.ActedAt = self.Time
 			unit.Gauge -= 1
 			if unit.Type == "Enemy" then
 				self:EnemyAct(unit)
@@ -1261,8 +1306,9 @@ function Engine:Step(dt: number)
 
 	if self.AutoUlt then
 		for _, unit in self.Allies do
-			if self:CanUltimate(unit) then
+			if unit.ActedAt ~= self.Time and self:CanUltimate(unit) then
 				self:UseUltimate(unit.Id)
+				break -- one auto Ultimate per tick
 			end
 		end
 	end
@@ -1308,6 +1354,7 @@ function Engine:Info()
 			MaxHP = if unit.HasHP then unit.MaxHP else nil,
 			Main = unit.Main,
 			Ultimate = if unit.Ultimate then unit.Ultimate.Name else nil,
+			Skill = if unit.Skill then unit.Skill.Name else nil, -- its countdown rides in the snapshot (K)
 		})
 	end
 	local enemies = {}
@@ -1401,6 +1448,7 @@ function Engine:Snapshot()
 			E = unit.Energy,
 			G = if unit.Alive then gauge(unit.Gauge) else 0,
 			F = flags,
+			K = if unit.Skill and unit.Alive then unit.SkillCooldown else nil, -- actions until its Skill (0 = next)
 		}
 	end
 	for _, enemy in self.Enemies do
@@ -1440,6 +1488,7 @@ function Engine:Snapshot()
 			F = flags,
 			Bar = if enemy.Barrier > 0 then enemy.Barrier else nil,
 			St = if enemy.Leader then math.floor(enemy.Stagger * 100) / 100 else nil,
+			Nx = if enemy.Leader and enemy.Alive then self:NextBigMove(enemy) else nil, -- { N = name, In = actions }
 		}
 	end
 	return { T = math.floor(self.Time * 10) / 10, U = units, Fo = self.Focus }

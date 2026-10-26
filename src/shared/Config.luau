@@ -85,6 +85,14 @@ Config.Battle = {
 	-- floor's recommended power are won at once and paid in full, up to SweepFloors per start.
 	SweepPower = 3,
 	SweepFloors = 5,
+	-- Rhythm: action bars start part-filled (StartGauge, by SPD and slot) so a fight opens with units acting
+	-- one after another, and at most one unit acts per tick (the rest keep a full bar and go next tick).
+	StartGauge = { Min = 0.2, Max = 0.75 },
+	OneActionPerTick = true,
+	-- Threat: an enemy hit always takes at least this share of the target card's max HP (before Guard), so
+	-- even a deck far above a fight's power feels its hits; a leader's warned move also pierces shields.
+	MinHit = { Guard = 0.02, Leader = 0.04, LeaderSkill = 0.1 },
+	SkillPierce = 0.4, -- share of a leader's warned move that goes through shields
 	UltimateCost = 100,
 	EnergyPerAction = 20,
 	EnergyPerHit = 10,

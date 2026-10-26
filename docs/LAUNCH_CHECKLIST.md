@@ -78,6 +78,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   0.3 s FIGHT! (no YOUR DECK vs curtain, no Victory panel); an overpowered deck sweeps up to 5 floors at once with a
   SWEPT FLOORS banner (Shards, packs and quests all count); defeated guards topple and fade; stacked callouts; SCOUT's
   four unit cards; the Victory panel's pack progress bar and run totals when no pack dropped.
+- [ ] Combat rhythm (2026-10-26): the opening reads as turns (no burst), cards show SKILL in N / SKILL READY, the boss bar
+  shows "⚠ MOVE in N", supports lift on their turn, and a strong deck's HP bars still drop (MinHit) so healers heal.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

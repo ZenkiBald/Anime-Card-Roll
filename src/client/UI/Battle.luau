@@ -877,6 +877,23 @@ local function makeTile(unit, order: number)
 		Badges = badgeDock,
 	}
 
+	-- The Skill countdown: "SKILL in 2" (its actions until the Skill) or "SKILL READY", from the snapshot (K).
+	if unit.Skill then
+		tile.SkillCD = Kit.label({
+			Name = "SkillCD",
+			Text = "",
+			Font = Theme.Font.Heavy,
+			TextColor3 = Theme.Color.Muted,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -6, 0, 3),
+			Size = UDim2.new(0.5, 0, 0, 14),
+			ZIndex = 9,
+			Parent = button,
+		}, 12)
+		Kit.textStroke(Color3.fromRGB(6, 7, 11), 1.5, 0).Parent = tile.SkillCD
+	end
+
 	if isAttack then
 		local hpTrack, hpFill, hpTrail = bar(info, "HP", 0.45, 0.25, NEON_EMERALD, true)
 		hpFill.Size = UDim2.fromScale(1, 1)
@@ -1278,7 +1295,14 @@ local function applySnapshot(snap)
 				else `{Kit.commas(s.H)} / {Kit.commas(maxHP)}`
 			barrierRing.Visible = barrier > 0
 			Kit.tween(bossGauge, 0.15, { Size = UDim2.fromScale(s.G, 1) }, Enum.EasingStyle.Linear)
-			bossStatus.Text = flagWords(s.F, BOSS_STATUS)
+			-- The leader's next big move under its bar: "⚠ FORGE CLEAVE in 2" (its actions), or incoming.
+			local nextMove = s.Nx
+			local big = if nextMove == nil then ""
+				elseif nextMove.In <= 0 then `⚠ {string.upper(nextMove.N)} INCOMING`
+				else `⚠ {string.upper(nextMove.N)} in {nextMove.In}`
+			local words = flagWords(s.F, BOSS_STATUS)
+			bossStatus.Text = if big ~= "" and words ~= "" then `{big}   ·   {words}` else big .. words
+			bossStatus.TextColor3 = if nextMove and nextMove.In <= 1 then Theme.Color.Danger else Theme.Color.Support
 			local staggered = string.find(s.F, "Q") ~= nil
 			Kit.tween(bossStagger, 0.15, { Size = UDim2.fromScale(if staggered then 1 else (s.St or 0), 0.22) })
 			bossStagger.BackgroundColor3 = if staggered then Color3.new(1, 1, 1) else Theme.Color.Gold
@@ -1314,6 +1338,11 @@ local function applySnapshot(snap)
 					alive = s.H > 0
 				end
 				setBadges(tile.Badges, if alive then s.F else "")
+				if tile.SkillCD then
+					local k = s.K
+					tile.SkillCD.Text = if not alive or k == nil then "" elseif k <= 0 then "SKILL READY" else `SKILL in {k}`
+					tile.SkillCD.TextColor3 = if k ~= nil and k <= 0 then Theme.Color.Gold else Theme.Color.Muted
+				end
 				local gaugeGoal = UDim2.fromScale(s.G, 1)
 				if s.G < tile.Gauge.Size.X.Scale then
 					tile.Gauge.Size = gaugeGoal -- it just acted: snap back
@@ -1469,9 +1498,13 @@ local function playEvent(event)
 				task.delay(0.06, shoot, tile.TierColor, 9, true)
 			end
 		else
-			-- Support: a soft glow and a lift as it casts.
+			-- Support: its turn reads as a lift of 8 px with a glow in its colour.
 			glow(tile, tile.Accent)
 			bump(tile.Scale, 0.06)
+			tile.Card.Position = UDim2.new(0.5, 0, 0.5, 0)
+			Kit.tween(tile.Card, 0.1, { Position = UDim2.new(0.5, 0, 0.5, -8) }, Enum.EasingStyle.Quad).Completed:Connect(function()
+				Kit.tween(tile.Card, 0.18, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
+			end)
 			if event.Ab == "Skill" or event.Ab == "Opening" then
 				castTag(tile, event.N, if event.Ab == "Opening" then "Basic" else "Skill")
 			end

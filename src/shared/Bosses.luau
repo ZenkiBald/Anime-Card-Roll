@@ -117,7 +117,7 @@ local list: { Boss } = {
 			{ Name = "Slag Cut", Target = "Single", Pct = 1, Burn = { Pct = 0.15, Turns = 2 } },
 		},
 		Difficulties = {
-			Normal = { D = 1, Recommended = 45000, HP = 123548, ATK = 442, WarnSeconds = 2 },
+			Normal = { D = 1, Recommended = 45000, HP = 138400, ATK = 442, WarnSeconds = 2 },
 			Hard = { D = 2, Recommended = 67000, HP = 182952, ATK = 547, WarnSeconds = 2 },
 			Nightmare = { D = 3, Recommended = 101000, HP = 312000, ATK = 821, WarnSeconds = 1 },
 		},

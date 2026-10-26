@@ -317,3 +317,63 @@ end
 
 local lone = F.campaign("kurogane", "Normal", F.deck({ "rook" }, {}), starterOwned, 20)
 check(lone == 0, "a single Common card loses")
+
+-- Threat and rhythm (2026-10-26): squads take real damage, even far above a fight's power, and a fight opens
+-- as a run of turns, not one burst.
+do
+	local Engine = MODULES.BattleEngine
+	local fx = F.FIGHTS[3] -- Kurogane Nightmare
+	local deck, owned = F.fixtureDeck(fx)
+	local healed, lowest = 0, 1
+	for seed = 1, 10 do
+		local battle, events = F.fight(fx.Boss, fx.Difficulty, deck, owned, seed * 131)
+		for _, e in events do
+			if e.K == "Heal" then
+				healed += e.A or 0
+			end
+		end
+		for _, unit in battle.Allies do
+			if unit.HasHP then
+				lowest = math.min(lowest, if unit.Alive then unit.HP / unit.MaxHP else 0)
+			end
+		end
+	end
+	check(healed > 0 and lowest < 0.7, `a Nightmare fight hurts: Menders heal ({healed}) and a card drops below 70% HP ({math.floor(lowest * 100)}%)`)
+
+	-- A deck ten times the fight's power still feels the hits (Config.Battle.MinHit).
+	local strong = F.own({ "tomo", "noa", "rook", "kaede", "hana", "luna" }, 5, { tomo = "Rainbow", noa = "Rainbow", rook = "Rainbow", kaede = "Rainbow" })
+	local b = Engine.new({ Units = F.units(F.deck({ "tomo", "noa", "rook", "kaede" }, { "hana", "luna" }), strong), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
+	local taken = 0
+	for _ = 1, 60 do
+		b:Step(MODULES.Config.Battle.Tick)
+		for _, e in b:TakeEvents() do
+			if e.K == "Hit" and string.sub(e.T or "", 1, 1) == "A" then
+				taken += e.A
+			end
+		end
+	end
+	check(taken > 0, `an overpowered deck still takes hits in its first 6 s ({taken} damage)`)
+
+	-- The opening: bars start part-filled, one unit acts per tick.
+	local c = Engine.new({ Units = F.units(deck, owned), BossId = fx.Boss, Difficulty = fx.Difficulty, Rng = Random.new(9) })
+	local perTick = 0
+	for _ = 1, 20 do
+		c:Step(MODULES.Config.Battle.Tick)
+		local acts = 0
+		for _, e in c:TakeEvents() do
+			if e.K == "Act" and e.Ab ~= "Opening" and e.Ab ~= "Ultimate" then
+				acts += 1
+			end
+		end
+		perTick = math.max(perTick, acts)
+	end
+	check(perTick <= 2, `units take turns: at most one action (plus an echo) per tick in the opening 2 s (saw {perTick})`)
+	local snap = c:Snapshot()
+	local hasSkillCountdown = false
+	for id, s in snap.U do
+		if string.sub(id, 1, 1) == "A" and s.K ~= nil then
+			hasSkillCountdown = true
+		end
+	end
+	check(hasSkillCountdown and snap.U.Boss.Nx ~= nil, "the snapshot carries each card's Skill countdown and the leader's next big move")
+end

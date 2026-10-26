@@ -58,7 +58,10 @@ fire footsteps, Secret celestial motes).
 buffs the Attack card in its column. Elements: Flame > Frost > Storm > Flame, Light <> Void, Cosmic beats all (x1.3 /
 x0.85); 2 / 4 of an element switch on a synergy; 8 named bonds fire a Dual Ultimate once. Every fight is the leader +
 3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls. Stagger bar (counter
-elements fill it faster) -> 5 s Staggered. Cost Challenge (Deck Cost by border 2/4/6/8, cap 30) for x2 Trait Shards.
+elements fill it faster) -> 5 s Staggered. Rhythm and threat (`Config.Battle`): bars start part-filled (StartGauge) and one unit acts
+per tick, one auto-Ultimate per tick; every enemy hit takes at least MinHit of the card's max HP (guard 2%, leader 4%,
+leader's warned move 10% and SkillPierce 40% through shields), so even an overpowered deck takes hits. Cards show
+"SKILL in N" / "SKILL READY" (snapshot K), the boss bar shows its next big move (snapshot Nx), supports lift on their turn. Cost Challenge (Deck Cost by border 2/4/6/8, cap 30) for x2 Trait Shards.
 The engine (`BattleEngine`) is pure and runs headless in tests. Fights are staged in 3D at the boss's spot in its world
 (`UI/Arena`, low cinematic camera, guards as tinted smaller copies; beams fly from the card slots to the 3D figures,
 hits flash and recoil, guards lunge, boss skills and crits shake the camera; a defeated guard or leader topples
