@@ -74,6 +74,10 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   vault tiles, the inspector's EQUIP / FUSE / ROLL TRAITS; the squad dock 12 px higher with no Support row clipping,
   damage numbers above the cards, the third guard clear of the dock, beams / hit flashes / lunges / camera shake in the
   3D arena; AUTO-RETRY above SPEED; the Next Goal pill over Momentum.
+- [ ] Pacing pass (2026-10-26): with AUTO CLIMB on, a tower win shows a 1 s banner and the next floor starts with a
+  0.3 s FIGHT! (no YOUR DECK vs curtain, no Victory panel); an overpowered deck sweeps up to 5 floors at once with a
+  SWEPT FLOORS banner (Shards, packs and quests all count); defeated guards topple and fade; stacked callouts; SCOUT's
+  four unit cards; the Victory panel's pack progress bar and run totals when no pack dropped.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

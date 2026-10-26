@@ -149,6 +149,9 @@ local function hint(text: string)
 	end)
 end
 
+local calloutBusyUntil = 0 -- the main callout is showing until then
+local calloutStack = 0 -- callouts stacked under it meanwhile
+
 local function callout(text: string, color: Color3, seconds: number?)
 	local wait = introUntil - os.clock()
 	if wait > 0 then
@@ -156,6 +159,38 @@ local function callout(text: string, color: Color3, seconds: number?)
 		task.delay(wait, callout, text, color, seconds)
 		return
 	end
+	local now = os.clock()
+	if now < calloutBusyUntil then
+		-- Another callout is up (SUPPORT OPENING! and a bond's name at the same tick): this one goes under
+		-- it, 0.15 s later per step, as its own label, instead of both landing on the same pixels.
+		calloutStack = calloutStack % 3 + 1
+		local slot = calloutStack
+		task.delay(0.15 * slot, function()
+			if calloutLabel.Parent == nil then
+				return
+			end
+			local extra = calloutLabel:Clone()
+			extra.Name = "CalloutStack"
+			extra.Text = text
+			extra.TextColor3 = color
+			extra.TextTransparency = 0
+			extra.Position = UDim2.fromScale(0.5, 0.5 + 0.075 * slot)
+			extra.Parent = calloutLabel.Parent
+			local extraScale = extra:FindFirstChildOfClass("UIScale")
+			if extraScale then
+				extraScale.Scale = 0.5
+				Kit.tween(extraScale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
+			end
+			task.delay(seconds or 1.4, function()
+				Kit.tween(extra, 0.3, { TextTransparency = 1 }).Completed:Connect(function()
+					extra:Destroy()
+				end)
+			end)
+		end)
+		return
+	end
+	calloutStack = 0
+	calloutBusyUntil = now + (seconds or 1.4)
 	calloutToken += 1
 	local token = calloutToken
 	calloutLabel.Text = text
@@ -1233,6 +1268,9 @@ local function applySnapshot(snap)
 			local maxHP = current.Info.Boss.MaxHP
 			setHp(bossHpFill, bossHpTrail, s.H / maxHP)
 			Arena.SetLeaderHp(s.H / maxHP)
+			if s.H <= 0 then
+				Arena.SetDown("Boss", true) -- the leader falls as the fight ends
+			end
 			local barrier = s.Bar or 0
 			Kit.tween(bossBarrier, 0.2, { Size = UDim2.fromScale(math.min(1, barrier / maxHP * 8), 1) })
 			bossHpText.Text = if barrier > 0
@@ -1873,12 +1911,106 @@ end
 local exit -- forward declarations
 local startFight
 
-local AUTO_CLIMB_SECONDS = 4
+local AUTO_CLIMB_SECONDS = 3
 local autoClimb = true -- tower: start the next floor by itself after a win (AUTO CLIMB toggles, for the session)
 local autoRepeat = false -- boss fights: start the same fight again after a win (AUTO REPEAT, opt-in, for the session)
 
+-- What this streak of wins paid (a tower run, or a string of AUTO-RETRY boss wins): the quick banners and
+-- the results panel show it. Reset when the fight screen closes or a tower run ends.
+local runTotals = { Floors = 0, Shards = 0, TraitShards = 0, Packs = 0 }
+local totalsEnded = false -- a loss ended the streak: its panel still shows the totals, the next fight resets
+local function resetTotals()
+	runTotals.Floors, runTotals.Shards, runTotals.TraitShards, runTotals.Packs = 0, 0, 0, 0
+	totalsEnded = false
+end
+local function addToTotals(rewards, wins: number)
+	runTotals.Floors += wins
+	local bundle = rewards and rewards.Bundle
+	if bundle then
+		runTotals.Shards += bundle.Shards or 0
+		runTotals.TraitShards += bundle.TraitShards or 0
+	end
+	if rewards and rewards.NewPacks then
+		runTotals.Packs += Packs.Count(rewards.NewPacks)
+	end
+end
+-- Counts a finished fight once (the quick banner and a fallback results panel both see it).
+local function countWin(summary)
+	if summary.Counted or summary.Result ~= "Win" then
+		return
+	end
+	summary.Counted = true
+	addToTotals(summary.Rewards, 1)
+end
+local function totalsText(): string
+	return `Run total: +{Kit.commas(runTotals.Shards)} Shards · +{runTotals.TraitShards} Trait Shards · +{runTotals.Packs} Pack{if runTotals.Packs == 1 then "" else "s"} ({runTotals.Floors} win{if runTotals.Floors == 1 then "" else "s"})`
+end
+
+-- A floating banner under the boss bar (chained wins, swept floors): it never blocks the screen.
+local function chainBanner(text: string, color: Color3, seconds: number)
+	local old = stage:FindFirstChild("ChainBanner")
+	if old then
+		old:Destroy()
+	end
+	local label = Kit.label({
+		Name = "ChainBanner",
+		Text = text,
+		RichText = true,
+		Font = Theme.Font.Display,
+		TextColor3 = color,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.17),
+		Size = UDim2.fromScale(0.7, 0.06),
+		ZIndex = 45,
+		Parent = stage,
+	}, 30)
+	Kit.textStroke(Color3.new(0, 0, 0), 2.5, 0).Parent = label
+	local scale = Kit.new("UIScale", { Scale = 0.6, Parent = label })
+	Kit.tween(scale, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
+	task.delay(seconds, function()
+		if label.Parent then
+			Kit.tween(label, 0.25, { TextTransparency = 1 }).Completed:Connect(function()
+				label:Destroy()
+			end)
+		end
+	end)
+end
+
+-- What FIGHT AGAIN / NEXT FLOOR asks the server for: the same fight (the tower's next floor), a quick
+-- intro, and in a tower with AUTO CLIMB on, the sweep of floors this deck overpowers.
+local function againTarget(): (string, string?, { [string]: any })
+	local tower = current.Tower
+	local bossId = if current.Raid then Raid.Id elseif tower then tower.Mode else current.BossId
+	local options = if tower then { Sweep = autoClimb or nil } else table.clone(current.Options or {})
+	options.Quick = true
+	return bossId, current.Difficulty, options
+end
+
+-- A win goes straight on to the next fight (a 1 s banner, no results panel) when AUTO CLIMB / AUTO-RETRY
+-- is on, unless it's a moment worth the full panel: a Pagoda milestone or its crown, a relic or artifact,
+-- a boss card unlocked.
+local function chains(summary): boolean
+	if current == nil or summary.Result ~= "Win" or current.Raid then
+		return false
+	end
+	local tower = current.Tower
+	if tower and tower.Mode == Tower.PagodaId and tower.Floor >= Tower.Pagoda.Floors then
+		return false
+	end
+	local rewards = summary.Rewards
+	local bundle = rewards and rewards.Bundle
+	if summary.CardUnlocked or (rewards and rewards.Milestone) or (bundle and (bundle.Artifacts or bundle.TowerArtifacts)) then
+		return false
+	end
+	return if tower then autoClimb else autoRepeat
+end
+
 local function showResults(summary)
 	current.Ended = true
+	countWin(summary)
+	if summary.Result ~= "Win" then
+		totalsEnded = true
+	end
 	warnBanner.Visible = false
 	clearChildren(results)
 	results.Visible = true
@@ -2281,16 +2413,80 @@ local function showResults(summary)
 			Size = UDim2.fromScale(0.8, 0.5),
 			Parent = area,
 		}, if biggest then biggest.Color else Theme.Color.TileEdge)
+		-- No pack this time: a bar filling toward the next one instead of an empty box (towers: floors since
+		-- the last pack floor; the Pagoda: toward its next milestone).
+		local progressFrom, progressTo = nil, nil
+		if not biggest and tower and tower.Mode == Tower.PagodaId then
+			progressTo = Tower.NextMilestone(tower.Floor)
+			progressFrom = 0
+			for f = tower.Floor, 1, -1 do
+				if Tower.PagodaMilestones[f] then
+					progressFrom = f
+					break
+				end
+			end
+		elseif not biggest and tower then
+			progressFrom, progressTo = 0, tower.Floor + 1
+			for f = tower.Floor, 1, -1 do
+				if Packs.ForFloor(f) then
+					progressFrom = f
+					break
+				end
+			end
+			while Packs.ForFloor(progressTo) == nil do
+				progressTo += 1
+			end
+		end
 		local count = Kit.label({
-			Text = if biggest then Packs.Describe(rewards.NewPacks) else "NO PACK ON THIS FLOOR",
+			Text = if biggest then Packs.Describe(rewards.NewPacks)
+				elseif progressTo then `PACK PROGRESS · FLOOR {tower.Floor} / {progressTo}`
+				else "SHARDS BANKED",
 			Font = Theme.Font.Display,
-			TextColor3 = if biggest then Theme.Color.Gold else Theme.Color.Muted,
+			TextColor3 = Theme.Color.Gold,
 			TextWrapped = true,
-			Position = UDim2.fromScale(0.05, 0.08),
-			Size = UDim2.fromScale(0.9, 0.4),
+			Position = UDim2.fromScale(0.05, 0.06),
+			Size = UDim2.fromScale(0.9, if biggest then 0.4 else 0.22),
 			Parent = ticket,
-		}, 34)
+		}, if biggest then 34 else 26)
 		Kit.textStroke(Color3.fromRGB(70, 40, 0), 2, 0).Parent = count
+		if progressTo and progressFrom then
+			local ratio = math.clamp((tower.Floor - progressFrom) / math.max(1, progressTo - progressFrom), 0.04, 1)
+			local track = Kit.new("Frame", {
+				Name = "PackProgress",
+				Position = UDim2.fromScale(0.08, 0.32),
+				Size = UDim2.fromScale(0.84, 0.1),
+				BackgroundColor3 = UITheme.Colors.UrushiInset,
+				ClipsDescendants = true,
+				Parent = ticket,
+			}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Theme.Color.Gold, 1.5, 0.3) })
+			local fill = Kit.new("Frame", {
+				Size = UDim2.fromScale(0, 1),
+				BackgroundColor3 = Theme.Color.Gold,
+				BorderSizePixel = 0,
+				Parent = track,
+			}, { Kit.corner(UDim.new(1, 0)) })
+			Kit.tween(fill, 0.6, { Size = UDim2.fromScale(ratio, 1) }, Enum.EasingStyle.Quad)
+			Kit.label({
+				Text = `{math.floor(ratio * 100 + 0.5)}%`,
+				Font = Theme.Font.Heavy,
+				TextColor3 = UITheme.Colors.WashiParchment,
+				Size = UDim2.fromScale(1, 1),
+				ZIndex = 2,
+				Parent = track,
+			}, 14)
+		end
+		if not biggest then
+			-- The streak so far: everything this run (or this string of retries) has paid.
+			Kit.label({
+				Text = totalsText(),
+				Font = Theme.Font.Heavy,
+				TextColor3 = UITheme.Colors.WashiParchment,
+				TextWrapped = true,
+				Position = UDim2.fromScale(0.05, 0.44),
+				Size = UDim2.fromScale(0.9, 0.1),
+				Parent = ticket,
+			}, 16)
+		end
 		local nextText = ""
 		if tower and tower.Mode == Tower.PagodaId then
 			local nextMilestone = Tower.NextMilestone(tower.Floor)
@@ -2309,8 +2505,8 @@ local function showResults(summary)
 			Font = Theme.Font.Bold,
 			TextColor3 = Theme.Color.Muted,
 			TextWrapped = true,
-			Position = UDim2.fromScale(0.05, 0.52),
-			Size = UDim2.fromScale(0.9, 0.42),
+			Position = UDim2.fromScale(0.05, if biggest then 0.52 else 0.58),
+			Size = UDim2.fromScale(0.9, if biggest then 0.42 else 0.36),
 			Parent = ticket,
 		}, 16)
 		if biggest then
@@ -2369,8 +2565,8 @@ local function showResults(summary)
 		if conquered then
 			return
 		end
-		-- The server picks a tower's floor (the run's or the Pagoda's next).
-		local options = if tower then nil else current.Options
+		-- The server picks a tower's floor (the run's or the Pagoda's next); quick intro, and the sweep.
+		local _, _, options = againTarget()
 		local ok, message = startFight(bossId, difficulty, options)
 		if not ok and message then
 			hint(message)
@@ -2432,6 +2628,56 @@ local function showResults(summary)
 			countdown()
 		end
 	end
+end
+
+-- A chained win: what the results panel would apply, a 1 s banner, then the next fight. If the next fight
+-- can't start (or the switch went off meanwhile), the full results panel shows after all.
+local function quickWin(summary)
+	current.Ended = true
+	warnBanner.Visible = false
+	local rewards = summary.Rewards
+	if rewards and rewards.Packs then
+		State.ApplyPacks(rewards.Packs)
+	end
+	if rewards and rewards.Meta then
+		State.ApplyMeta(rewards.Meta)
+	end
+	if summary.Tower then
+		State.ApplyTower(summary.Tower)
+	end
+	countWin(summary)
+	local bits = {}
+	local bundle = rewards and rewards.Bundle
+	if bundle and (bundle.Shards or 0) > 0 then
+		table.insert(bits, `+{Kit.commas(bundle.Shards)} Shards`)
+	end
+	if bundle and (bundle.TraitShards or 0) > 0 then
+		table.insert(bits, `+{bundle.TraitShards} Trait Shards`)
+	end
+	local packs = if rewards then Packs.Count(rewards.NewPacks) else 0
+	if packs > 0 then
+		table.insert(bits, `+{packs} Roll Pack{if packs == 1 then "" else "s"}`)
+	end
+	local tower = current.Tower
+	local head = if tower then `FLOOR {tower.Floor} CLEARED!` else `{string.upper(current.BossName)} DEFEATED!`
+	chainBanner(if #bits > 0 then `{head}  {table.concat(bits, " · ")}` else head, Theme.Color.Gold, 0.9)
+	Sfx.Play("Reward")
+	local fight = current
+	task.delay(1, function()
+		if current ~= fight then
+			return -- the player left meanwhile
+		end
+		local on = if tower then autoClimb else autoRepeat
+		local ok = false
+		if on then
+			local bossId, difficulty, options = againTarget()
+			ok = startFight(bossId, difficulty, options)
+		end
+		if not ok and current == fight then
+			current.Ended = false
+			showResults(summary)
+		end
+	end)
 end
 
 -- Scene -----------------------------------------------------------------------------------------
@@ -2617,7 +2863,41 @@ local function begin(start, bossId: string, difficulty: string?)
 	for _, bond in start.Info.Bonds or {} do
 		table.insert(extras, `🤝 {string.upper(bond.Name)}`)
 	end
-	playIntro(boss, subtitle, start.DeckPower or 0, start.Intro or 2, if #extras > 0 then table.concat(extras, " · ") else nil)
+	if start.Quick then
+		-- A chained fight: no curtain, a 0.3 s FIGHT! pop that blocks nothing.
+		intro.Visible = false
+		introUntil = 0
+		callout("FIGHT!", Color3.new(1, 1, 1), 0.4)
+	else
+		playIntro(boss, subtitle, start.DeckPower or 0, start.Intro or 2, if #extras > 0 then table.concat(extras, " · ") else nil)
+	end
+	if totalsEnded then
+		resetTotals()
+	end
+	-- Floors swept before this one (BattleService: the deck overpowers them by Config.Battle.SweepPower x).
+	local swept = start.Swept
+	if swept and #swept > 0 then
+		local shards, packs = 0, 0
+		for _, floor in swept do
+			addToTotals(floor.Rewards, 1)
+			local bundle = floor.Rewards and floor.Rewards.Bundle
+			shards += bundle and bundle.Shards or 0
+			packs += if floor.Rewards then Packs.Count(floor.Rewards.NewPacks) else 0
+		end
+		local last = swept[#swept].Rewards
+		if last and last.Packs then
+			State.ApplyPacks(last.Packs)
+		end
+		if last and last.Meta then
+			State.ApplyMeta(last.Meta)
+		end
+		local first, final = swept[1].Floor, swept[#swept].Floor
+		chainBanner(
+			`SWEPT FLOOR{if first == final then ` {first}` else `S {first}-{final}`}!  +{Kit.commas(shards)} Shards{if packs > 0 then ` · +{packs} Pack{if packs == 1 then "" else "s"}` else ""}`,
+			Theme.Color.Gold,
+			1.4
+		)
+	end
 	task.delay((start.Intro or 2) + 0.3, function()
 		if current and not current.Ended and current.Focus == nil then
 			hint("Tap an enemy to focus every attack on it")
@@ -2642,6 +2922,7 @@ function startFight(bossId: string, difficulty: string?, options: { Cost: boolea
 end
 
 function exit()
+	resetTotals()
 	if cardInfo then
 		cardInfo:Destroy()
 		cardInfo = nil
@@ -3217,10 +3498,15 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 				exit()
 				return
 			end
-			-- Let the last hits land before the results panel.
-			task.delay(0.9, function()
+			-- Let the last hits land before the results panel (or the chained win's banner).
+			local chained = chains(message.Done)
+			task.delay(if chained then 0.45 else 0.9, function()
 				if current and not current.Ended then
-					showResults(message.Done)
+					if chained and chains(message.Done) then
+						quickWin(message.Done)
+					else
+						showResults(message.Done)
+					end
 				end
 			end)
 		end

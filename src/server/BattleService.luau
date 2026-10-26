@@ -7,6 +7,10 @@
 -- (Raid.luau, RaidService): its damage goes into the shared pool as it lands. A boss fight can be a
 -- Cost Challenge (BattleStart's 3rd argument { Cost = true }): the deck's cost must be at most
 -- Config.Deck.CostCap, and a win pays Config.Deck.CostTraitShards x the Trait Shards.
+-- { Quick = true } (fights chained by AUTO CLIMB / AUTO-RETRY) starts after B.QuickIntroSeconds instead of the
+-- full intro. { Sweep = true } in a tower first wins, at once, every next floor the deck overpowers by
+-- B.SweepPower x (up to B.SweepFloors), recording and paying each exactly like a fought win, then fights the
+-- next floor for real.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -170,7 +174,7 @@ end
 
 local function run(player: Player, state)
 	local battle = state.Engine
-	task.wait(B.IntroSeconds)
+	task.wait(state.Intro or B.IntroSeconds)
 	state.Started = true
 
 	local pending = 0 -- battle seconds not yet simulated
@@ -312,6 +316,42 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	end
 	local data = profile.Data
 
+	local deck = DeckService.Active(data)
+	if Deck.Count(deck, "Attack") == 0 then
+		return { Ok = false, Reason = "NoAttack" }
+	end
+	local deckPower = Deck.Power(deck, data.Cards)
+	local quick = type(options) == "table" and (options :: any).Quick == true
+	local wantSweep = type(options) == "table" and (options :: any).Sweep == true
+
+	-- Tower sweep: next floors this deck overpowers are won and paid at once (recordResult + towerRewards,
+	-- the same as a fought win), so a strong deck doesn't sit through 0.8 s fights.
+	local swept = nil
+	if isTower and wantSweep and towerRewards and BattleService.TowerOpen(data) then
+		local list = {}
+		for _ = 1, B.SweepFloors do
+			local pagoda = bossId == Tower.PagodaId
+			local nextFloor = if pagoda then data.Pagoda.Floor + 1 else data.Tower.Run + 1
+			if pagoda and nextFloor >= Tower.Pagoda.Floors then
+				break -- the Pagoda's last floor (its crown) is always fought
+			end
+			local f = Tower.FloorAt(nextFloor, nil, nil, if pagoda then Tower.PagodaId else nil)
+			if deckPower < B.SweepPower * f.Recommended then
+				break
+			end
+			local won = { Engine = { Result = "Win", BossId = f.Boss, Difficulty = f.Difficulty, Time = 0 }, Floor = f.Floor, Mode = f.Mode }
+			local record = recordResult(player, won)
+			if record == nil then
+				break
+			end
+			local rewards = towerRewards(player, f.Floor, f.Mode, record.FirstClear)
+			table.insert(list, { Floor = f.Floor, NewBest = record.NewBest, Rewards = rewards })
+		end
+		if #list > 0 then
+			swept = list
+		end
+	end
+
 	-- The Infinite Tower fights the next floor of the run, the Pagoda its next floor.
 	local floor = nil
 	local stats = nil
@@ -341,12 +381,6 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	elseif not Bosses.IsUnlocked(data.Progress.Cleared, boss.Id, difficulty) then
 		return { Ok = false, Reason = "Locked" }
 	end
-
-	local deck = DeckService.Active(data)
-	if Deck.Count(deck, "Attack") == 0 then
-		return { Ok = false, Reason = "NoAttack" }
-	end
-	local deckPower = Deck.Power(deck, data.Cards)
 
 	-- The Cost Challenge: boss fights only, and the deck must fit the cap.
 	local cost = type(options) == "table" and (options :: any).Cost == true and boss ~= nil and not isTower and not isRaid
@@ -381,6 +415,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		Floor = floor and floor.Floor,
 		Mode = floor and floor.Mode,
 		Cost = cost or nil,
+		Intro = if quick then B.QuickIntroSeconds else B.IntroSeconds,
 		Raid = if raid then { Index = raid.Index, Name = raid.Name, Reported = 0 } else nil,
 	}
 	active[player] = state
@@ -400,7 +435,9 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		AutoUlt = battle.AutoUlt,
 		Speed = speed,
 		SpeedUnlocked = speedAllowed(data, 2),
-		Intro = B.IntroSeconds,
+		Intro = state.Intro,
+		Quick = quick or nil,
+		Swept = swept, -- floors won at once before this one: { Floor, NewBest, Rewards }
 		DeckPower = deckPower,
 		CostChallenge = cost or nil,
 	}

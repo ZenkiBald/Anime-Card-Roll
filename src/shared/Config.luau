@@ -80,6 +80,11 @@ Config.Battle = {
 	Tick = 0.1, -- simulation step, in battle seconds
 	TimeLimit = 180, -- lose when the 3-minute timer ends
 	IntroSeconds = 2, -- "FIGHT!" banner before the first tick
+	QuickIntroSeconds = 0.3, -- chained fights (AUTO CLIMB / AUTO-RETRY, BattleStart { Quick = true }): no curtain
+	-- Tower sweep (BattleStart { Sweep = true } in a tower): floors where the deck has at least SweepPower x the
+	-- floor's recommended power are won at once and paid in full, up to SweepFloors per start.
+	SweepPower = 3,
+	SweepFloors = 5,
 	UltimateCost = 100,
 	EnergyPerAction = 20,
 	EnergyPerHit = 10,

@@ -61,13 +61,19 @@ x0.85); 2 / 4 of an element switch on a synergy; 8 named bonds fire a Dual Ultim
 elements fill it faster) -> 5 s Staggered. Cost Challenge (Deck Cost by border 2/4/6/8, cap 30) for x2 Trait Shards.
 The engine (`BattleEngine`) is pure and runs headless in tests. Fights are staged in 3D at the boss's spot in its world
 (`UI/Arena`, low cinematic camera, guards as tinted smaller copies; beams fly from the card slots to the 3D figures,
-hits flash and recoil, guards lunge, boss skills and crits shake the camera); no map = the 2D fallback. Damage
+hits flash and recoil, guards lunge, boss skills and crits shake the camera; a defeated guard or leader topples
+and fades in dark red; callouts at the same moment stack 0.15 s apart); no map = the 2D fallback. Damage
 numbers on the squad's cards spawn above the card frame.
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended power 45k ... 388k; the fixtures are Base in
 World 1, Gold after, World 4 Gold 5-star with Awakening 1-3). Boss wins pay reward rolls (luck / floors by D), Shards,
 Roll Packs and Trait Shards (no gear); after a win AUTO-RETRY (opt-in, in the battle controls above SPEED and on
-the results screen) restarts the same fight; in the towers the same switch is AUTO CLIMB. Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
+the results screen) restarts the same fight; in the towers the same switch is AUTO CLIMB. With it on, a win shows a 1 s banner (no
+results panel unless it's a milestone, relic / artifact or boss-card unlock) and the next fight starts with a 0.3 s
+FIGHT! (BattleStart `{ Quick = true }`, `Config.Battle.QuickIntroSeconds`); in a tower it also sweeps: floors the deck
+overpowers by `Config.Battle.SweepPower` (3x) are won and paid at once, up to `SweepFloors` (5) per start (BattleService,
+same recordResult + towerRewards as a fought win; never the Pagoda's floor 100). Results show a pack progress bar and
+the streak's totals when no pack dropped. SCOUT is four unit cards (leader + guards: crests, role, big move, affix). Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
 affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 33k x 1.068^(floor-1)); every floor
 pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
 SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past

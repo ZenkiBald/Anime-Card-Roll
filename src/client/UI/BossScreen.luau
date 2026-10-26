@@ -332,42 +332,118 @@ local function chipText(parent: Instance, order: number, value: string, color: C
 	}, size or 14)
 end
 
--- SCOUT: visual trays. The leader's element crest and the counter crests with a +30% DMG tag; the guards
--- as unit chips (role, element, name); how the active deck lines up; the deck's synergies and bonds as
--- tags; and COUNTER-BUILD for this fight (`target`: boss id, Tower.Id, Raid.Id).
-local function scoutBox(order: number, leaderId: string, guards: { string }, deck, target: string)
+-- SCOUT: the squad as four unit cards (the leader, then its guards): element and role crests, what the
+-- unit does, its big (warned) move, and on the leader what beats it (+30% DMG) and the floor's affix. Then
+-- how the active deck lines up, its synergies and bonds as tags, and COUNTER-BUILD for this fight
+-- (`target`: boss id, Tower.Id, Raid.Id). `affixId` / `leaderName`: a tower floor's affix and echo name.
+local ROLE_TEXT = {
+	Striker = "Hits hardest: shield or taunt its target",
+	Hexer = "Curses your cards: cleanse or kill it fast",
+	Mender = "Heals the squad: focus it down first",
+	Warder = "Guards the leader: break it to reach the boss",
+}
+
+local function bigMove(moves): string?
+	for _, move in moves or {} do
+		if move.Warn then
+			return move.Name
+		end
+	end
+	return nil
+end
+
+local function unitCard(parent: Instance, order: number, title: string, name: string, element: string, role: string?, edge: Color3, lines: { string })
+	local card = Kit.new("Frame", {
+		LayoutOrder = order,
+		BackgroundColor3 = C.UrushiInset,
+		Parent = parent,
+	}, {
+		Kit.corner(UDim.new(0, 5)),
+		Kit.stroke(edge, 1.5, 0),
+		Kit.padding(8),
+		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3) }),
+	})
+	local crests = Kit.new("Frame", { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, Parent = card }, {
+		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4), VerticalAlignment = Enum.VerticalAlignment.Center }),
+	})
+	ElementUi.Badge(element, { LayoutOrder = 1, Size = UDim2.fromOffset(40, 40), Parent = crests })
+	if role then
+		ElementUi.RoleBadge(role, { LayoutOrder = 2, Size = UDim2.fromOffset(34, 34), Parent = crests })
+	end
+	chipText(crests, 3, title, C.WashiGhost, 12)
+	local nameLabel = Kit.label({
+		LayoutOrder = 2,
+		Text = string.upper(name),
+		Font = Theme.Font.Display,
+		TextColor3 = edge:Lerp(C.WashiParchment, 0.35),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Size = UDim2.new(1, 0, 0, 22),
+		Parent = card,
+	}, 17)
+	nameLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 10
+	for k, line in lines do
+		Kit.label({
+			LayoutOrder = 2 + k,
+			Text = line,
+			RichText = true,
+			Font = Theme.Font.Bold,
+			TextColor3 = C.WashiGhost,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextWrapped = true,
+			Size = UDim2.new(1, 0, 0, 30),
+			Parent = card,
+		}, 13)
+	end
+	return card
+end
+
+local function scoutBox(order: number, leaderId: string, guards: { string }, deck, target: string, affixId: string?, leaderName: string?)
 	local leader = Bosses.Get(leaderId)
 	local scout = box(order, SCOUT_COLOR)
 	text(scout, 1, "SCOUT", C.WashiParchment, 18, Theme.Font.Display)
 
-	-- Leader and weakness.
-	local weakness = tray(scout, 2, 40)
-	local leaderChip = chip(weakness, 1, ElementUi.Color(leader.Element))
-	leaderChip.Size = UDim2.new(0, 0, 0, 38)
-	ElementUi.Badge(leader.Element, { LayoutOrder = 1, Size = UDim2.fromOffset(30, 30), Parent = leaderChip })
-	chipText(leaderChip, 2, `LEADER · <b>{string.upper(leader.Element)}</b>`, C.WashiParchment, 15)
-	chipText(weakness, 2, "beaten by", C.WashiGhost, 14)
-	for i, counter in Elements.Counters(leader.Element) do
-		local counterChip = chip(weakness, 2 + i, ElementUi.Color(counter))
-		counterChip.Size = UDim2.new(0, 0, 0, 38)
-		ElementUi.Badge(counter, { LayoutOrder = 1, Size = UDim2.fromOffset(30, 30), Parent = counterChip })
-		chipText(counterChip, 2, string.upper(counter), C.WashiParchment, 15)
+	-- The squad: four unit cards side by side (two rows on narrow screens).
+	local squad = Kit.new("Frame", {
+		LayoutOrder = 2,
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		Parent = scout,
+	}, {
+		Kit.new("UIGridLayout", {
+			CellSize = UDim2.new(0.25, -6, 0, 168),
+			CellPadding = UDim2.fromOffset(8, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		Kit.new("UISizeConstraint", { MinSize = Vector2.new(0, 0) }),
+	})
+	local counters = {}
+	for _, counter in Elements.Counters(leader.Element) do
+		local e = Elements.Get(counter)
+		table.insert(counters, if e then `{e.Icon} {string.upper(counter)}` else string.upper(counter))
 	end
-	local bonus = chip(weakness, 20, Theme.Color.Gold, true)
-	chipText(bonus, 1, "+30% DMG", Theme.Color.Gold, 15)
-
-	-- Guards: one unit chip each.
-	if #guards > 0 then
-		local guardTray = tray(scout, 3, 32)
-		chipText(guardTray, 0, "GUARDS", C.WashiGhost, 13)
-		for i, id in guards do
-			local g = Bosses.GuardTypes[id]
-			if g then
-				local unit = chip(guardTray, i, C.TamahaganeSlate, true)
-				ElementUi.RoleBadge(g.Role, { LayoutOrder = 1, Size = UDim2.fromOffset(24, 24), Parent = unit })
-				ElementUi.Badge(g.Element, { LayoutOrder = 2, Size = UDim2.fromOffset(24, 24), Parent = unit })
-				chipText(unit, 3, g.Name, C.WashiParchment, 13)
-			end
+	local leaderLines = {
+		`WEAK TO <font color="#FFD700"><b>{table.concat(counters, " · ")}</b></font> (+30% DMG)`,
+	}
+	local leaderMove = bigMove(leader.Moves)
+	if leaderMove then
+		table.insert(leaderLines, `⚠ Big move: <b>{leaderMove}</b> (warned first)`)
+	end
+	local affix = affixId and Tower.AffixById[affixId]
+	if affix then
+		table.insert(leaderLines, `{affix.Icon} <b>{string.upper(affix.Name)}</b>: {affix.Text}`)
+	else
+		table.insert(leaderLines, "Beat the leader to win: guards can wait")
+	end
+	unitCard(squad, 1, "LEADER", leaderName or leader.Name, leader.Element, nil, leader.Accent, leaderLines)
+	for i, id in guards do
+		local g = Bosses.GuardTypes[id]
+		if g then
+			local move = bigMove(g.Moves)
+			unitCard(squad, 1 + i, `GUARD · {string.upper(g.Role)}`, g.Name, g.Element, g.Role, g.Color, {
+				ROLE_TEXT[g.Role] or g.Role,
+				if move then `⚠ <b>{move}</b>` else "",
+			})
 		end
 	end
 
@@ -617,7 +693,7 @@ local function buildTower()
 	if not unlocked then
 		text(body, 3, `LOCKED · {Tower.UnlockHint()} to open the tower.`, Theme.Color.Roll, 15, Theme.Font.Heavy)
 	end
-	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.Id)
+	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.Id, floor.Affix, floor.Name)
 	powerBox(4, floor.Recommended, power)
 
 	local record = floorNo > tower.Best
@@ -734,7 +810,7 @@ local function buildPagoda()
 	if not unlocked then
 		text(body, 3, `LOCKED · {Tower.UnlockHint()} to open the Pagoda.`, Theme.Color.Roll, 15, Theme.Font.Heavy)
 	end
-	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.PagodaId)
+	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.PagodaId, floor.Affix, floor.Name)
 	powerBox(4, floor.Recommended, power)
 
 	local reward = Tower.PagodaReward(floorNo)

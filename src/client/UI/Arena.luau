@@ -67,6 +67,12 @@ local function figure(id: string, modelId: string, at: CFrame, scale: number, ti
 	highlight.OutlineTransparency = if tint then 0.3 else 1
 	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.Parent = model
+	local parts = {}
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			table.insert(parts, part)
+		end
+	end
 	figures[id] = {
 		Model = model,
 		Base = base,
@@ -75,7 +81,10 @@ local function figure(id: string, modelId: string, at: CFrame, scale: number, ti
 		Tint = tint,
 		Kick = 0,
 		Lunge = 0,
-		Down = 0,
+		Down = 0, -- 0 standing .. 1 toppled (eases toward DownGoal)
+		DownGoal = 0,
+		Parts = parts, -- faded out as it falls
+		Faded = 0,
 		Phase = math.random() * 10,
 	}
 	return figures[id]
@@ -320,6 +329,18 @@ function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Stage
 		for _, f in figures do
 			f.Kick *= math.exp(-dt * 9)
 			f.Lunge *= math.exp(-dt * 7)
+			-- A defeated figure topples back and sinks over ~0.35 s, fading out as it goes.
+			if f.Down ~= f.DownGoal then
+				local step = dt / 0.35
+				f.Down = if f.DownGoal > f.Down then math.min(f.DownGoal, f.Down + step) else math.max(f.DownGoal, f.Down - step)
+				local fade = f.Down * 0.85
+				if math.abs(fade - f.Faded) > 0.01 or f.Down == f.DownGoal then
+					f.Faded = fade
+					for _, part in f.Parts do
+						part.LocalTransparencyModifier = fade
+					end
+				end
+			end
 			local bob = math.sin((t + f.Phase) * 2.1) * f.Height * 0.012
 			local recoil = CFrame.new(0, 0, f.Height * 0.06 * f.Kick) * CFrame.Angles(math.rad(-6 * f.Kick), 0, 0)
 			local lunge = CFrame.new(0, 0, -f.Height * 0.15 * f.Lunge)
@@ -469,21 +490,31 @@ function Arena.Hit(id: string, crit: boolean?)
 		f.Highlight.FillTransparency = if crit then 0.1 else 0.3
 		Kit.tween(f.Highlight, 0.25, { FillTransparency = 0.65 })
 		task.delay(0.12, function()
-			if f.Down == 0 then
+			if f.DownGoal == 0 then
 				f.Highlight.FillColor = f.Tint or Color3.new(1, 1, 1)
 			end
 		end)
 	end
 end
 
--- A guard falls (or stands back up when it isn't down any more).
+-- A guard (or the leader, at the end) topples and fades in a dark red, or stands back up when revived.
 function Arena.SetDown(id: string, down: boolean)
 	local f = figures[id]
 	if f then
 		local goal = if down then 1 else 0
-		if f.Down ~= goal then
-			f.Down = goal
-			f.Highlight.FillColor = if down then Color3.fromRGB(20, 18, 26) else (f.Tint or Color3.new(1, 1, 1))
+		if f.DownGoal ~= goal then
+			f.DownGoal = goal
+			if down then
+				f.Highlight.FillColor = Color3.fromRGB(120, 14, 24)
+				f.Highlight.FillTransparency = 0.2
+				f.Highlight.OutlineColor = Color3.fromRGB(60, 0, 10)
+				Kit.tween(f.Highlight, 0.35, { FillTransparency = 0.55 })
+				Arena.Impact(id, Color3.fromRGB(150, 20, 40), true)
+			else
+				f.Highlight.FillColor = f.Tint or Color3.new(1, 1, 1)
+				f.Highlight.FillTransparency = if f.Tint then 0.65 else 1
+				f.Highlight.OutlineColor = f.Tint or Color3.new(0, 0, 0)
+			end
 		end
 	end
 end
