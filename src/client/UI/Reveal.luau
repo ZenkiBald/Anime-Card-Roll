@@ -685,6 +685,9 @@ function Reveal.Quick(result)
 	if running or (Reveal.Muted and Reveal.Muted()) then
 		return -- a full reveal or a panel is on screen: the pull still lands in the feed, without a pop over it
 	end
+	if gui.AbsoluteSize.Y < 540 and result.Outcome ~= "New" and result.Outcome ~= "Star" and borderId == "Normal" then
+		return -- routine Base copies already appear in the phone's feed
+	end
 
 	toastOrder += 1
 	local slot = Kit.new("Frame", {

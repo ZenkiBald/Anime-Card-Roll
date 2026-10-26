@@ -234,8 +234,8 @@ local function tile(entry, order: number)
 		ArtKey = entry.Key,
 		GlowColor = edge,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.48),
-		Size = UDim2.fromScale(0.64, 0.64),
+		Position = UDim2.fromScale(0.5, 0.28),
+		Size = UDim2.fromScale(0.42, 0.42),
 		ZIndex = 2,
 		Parent = button,
 	})
@@ -261,6 +261,16 @@ local function tile(entry, order: number)
 		Parent = button,
 	}, 18)
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.1).Parent = count
+	-- Names make similar crests identifiable without opening every tile.
+	Kit.label({
+		Name = "ItemName",
+		Text = entry.Name,
+		Font = Theme.Font.Heavy,
+		Position = UDim2.fromScale(0.05, 0.48),
+		Size = UDim2.fromScale(0.9, 0.35),
+		ZIndex = 3,
+		Parent = button,
+	}, 11)
 	local text, color = subText(entry)
 	local sub = Kit.label({
 		Name = "Sub",
@@ -268,8 +278,8 @@ local function tile(entry, order: number)
 		Font = Theme.Font.Heavy,
 		TextColor3 = color,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 0.95),
-		Size = UDim2.fromScale(0.9, 0.2),
+		Position = UDim2.fromScale(0.5, 0.99),
+		Size = UDim2.fromScale(0.9, 0.13),
 		ZIndex = 3,
 		Parent = button,
 	}, 14)
@@ -693,6 +703,15 @@ function Bag.Init(playerGui: Instance)
 		}),
 		Kit.new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 8) }),
 	})
+	local function fitTiles()
+		local cell = if modal.Gui.AbsoluteSize.Y < 540 then 120 else 96
+		local layout = grid:FindFirstChildOfClass("UIGridLayout")
+		if layout then
+			layout.CellSize = UDim2.fromOffset(cell, cell)
+		end
+	end
+	modal.Gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTiles)
+	fitTiles()
 	detail = Kit.new("ScrollingFrame", {
 		Name = "Detail",
 		AnchorPoint = Vector2.new(1, 0),

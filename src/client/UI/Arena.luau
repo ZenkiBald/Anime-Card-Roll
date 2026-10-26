@@ -180,7 +180,7 @@ local function makePlate(leader, name: string, accent: Color3)
 		Kit.corner(UDim.new(1, 0)),
 		Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 170, 70), Color3.fromRGB(220, 50, 60)), 0),
 	})
-	return { Fill = fill }
+	return { Fill = fill, Gui = gui }
 end
 
 local function hideNpc(boss)
@@ -522,6 +522,12 @@ end
 function Arena.SetLeaderHp(ratio: number)
 	if plate then
 		Kit.tween(plate.Fill, 0.15, { Size = UDim2.fromScale(math.clamp(ratio, 0, 1), 1) })
+	end
+end
+
+function Arena.SetCompact(on: boolean)
+	if plate then
+		plate.Gui.Enabled = not on -- the screen's boss bar already carries the name and HP
 	end
 end
 

@@ -160,7 +160,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		BorderFx.Apply(button, options.Border, { Corner = UDim.new(0, 6), ZIndex = 5, Spin = options.Spin, Thickness = frame.Thickness })
 	end
 
-	-- Bottom: the name (wraps onto two lines and scales 9-14 instead of clipping), then the rarity number.
+	-- Bottom: reserve enough height for long epithets to wrap, then the rarity number.
 	local nameLabel = outlined(Kit.label({
 		Name = "CardName",
 		Text = if owned then string.upper(card.Name) else "???",
@@ -168,12 +168,12 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		TextColor3 = if owned then C.WashiParchment else C.WashiGhost,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Bottom,
-		Position = UDim2.fromScale(0.06, 0.6),
-		Size = UDim2.fromScale(0.88, 0.2),
+		Position = UDim2.fromScale(0.06, 0.54),
+		Size = UDim2.fromScale(0.88, 0.31),
 		ZIndex = 5,
 		Parent = button,
 	}, 14), 1.5)
-	nameLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 9
+	nameLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 8
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 2), PaddingRight = UDim.new(0, 2), Parent = nameLabel })
 	-- Copies at this border: top-left, under the stars.
 	if owned and options.Copies then
@@ -193,7 +193,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	if owned and options.Awaken ~= nil then
 		local pips = Kit.new("Frame", {
 			Name = "Awakening",
-			Position = UDim2.fromScale(0.07, 0.53),
+			Position = UDim2.fromScale(0.07, 0.48),
 			Size = UDim2.fromScale(0.4, 0.06),
 			BackgroundTransparency = 1,
 			ZIndex = 6,

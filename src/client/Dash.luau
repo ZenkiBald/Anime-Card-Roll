@@ -186,8 +186,16 @@ function Dash.Start(isBlocked: (() -> boolean)?)
 		task.spawn(watch, player.Character)
 	end
 	UserInputService.JumpRequest:Connect(onJumpRequest)
-	ContextActionService:BindAction("Dash", onDash, true, Enum.KeyCode.Q, Enum.KeyCode.ButtonX)
-	ContextActionService:SetTitle("Dash", "DASH") -- the touch button sits by the jump button
+	Dash.SetBattleMode(false)
+end
+
+-- Unbind the touch action during fights; dashing is already disabled there.
+function Dash.SetBattleMode(on: boolean)
+	ContextActionService:UnbindAction("Dash")
+	if not on then
+		ContextActionService:BindAction("Dash", onDash, true, Enum.KeyCode.Q, Enum.KeyCode.ButtonX)
+		ContextActionService:SetTitle("Dash", "DASH")
+	end
 end
 
 return Dash

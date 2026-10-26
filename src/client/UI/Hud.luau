@@ -72,6 +72,10 @@ local bannerToken = 0
 local hintToken = 0
 local toastToken = 0
 
+local function compactHud(): boolean
+	return gui.AbsoluteSize.Y > 0 and gui.AbsoluteSize.Y < 540
+end
+
 local function rollButtonFace(button: TextButton, title: string, sub: string, color: Color3, deep: Color3, skin: string, seal: boolean?)
 	-- Urushi lacquer plate (bevelled: a light top edge, a darker base) with a double trim in the button's
 	-- colour and a glowing line along the bottom; the title in that colour. `seal`: the ROLL button, a
@@ -329,21 +333,18 @@ local function applyHidden()
 	levelBar.Visible = not hidden
 	eventPill.Visible = not hidden
 	raidPill.Visible = raidWanted and not hidden
+	feed.Visible = not hidden
 end
 
--- Where the Auto Roll feed sits: top-right in a fight, else mid-right (higher and shorter on a phone).
+-- The hub feed is shorter on phones; applyHidden keeps it out of fights and full reveals.
 local function placeFeed()
 	if feed == nil or gui == nil then
 		return
 	end
-	if hiddenBy.Battle then
+	if compactHud() then
 		feed.AnchorPoint = Vector2.new(1, 0)
-		feed.Position = UDim2.new(1, -12, 0.08, 0)
-		feed.Size = UDim2.fromScale(0.18, 0.36)
-	elseif gui.AbsoluteSize.Y > 0 and gui.AbsoluteSize.Y < 500 then
-		feed.AnchorPoint = Vector2.new(1, 0)
-		feed.Position = UDim2.new(1, -12, 0.27, 0)
-		feed.Size = UDim2.fromScale(0.22, 0.3)
+		feed.Position = UDim2.new(1, -12, 0.3, 0)
+		feed.Size = UDim2.fromScale(0.2, 0.18)
 	else
 		feed.AnchorPoint = Vector2.new(1, 0.5)
 		feed.Position = UDim2.new(1, -12, FEED_Y, 0)
@@ -613,7 +614,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	-- It sits between the left column (Kenji's tracker) and the server list, about 210 px each.
 	local function fitTopBar()
 		local width = gui.AbsoluteSize.X
-		topBar.Fit.Scale = math.clamp((width - 420) / 520, 0.5, 1)
+		topBar.Fit.Scale = math.min(math.clamp((width - 420) / 520, 0.5, 1), if compactHud() then 0.68 else 1)
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTopBar)
 	fitTopBar()
@@ -957,11 +958,24 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 
 	-- Narrow phones: the level bar and event pill shrink with the top bar.
 	local function fitBars()
-		local scale = math.clamp((gui.AbsoluteSize.X - 150) / 600, 0.55, 1)
+		local compact = compactHud()
+		local scale = math.min(math.clamp((gui.AbsoluteSize.X - 150) / 600, 0.55, 1), if compact then 0.65 else 1)
 		levelBar.Fit.Scale = scale
-		levelBar.Position = UDim2.new(0.5, 0, 0, 8 + 72 * scale) -- under the top bar's ODDS label
-		eventPill.Position = UDim2.new(0.5, 0, 0, 8 + 104 * scale)
-		raidPill.Position = UDim2.new(0.5, 0, 0, 8 + 104 * scale + 34)
+		levelBar.Position = UDim2.new(0.5, 0, 0, if compact then 48 else 8 + 72 * scale)
+		eventPill.Position = UDim2.new(0.5, 0, 0, if compact then 72 else 8 + 104 * scale)
+		raidPill.Position = UDim2.new(0.5, 0, 0, if compact then 106 else 8 + 104 * scale + 34)
+		toast.Position = UDim2.new(0.5, 0, 0, if compact then 142 else 140)
+		dock.Size = UDim2.fromScale(if compact then 0.5 else 0.56, 0.15)
+		local limits = dock:FindFirstChildOfClass("UISizeConstraint")
+		if limits then
+			limits.MinSize = Vector2.new(300, if compact then 46 else 64)
+			limits.MaxSize = Vector2.new(if compact then 480 else 620, if compact then 54 else 112)
+		end
+		momentumHeader.Size = UDim2.new(1, 0, 0, if compact then 16 else 22)
+		goalPill.Position = UDim2.new(0, 0, 0, if compact then -22 else -29)
+		goalPill.Size = UDim2.new(1, 0, 0, if compact then 16 else 20)
+		petsButton.Size = UDim2.fromOffset(if compact then 44 else 58, if compact then 44 else 58)
+		Hud.RefreshEvent()
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBars)
 	fitBars()
@@ -1000,18 +1014,18 @@ function Hud.RefreshEvent()
 		eventPill.UIStroke.Color = event.Color
 		eventPill.UIStroke.Transparency = 0
 		eventPill.BackgroundColor3 = event.Color:Lerp(Color3.new(0, 0, 0), 0.55)
-		eventPill.Size = UDim2.fromOffset(440, 28)
+		eventPill.Size = UDim2.fromOffset(if compactHud() then 330 else 440, if compactHud() then 30 else 28)
 	else
 		local index = math.floor(workspace:GetServerTimeNow() / Meta.EventEvery) % #Meta.Events + 1
 		local nextEvent = Meta.Events[index]
 		-- Between events the pill also names the week's Featured Card (x3 as likely to pull).
 		local featured = Cards.Get(Cards.FeaturedAt(workspace:GetServerTimeNow()))
 		text.Text = `Next: {nextEvent.Icon} <b>{nextEvent.Name}</b> in {string.format("%d:%02d", untilNext // 60, math.floor(untilNext % 60))}`
-			.. (if featured then `   ·   <font color="#FFD700">⭐ FEATURED <b>{string.upper(featured.Name)}</b> x{Cards.FeaturedBoost}</font>` else "")
+			.. (if featured then (if compactHud() then "\n" else "   ·   ") .. `<font color="#FFD700">⭐ FEATURED <b>{string.upper(featured.Name)}</b> x{Cards.FeaturedBoost}</font>` else "")
 		eventPill.UIStroke.Color = UITheme.Colors.TamahaganeSlate
 		eventPill.UIStroke.Transparency = 0
 		eventPill.BackgroundColor3 = UITheme.Colors.UrushiBase
-		eventPill.Size = UDim2.fromOffset(if featured then 470 else 320, 26)
+		eventPill.Size = UDim2.fromOffset(if compactHud() then 330 elseif featured then 470 else 320, if compactHud() then 30 else 26)
 	end
 	-- An event just started: pop the pill and say so.
 	local id = event and event.Id
@@ -1036,7 +1050,7 @@ function Hud.RefreshRaid()
 	local open = raid ~= nil and raid.Open and now < raid.Ends
 	local luckEnds = ReplicatedStorage:GetAttribute("RaidLuckEnds")
 	local luck = type(luckEnds) == "number" and luckEnds > now
-	local text = raidPill.Text
+	local text = raidPill:FindFirstChild("Text") :: TextLabel -- TextButton.Text is the button's string property
 	if open then
 		local left = if raid.Max > 0 then math.floor((1 - raid.Dealt / raid.Max) * 100 + 0.5) else 100
 		local seconds = math.floor(raid.Ends - now)
@@ -1304,8 +1318,7 @@ function Hud.RefreshBadges()
 	end
 end
 
--- During a fight the roll dock and menu hide; the Auto Roll feed moves to the top-right
--- corner, clear of the cards, so Auto Roll results still show.
+-- Rolls continue during fights; their feed waits offscreen so it cannot cover enemy targets.
 function Hud.SetBattleMode(on: boolean)
 	hiddenBy.Battle = on
 	applyHidden()

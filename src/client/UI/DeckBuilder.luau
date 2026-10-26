@@ -318,6 +318,13 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	tile.Size = UDim2.new(0.28, 0, 0.84, 0)
 	Kit.aspect(1).Parent = tile -- the biggest square that fits
 	tile.Parent = plate
+	-- The adjacent text carries the name; thumbnail-sized text is unreadable on a phone.
+	for _, name in { "CardName", "Rarity" } do
+		local label = tile:FindFirstChild(name)
+		if label and label:IsA("GuiObject") then
+			label.Visible = false
+		end
+	end
 	tile.Activated:Connect(function()
 		plate:SetAttribute("Tap", ((plate:GetAttribute("Tap") or 0) :: number) + 1)
 	end)
@@ -329,8 +336,9 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 		BackgroundTransparency = 1,
 		Parent = plate,
 	})
-	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, 0.3), Parent = info }, 17)
-	text({ Text = card.Title or "", Font = Theme.Font.Bold, TextColor3 = Theme.Color.Muted, Position = UDim2.fromScale(0, 0.39), Size = UDim2.fromScale(1, 0.22), Parent = info }, 12)
+	local compact = workspace.CurrentCamera.ViewportSize.Y < 540
+	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, if compact then 0.5 else 0.3), Parent = info }, 17)
+	text({ Text = card.Title or "", Visible = not compact, Font = Theme.Font.Bold, TextColor3 = Theme.Color.Muted, Position = UDim2.fromScale(0, 0.39), Size = UDim2.fromScale(1, 0.22), Parent = info }, 12)
 	-- Element and role badges, then the card's power.
 	ElementUi.Badge(card.Element, {
 		Position = UDim2.fromScale(0, 0.62),
@@ -576,7 +584,8 @@ local function sizeGrid()
 	if width <= 0 then
 		return
 	end
-	local count = math.clamp(math.floor(width / 96), 3, 8)
+	-- Fewer, larger tiles on phones: long epithets need two full lines after Modal's UIScale.
+	local count = math.clamp(math.floor(width / 120), 3, 7)
 	local gap = 8
 	local cell = math.floor((width - gap * (count - 1)) / count)
 	gridLayout.CellPadding = UDim2.fromOffset(gap, gap)
@@ -589,6 +598,11 @@ local function drawInspector()
 	local id = inspectId
 	local card = id and Cards.Get(id)
 	local own = id and entry(id)
+	local collapsed = workspace.CurrentCamera.ViewportSize.Y < 540 and (card == nil or own == nil)
+	local reserve = if collapsed then 0 else 140
+	inspector.Visible = not collapsed
+	grid.Size = UDim2.new(1, 0, 1, -74 - reserve - 38)
+	hintLabel.Position = UDim2.new(0.5, 0, 1, -reserve - 12)
 	if card == nil or own == nil then
 		text({
 			Text = "Tap a card to inspect it: EQUIP it, FUSE its copies or ROLL its TRAITS. Tap it again to put it in your squad.",
@@ -1143,7 +1157,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 	grid = Kit.new("ScrollingFrame", {
 		Name = "Grid",
 		Position = UDim2.fromOffset(0, 74),
-		Size = UDim2.new(1, 0, 1, -74 - 148),
+		Size = UDim2.new(1, 0, 1, -74 - 178),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,

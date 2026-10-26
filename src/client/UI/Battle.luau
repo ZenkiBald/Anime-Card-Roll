@@ -3,7 +3,8 @@
 -- (HP, shields, action bars, energy) and animates its events (hits, heals, warnings).
 -- The player only taps charged cards to fire Ultimates, toggles Auto and speed, or gives up.
 -- The squad is staged in 3D in the boss's world (UI/Arena: leader, guards, cinematic camera) with the
--- boss holder and guard tiles on world-space billboards; the squad dock keeps to the lower 22%.
+-- boss holder on a world-space billboard; phone guard targets use a fixed right-hand rail.
+-- The squad dock keeps to the lower 22%.
 -- Without a map, the boss stands in a ViewportFrame over a 2D backdrop instead.
 
 local GuiService = game:GetService("GuiService")
@@ -88,7 +89,6 @@ local leaderFocus: Frame -- the TARGET marker over the leader
 local enemyNames = {} -- [enemy id] = name, for callouts
 local current = nil -- the fight on screen
 local lastSnap = nil
-local calloutToken = 0
 local introUntil = 0 -- os.clock() when the intro's FIGHT! has gone: callouts wait for it
 local hintToken = 0
 local warnToken = 0
@@ -149,64 +149,53 @@ local function hint(text: string)
 	end)
 end
 
-local calloutBusyUntil = 0 -- the main callout is showing until then
-local calloutStack = 0 -- callouts stacked under it meanwhile
+local calloutQueue = {}
+local calloutGeneration = 0
+local calloutRunning = false
+
+local function compactBattle(): boolean
+	return gui.AbsoluteSize.Y > 0 and gui.AbsoluteSize.Y < 540
+end
 
 local function callout(text: string, color: Color3, seconds: number?)
-	local wait = introUntil - os.clock()
-	if wait > 0 then
-		-- FIGHT! is still on screen (e.g. SUPPORT OPENING! at the first tick): show it right after.
-		task.delay(wait, callout, text, color, seconds)
+	-- One readable line at a time. Bound the backlog so 2x fights never leave stale announcements.
+	if #calloutQueue >= 3 then
+		table.remove(calloutQueue, 1)
+	end
+	table.insert(calloutQueue, { Text = text, Color = color, Seconds = seconds or 1.4 })
+	if calloutRunning then
 		return
 	end
-	local now = os.clock()
-	if now < calloutBusyUntil then
-		-- Another callout is up (SUPPORT OPENING! and a bond's name at the same tick): this one goes under
-		-- it, 0.15 s later per step, as its own label, instead of both landing on the same pixels.
-		calloutStack = calloutStack % 3 + 1
-		local slot = calloutStack
-		task.delay(0.15 * slot, function()
-			if calloutLabel.Parent == nil then
+	calloutRunning = true
+	local generation = calloutGeneration
+	task.spawn(function()
+		local wait = introUntil - os.clock()
+		if wait > 0 then
+			task.wait(wait)
+		end
+		while generation == calloutGeneration and #calloutQueue > 0 do
+			local nextCallout = table.remove(calloutQueue, 1)
+			calloutLabel.Text = nextCallout.Text
+			calloutLabel.TextColor3 = nextCallout.Color
+			calloutLabel.TextTransparency = 0
+			local scale = calloutLabel:FindFirstChildOfClass("UIScale")
+			if scale then
+				scale.Scale = 0.92
+				Kit.tween(scale, 0.18, { Scale = 1 })
+			end
+			task.wait(if compactBattle() then math.min(nextCallout.Seconds, 0.85) else nextCallout.Seconds)
+			if generation ~= calloutGeneration then
 				return
 			end
-			local extra = calloutLabel:Clone()
-			extra.Name = "CalloutStack"
-			extra.Text = text
-			extra.TextColor3 = color
-			extra.TextTransparency = 0
-			extra.Position = UDim2.fromScale(0.5, 0.5 + 0.075 * slot)
-			extra.Parent = calloutLabel.Parent
-			local extraScale = extra:FindFirstChildOfClass("UIScale")
-			if extraScale then
-				extraScale.Scale = 0.5
-				Kit.tween(extraScale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
-			end
-			task.delay(seconds or 1.4, function()
-				Kit.tween(extra, 0.3, { TextTransparency = 1 }).Completed:Connect(function()
-					extra:Destroy()
-				end)
-			end)
-		end)
-		return
-	end
-	calloutStack = 0
-	calloutBusyUntil = now + (seconds or 1.4)
-	calloutToken += 1
-	local token = calloutToken
-	calloutLabel.Text = text
-	calloutLabel.TextColor3 = color
-	calloutLabel.TextTransparency = 0
-	local scale = calloutLabel:FindFirstChildOfClass("UIScale")
-	if scale then
-		scale.Scale = 0.5
-		Kit.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
-	end
-	task.delay(seconds or 1.4, function()
-		if token == calloutToken then
-			Kit.tween(calloutLabel, 0.3, { TextTransparency = 1 })
+			Kit.tween(calloutLabel, 0.16, { TextTransparency = 1 }).Completed:Wait()
+		end
+		if generation == calloutGeneration then
+			calloutRunning = false
 		end
 	end)
 end
+
+local floats = setmetatable({}, { __mode = "k" })
 
 -- Number or word that pops, floats up off a tile or the boss, and fades. On the squad's own cards it
 -- spawns above the card frame, so it never covers the card's name (playtest: "Cursed Pr+3,600").
@@ -215,6 +204,20 @@ local function float(parent: GuiObject?, text: string, color: Color3, big: boole
 		return
 	end
 	local onCard = parent.Name == "Card" and parent.Parent ~= nil and tiles[parent.Parent.Name] ~= nil
+	local active = floats[parent] or {}
+	floats[parent] = active
+	for i = #active, 1, -1 do
+		if active[i].Parent == nil then
+			table.remove(active, i)
+		end
+	end
+	if #active >= 2 then
+		local oldest = table.remove(active, 1)
+		if oldest then
+			oldest:Destroy()
+		end
+	end
+	local compact = compactBattle()
 	local label = Kit.label({
 		Name = "Float",
 		Text = text,
@@ -222,20 +225,22 @@ local function float(parent: GuiObject?, text: string, color: Color3, big: boole
 		TextColor3 = if big then Color3.new(1, 1, 1) else color,
 		AnchorPoint = if onCard then Vector2.new(0.5, 1) else Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.25 + math.random() * 0.5, if onCard then -0.04 else 0.42),
-		Size = UDim2.fromScale(if big then 1.05 else 0.9, if big then 0.5 else 0.36),
+		-- Pixel-sized even on a stud-sized leader billboard: never grow to cover the boss.
+		Size = UDim2.fromOffset(if compact then 92 else 140, if compact then 22 else 34),
 		Rotation = math.random(-6, 6),
 		ZIndex = 40,
 		Parent = parent,
-	}, if big then 44 else 30)
-	Kit.textStroke(Color3.fromRGB(6, 7, 11), if big then 3.5 else 2.5, 0).Parent = label
+	}, if compact then 18 elseif big then 30 else 24)
+	table.insert(active, label)
+	Kit.textStroke(Color3.fromRGB(6, 7, 11), if big then 2 else 1.5, 0).Parent = label
 	if big then
 		-- Crits: bright top fading into their colour, popping in from oversized.
 		Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 252, 220), color), 90).Parent = label
 	end
-	local scale = Kit.new("UIScale", { Scale = if big then 1.9 else 0.3, Parent = label })
+	local scale = Kit.new("UIScale", { Scale = if big then 1.15 else 0.8, Parent = label })
 	Kit.tween(scale, if big then 0.22 else 0.18, { Scale = 1 }, Enum.EasingStyle.Back)
-	Kit.tween(label, 0.9, { Position = label.Position - UDim2.fromScale(0, 0.3) }, Enum.EasingStyle.Quad)
-	task.delay(0.5, function()
+	Kit.tween(label, 0.7, { Position = label.Position - UDim2.fromOffset(0, 24) }, Enum.EasingStyle.Quad)
+	task.delay(0.35, function()
 		if label.Parent then
 			Kit.tween(label, 0.4, { TextTransparency = 1 }).Completed:Connect(function()
 				label:Destroy()
@@ -256,6 +261,9 @@ end
 -- ...). It sits over the art, clear of the card's name and stats, and stays inside its own card, so a
 -- Support's tag never lands on the Attack card above it.
 local function castTag(tile, name: string, slot: string)
+	if compactBattle() and slot == "Basic" then
+		return -- routine Support casts should not cover every chip on a phone
+	end
 	local info = Abilities.Slots[slot] or Abilities.Slots.Skill
 	local old = tile.Slot:FindFirstChild("CastTag")
 	if old then
@@ -879,19 +887,7 @@ local function makeTile(unit, order: number)
 
 	-- The Skill countdown: "SKILL in 2" (its actions until the Skill) or "SKILL READY", from the snapshot (K).
 	if unit.Skill then
-		tile.SkillCD = Kit.label({
-			Name = "SkillCD",
-			Text = "",
-			Font = Theme.Font.Heavy,
-			TextColor3 = Theme.Color.Muted,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -6, 0, 3),
-			Size = UDim2.new(0.5, 0, 0, 14),
-			ZIndex = 9,
-			Parent = button,
-		}, 12)
-		Kit.textStroke(Color3.fromRGB(6, 7, 11), 1.5, 0).Parent = tile.SkillCD
+		tile.SkillCD = status -- its own line below the name, clear of the card title
 	end
 
 	if isAttack then
@@ -1095,6 +1091,29 @@ local function sendHome()
 		object.Position = home.Position
 	end
 	table.clear(stageHomes)
+end
+
+local stagedGuards = nil
+local function layoutGuards()
+	local compact = compactBattle()
+	Arena.SetCompact(compact)
+	for i, slot in guardSlots do
+		local home = stageHomes[slot]
+		if home then
+			slot.Parent = home.Parent
+			stageHomes[slot] = nil
+		end
+		local at = ({ Vector2.new(0.22, 0.3), Vector2.new(0.78, 0.3), Vector2.new(0.5, 0.47) })[i]
+		slot.Position = if compact then UDim2.fromScale(0.89, 0.29 + (i - 1) * 0.17) else UDim2.fromScale(at.X, at.Y)
+		slot.Size = UDim2.fromScale(if compact then 0.19 else 0.2, if compact then 0.14 else 0.13)
+		slot:FindFirstChildOfClass("UIAspectRatioConstraint").AspectRatio = if compact then 2.8 else 1.7
+		-- Keep phone targets in a tidy screen-space rail, independent of the cinematic camera.
+		if not compact and stagedGuards and stagedGuards[i] then
+			moveInto(slot, stagedGuards[i])
+		end
+	end
+	calloutLabel.Position = if compact then UDim2.fromScale(0.46, 0.3) else UDim2.fromScale(0.5, 0.5)
+	calloutLabel.Size = if compact then UDim2.fromScale(0.54, 0.06) else UDim2.fromScale(0.75, 0.065)
 end
 
 local function makeGuardTile(enemy, slot: Frame)
@@ -1644,7 +1663,6 @@ local function playEvent(event)
 			if current.Focus == event.T then
 				current.Focus = nil
 			end
-			float(guard.Card, "DOWN!", Theme.Color.Gold, true)
 			callout(`{string.upper(guard.Name)} DOWN!`, Theme.Color.Gold, 1.2)
 			Effects.Sparks(guard.Card, guard.Color, 18, 0.8)
 			Sfx.Play("HeavyHit", 1.2)
@@ -2761,6 +2779,9 @@ local function begin(start, bossId: string, difficulty: string?)
 		CardOf = {},
 	}
 	State.InBattle = true
+	calloutGeneration += 1
+	calloutRunning = false
+	table.clear(calloutQueue)
 	table.clear(tiles)
 	table.clear(enemyTiles)
 	table.clear(enemyNames)
@@ -2814,11 +2835,6 @@ local function begin(start, bossId: string, difficulty: string?)
 	if staged then
 		bossView = staged.View
 		moveInto(bossHolder, staged.LeaderGui)
-		for i, slot in guardSlots do
-			if staged.GuardGuis[i] then
-				moveInto(slot, staged.GuardGuis[i])
-			end
-		end
 	else
 		bossView = ModelView.new(boss.Id, {
 			Name = "BossView",
@@ -2832,6 +2848,8 @@ local function begin(start, bossId: string, difficulty: string?)
 			bossView:SetTint(tint)
 		end
 	end
+	stagedGuards = if staged then staged.GuardGuis else nil
+	layoutGuards()
 	barrierRing.Visible = false
 
 	-- The enemy squad: the leader in the middle, its guards left, right and in front of it.
@@ -2955,6 +2973,10 @@ function startFight(bossId: string, difficulty: string?, options: { Cost: boolea
 end
 
 function exit()
+	calloutGeneration += 1
+	calloutRunning = false
+	table.clear(calloutQueue)
+	stagedGuards = nil
 	resetTotals()
 	if cardInfo then
 		cardInfo:Destroy()
@@ -2983,7 +3005,7 @@ end
 
 function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	hooks = battleHooks
-	gui = Kit.screenGui("BattleGui", 4, playerGui) -- below the HUD so the Auto Roll feed stays visible
+	gui = Kit.screenGui("BattleGui", 4, playerGui)
 	gui.IgnoreGuiInset = true
 	gui.Enabled = false
 
@@ -3319,6 +3341,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	}, 40)
 	Kit.textStroke(Color3.new(0, 0, 0), 2.5, 0.1).Parent = calloutLabel
 	Kit.new("UIScale", { Scale = 1, Parent = calloutLabel })
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutGuards)
 
 	warnBanner = Kit.new("Frame", {
 		Name = "Warning",

@@ -46,6 +46,11 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] iPhone readability pass (2026-10-26), Studio iPhone 14 landscape emulator: HUD / SQUAD / BAG and one Normal
+  fight; no new runtime errors. All 27 owned vault names and current BAG names fit. Battle feed and DASH hidden.
+- [ ] Real iPhone after this pass: smaller HUD / two-line event pill; vault scrolling, selected-card inspector and
+  EQUIP; named BAG plaques and status lines; three fixed guard targets, tap to focus, bounded damage numbers,
+  single callout at 2x / AUTO CLIMB, Skill text below names, and DASH restored after BACK TO HUB.
 - [ ] Arena: camera clipping into terrain (Frostfang), the front guard's panel vs the card dock, the glow behind Tenrai.
 - [ ] Battle pods and the Surge meter use CanvasGroups: check sharpness and frame rate on a low-end phone.
 - [ ] Fusion (single and FUSE ALL), packs during Auto Roll, OPEN 1 / 5 / 10 / ALL, a tower run ending on a loss (and on leaving mid-fight),

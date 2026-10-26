@@ -318,6 +318,7 @@ end)
 Battle.Init(playerGui, {
 	OnStart = function()
 		Hud.SetBattleMode(true)
+		Dash.SetBattleMode(true)
 		HubFx.SetWorldLabelsHidden("Battle", true)
 		PlayerList.SetHidden("Battle", true)
 		Sfx.SetMusicOverride("Battle")
@@ -327,6 +328,7 @@ Battle.Init(playerGui, {
 	end,
 	OnEnd = function()
 		Hud.SetBattleMode(false)
+		Dash.SetBattleMode(false)
 		HubFx.SetWorldLabelsHidden("Battle", false)
 		PlayerList.SetHidden("Battle", false)
 		Sfx.SetMusicOverride(nil)
@@ -468,7 +470,7 @@ Remotes.RaidState.OnClientEvent:Connect(function(message)
 		if payout.Away then
 			local minutes = math.floor(payout.Away / 60)
 			Sfx.Play("Reward")
-			Hud.Hint(`🌙 While you were away ({minutes // 60}h {minutes % 60}m) your cards kept rolling: {loot}`)
+			loot = `Away {minutes // 60}h {minutes % 60}m · {loot}`
 		elseif payout.Offline then
 			Sfx.Play("Reward")
 			Hud.Hint(`⚔️ While you were away, {payout.Name} was cleared: your share is in your BAG!`)

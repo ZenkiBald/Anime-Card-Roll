@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-10-24). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-10-26). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -14,8 +14,10 @@ Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENT
 **Studio status.** The 2026-10-22 world / UI / sound pass was verified in Studio. Everything after it was built in cloud
 sessions with headless tests + luau-lsp only; the user has since play-tested the HUD, deck screen, Index, quests and a
 tower fight (screenshots 2026-10-24) and the fixes from that are in (the second round's list is in the checklist,
-section 5). The user confirmed the town is bright again on 2026-10-26; the per-world lighting transitions and phone layout
-pass still need confirmation. Treat anything not named here as unseen.
+section 5). The user confirmed the town is bright again on 2026-10-26 and supplied iPhone HUD / SQUAD / BAG / tower
+screenshots. The resulting readability pass was checked in Studio's iPhone 14 landscape emulator (HUD, SQUAD, BAG,
+one Normal fight; no new runtime errors). All 27 owned vault tile names and current BAG names fit there.
+The updated layout still needs a real iPhone check; per-world transitions remain unconfirmed. Treat anything not named here as unseen.
 
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and
@@ -68,8 +70,11 @@ leader's warned move 10% and SkillPierce 40% through shields), so even an overpo
 The engine (`BattleEngine`) is pure and runs headless in tests. Fights are staged in 3D at the boss's spot in its world
 (`UI/Arena`, low cinematic camera, guards as tinted smaller copies; beams fly from the card slots to the 3D figures,
 hits flash and recoil, guards lunge, boss skills and crits shake the camera; a defeated guard or leader topples
-and fades in dark red; callouts at the same moment stack 0.15 s apart); no map = the 2D fallback. Damage
-numbers on the squad's cards spawn above the card frame.
+and fades in dark red; callouts show one at a time with at most three queued); no map = the 2D fallback. Damage
+numbers have bounded pixel sizes and at most two per target; on the squad's cards they spawn above the frame.
+On short phone screens, guard target panels sit in a fixed right rail and the duplicate leader plate hides;
+Skill countdowns use the line below each card's name. Auto Roll continues with its feed hidden during fights,
+and DASH hides until returning to the hub. Routine Basic Support cast tags are omitted on short screens.
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended power 45k ... 388k; the fixtures are Base in
 World 1, Gold after, World 4 Gold 5-star with Awakening 1-3). Boss wins pay reward rolls (luck / floors by D), Shards,
@@ -111,13 +116,17 @@ charges spirit blue, shivers void purple for the last 4 rolls, and seals gold wh
 reads UNLEASH SURGE!); AUTO / QUICK are recessed and light their bezel when on. Panels (`Modal`) are Urushi with a 2 px
 steel edge, a vermilion banner slash and underline, tabs with a vermilion underline when active; on a phone a panel is
 laid out at desktop size and scaled down (`Modal.FitScale`, ~0.6 sideways; turn measured sizes back into offsets with
-`Kit.logicalSize`), and the HUD, server list and quick roll pops step away while a panel is open; `Controls` dropdowns
+`Kit.logicalSize`), and the HUD, server list and quick roll pops step away while a panel is open. Short screens use
+smaller HUD bars / roll controls, a two-line event pill and fewer feed entries; routine Base duplicate pops only show
+in the feed. Away rewards use one compact toast. `Controls` dropdowns
 and search are sunken wells. The deck screen has sunken empty slots, spirit-blue Slot Link tethers (gold for a bond), a
 sunken Cost Challenge meter and synergy / bond tags; AUTO-BUILD is the vermilion seal. Card tiles carry no combat stats
 (frame, art, star diamonds, element / role crests, name, xN, Awakening pips, a pulsing FUSE! seal at 100 copies and
-the rarity number; names wrap and scale 9-14); stats live in the deck inspector and
-the tooltip. BAG plaques are framed by relic rarity (bronze / purple / gold / cosmic crimson) with diamond crests (packs
-show their roll count). BOSS SCOUT is trays: leader and counter crests with +30% DMG, guard unit chips, synergy / bond
+the rarity number; names wrap and scale 8-14); stats live in the deck inspector and
+the tooltip. Vault tiles are larger; the phone inspector gives its space to the grid until a card is picked,
+and deck thumbnails omit duplicate tiny name / rarity labels. BAG plaques are framed by relic rarity (bronze /
+purple / gold / cosmic crimson) with diamond crests, item names and separate status labels (packs show their roll
+count); plaques are larger on phones. BOSS SCOUT is trays: leader and counter crests with +30% DMG, guard unit chips, synergy / bond
 tags; the boss well is sunken with a vignette; every tab strip uses the vermilion underline. The STORE uses diamond
 crests (monograms, no emoji) and solid vermilion R$ buttons. Components: `JuicyButton` (sheen, spring, sounds,
 CanvasGroup content; roll console + battle pods) and `IconBadge` (diamond badges for element / role / currency). Card

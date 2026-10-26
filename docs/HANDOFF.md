@@ -9,8 +9,9 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
-- Phone check of the 2026-10-26 layout pass (`docs/LAUNCH_CHECKLIST.md` section 5): if panel text is too
-  small, the scale is `Modal.FitScale` in `src/client/UI/Modal.luau`.
+- Real iPhone check after the screenshot readability pass (`docs/LAUNCH_CHECKLIST.md` section 5): HUD, larger
+  vault / BAG tiles, selected-card inspector, fixed guard targets / focus, 2x AUTO CLIMB, and DASH restored in town.
+  Studio's iPhone 14 landscape emulator was checked; the user has not seen these latest changes on their phone.
 - Town brightness confirmed by the user on 2026-10-26. Check the per-world lighting in Studio.
   Each world's values are the `MOODS` table in
   `src/client/ZoneFx.luau`, and the town's are in `src/client/LightingSetup.luau`. Run
@@ -20,7 +21,16 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
-- 2026-10-26 · Codex · this commit (docs only) · User confirmed "yeah its bright now"; recorded town
+- 2026-10-26 · Codex · this commit · iPhone screenshot polish: compact HUD and away reward toast, fewer routine
+  duplicate pops, larger vault / BAG tiles with complete names, a phone inspector that collapses until selection,
+  clearer deck thumbnails / names, fixed phone guard target rail, bounded damage floats, queued single callouts,
+  Skill countdowns below names, no battle roll feed / DASH. Fixed raid banner TextButton.Text / label collision.
+  Names, balance and server / save code unchanged. Type check: 0 errors (existing lint warnings); props: 0 problems;
+  bundled headless tests: ALL CHECKS PASSED. Live Rojo sync confirmed. Studio iPhone 14 landscape: HUD, SQUAD, BAG
+  and one Normal fight checked; 27 owned vault names and all current BAG names fit; no new runtime errors.
+  Studio restored to Edit, device simulation off; nothing published. Real iPhone, focus taps, selected inspector,
+  AUTO CLIMB transitions and DASH restoration still need checking. Known asset-id warnings predate this pass.
+- 2026-10-26 · Codex · 89c297c · User confirmed "yeah its bright now"; recorded town
   brightness as checked in the launch checklist and current Studio status. Per-world transitions and phone layout
   still await feedback. No game code changed. Props: 0 problems; headless tests: ALL CHECKS PASSED.
   Type check not run: luau-lsp is not installed / available on PATH in this local session.
