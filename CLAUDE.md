@@ -195,9 +195,12 @@ counter / synergy / bond information. Battle intros use smaller straight lacquer
 controls, enemy target panels and result frames. The current triggered ability kits are described above.
 
 `JuicyButton` still supplies sheen, spring and sounds; `IconBadge` carries element / role / currency crests.
-Card portraits use their 2D `Image` when set, else the existing procedural bust (element pattern, diamond emblem,
-role weapon and id-based hair crest). The user is making character illustrations: `art/STORY_CARD_PROMPTS.md` and
-`art/cards/<cardId>.png`. This UI kit does not replace those illustrations or rename any cards / bosses.
+All 26 card portraits use a cohesive AI illustration set in `art/cards/cohesive-20261026/`, generated with the
+built-in image tool from the three approved previews. Each source PNG is 1254 x 1254; the existing card frames
+crop it to their shape. `manifest.json` records card ids, inspirations, dimensions, hashes, Roblox image ids and
+the five previous image ids. `generation-plan.json` stores the production prompts. The older five portrait PNGs
+in `art/cards/` remain untouched. `Cards.ART` connects the uploaded images; the procedural bust remains a fallback.
+Card / boss names, abilities, stats and saves are unchanged by the artwork pass.
 
 ## Layout (Rojo project, `default.project.json`)
 

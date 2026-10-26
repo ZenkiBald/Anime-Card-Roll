@@ -9,6 +9,12 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- User review of the completed 26-card AI artwork set: all cards now have matching illustrations, uploaded and
+  connected in `Cards.ART`. Sources / prompts / hashes / asset ids / previous five ids are in
+  `art/cards/cohesive-20261026/`. All PNGs are 1254 x 1254; card frames crop them. Desktop Studio showed all 26
+  actual CardTile components and the full Limitless Sage portrait. Review reveals and battle pods next.
+  Same five represented anime inspirations; no new franchises added. Names, kits and saves kept. Not published.
+
 - User review of the authored card-kit overhaul: SQUAD > select a card > VIEW SKILLS / BONUSES. All 26 cards
   have authored ability names / mechanical copy; no job boilerplate, paired-only preface, auto-action reminder or
   stagger diagnostics. Each passive mixes a trigger with a cost or status / RNG mechanic. Actual percentage
@@ -39,6 +45,19 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 ## Log (newest first)
 
 Each entry: date · who · commit · what changed · what's left or unsure.
+
+- 2026-10-26 · Codex · this commit · Completed the approved cohesive AI artwork batch: 26 distinct square
+  1254 x 1254 PNGs, including the three approved previews and new matching versions of the previous five portraits.
+  Uploaded every image to the game's owner through Studio; changed only Cards.ART in gameplay sources. Old five
+  root PNGs remain untouched and previous ids are recorded in the manifest. Full production prompts, file hashes,
+  dimensions and new asset ids are saved beside the images. User said choose fitting inspirations without adding
+  many anime: retained Naruto / JJK / Demon Slayer / Dragon Ball / Bleach only. No identity / stat / save changes.
+  Type check 0 errors (existing warnings); props 5,530 / 0 problems; headless ALL CHECKS PASSED. Studio: all 26
+  illustrations visibly rendered in a temporary actual-CardTile gallery; SQUAD and full Limitless Sage portrait
+  crop checked, no new client runtime errors. PreloadAsync / IsLoaded queries reported failures even for visibly
+  rendered old and new images, so visual capture was used as evidence, not those API flags. Temporary UI removed
+  by stopping Play; Studio left in Edit. Source synced through Rojo, not published. User review of reveals /
+  battle pods remains. Phone work stays parked. Git pull and reconnect Rojo before the next session.
 
 - 2026-10-26 · Codex · this commit · Rewrote all 26 cards' technique names / descriptions in the user's requested
   style. Authored templates resolve effect values directly; no debug-job / auto-action / paired-only / stagger

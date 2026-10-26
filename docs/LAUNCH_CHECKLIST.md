@@ -46,6 +46,12 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Cohesive card art (2026-10-26): all 26 illustrations visibly rendered in a temporary actual-CardTile
+  gallery; SQUAD and full Limitless Sage portrait crop checked in Studio, no new client runtime errors.
+  All sources are distinct 1254 x 1254 PNGs. Asset ids / old ids / hashes are in the art manifest.
+- [ ] User artwork review: SQUAD / INDEX, reveals and battle pods. Check faces through the existing portrait
+  crops. Sources are in `art/cards/cohesive-20261026/`; art is synced through Rojo, not published.
+
 - [x] Authored card kits / tooltip pass (2026-10-26): desktop Crimson Chakra Cloak sheet shows 85% return / 25%
   DMG cost and a drawn-check Activation Limit pill. Collection data collapses / expands. Attack hover card shows
   authored Basic / Skill / Passive / Ultimate with only percentages and turn counts highlighted. Five-technique
