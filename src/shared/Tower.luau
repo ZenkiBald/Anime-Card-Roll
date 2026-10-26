@@ -106,31 +106,30 @@ Tower.GuardianPower = 1.15 -- its recommended power over the floor's
 -- neither ever drops as power grows), joined in
 -- log space between points and carried on past the last one by the Beyond exponents.
 Tower.Curve = {
-	Power = 33000,
-	Growth = 1.068, -- about 2x every 10 floors; floor 48 is about Tenrai Nightmare
+	Power = 16500,
+	Growth = 1.068, -- about 2x every 10 floors; floor 37 is about Tenrai Nightmare
 	Points = {
-		{ Power = 33500, HP = 57000, ATK = 164 },
-		{ Power = 44500, HP = 76500, ATK = 203 },
-		{ Power = 65000, HP = 94500, ATK = 222 },
-		{ Power = 101000, HP = 181500, ATK = 426 },
-		{ Power = 122000, HP = 269000, ATK = 817 },
-		{ Power = 197500, HP = 680000, ATK = 962 },
-		{ Power = 242500, HP = 860000, ATK = 1052 },
-		{ Power = 323000, HP = 2100000, ATK = 1446 },
-		{ Power = 470500, HP = 5661000, ATK = 2102 },
-		{ Power = 709000, HP = 9100000, ATK = 5881 },
-		{ Power = 884500, HP = 13000000, ATK = 7465 },
-		{ Power = 977000, HP = 14850000, ATK = 9672 },
+		{ Power = 16500, HP = 78000, ATK = 16 },
+		{ Power = 25400, HP = 130000, ATK = 28 },
+		{ Power = 31700, HP = 160000, ATK = 35 },
+		{ Power = 47800, HP = 300000, ATK = 55 },
+		{ Power = 64300, HP = 320000, ATK = 65 },
+		{ Power = 98100, HP = 800000, ATK = 80 },
+		{ Power = 117200, HP = 910000, ATK = 100 },
+		{ Power = 151900, HP = 1900000, ATK = 135 },
+		{ Power = 175600, HP = 2800000, ATK = 165 },
+		{ Power = 697700, HP = 15000000, ATK = 650 },
+		{ Power = 2790700, HP = 60000000, ATK = 1700 },
 	},
-	Beyond = { HP = 1.1, ATK = 1.1 }, -- past the last point: HP x (power / last) ^ 1.1 (a full Secret deck still wins in about 90 s)
+	Beyond = { HP = 1, ATK = 1 }, -- past the last point: linear stats; full Secret chase decks remain playable
 }
 
--- The Pagoda: Floors floors on its own curve (same start, slower growth: floor 100 asks about 4.5M, a
+-- The Pagoda: Floors floors on its own curve (same start, slower growth: floor 100 asks about 3.2M, a
 -- full Secret deck), with its own enemy picks (Salt), and the milestone rewards.
 Tower.Pagoda = {
 	Name = "Hundred-Floor Pagoda",
 	Floors = 100,
-	Power = 33000,
+	Power = 16500,
 	Growth = 1.053,
 	Salt = 500,
 	Title = "Pagoda Master", -- floor 100's title

@@ -351,7 +351,7 @@ end
 
 -- The ability that headlines the card: its Ultimate, else its Skill, else its Basic.
 local function headline(card)
-	return Cards.Ability(card, "Ultimate") or Cards.Ability(card, "Skill") or Cards.Ability(card, "Basic")
+	return Cards.Ability(card, "Ultimate") or Cards.Ability(card, "Skill") or Cards.Ability(card, "Basic") or Cards.Ability(card, "Passive")
 end
 
 local SLOT_ICON = { Ultimate = "💥", Skill = "⚡", Basic = "🗡️", Passive = "🍃", Aura = "✨", Signature = "👑" }

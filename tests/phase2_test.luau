@@ -138,7 +138,7 @@ end
 do
 	local deck = F.deck({ "rook", "tomo" }, { "suzu", "" })
 	local battle = Engine.new({ Units = F.units(deck, owned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
-	check(battle:Buff(battle.ById.A1, "ATK") >= 0.06 and #battle.Links == 1 and battle.Links[1].To == "A1", "Support slot 1's Slot Link reaches Attack slot 1")
+	check(battle:Buff(battle.ById.A1, "SPD") >= 0.08 and #battle.Links == 1 and battle.Links[1].To == "A1", "Support slot 1's Slot Link reaches Attack slot 1")
 end
 
 do

@@ -206,7 +206,7 @@ do
 		climbs = climbs and a.Mode == P and b.Mode == Tower.Id
 	end
 	check(differs and climbs, "the Pagoda has its own floors, climbing every floor")
-	check(Tower.Recommended(50, P) < Tower.Recommended(50) and Tower.Recommended(100, P) > 4e6, "the Pagoda climbs slower than the Infinite Tower, to a full Secret deck's fight at floor 100")
+	check(Tower.Recommended(50, P) < Tower.Recommended(50) and Tower.Recommended(100, P) > 2e6, "the Pagoda climbs slower than the Infinite Tower, to a full Secret deck's fight at floor 100")
 	local milestonesOk = true
 	for _, at in { 25, 50, 75, 100 } do
 		local m = Tower.PagodaMilestones[at]

@@ -220,7 +220,7 @@ function Deck.MatchupValue(cardId: string, against: { string }?): number
 	end
 	dealt /= #against
 	taken /= #against
-	return if card.Type == "Attack" then dealt / taken else dealt
+	return if card.Type == "Attack" then dealt / taken else 1
 end
 
 -- The card elements in a deck, slot by slot (for synergies).
@@ -266,8 +266,9 @@ function Deck.AutoBuild(owned: Owned, against: { string }?): Deck
 		end
 		table.sort(pool, function(a, b)
 			local ea, eb = owned[a], owned[b]
-			local pa = Deck.PowerAt(a, owned, Borders.Best(ea.Borders)) * Deck.MatchupValue(a, against)
-			local pb = Deck.PowerAt(b, owned, Borders.Best(eb.Borders)) * Deck.MatchupValue(b, against)
+			local ca, cb = Cards.Get(a) :: Cards.Card, Cards.Get(b) :: Cards.Card
+			local pa = (if row == "Support" then Cards.SupportScore(ca, ea.Stars, Borders.Best(ea.Borders), Awaken.Level(ea :: any)) else Deck.PowerAt(a, owned, Borders.Best(ea.Borders))) * Deck.MatchupValue(a, against)
+			local pb = (if row == "Support" then Cards.SupportScore(cb, eb.Stars, Borders.Best(eb.Borders), Awaken.Level(eb :: any)) else Deck.PowerAt(b, owned, Borders.Best(eb.Borders))) * Deck.MatchupValue(b, against)
 			if pa ~= pb then
 				return pa > pb
 			end

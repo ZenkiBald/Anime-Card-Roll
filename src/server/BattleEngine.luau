@@ -4,11 +4,11 @@
 -- streams its events to the client, and tests/battle_test.luau runs whole fights headless.
 --
 -- Rules (design doc, "Battle system", made 4v4 on 2026-10-23):
---   * Every card and every enemy has an action bar that fills at its SPD; a SPD 100 bar fills once
+--   * Every Attack card and every enemy has an action bar that fills at its SPD; a SPD 100 bar fills once
 --     per turn (Config.Battle.TurnSeconds). A full bar means it acts. Ties go to the leftmost card.
 --   * A card's action is its Skill when the cooldown is ready, otherwise its Basic.
 --   * Attack cards (front row) have HP and take every enemy hit. Support cards (back row) have no HP:
---     they can't be hit or KO'd, and each casts its Basic once as the fight opens.
+--     they can't be hit or KO'd and only modify their matching Attack slot.
 --   * The enemy side is the leader ("Boss": a world boss, or a tower echo) and three guards (G1-G3,
 --     Bosses.GuardTypes): Strikers hit hard, Hexers burn / freeze / slow, Menders heal the squad and
 --     rally it, Warders taunt and shield the leader (Protect). Guards can be KO'd; the leader can't be
@@ -30,7 +30,7 @@
 --   * Synergies (2 / 4 cards of one element in the deck) are on from the start; bonds (two named cards)
 --     fire a Dual Ultimate once, when the leader first drops to half HP or at Elements.BondAt seconds
 --     (400% instead of 300% when either card has Awakening node 3).
---   * Slot Links: each Support card's Link passive (Cards.luau) goes to the Attack card in the same slot.
+--   * Supports: bounded passive effects (Cards.Support), no action bar, damage, HP or active skills.
 --   * Stagger: card hits fill the leader's Stagger bar (Config.Battle, faster from counter elements); a
 --     full bar Staggers it for a few seconds (no actions, its warned move cancelled, DEF 0, +50% from
 --     Ultimates). Staggered as it reaches half HP, it loses its first phase-2 move.
@@ -108,6 +108,8 @@ local function newUnit(spec: UnitSpec)
 		Element = card.Element,
 		Awaken = spec.Awaken or 0,
 		Border = spec.Border or "Normal",
+		Stars = spec.Stars,
+		SupportMods = {},
 		HPCost = 0,
 		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Border, spec.Awaken),
 		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Border, spec.Awaken) else 0,
@@ -274,20 +276,30 @@ function Engine.new(setup: Setup)
 		unit.Order = i
 	end
 
-	-- Slot Links: Support slot N gives its Link passive to Attack slot N.
+	-- Supports are equipment for the matching attacker, never extra combatants.
 	self.Links = {}
 	for _, unit in self.Allies do
-		local link = unit.Card.Link
+		local link = unit.Card.Support
 		local slot = string.match(unit.Id, "^S(%d+)$")
 		local front = slot and self.ById[`A{slot}`]
-		if link and front then
-			local amount = Cards.LinkAmount(unit.Card, unit.Border)
-			if link.Stat == "StartEnergy" then
+		if link and front and front.HasHP then
+			local amount = Cards.SupportValue(unit.Card, unit.Stars, unit.Border, unit.Awaken)
+			local mod = { Source = unit, Def = link, Amount = amount, Used = 0, Healed = 0 }
+			unit.Modifier = mod
+			unit.Paired = front
+			table.insert(front.SupportMods, mod)
+			if link.Kind == "StartEnergy" then
 				if front.Ultimate then
 					front.Energy = math.min(B.UltimateCost, front.Energy + amount * B.UltimateCost)
+					mod.Used = 1
 				end
-			else
+			elseif link.Stat then
 				front.Buffs[`Link:{unit.Id}`] = { Stat = link.Stat, Amount = amount, Left = math.huge }
+			elseif link.Kind == "OpeningShield" then
+				front.Shield = round(front.MaxHP * amount)
+				front.ShieldLeft = math.huge
+				unit.Healed = front.Shield
+				mod.Used = 1
 			end
 			table.insert(self.Links, { From = unit.Id, To = front.Id, Name = link.Name })
 		end
@@ -341,7 +353,7 @@ function Engine.new(setup: Setup)
 				end
 			end
 		end
-		if a and b then
+		if a and b and (a.HasHP or b.HasHP) then
 			if b.Type == "Attack" and a.Type ~= "Attack" then
 				a, b = b, a
 			end
@@ -356,7 +368,7 @@ function Engine.new(setup: Setup)
 		unit.Gauge = g.Min + (g.Max - g.Min) * spread
 	end
 	for i, unit in self.Allies do
-		start(unit, i)
+		if unit.HasHP then start(unit, i) end
 	end
 	for i, enemy in self.Enemies do
 		start(enemy, i + #self.Allies)
@@ -456,6 +468,7 @@ function Engine:Protection(enemy): number
 end
 
 function Engine:Speed(unit): number
+	if unit.Type == "Support" then return 0 end
 	if unit.Type == "Enemy" then
 		return unit.SPD * math.max(0.2, 1 - self:EnemyDebuff(unit, "SPD"))
 	end
@@ -685,6 +698,7 @@ local function elementFlag(mult: number): number?
 end
 
 function Engine:HitEnemy(unit, enemy, pct: number, ignoreDef: boolean?, kind: string?)
+	if not unit.HasHP then return end
 	local buffs = self:Buff(unit, "ATK") + self:EnemyDebuff(enemy, "Vuln")
 	local crit = self.Rng:NextNumber() < B.CritChance + self:Buff(unit, "Crit")
 	local critMult = if crit then B.CritDamage + self:Buff(unit, "CritDamage") else 1
@@ -699,7 +713,29 @@ function Engine:HitEnemy(unit, enemy, pct: number, ignoreDef: boolean?, kind: st
 	if enemy.Leader and enemy.Staggered <= 0 and not self.Over then
 		self:FillStagger(enemy, unit.Element)
 	end
+	local dealt = math.min(enemy.HP, amount)
 	self:DamageEnemy(enemy, unit, amount, crit, kind or "Hit", elementFlag(element))
+	for _, mod in unit.SupportMods do
+		if mod.Def.Kind == "Lifesteal" and unit.Alive and dealt > 0 then
+			local cap = round(unit.MaxHP * (mod.Def.Threshold or 0.2))
+			local healed = math.min(round(dealt * mod.Amount), cap - mod.Healed, unit.MaxHP - unit.HP)
+			if healed > 0 then
+				mod.Healed += healed
+				self:SupportHeal(mod, unit, healed)
+			end
+		elseif mod.Def.Kind == "Weaken" and burst and enemy.Alive and mod.Used < (mod.Def.Uses or 0) and mod.LastAction ~= self.ActionToken then
+			mod.LastAction = self.ActionToken
+			mod.Used += 1
+			enemy.Debuffs[`Support:{mod.Source.Id}`] = { Stat = "ATK", Amount = mod.Amount, Left = turns(2) }
+			self:Emit({ K = "Debuff", U = unit.Id, T = enemy.Id, Stat = "ATK", A = mod.Amount })
+		end
+	end
+end
+
+function Engine:SupportHeal(mod, target, amount: number)
+	target.HP = math.min(target.MaxHP, target.HP + amount)
+	mod.Source.Healed += amount
+	self:Emit({ K = "Heal", U = mod.Source.Id, T = target.Id, A = amount })
 end
 
 -- One card hit's worth of Stagger on the leader; a full bar Staggers it.
@@ -741,7 +777,21 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 	self:Emit({ K = kind, U = sourceId, T = target.Id, A = amount, Sh = if absorbed > 0 then absorbed else nil, El = el })
 
 	if target.HP > 0 then
+		for _, mod in target.SupportMods do
+			if mod.Def.Kind == "LowHeal" and mod.Used < (mod.Def.Uses or 0) and target.HP <= target.MaxHP * (mod.Def.Threshold or 0.4) then
+				mod.Used += 1
+				self:SupportHeal(mod, target, math.min(round(target.MaxHP * mod.Amount), target.MaxHP - target.HP))
+			end
+		end
 		return
+	end
+	for _, mod in target.SupportMods do
+		if mod.Def.Kind == "LastStand" and mod.Used < (mod.Def.Uses or 0) then
+			mod.Used += 1
+			target.HP = 1
+			self:Emit({ K = "SupportProc", U = mod.Source.Id, T = target.Id, N = mod.Def.Name })
+			return
+		end
 	end
 	local oath = self.DawnOath
 	if oath and not oath.Used then
@@ -768,6 +818,13 @@ end
 function Engine:HitAlly(enemy, target, move)
 	if not target.Alive then
 		return
+	end
+	for _, mod in target.SupportMods do
+		if mod.Def.Kind == "Dodge" and self.Rng:NextNumber() < mod.Amount then
+			mod.Used += 1
+			self:Emit({ K = "Miss", U = enemy.Id, T = target.Id })
+			return
+		end
 	end
 	if target.Evades > 0 then
 		target.Evades -= 1
@@ -796,6 +853,18 @@ function Engine:HitAlly(enemy, target, move)
 	if move.Freeze and not target.Frozen then
 		target.Frozen = true
 		self:Emit({ K = "Frozen", T = target.Id })
+	end
+	self:SupportCleanse(target)
+end
+
+function Engine:SupportCleanse(target)
+	for _, mod in target.SupportMods do
+		if mod.Def.Kind == "Cleanse" and mod.Used < (mod.Def.Uses or 0) and (target.Frozen or #target.Burns > 0) then
+			mod.Used += 1
+			target.Frozen = false
+			target.Burns = {}
+			self:Emit({ K = "Cleanse", U = mod.Source.Id, T = target.Id })
+		end
 	end
 end
 
@@ -918,6 +987,7 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 end
 
 function Engine:RunAbility(unit, ability, slot: string)
+	self.ActionToken = (self.ActionToken or 0) + 1
 	local previous = self.Slot
 	self.Slot = slot
 	for _, effect in ability.Effects do
@@ -931,23 +1001,13 @@ end
 
 -- Actions ---------------------------------------------------------------------------
 
--- As the fight opens, every Support card casts its Basic once (shields up, buffs on, debuffs out).
+-- Supports were already attached in Engine.new; opening never casts extra moves.
 function Engine:Opening()
 	self.Opened = true
-	local any = false
-	for _, unit in self.Allies do
-		if unit.Type == "Support" and unit.Basic then
-			if not any then
-				self:Emit({ K = "Opening" })
-				any = true
-			end
-			self:Emit({ K = "Act", U = unit.Id, Ab = "Opening", N = unit.Basic.Name })
-			self:RunAbility(unit, unit.Basic, "Opening")
-		end
-	end
 end
 
 function Engine:CardAct(unit)
+	if not unit.HasHP then return end
 	unit.Actions += 1
 	local ability, slot = unit.Basic, "Basic"
 	if unit.Skill then
@@ -1264,7 +1324,7 @@ function Engine:Step(dt: number)
 	-- Fill action bars, then let every full bar act (fullest first, ties to the left).
 	local ready = {}
 	for _, unit in self.Allies do
-		if unit.Alive then
+		if unit.Alive and unit.HasHP then
 			unit.Gauge += self:Speed(unit) * dt / (100 * B.TurnSeconds)
 			if unit.Gauge >= 1 then
 				table.insert(ready, unit)
@@ -1356,7 +1416,7 @@ function Engine:Info()
 			CardId = unit.Card.Id,
 			Element = unit.Element,
 			MaxHP = if unit.HasHP then unit.MaxHP else nil,
-			Main = unit.Main,
+			Main = if unit.HasHP then unit.Main else nil,
 			Ultimate = if unit.Ultimate then unit.Ultimate.Name else nil,
 			Skill = if unit.Skill then unit.Skill.Name else nil, -- its countdown rides in the snapshot (K)
 		})
@@ -1452,7 +1512,10 @@ function Engine:Snapshot()
 			E = unit.Energy,
 			G = if unit.Alive then gauge(unit.Gauge) else 0,
 			F = flags,
-			K = if unit.Skill and unit.Alive then unit.SkillCooldown else nil, -- actions until its Skill (0 = next)
+			K = if unit.Skill and unit.Alive then unit.SkillCooldown else nil,
+			NextIn = if unit.HasHP and unit.Alive then math.max(0, 1 - unit.Gauge) * 100 * B.TurnSeconds / self:Speed(unit) else nil,
+			PairedAlive = if unit.Type == "Support" then unit.Paired ~= nil and unit.Paired.Alive else nil,
+			UsesLeft = if unit.Modifier and unit.Modifier.Def.Uses then math.max(0, unit.Modifier.Def.Uses - unit.Modifier.Used) else nil,
 		}
 	end
 	for _, enemy in self.Enemies do
@@ -1502,7 +1565,14 @@ end
 function Engine:Summary()
 	local dealt = {}
 	for _, unit in self.Allies do
-		dealt[unit.Id] = { Dealt = unit.Dealt, Healed = unit.Healed, Alive = unit.Alive }
+		local mod = unit.Modifier
+		dealt[unit.Id] = {
+			Dealt = unit.Dealt, Healed = unit.Healed, Alive = unit.Alive,
+			Passive = if unit.Type == "Support" then {
+				Attached = mod ~= nil, Used = if mod then mod.Used else 0,
+				Uses = if mod then mod.Def.Uses else nil,
+			} else nil,
+		}
 	end
 	local guardsDown = 0
 	for _, enemy in self.Enemies do

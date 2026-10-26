@@ -170,7 +170,7 @@ local function build(cardId: string, border: string): Frame?
 		chip(ElementUi.Badge(element.Id, { Size = UDim2.fromOffset(28, 28), ZIndex = 52 }), string.upper(element.Name), element.Color, 1)
 	end
 	local roleInfo = UITheme.Roles[role]
-	chip(ElementUi.RoleBadge(role, { Size = UDim2.fromOffset(28, 28), ZIndex = 52 }), `  {string.upper(role or "")}`, if roleInfo then roleInfo.Color else UITheme.Colors.TextMuted, 3)
+	if card.Type == "Attack" then chip(ElementUi.RoleBadge(role, { Size = UDim2.fromOffset(28, 28), ZIndex = 52 }), `  {string.upper(role or "")}`, if roleInfo then roleInfo.Color else UITheme.Colors.TextMuted, 3) end
 	line(badge(Borders.Label(border), tier.Color), Theme.Font.Heavy, UITheme.Colors.WashiParchment, 13)
 	-- The rarity number at this border: how many pulls it takes (Cards.Rarity).
 	line(`RARITY <font color="#{tier.Color:Lerp(Color3.new(1, 1, 1), 0.25):ToHex()}"><b>{Kit.commas(Cards.Rarity(card.Id, border))}</b></font>`, Theme.Font.Heavy, UITheme.Colors.WashiParchment, 14)
@@ -225,8 +225,8 @@ local function build(cardId: string, border: string): Frame?
 			line(`{badge(slot.Label, slot.Color)}  <b>{ability.Name}</b>\n{Abilities.Describe(ability, card, stars, border, node)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
 		end
 	end
-	if card.Link then
-		line(`<b>{card.Link.Name}</b>: {CardInfo.Link(card, border)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
+	if card.Support then
+		line(`<b>{card.Support.Name}</b>: {CardInfo.Link(card, border)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
 	end
 
 	-- Bond links.

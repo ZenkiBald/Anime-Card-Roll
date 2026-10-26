@@ -368,7 +368,7 @@ local function drawLink(link: Frame, index: number)
 	clear(link)
 	local attackId, supportId = working.Attack[index] or "", working.Support[index] or ""
 	local support = Cards.Get(supportId)
-	local linked = attackId ~= "" and support ~= nil and support.Link ~= nil
+	local linked = attackId ~= "" and support ~= nil and support.Support ~= nil
 	local bond = nil
 	if attackId ~= "" and supportId ~= "" then
 		for _, candidate in Elements.ActiveBonds({ attackId, supportId }) do
@@ -473,9 +473,14 @@ end
 -- Vault ------------------------------------------------------------------------------------------------
 
 -- Every border a card has copies at is its own vault tile: { Card, Border, Copies at that border }.
+local function sortRating(item)
+	local card, own = item.Card, State.Cards[item.Card.Id]
+	if card.Type == "Support" then return Cards.SupportScore(card, if own then own.Stars else 0, item.Border, if own then Awaken.Level(own) else 0) end
+	return Deck.PowerAt(card.Id, State.Cards, item.Border)
+end
 local SORTS = {
 	Rating = function(a, b)
-		return Deck.PowerAt(a.Card.Id, State.Cards, a.Border) > Deck.PowerAt(b.Card.Id, State.Cards, b.Border)
+		return sortRating(a) > sortRating(b)
 	end,
 	Border = function(a, b)
 		return Borders.Index(a.Border) > Borders.Index(b.Border)
@@ -609,7 +614,7 @@ local function drawInspector()
 	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Size = UDim2.new(1, -56, 0, 22), Parent = left }, 20)
 	-- Element and role badges beside the name.
 	ElementUi.Badge(card.Element, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -26, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
-	ElementUi.RoleBadge(card.Role, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
+	if card.Type == "Attack" then ElementUi.RoleBadge(card.Role, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left }) end
 	text({
 		-- The battle numbers first (the tooltip has the title, element and role), then the tier.
 		Text = `{Kit.statsText(card, own.Stars, best, Awaken.Level(own), true)}   <font color="#{border.Color:ToHex()}">{Borders.Label(best)} · rarity {Kit.commas(Cards.Rarity(card.Id, best))}</font>`,
@@ -621,10 +626,10 @@ local function drawInspector()
 	}, 13)
 	-- Traits: slot 1, and slot 2 once Awakening node 4 is open.
 	-- Show its job and real Basic / Skill values first; advanced progression stays in VIEW SKILLS.
-	local basic, skill = Cards.Ability(card, "Basic"), Cards.Ability(card, "Skill")
+	local basic, skill = Cards.Ability(card, "Basic") or Cards.Ability(card, "Passive"), Cards.Ability(card, "Skill")
 	local description = if basic then CardInfo.Describe(card, basic, own.Stars, best, Awaken.Level(own)) else CardInfo.Job(card)
 	text({ Name = "BasicEffect", Text = description, TextWrapped = true, TextColor3 = Theme.Color.Support, Position = UDim2.fromOffset(0, 43), Size = UDim2.new(1, 0, 0, 38), Parent = left }, 14)
-	text({ Text = if skill then `SKILL: {skill.Name} · every {skill.Every or 3} actions` else "Basic acts automatically", TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 83), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 12)
+	text({ Text = if skill then `SKILL every {skill.Every or 3} actions · base action {string.format("%.1f", Config.Battle.TurnSeconds * 100 / card.SPD)}s` elseif card.Type == "Support" then "PASSIVE · matching Attack slot only" else `ACTS EVERY {math.floor(Config.Battle.TurnSeconds * 100 / card.SPD * 10 + 0.5) / 10}s · blue bar = next action`, TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 83), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 12)
 	text({ Text = `{CardInfo.CopyBonus(own.Stars)} · {own.Copies} pulled`, TextColor3 = Theme.Color.Gold, Position = UDim2.fromOffset(0, 103), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 13)
 	-- Copies at every border (each is its own card in the vault) and the border it fights at.
 	local piles = {}
@@ -826,7 +831,7 @@ local function drawPresets()
 end
 
 local function drawFooter()
-	powerLabel.Text = `{Kit.commas(Deck.Power(working, State.Cards))} <font size="13" color="#{C.WashiGhost:ToHex()}">TEAM RATING</font>`
+	powerLabel.Text = `{Kit.commas(Deck.Power(working, State.Cards))} <font size="13" color="#{C.WashiGhost:ToHex()}">ATTACK RATING</font>`
 	drawCost()
 	clear(synergyStrip)
 	local count = 0
@@ -921,9 +926,9 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 	local left = pane({ Name = "Formation", Size = UDim2.new(0.48, -6, 1, 0), Parent = modal.Body })
 	Kit.padding(10).Parent = left
 	text({ Text = "YOUR TEAM · 4 ATTACK + 4 SUPPORT", Font = Theme.Font.Display, Size = UDim2.new(1, 0, 0, 24), Parent = left }, 20)
-	text({ Name = "TeamGuide", Text = "Attackers fight and take hits. Supports help automatically.\nMatching numbers pair cards. Team rating estimates overall strength.", TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 34), Parent = left }, 13)
+	text({ Name = "TeamGuide", Text = "Only Attack cards fight. Supports have no damage or HP.\nMatching numbers pair cards: each Support modifies one attacker.", TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 34), Parent = left }, 13)
 	Controls.Header(left, "ATTACK · Damage + HP", CRIMSON, { Position = UDim2.fromOffset(0, 68), Size = UDim2.new(0.44, 0, 0, 28) })
-	Controls.Header(left, "SUPPORT · Heal / Shield / Boost", CYAN, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 68), Size = UDim2.new(0.44, 0, 0, 28) })
+	Controls.Header(left, "SUPPORT · PASSIVE", CYAN, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 68), Size = UDim2.new(0.44, 0, 0, 28) })
 
 	local rowsArea = Kit.new("Frame", {
 		Name = "Rows",

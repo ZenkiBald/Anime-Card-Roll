@@ -738,7 +738,7 @@ local function pulseForever(instance: Instance, goal: { [string]: any }, period:
 end
 
 -- One card in the fight. Attack: portrait, name, status, HP / shield, action and energy bars.
--- Support: portrait, name, what it casts, action and energy bars (no HP).
+-- Support: portrait, passive name and remaining uses; no combat bars.
 local function makeTile(unit, order: number)
 	local card = Cards.Get(unit.CardId)
 	local entry = State.Cards[unit.CardId]
@@ -873,7 +873,7 @@ local function makeTile(unit, order: number)
 	}
 
 	-- The Skill countdown: "SKILL in 2" (its actions until the Skill) or "SKILL READY", from the snapshot (K).
-	if unit.Skill then
+	if isAttack then
 		tile.SkillCD = status -- its own line below the name, clear of the card title
 	end
 
@@ -902,8 +902,12 @@ local function makeTile(unit, order: number)
 		}, 13)
 		Kit.textStroke(Color3.new(0, 0, 0), 1, 0.25).Parent = tile.HpText
 	end
-	local _, gauge = bar(info, "Action", if isAttack then 0.76 else 0.62, if isAttack then 0.09 else 0.12, NEON_CYAN)
-	tile.Gauge = gauge
+	if isAttack then
+		local _, gauge = bar(info, "Action", 0.76, 0.09, NEON_CYAN)
+		tile.Gauge = gauge
+	else
+		tile.Passive = Kit.label({ Name = "Passive", Text = "PASSIVE", TextColor3 = Theme.Color.Support, Position = UDim2.fromScale(0, 0.62), Size = UDim2.fromScale(1, 0.3), Parent = info }, 12)
+	end
 	if unit.Ultimate then
 		local energyTrack, energy = bar(info, "Energy", if isAttack then 0.89 else 0.8, if isAttack then 0.09 else 0.12, Theme.Color.Gold)
 		Kit.gradient(ColorSequence.new(NEON_CYAN, Theme.Color.Gold), 0).Parent = energy
@@ -1348,14 +1352,17 @@ local function applySnapshot(snap)
 				setBadges(tile.Badges, if alive then s.F else "")
 				if tile.SkillCD then
 					local k = s.K
-					tile.SkillCD.Text = if not alive or k == nil then "" elseif k <= 0 then "SKILL READY" else `SKILL in {k}`
+					tile.SkillCD.Text = if not alive then "DOWN" else `{if k ~= nil and k <= 0 then "SKILL" else "ATK"} {string.format("%.1f", s.NextIn or 0)}s`
 					tile.SkillCD.TextColor3 = if k ~= nil and k <= 0 then Theme.Color.Gold else Theme.Color.Muted
 				end
 				local gaugeGoal = UDim2.fromScale(s.G, 1)
-				if s.G < tile.Gauge.Size.X.Scale then
+				if tile.Gauge and s.G < tile.Gauge.Size.X.Scale then
 					tile.Gauge.Size = gaugeGoal -- it just acted: snap back
-				else
+				elseif tile.Gauge then
 					Kit.tween(tile.Gauge, 0.15, { Size = gaugeGoal }, Enum.EasingStyle.Linear)
+				end
+				if tile.Passive then
+					tile.Passive.Text = if not s.PairedAlive then "ATTACKER DOWN" elseif s.UsesLeft ~= nil then `PASSIVE · {s.UsesLeft} LEFT` else "PASSIVE · ACTIVE"
 				end
 				if tile.Energy then
 					Kit.tween(tile.Energy, 0.15, { Size = UDim2.fromScale(s.E / cost, 1) })
@@ -1704,8 +1711,8 @@ local function playEvent(event)
 		Sfx.Play("HeavyHit", 1.3)
 	elseif kind == "Steal" then
 		callout(`{string.upper(current.BossName)} STEALS YOUR BUFFS!`, Color3.fromRGB(230, 130, 255), 1.6)
-	elseif kind == "Opening" then
-		callout("SUPPORT OPENING!", Theme.Color.Support, 1.2)
+	elseif kind == "SupportProc" then
+		float(targetFrame(event.T), event.N, Theme.Color.Support)
 	elseif kind == "Stagger" then
 		callout(if event.N then `STAGGERED! {string.upper(event.N)} CANCELLED` else "STAGGERED! DEF 0 · ULTIMATES +50%", Theme.Color.Gold, 1.8)
 		Effects.Flash(gui, Theme.Color.Gold, 0.4, 0.6)
@@ -2349,7 +2356,7 @@ local function showResults(summary)
 		local rows = {}
 		local top = 1
 		for id, u in summary.Units do
-			table.insert(rows, { Id = id, Dealt = u.Dealt, Healed = u.Healed, Alive = u.Alive })
+			table.insert(rows, { Id = id, Dealt = u.Dealt, Healed = u.Healed, Alive = u.Alive, Passive = u.Passive })
 			top = math.max(top, u.Dealt, u.Healed)
 		end
 		table.sort(rows, function(a, b)
@@ -2373,6 +2380,7 @@ local function showResults(summary)
 					Parent = list,
 				}, { Kit.corner(UDim.new(0.4, 0)), Kit.stroke(Theme.Color.TileEdge, 1.5, 0.7) })
 				local fill = Kit.new("Frame", {
+					Visible = card.Type == "Attack",
 					Size = UDim2.fromScale(0, 1),
 					BackgroundColor3 = if card.Type == "Attack" then Theme.Color.Attack else Theme.Color.Support,
 					BackgroundTransparency = 0.35,
@@ -2383,9 +2391,17 @@ local function showResults(summary)
 				end)
 				local mvp = if i == 1 and row.Dealt > 0 then ' <font color="#FFC42E">MVP</font>' else ""
 				local ko = if row.Alive then "" else ' <font color="#FF5064">KO</font>'
-				local what = if card.Type == "Attack" then "dmg" else "healed + shielded"
+				local result = `{Kit.commas(value)} dmg`
+				if card.Type == "Support" then
+					local passive = row.Passive
+					result = if not passive or not passive.Attached then "UNPAIRED"
+						elseif value > 0 then `{Kit.commas(value)} healed / shielded`
+						elseif passive.Uses then `{passive.Used}/{passive.Uses} triggers`
+						elseif card.Support and card.Support.Kind == "Dodge" then `{passive.Used} dodges`
+						else "PASSIVE APPLIED"
+				end
 				Kit.label({
-					Text = `  {card.Name}{mvp}{ko}  <font color="#E6E2FF">{Kit.commas(value)} {what}</font>`,
+					Text = `  {card.Name}{mvp}{ko}  <font color="#E6E2FF">{result}</font>`,
 					RichText = true,
 					Font = Theme.Font.Bold,
 					TextXAlignment = Enum.TextXAlignment.Left,

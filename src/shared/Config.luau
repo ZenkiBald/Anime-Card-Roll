@@ -56,7 +56,7 @@ Config.Deck = {
 -- Deck Power per card. Support cards have no HP (they can't be hit), so their power is PWR only.
 Config.Power = {
 	PerATK = 10, -- Attack: ATK x 10 + HP
-	PerPWR = 24, -- Support: PWR x 24 (the first all-Base deck is about 52k)
+	-- Supports are passive equipment and add no combat rating.
 }
 
 -- Boss reward rolls (design doc, "Boss reward rolls"). D is the fight's difficulty score, 1 to 9.
@@ -91,7 +91,7 @@ Config.Battle = {
 	OneActionPerTick = true,
 	-- Threat: an enemy hit always takes at least this share of the target card's max HP (before Guard), so
 	-- even a deck far above a fight's power feels its hits; a leader's warned move also pierces shields.
-	MinHit = { Guard = 0.02, Leader = 0.04, LeaderSkill = 0.1 },
+	MinHit = { Guard = 0.01, Leader = 0.02, LeaderSkill = 0.06 },
 	SkillPierce = 0.4, -- share of a leader's warned move that goes through shields
 	UltimateCost = 100,
 	EnergyPerAction = 20,

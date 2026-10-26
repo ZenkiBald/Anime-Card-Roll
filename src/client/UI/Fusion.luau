@@ -122,7 +122,7 @@ end
 local function statLine(card, stars: number, border: string, node: number): string
 	local main = Kit.commas(Cards.Stat(card, card.Main, stars, border, node))
 	local text = if card.Type == "Attack" then `DMG {main}  HP {Kit.commas(Cards.Stat(card, card.HP or 0, stars, border, node))}` else CardInfo.Headline(card, stars, border, node)
-	return `{text}\n<b>{Kit.commas(Cards.Power(card, stars, border, node))}</b> team rating`
+	return if card.Type == "Support" then `{text}\nPASSIVE · no damage or HP` else `{text}\n<b>{Kit.commas(Cards.Power(card, stars, border, node))}</b> attack rating`
 end
 
 local drawGrid -- forward declaration

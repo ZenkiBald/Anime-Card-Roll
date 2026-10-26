@@ -79,18 +79,17 @@ check(near(pcSum, 1, 1e-9), "card pull chances add up to 100%")
 local infused = Cards.PullChances(startPool, "Flame", 1.5)
 check(infused.rook > pc.rook and infused.kaede < pc.kaede, "an infused pack leans to its element")
 
--- 6. Stats: every base card sits on the same line (ATK 500 +-10%, HP = 2 x ATK; Support PWR 300 +-10%,
--- no HP), so the border decides power.
+-- 6. Attack cards share a stat line; Support cards are passive equipment with no combat stats.
 local bandOk = true
 for _, card in Cards.List do
 	if card.Type == "Attack" then
 		bandOk = bandOk and card.Main >= 450 and card.Main <= 600 and card.HP == 2 * card.Main
 	else
-		bandOk = bandOk and card.HP == nil and card.Main >= 270 and card.Main <= 330
+		bandOk = bandOk and card.HP == nil and card.Main == 0 and card.SPD == 0 and card.Support ~= nil
 	end
 	bandOk = bandOk and card.Weight > 0
 end
-check(bandOk, "ATK 450-600 with HP = 2 x ATK; Support PWR 270-330 with no HP; every card has a Weight")
+check(bandOk, "ATK 450-600 with HP = 2 x ATK; Support passives with no damage, HP or speed; every card has a Weight")
 local ROLES = { Striker = true, Hexer = true, Mender = true, Warder = true }
 local rolesOk = true
 for _, card in Cards.List do
@@ -105,7 +104,7 @@ check(rolesOk, "every card declares its Role: Striker / Hexer / Mender / Warder"
 -- never reaches the weakest 0-star card on the next.
 check(Borders.Multiplier("Normal") == 1 and Borders.Multiplier("Gold") == 4 and Borders.Multiplier("Rainbow") == 16 and Borders.Multiplier("Secret") == 64, "border multipliers 1 / 4 / 16 / 64")
 local winsOk = true
-for _, typ in { "Attack", "Support" } do
+for _, typ in { "Attack" } do
 	for i = 1, #Borders.Order - 1 do
 		local lowBest, highWorst = 0, math.huge
 		for _, card in Cards.List do

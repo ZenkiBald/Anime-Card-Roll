@@ -23,14 +23,28 @@ end
 
 function CardInfo.Job(card: Cards.Card): string
 	if card.Type == "Attack" then return "Fights and takes enemy hits" end
-	local found: { [string]: boolean } = {}
-	for _, a in card.Abilities do
-		for _, e in a.Effects do found[e.Kind] = true end
+	return if card.Support then card.Support.Name else "Passive for its paired attacker"
+end
+
+function CardInfo.SupportDescription(card: Cards.Card, stars: number, border: string?, awaken: number?): string
+	local effect = card.Support
+	if not effect then return "" end
+	local amount = percent(Cards.SupportValue(card, stars, border, awaken))
+	local kind = effect.Kind
+	local detail = ""
+	if kind == "LowHeal" then detail = `Below {percent(effect.Threshold or 0.4)} HP, restore {amount} of max HP. Once per battle; cannot revive.`
+	elseif kind == "Guard" then detail = `Take {amount} less damage for the whole battle.`
+	elseif kind == "Haste" then detail = `Act {amount} faster for the whole battle.`
+	elseif kind == "Dodge" then detail = `{amount} chance to dodge an enemy hit. Does not dodge burn ticks.`
+	elseif kind == "Weaken" then detail = `Skill or Ultimate hits reduce that enemy's damage by {amount} for 2 turns. Up to {effect.Uses or 4} triggers per battle; once per cast.`
+	elseif kind == "OpeningShield" then detail = `Start with a shield worth {amount} of max HP. Once per battle; never refreshes.`
+	elseif kind == "Critical" then detail = `Gain {amount} critical hit chance for the whole battle.`
+	elseif kind == "StartEnergy" then detail = `Start with {amount} of Ultimate energy already charged. Requires an Ultimate.`
+	elseif kind == "LastStand" then detail = "Survive one fatal hit at 1 HP. Once per battle; the next hit can defeat the attacker."
+	elseif kind == "Cleanse" then detail = `Clear burn and freeze when they land. Up to {effect.Uses or 2} applications per battle.`
+	elseif kind == "Lifesteal" then detail = `Heal for {amount} of direct damage dealt. Total healing is capped at {percent(effect.Threshold or 0.2)} of max HP per battle. Overkill does not count.`
 	end
-	if found.Heal then return "Heals your attackers" end
-	if found.Shield then return "Shields your attackers" end
-	if found.Buff then return "Boosts your attackers" end
-	return "Weakens enemies"
+	return "Paired attacker only: " .. detail
 end
 
 local statNames: { [string]: string } = {
@@ -39,10 +53,8 @@ local statNames: { [string]: string } = {
 	StartEnergy = "starting ultimate charge", SkillDMG = "skill damage",
 }
 
-function CardInfo.Link(card: Cards.Card, border: string?): string
-	local link = card.Link
-	if not link then return "" end
-	return `Paired attacker: +{percent(Cards.LinkAmount(card, border))} {statNames[link.Stat] or link.Stat}`
+function CardInfo.Link(card: Cards.Card, _border: string?): string
+	return if card.Support then "Passive effect on the matching Attack slot only. No damage, HP or action bar." else ""
 end
 
 local allyTargets: { [string]: string } = {
@@ -52,6 +64,7 @@ local allyTargets: { [string]: string } = {
 local enemyTargets: { [string]: string } = { Enemies = "every enemy", RandomEnemy = "a random enemy" }
 
 function CardInfo.Describe(card: Cards.Card, ability: Cards.Ability, stars: number, border: string?, awaken: number?): string
+	if card.Support then return CardInfo.SupportDescription(card, stars, border, awaken) end
 	local main = Cards.Stat(card, card.Main, stars, border, awaken)
 	local lines = {}
 	for _, e in ability.Effects do
@@ -101,27 +114,19 @@ function CardInfo.Headline(card: Cards.Card, stars: number, border: string?, awa
 	if card.Type == "Attack" then
 		return `DMG {number(Cards.Stat(card, card.Main, stars, border, awaken))}`
 	end
-	local basic = Cards.Ability(card, "Basic")
-	if basic then
-		for _, kind in { "Heal", "Shield", "Buff", "Debuff", "Damage" } do
-			for _, e in basic.Effects do
-				if e.Kind == kind then
-					if kind == "Heal" or kind == "Shield" or kind == "Damage" then
-						local verb = if kind == "Heal" then "HEAL" elseif kind == "Shield" then "SHIELD" else "DMG"
-						return `{verb} {number(Cards.Stat(card, card.Main, stars, border, awaken) * (e.Pct or 0))}`
-					end
-					return `{if kind == "Debuff" then "WEAKEN" else "BOOST"} {percent(Cards.EffectAmount(card, e, border))}`
-				end
-			end
-		end
-	end
-	return "SUPPORT"
+	local effect = card.Support
+	if not effect then return "PASSIVE" end
+	local labels: { [string]: string } = { LowHeal = "HEAL", Guard = "GUARD", Haste = "SPEED", Dodge = "DODGE", Weaken = "WEAKEN", OpeningShield = "SHIELD", Critical = "CRIT", StartEnergy = "ENERGY", Lifesteal = "LIFESTEAL" }
+	if effect.Kind == "LastStand" then return "LAST STAND · ONCE" end
+	if effect.Kind == "Cleanse" then return `CLEANSE · {effect.Uses or 2} USES` end
+	return `{labels[effect.Kind] or "BOOST"} {percent(Cards.SupportValue(card, stars, border, awaken))}`
 end
 
 function CardInfo.BorderHelp(card: Cards.Card, border: string?): string
 	local tier = Borders.Get(border)
+	if card.Support and card.Support.Amount == 0 then return `{tier.Name}: fixed passive trigger; limits stay the same at every border.` end
 	return if card.Type == "Support"
-		then `{tier.Name}: {tier.Multiplier}x healing, shields and skill damage; {Cards.SupportBoost(card, border)}x percentage boosts. Timings stay the same.`
+		then `{tier.Name}: {Cards.SupportBoost(card, border)}x passive strength. Trigger limits and healing caps stay the same; no damage or HP.`
 		else `{tier.Name}: {tier.Multiplier}x damage and health. Timings stay the same.`
 end
 

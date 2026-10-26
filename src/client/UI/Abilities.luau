@@ -37,8 +37,8 @@ end
 
 function Abilities.When(ability, card): string
 	local slot = Abilities.Slots[ability.Slot] or Abilities.Slots.Basic
-	if ability.Slot == "Basic" and card and card.Type == "Support" then
-		return "at battle start, then on its action"
+	if ability.Slot == "Passive" and card and card.Type == "Support" then
+		return "paired attacker · limits below"
 	end
 	if ability.Slot == "Skill" then
 		return string.format(slot.When, ability.Every or 3)

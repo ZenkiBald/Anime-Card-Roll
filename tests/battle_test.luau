@@ -1,5 +1,5 @@
 -- Deck rules, the battle engine, boss mechanics, rewards, and the tuning targets:
--- the first all-Base deck (about 54.6k Deck Power) beats Kurogane Normal in 60-90 s,
+-- the first all-Base deck (about 25.4k Deck Power) beats Kurogane Normal in 60-90 s,
 -- and a deck at each fight's recommended power wins it in 60-90 s.
 local Config = MODULES.Config
 local Deck = MODULES.Deck
@@ -15,9 +15,9 @@ local starterOwned = F.own(starterIds)
 local starter = Deck.AutoBuild(starterOwned)
 local starterPower = Deck.Power(starter, starterOwned)
 print(`   starter deck: {table.concat(starter.Attack, ",")} / {table.concat(starter.Support, ",")} = {starterPower} power`)
-check(math.abs(starterPower - 54600) <= 600, `the first all-Base deck is about 54.6k power ({starterPower})`)
+check(math.abs(starterPower - 25400) <= 600, `the first all-Base deck is about 25.4k power ({starterPower})`)
 check(Deck.Count(starter, "Attack") == 4 and Deck.Count(starter, "Support") == 4, "auto-build fills 4 Attack + 4 Support")
-check(starter.Attack[1] == "rook" and starter.Support[1] == "suzu", "auto-build puts the strongest card on the left")
+check(starter.Attack[1] == "rook" and starter.Support[1] == "ibuki", "auto-build puts the strongest card on the left")
 
 local ok = Deck.Validate({ Attack = { "rook", "", "", "" }, Support = { "", "", "", "" } }, starterOwned)
 check(ok ~= nil, "a deck with empty slots is valid")
@@ -64,22 +64,19 @@ do
 end
 
 do
-	-- Equal SPD: the left card acts first (Hana and Ibuki are both SPD 100).
-	local deck = F.deck({ "rook" }, { "hana", "ibuki" })
-	local _, events = F.fight("kurogane", "Normal", deck, starterOwned, 5)
-	local order = {}
-	for _, e in events do
-		if e.K == "Act" and e.Ab ~= "Opening" and (e.U == "S1" or e.U == "S2") then
-			table.insert(order, e.U)
-		end
-	end
-	check(order[1] == "S1" and order[2] == "S2", "equal SPD: the left card acts first")
+	local b = Engine.new({ Units = F.units(F.deck({ "rook", "tomo" }, {}), starterOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
+	b.ById.A1.SPD, b.ById.A2.SPD = 100, 100
+	b.ById.A1.Gauge, b.ById.A2.Gauge = 1, 1
+	b:Step(Config.Battle.Tick)
+	local first
+	for _, e in b:TakeEvents() do if e.K == "Act" then first = first or e.U end end
+	check(first == "A1" and b.ById.A2.Gauge >= 1, "equal SPD and gauge: the left attacker acts first")
 end
 
 do
-	-- Support cards: no HP, never targeted, never KO'd; each casts its Basic as the fight opens.
+	-- Passive Supports: no HP, enemy targets, KOs or opening actions.
 	local battle, events = F.fight("kurogane", "Normal", starter, starterOwned, 9)
-	local supportHit, supportKO, opened, firstHitAt = false, false, {}, nil
+	local supportHit, supportKO, opened = false, false, {}
 	for i, e in events do
 		if (e.K == "Hit" or e.K == "Burn" or e.K == "Miss") and e.U == "Boss" and string.sub(e.T, 1, 1) == "S" then
 			supportHit = true
@@ -90,19 +87,9 @@ do
 		if e.K == "Act" and e.Ab == "Opening" then
 			opened[e.U] = i
 		end
-		if firstHitAt == nil and e.K == "Act" and e.Ab ~= "Opening" then
-			firstHitAt = i
-		end
-	end
-	local allOpened = true
-	for i = 1, 4 do
-		local at = opened[`S{i}`]
-		if at == nil or at > firstHitAt then
-			allOpened = false
-		end
 	end
 	check(not supportHit and not supportKO, "Support cards are never hit or KO'd")
-	check(allOpened, "every Support card casts its Basic before the first action")
+	check(next(opened) == nil, "passive Support cards do not cast opening moves")
 	local snap = battle:Snapshot()
 	check(snap.U.S1.H == nil and snap.U.A1.H ~= nil, "Support cards have no HP in the battle snapshot")
 end
@@ -280,7 +267,7 @@ for _, t in times do
 end
 print(
 	string.format(
-		"   54.6k all-Base starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
+		"   25.4k all-Base starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
 		rate * 100,
 		F.percentile(times, 0.1),
 		F.percentile(times, 0.5),
@@ -338,7 +325,7 @@ do
 			end
 		end
 	end
-	check(healed > 0 and lowest < 0.7, `a Nightmare fight hurts: Menders heal ({healed}) and a card drops below 70% HP ({math.floor(lowest * 100)}%)`)
+	check(lowest < 0.7, `a Nightmare fight hurts without repeated Support healing; limited healing ({healed}) and a card drops below 70% HP ({math.floor(lowest * 100)}%)`)
 
 	-- A deck ten times the fight's power still feels the hits (Config.Battle.MinHit).
 	local strong = F.own({ "tomo", "noa", "rook", "kaede", "hana", "luna" }, 5, { tomo = "Rainbow", noa = "Rainbow", rook = "Rainbow", kaede = "Rainbow" })

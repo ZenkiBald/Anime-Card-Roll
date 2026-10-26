@@ -146,7 +146,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		line(`{card.Type}: {CardInfo.Job(card)}.`, Theme.Font.Heavy, Theme.Color.Support, 24, 18)
 		line(Kit.statsText(card, stars, best, node, true), Theme.Font.Heavy, Theme.Color.Text, 24, 18)
 		if card.Type == "Support" then
-			line("Supports act automatically, have no HP and cannot be knocked out. A matching slot number pairs them with an attacker.", Theme.Font.Medium, Theme.Color.Muted, 24, 16)
+			line("Supports are passive: no damage, HP or turns. Pair with the same Attack slot number. Effects stop helping when that attacker falls.", Theme.Font.Medium, Theme.Color.Muted, 24, 16)
 			line(CardInfo.Link(card, best), Theme.Font.Heavy, Theme.Color.Support, 24, 16)
 		end
 		line(CardInfo.BorderHelp(card, best), Theme.Font.Medium, Theme.Color.Muted, 24, 16)
@@ -155,7 +155,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		order = Abilities.List(card, right, order, "big", best)
 	end
 	line(
-		`<font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)} BORDER · {tier.Multiplier}x</font>  ·  {card.Type}  ·  {if owned then card.Title else "Not found yet"}`,
+		`<font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)} BORDER · {if card.Type == "Support" then Cards.SupportBoost(card, best) else tier.Multiplier}x</font>  ·  {card.Type}  ·  {if owned then card.Title else "Not found yet"}`,
 		Theme.Font.Heavy,
 		Theme.Color.Muted,
 		20,
@@ -188,7 +188,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 			16
 		)
 		line(
-			`Action speed {card.SPD}  ·  Team rating contribution {Kit.commas(Cards.Power(card, stars, best, node))} (estimate)`,
+			if card.Type == "Attack" then `Action speed {card.SPD} · Attack rating {Kit.commas(Cards.Power(card, stars, best, node))}` else "PASSIVE · no damage, HP or action timer",
 			Theme.Font.Medium,
 			Theme.Color.Text,
 			20,
@@ -253,7 +253,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		end
 		line(`Borders  {table.concat(parts, "   ")}`, Theme.Font.Heavy, Theme.Color.Text, 20, 17)
 		if best ~= "Normal" then
-			line(`Wearing {tier.Name}: {tier.Multiplier}x base stats`, Theme.Font.Bold, tier.Color, 18, 15)
+			line(if card.Type == "Support" then CardInfo.BorderHelp(card, best) else `Wearing {tier.Name}: {tier.Multiplier}x base stats`, Theme.Font.Bold, tier.Color, 18, 15)
 		end
 		-- Foils found, Awakening nodes, and the trait slots (rolled at the Trait Master).
 		local foundFoils = entry.Foils or {}

@@ -9,13 +9,13 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
-- User review of the card / support clarity pass: SQUAD > AUTO-BUILD > select a card > VIEW SKILLS / BONUSES.
-  Attack shows damage / HP, Support shows actual healing / shield / boost; TEAM RATING is the combined estimate.
-  Card taps only inspect; EQUIP / REMOVE is explicit. Stars are presented as Copy bonus (+5% for the first five
-  duplicates, up to +25%); earned stats / save fields remain. Border scaling now also strengthens support percentage
-  effects / paired bonuses (1 / 1.25 / 1.5 / 1.75x); full healing / shield / damage scaling stays 1 / 4 / 16 / 64x.
-  Source and tests are synced in Studio through Rojo, not published. Existing local town copy predates this card pass;
-  reconnect Rojo when opening it so it receives the current scripts. Real-device review remains parked.
+- User review of passive Supports / Attack-driven combat: SQUAD > inspect a Support > VIEW SKILLS / BONUSES.
+  Supports have no damage / HP / action bar and modify only the matching attacker. Healing / survival are bounded;
+  all 4+4 slots, ownership, names and art remain. Attack action / Skill countdowns are in seconds; results distinguish
+  passive triggers / dodges / applied bonuses from healing. ATTACK RATING excludes passive cards, so the number is
+  lower; bosses / towers / raids were retuned to that rating. No save format change. Desktop Studio source is synced
+  through Rojo, not published. Fixed-effect supports (last stand / cleanse) retain the same limits at every border;
+  percentage passives strengthen by border / Copy bonus / Awakening. Real-device review remains parked.
 - User review of the existing-town polish, applied in the actual place (not a concept): fountain border,
   service paving, benches / planters, roomier NPC / stall positions and a jade-and-slate tower set northwest.
   Local saved place: `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl` (ignored by Git; verified it contains
@@ -39,7 +39,22 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
-- 2026-10-26 · Codex · this commit · Simplified cards / deck play using the user's references for clarity:
+- 2026-10-26 · Codex · this commit · Made all 11 Supports paired passive modifiers, following the user's
+  correction: no damage, HP, action bar, active Skill / Ultimate or repeated team healing. Kept 4 Attack + 4 Support,
+  names / ids / art, ownership and presets. Added bounded emergency heal, opening shield, dodge, speed, crit,
+  guard, starting energy, weakening, two cleanses, one fatal-hit survival and capped lifesteal. Percentages use
+  the selected border / Copy bonus / Awakening; triggers and healing caps stay fixed. ATTACK RATING counts only
+  attackers; AUTO-BUILD ranks passive cards separately. Retuned all bosses and tower curves; raids remain viable.
+  Attack / Skill countdowns now show seconds; Support chips show passive status / uses; results report triggers,
+  dodges or applied bonuses. Shared descriptions / tooltips / fusion / Kenji explain the new rules. No save format
+  change. Type check 0 errors (existing warnings), props 5,498 / 0 problems, headless ALL CHECKS PASSED: all 12
+  bosses 99-100% wins, median 71.5-76.5 s; tower / Pagoda / raids and passive bounds / Attack-only viability pass.
+  Desktop Studio: Gold Lotus Blossom sheet, real Normal fight, attacker countdowns, no Support action bars,
+  passive results and no new runtime errors. Owned deck / presets were not edited. Studio left in Edit; not published.
+  User feedback on the passive effects / balance and real-device play remain unverified. Town local copy still
+  predates these scripts: reconnect Rojo when opening it.
+
+- 2026-10-26 · Codex · 039ef31 · Simplified cards / deck play using the user's references for clarity:
   Attack damage / HP, concrete Support effects, plain type labels, numbered pairs, TEAM RATING estimate, explicit
   EQUIP / REMOVE (vault taps only inspect), and a VIEW SKILLS / BONUSES sheet with a real Back button. Shared
   CardInfo resolves readable values from the effects / border formulas; used in tooltips, full cards, Index,

@@ -3,17 +3,17 @@
 -- Adding a card = adding one entry here (plus art later). No other code changes.
 --
 -- Attack cards (front row) have ATK and HP: they deal the damage and take the enemies' hits.
--- Support cards (back row) have PWR only: no HP, never hit, never KO'd. They cast heals, shields,
--- buffs, debuffs and chip damage, and each casts its Basic once as the fight opens.
+-- Support cards (back row) are passive modifiers: no damage, HP or action speed. Each attaches
+-- only to the matching Attack slot; its Support data declares strength, trigger and battle limit.
 --
 -- There are no card rarities: the BORDER is the tier (Borders.luau). Every card's base stats sit near
--- the same line (ATK ~500 +-10%, HP = 2 x ATK; Support PWR ~300 +-10%), and the border it wears
+-- the same line (ATK ~500 +-10%, HP = 2 x ATK), and the border an Attack card wears
 -- multiplies them: Base 1x, Gold 4x, Rainbow 16x, Secret 64x. Cards differ by element, abilities and how
 -- often they're pulled (Weight: relative pull weight; the chase cards have the lowest).
 -- Boss cards (Boss = a boss id) join the roll pool once that boss is beaten on Normal (Cards.Pool).
 
 -- What an ability does in battle, built from the effect library (BattleEngine runs them).
--- Pct is a share of the caster's ATK (Attack) or PWR (Support).
+-- Pct is a share of the Attack card's ATK. Support uses its separate passive definition.
 --   Damage  Pct per hit, Hits, IgnoreDef                Burn    Pct per turn, Turns, Chance
 --   Heal    Pct                                         Shield  Pct (lasts Config.Battle.ShieldTurns)
 --   Buff    Stat ATK | Crit | CritDamage | SPD | Guard (less damage taken), Amount, Turns (nil = whole battle)
@@ -58,13 +58,14 @@ export type Card = {
 	Role: string, -- "Striker" | "Hexer" | "Mender" | "Warder": its battle job, shown on the card tooltip
 	Weight: number, -- relative pull weight inside the roll pool
 	Element: string, -- Elements.luau: Flame | Frost | Storm | Light | Void | Cosmic
-	Main: number, -- ATK for Attack, PWR for Support
+	Main: number, -- ATK for Attack, 0 for passive Support
 	HP: number?, -- Attack cards only
 	SPD: number,
 	Glyph: string, -- initials, used where the 3D art isn't drawn
 	Accent: Color3, -- portrait background colour
 	Image: string?, -- the card's 2D illustration ("rbxassetid://..."); cards without one show their glyph
 	Abilities: { Ability },
+	Support: { Name: string, Kind: string, Amount: number, Uses: number?, Threshold: number?, Stat: string? }?,
 	-- Support cards: the Slot Link passive given to the Attack card in the matching front slot (Support
 	-- slot 1 links to Attack slot 1, ...). Stat is a trait stat (Traits.luau); BattleEngine applies it.
 	Link: { Name: string, Stat: string, Amount: number, Text: string }?,
@@ -323,22 +324,13 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 10,
 		Element = "Light",
-		Link = { Name = "Blossom Guard", Stat = "Guard", Amount = 0.06, Text = "The Attack card in front takes 6% less damage" },
-		Main = 300,
-		SPD = 100,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "HN",
 		Accent = Color3.fromRGB(120, 200, 110),
+		Support = { Name = "Blossom Guard", Kind = "LowHeal", Amount = 0.15, Uses = 1, Threshold = 0.4 },
 		Abilities = {
-			ability("Basic", "Blossom Palm", "Heal the most hurt Attack card 100% PWR", {
-				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
-			}),
-			ability("Skill", "Healing Palm Burst", "Every 3 actions: heal all Attack cards 90% PWR", {
-				{ Kind = "Heal", Pct = 0.9, Target = "All" },
-			}, 3),
-			ability("Ultimate", "Hundred Healings", "Heal all Attack cards 150% PWR + cleanse 1 debuff", {
-				{ Kind = "Heal", Pct = 1.5, Target = "All" },
-				{ Kind = "Cleanse", Amount = 1, Target = "All" },
-			}),
+			ability("Passive", "Blossom Guard", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -349,27 +341,13 @@ local list: { Card } = {
 		Role = "Warder",
 		Weight = 4,
 		Element = "Light",
-		Link = { Name = "Stone Shoulder", Stat = "Guard", Amount = 0.08, Text = "The Attack card in front takes 8% less damage" },
-		Main = 275,
-		SPD = 90,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "GR",
 		Accent = Color3.fromRGB(200, 170, 110),
+		Support = { Name = "Stone Shoulder", Kind = "Guard", Amount = 0.08, Stat = "Guard" },
 		Abilities = {
-			ability("Basic", "Pummel Pact", "50% PWR damage + shield the most hurt Attack card 100% PWR", {
-				{ Kind = "Damage", Pct = 0.5 },
-				{ Kind = "Shield", Pct = 1, Target = "Lowest" },
-			}),
-			ability("Skill", "Blood Pact", "Every 3 actions: shield all Attack cards 100% PWR + they take 15% less damage for 2 turns", {
-				{ Kind = "Shield", Pct = 1, Target = "All" },
-				{ Kind = "Buff", Stat = "Guard", Amount = 0.15, Turns = 2, Target = "Attack" },
-			}, 3),
-			ability("Passive", "Battle Hide", "Attack cards take 5% less damage", {
-				{ Kind = "Buff", Stat = "Guard", Amount = 0.05, Target = "Attack" },
-			}),
-			ability("Ultimate", "Severing Pact", "Shield all Attack cards 250% PWR + they take 25% less damage for 2 turns", {
-				{ Kind = "Shield", Pct = 2.5, Target = "All" },
-				{ Kind = "Buff", Stat = "Guard", Amount = 0.25, Turns = 2, Target = "Attack" },
-			}),
+			ability("Passive", "Stone Shoulder", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -380,22 +358,13 @@ local list: { Card } = {
 		Role = "Striker",
 		Weight = 10,
 		Element = "Storm",
-		Link = { Name = "Flash Tempo", Stat = "ATK", Amount = 0.06, Text = "The Attack card in front +6% ATK" },
-		Main = 312,
-		SPD = 105,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "SZ",
 		Accent = Color3.fromRGB(255, 210, 70),
+		Support = { Name = "Flash Tempo", Kind = "Haste", Amount = 0.08, Stat = "SPD" },
 		Abilities = {
-			ability("Basic", "Flash Draw", "All Attack cards +8% ATK for 1 turn", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.08, Turns = 1, Target = "Attack" },
-			}),
-			ability("Skill", "Thunder Clap", "Every 3 actions: 150% PWR + all Attack cards +10% SPD for 2 turns", {
-				{ Kind = "Damage", Pct = 1.5 },
-				{ Kind = "Buff", Stat = "SPD", Amount = 0.1, Turns = 2, Target = "Attack" },
-			}, 3),
-			ability("Passive", "Flash Cadence", "+5 energy to a random card with an Ultimate each time she acts", {
-				{ Kind = "Energy", Amount = 5, Target = "Random", When = "OnAct" },
-			}),
+			ability("Passive", "Flash Tempo", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -406,22 +375,13 @@ local list: { Card } = {
 		Role = "Warder",
 		Weight = 8,
 		Element = "Frost",
-		Link = { Name = "Shadow Cloak", Stat = "SPD", Amount = 0.06, Text = "The Attack card in front +6% SPD" },
-		Main = 288,
-		SPD = 100,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "IB",
 		Accent = Color3.fromRGB(150, 170, 200),
+		Support = { Name = "Shadow Cloak", Kind = "Dodge", Amount = 0.06 },
 		Abilities = {
-			ability("Basic", "Hidden Blade", "60% PWR damage + target -10% ATK for 1 turn", {
-				{ Kind = "Damage", Pct = 0.6 },
-				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 1 },
-			}),
-			ability("Skill", "Playful Cloud Strike", "Every 3 actions: 200% PWR, ignores DEF", {
-				{ Kind = "Damage", Pct = 2, IgnoreDef = true },
-			}, 3),
-			ability("Passive", "Zero Presence", "The first enemy hit on each Attack card misses", {
-				{ Kind = "Evade", Hits = 1, Target = "Attack" },
-			}),
+			ability("Passive", "Shadow Cloak", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -432,25 +392,13 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 1.5,
 		Element = "Frost",
-		Link = { Name = "Mirror Sight", Stat = "Crit", Amount = 0.06, Text = "The Attack card in front +6% crit chance" },
-		Main = 308,
-		SPD = 110,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "YA",
 		Accent = Color3.fromRGB(150, 200, 255),
+		Support = { Name = "Mirror Sight", Kind = "Weaken", Amount = 0.08, Uses = 4 },
 		Abilities = {
-			ability("Basic", "Reflected Mercy", "Heal the most hurt Attack card 100% PWR", {
-				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
-			}),
-			ability("Skill", "Mirror Realm", "Every 3 actions: heal all Attack cards 120% PWR + cleanse 1 debuff + every enemy -10% SPD for 2 turns", {
-				{ Kind = "Heal", Pct = 1.2, Target = "All" },
-				{ Kind = "Cleanse", Amount = 1, Target = "All" },
-				{ Kind = "Debuff", Stat = "SPD", Amount = 0.1, Turns = 2, Target = "Enemies" },
-			}, 3),
-			ability("Ultimate", "Total Hypnosis", "Heal all Attack cards 200% PWR + every enemy -20% ATK for 3 turns", {
-				{ Kind = "Heal", Pct = 2, Target = "All" },
-				{ Kind = "Debuff", Stat = "ATK", Amount = 0.2, Turns = 3, Target = "Enemies" },
-			}),
-			ability("Aura", "Mirage Veil", "Every enemy -8% SPD", { { Kind = "Debuff", Stat = "SPD", Amount = 0.08, Target = "Enemies" } }),
+			ability("Passive", "Mirror Sight", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -461,26 +409,13 @@ local list: { Card } = {
 		Role = "Warder",
 		Weight = 6,
 		Element = "Void",
-		Link = { Name = "Iron Back", Stat = "Guard", Amount = 0.1, Text = "The Attack card in front takes 10% less damage" },
-		Main = 292,
-		SPD = 85,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "TS",
 		Accent = Color3.fromRGB(140, 150, 165),
+		Support = { Name = "Iron Back", Kind = "OpeningShield", Amount = 0.15, Uses = 1 },
 		Abilities = {
-			ability("Basic", "Sand Shield", "Shield the most hurt Attack card 150% PWR", {
-				{ Kind = "Shield", Pct = 1.5, Target = "Lowest" },
-			}),
-			ability("Skill", "Iron Sand Wall", "Every 3 actions: shield all Attack cards 100% PWR + they take 20% less damage for 2 turns", {
-				{ Kind = "Shield", Pct = 1, Target = "All" },
-				{ Kind = "Buff", Stat = "Guard", Amount = 0.2, Turns = 2, Target = "Attack" },
-			}, 3),
-			ability("Passive", "Floating Wall", "Attack cards take 10% less damage", {
-				{ Kind = "Buff", Stat = "Guard", Amount = 0.1, Target = "Attack" },
-			}),
-			ability("Ultimate", "Sand Coffin", "Shield all Attack cards 220% PWR + every enemy -15% ATK for 2 turns", {
-				{ Kind = "Shield", Pct = 2.2, Target = "All" },
-				{ Kind = "Debuff", Stat = "ATK", Amount = 0.15, Turns = 2, Target = "Enemies" },
-			}),
+			ability("Passive", "Iron Back", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -491,22 +426,13 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 10,
 		Element = "Light",
-		Link = { Name = "Wing Chart", Stat = "CritDamage", Amount = 0.2, Text = "The Attack card in front +20% crit damage" },
-		Main = 307,
-		SPD = 115,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "LM",
 		Accent = Color3.fromRGB(110, 140, 255),
+		Support = { Name = "Wing Chart", Kind = "Critical", Amount = 0.06, Stat = "Crit" },
 		Abilities = {
-			ability("Basic", "Butterfly Mend", "Heal the most hurt Attack card 100% PWR", {
-				{ Kind = "Heal", Pct = 1, Target = "Lowest" },
-			}),
-			ability("Skill", "Wisteria Sting", "Every 3 actions: heal the most hurt Attack card 120% PWR + enemy ATK -10% for 3 turns", {
-				{ Kind = "Heal", Pct = 1.2, Target = "Lowest" },
-				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 3 },
-			}, 3),
-			ability("Passive", "Star Chart", "All Attack cards +5% crit chance", {
-				{ Kind = "Buff", Stat = "Crit", Amount = 0.05, Target = "Attack" },
-			}),
+			ability("Passive", "Wing Chart", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -517,23 +443,13 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 2.5,
 		Element = "Void",
-		Link = { Name = "Borrowed Time", Stat = "StartEnergy", Amount = 0.25, Text = "The Attack card in front starts with 25 Ultimate energy" },
-		Main = 308,
-		SPD = 100,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "OR",
 		Accent = Color3.fromRGB(90, 220, 220),
+		Support = { Name = "Borrowed Time", Kind = "StartEnergy", Amount = 0.25 },
 		Abilities = {
-			ability("Basic", "Gentle Gears", "Heal all Attack cards 60% PWR", {
-				{ Kind = "Heal", Pct = 0.6, Target = "All" },
-			}),
-			ability("Skill", "Quickened Gears", "Every 3 actions: every card +20% SPD for 2 turns", {
-				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2, Target = "All" },
-			}, 3),
-			ability("Passive", "Slow Clock", "Every enemy -15% SPD", { { Kind = "Debuff", Stat = "SPD", Amount = 0.15, Target = "Enemies" } }),
-			ability("Ultimate", "Rewind", "Revive all KO'd Attack cards at 40% HP + heal them 200% PWR", {
-				{ Kind = "Revive", Pct = 0.4 },
-				{ Kind = "Heal", Pct = 2, Target = "All" },
-			}),
+			ability("Passive", "Borrowed Time", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -544,27 +460,13 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 1,
 		Element = "Cosmic",
-		Link = { Name = "Fox Mantle Link", Stat = "ATK", Amount = 0.12, Text = "The Attack card in front +12% ATK" },
-		Main = 308,
-		SPD = 110,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "AU",
 		Accent = Color3.fromRGB(255, 214, 140),
+		Support = { Name = "Seal's Last Gate", Kind = "LastStand", Amount = 0, Uses = 1 },
 		Abilities = {
-			ability("Basic", "Foxfire Mend", "Heal all Attack cards 80% PWR", {
-				{ Kind = "Heal", Pct = 0.8, Target = "All" },
-			}),
-			ability("Skill", "Fox Mantle", "Every 3 actions: shield all Attack cards 200% PWR", {
-				{ Kind = "Shield", Pct = 2, Target = "All" },
-			}, 3),
-			ability("Ultimate", "Beast Unsealed", "All Attack cards +50% damage for 2 turns", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.5, Turns = 2, Target = "Attack" },
-			}),
-			ability(
-				"Signature",
-				"Seal's Last Gate",
-				"Once per battle, an Attack card that would be KO'd survives at 1 HP, invulnerable for 1 turn",
-				{ { Kind = "DawnOath", Turns = 1 } }
-			),
+			ability("Passive", "Seal's Last Gate", "Passive effect for the paired Attack card", {}),
 		},
 	},
 
@@ -606,24 +508,13 @@ local list: { Card } = {
 		Role = "Mender",
 		Weight = 6,
 		Element = "Storm",
-		Link = { Name = "Thread Step", Stat = "SPD", Amount = 0.08, Text = "The Attack card in front +8% SPD" },
-		Main = 298,
-		SPD = 105,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "AM",
 		Accent = Color3.fromRGB(100, 160, 240),
+		Support = { Name = "Puppet Mend", Kind = "Cleanse", Amount = 0, Uses = 2 },
 		Abilities = {
-			ability("Basic", "Puppet Mend", "Heal the most hurt Attack card 120% PWR", {
-				{ Kind = "Heal", Pct = 1.2, Target = "Lowest" },
-			}),
-			ability("Skill", "Thread Cut", "Every 3 actions: cleanse every Attack card + heal them 60% PWR", {
-				{ Kind = "Cleanse", Amount = 2, Target = "All" },
-				{ Kind = "Heal", Pct = 0.6, Target = "All" },
-			}, 3),
-			ability("Passive", "Cursed Strings", "Every enemy -8% ATK", { { Kind = "Debuff", Stat = "ATK", Amount = 0.08, Target = "Enemies" } }),
-			ability("Ultimate", "Puppet Theater", "Heal all Attack cards 100% PWR + every enemy -20% SPD for 3 turns", {
-				{ Kind = "Heal", Pct = 1, Target = "All" },
-				{ Kind = "Debuff", Stat = "SPD", Amount = 0.2, Turns = 3, Target = "Enemies" },
-			}),
+			ability("Passive", "Puppet Mend", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	{
@@ -659,26 +550,13 @@ local list: { Card } = {
 		Role = "Warder",
 		Weight = 4,
 		Element = "Storm",
-		Link = { Name = "Live Current Link", Stat = "ATK", Amount = 0.1, Text = "The Attack card in front +10% ATK" },
-		Main = 317,
-		SPD = 105,
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
 		Glyph = "AY",
 		Accent = Color3.fromRGB(255, 220, 80),
+		Support = { Name = "Voltage Ward", Kind = "Lifesteal", Amount = 0.04, Threshold = 0.2 },
 		Abilities = {
-			ability("Basic", "Voltage Ward", "Shield the most hurt Attack card 180% PWR", {
-				{ Kind = "Shield", Pct = 1.8, Target = "Lowest" },
-			}),
-			ability("Skill", "Arc Surge", "Every 3 actions: 100% PWR to every enemy + all Attack cards +15% crit for 2 turns", {
-				{ Kind = "Damage", Pct = 1, Target = "Enemies" },
-				{ Kind = "Buff", Stat = "Crit", Amount = 0.15, Turns = 2, Target = "Attack" },
-			}, 3),
-			ability("Passive", "Live Current", "All Attack cards +10% ATK", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
-			}),
-			ability("Ultimate", "Oracle's Tempest", "200% PWR to every enemy + shield all Attack cards 150% PWR", {
-				{ Kind = "Damage", Pct = 2, Target = "Enemies" },
-				{ Kind = "Shield", Pct = 1.5, Target = "All" },
-			}),
+			ability("Passive", "Voltage Ward", "Passive effect for the paired Attack card", {}),
 		},
 	},
 	-- BOSS CARDS: unlocked into the pool by each boss's first Normal clear -----------------------
@@ -968,7 +846,7 @@ function Cards.StatWithStars(base: number, stars: number): number
 end
 
 -- Percentage support effects grow gently; multiplying a 25% shield buff by 64 would break combat.
--- Healing / shielding / damage still use the full border stat multiplier in Cards.Stat.
+-- Passive strengths are percentages; damage and HP belong to Attack cards only.
 function Cards.SupportBoost(card: Card, border: string?): number
 	return if card.Type == "Support" then 1 + 0.25 * (Borders.Index(border or "Normal") - 1) else 1
 end
@@ -988,6 +866,16 @@ function Cards.LinkAmount(card: Card, border: string?): number
 	return if card.Link then card.Link.Amount * Cards.SupportBoost(card, border) else 0
 end
 
+function Cards.SupportValue(card: Card, stars: number, border: string?, awaken: number?): number
+	if not card.Support then return 0 end
+	return math.min(0.5, card.Support.Amount * Cards.SupportBoost(card, border)
+		* (1 + Config.StarBonus * math.clamp(stars, 0, Config.MaxStars)) * Awaken.StatMultiplier(awaken))
+end
+
+function Cards.SupportScore(card: Card, stars: number, border: string?, awaken: number?): number
+	return if card.Support then Borders.Multiplier(border) * Cards.Scale(card) * (1 + 0.05 * stars) * Awaken.StatMultiplier(awaken) else 0
+end
+
 -- A stat with stars, the border's tier multiplier (1x / 4x / 16x / 64x), the card's rarity scale
 -- (Cards.Scale) and the Awakening node (node 1: +10%). The border decides power: the rarest card's scale,
 -- 5 stars and node 1 together are about 2.1x, far under the next border's 4x.
@@ -995,13 +883,13 @@ function Cards.Stat(card: Card, base: number, stars: number, border: string?, aw
 	return Cards.StatWithStars(base * Borders.Multiplier(border) * Cards.Scale(card) * Awaken.StatMultiplier(awaken), stars)
 end
 
--- Deck Power used for boss recommendations: Attack = ATK x 10 + HP, Support = PWR x 24.
+-- Attack rating used for boss recommendations: ATK x 10 + HP. Passive supports add no rating.
 function Cards.Power(card: Card, stars: number, border: string?, awaken: number?): number
 	local main = Cards.Stat(card, card.Main, stars, border, awaken)
 	if card.Type == "Attack" then
 		return main * Config.Power.PerATK + Cards.Stat(card, card.HP or 0, stars, border, awaken)
 	end
-	return main * Config.Power.PerPWR
+	return 0 -- passive supports have no combat stats; team rating measures the Attack row
 end
 
 -- Deck Cost (the Cost Challenge): by the border the card wears (Borders.Cost: 2 / 4 / 6 / 8).
@@ -1010,7 +898,7 @@ function Cards.Cost(border: string?): number
 end
 
 function Cards.MainLabel(card: Card): string
-	return if card.Type == "Attack" then "ATK" else "PWR"
+	return if card.Type == "Attack" then "ATK" else "PASSIVE"
 end
 
 return Cards

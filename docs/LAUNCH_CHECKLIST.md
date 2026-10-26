@@ -46,12 +46,21 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Passive Support pass (2026-10-26): desktop Gold Support sheet shows the paired effect, actual percentage,
+  Copy bonus and per-battle limit. Live Normal fight shows Attack / Skill seconds and passive use counts;
+  Support pods have no action / energy / HP bars. Results show passive triggers / applied bonuses instead of
+  fake healing scores. No new runtime errors. Headless: all 12 boss fixtures 99-100% wins, 71.5-76.5 s medians;
+  tower / Pagoda / raid tests and passive-limit regressions pass. No names, art, ownership or save format changed.
+- [ ] User review: pair a Support with the same numbered attacker, inspect its effect / border strength, and try
+  a fight near the new ATTACK RATING recommendation. Review the limited healing / survival feel. Fixed last-stand
+  and cleanse effects have the same trigger limit at every border. Source synced through Rojo; not published.
+
 - [x] Card clarity / support borders (2026-10-26): desktop SQUAD shows Attack damage / HP, concrete Support effects,
   type labels and numbered pairs. VIEW SKILLS opens the selected border's scrollable sheet; BACK TO CARDS works.
   Copy bonus replaces unexplained stars; advanced traits / Awakening remain in details. Live battle starts without
   new runtime errors. StoreState / missing currency startup error fixed and absent on fresh Play.
-- [ ] User review: AUTO-BUILD, inspect without changing the deck, EQUIP / REMOVE, a Gold Support's actual healing /
-  shields / percentage boost, skill-sheet scrolling and the battle skill popup. Real iPhone check remains parked.
+- [ ] User review: AUTO-BUILD, inspect without changing the deck, EQUIP / REMOVE, a Gold Support's passive strength /
+  trigger limits, skill-sheet scrolling and the battle skill popup. Real iPhone check remains parked.
 - [x] Existing town polish (2026-10-26): real Edit / Play previews, fountain border / service paving / benches,
   moved stalls / NPC markers and jade tower. Pathfinding reaches all five service approaches from spawn without
   jumping; Hoshi / Kenshin / Fortuna range checks accept nearby and reject far-away positions. Map 10,137 parts.
