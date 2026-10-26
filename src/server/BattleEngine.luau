@@ -107,6 +107,7 @@ local function newUnit(spec: UnitSpec)
 		Card = card,
 		Element = card.Element,
 		Awaken = spec.Awaken or 0,
+		Border = spec.Border or "Normal",
 		HPCost = 0,
 		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Border, spec.Awaken),
 		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Border, spec.Awaken) else 0,
@@ -280,12 +281,13 @@ function Engine.new(setup: Setup)
 		local slot = string.match(unit.Id, "^S(%d+)$")
 		local front = slot and self.ById[`A{slot}`]
 		if link and front then
+			local amount = Cards.LinkAmount(unit.Card, unit.Border)
 			if link.Stat == "StartEnergy" then
 				if front.Ultimate then
-					front.Energy = math.min(B.UltimateCost, front.Energy + link.Amount * B.UltimateCost)
+					front.Energy = math.min(B.UltimateCost, front.Energy + amount * B.UltimateCost)
 				end
 			else
-				front.Buffs[`Link:{unit.Id}`] = { Stat = link.Stat, Amount = link.Amount, Left = math.huge }
+				front.Buffs[`Link:{unit.Id}`] = { Stat = link.Stat, Amount = amount, Left = math.huge }
 			end
 			table.insert(self.Links, { From = unit.Id, To = front.Id, Name = link.Name })
 		end
@@ -412,7 +414,7 @@ function Engine:Buff(unit, stat: string): number
 			local on = (effect.When == "BossAbove50" and boss.HP > boss.MaxHP * 0.5)
 				or (effect.When == "SelfBelow50" and unit.HasHP and unit.HP < unit.MaxHP * 0.5)
 			if on then
-				total += effect.Amount
+				total += Cards.EffectAmount(unit.Card, effect, unit.Border)
 			end
 		end
 	end
@@ -849,20 +851,22 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 			end
 		end
 	elseif kind == "Buff" then
+		local amount = Cards.EffectAmount(unit.Card, effect, unit.Border)
 		local targets = self:Targets(unit, effect.Target or "Self", kind)
 		local key = `{unit.Id}:{abilityName or "Passive"}:{effect.Stat}`
 		for _, target in targets do
-			target.Buffs[key] = { Stat = effect.Stat, Amount = effect.Amount, Left = turns(effect.Turns) }
+			target.Buffs[key] = { Stat = effect.Stat, Amount = amount, Left = turns(effect.Turns) }
 		end
 		if not quiet then
-			self:Emit({ K = "Buff", U = unit.Id, T = ids(targets), Stat = effect.Stat, A = effect.Amount })
+			self:Emit({ K = "Buff", U = unit.Id, T = ids(targets), Stat = effect.Stat, A = amount })
 		end
 	elseif kind == "Debuff" then
+		local amount = Cards.EffectAmount(unit.Card, effect, unit.Border)
 		local key = `{unit.Id}:{abilityName or "Passive"}:{effect.Stat}`
 		for _, enemy in self:EnemyTargets(effect.Target) do
-			enemy.Debuffs[key] = { Stat = effect.Stat, Amount = effect.Amount, Left = turns(effect.Turns) }
+			enemy.Debuffs[key] = { Stat = effect.Stat, Amount = amount, Left = turns(effect.Turns) }
 			if not quiet then
-				self:Emit({ K = "Debuff", U = unit.Id, T = enemy.Id, Stat = effect.Stat, A = effect.Amount })
+				self:Emit({ K = "Debuff", U = unit.Id, T = enemy.Id, Stat = effect.Stat, A = amount })
 			end
 		end
 	elseif kind == "Energy" then

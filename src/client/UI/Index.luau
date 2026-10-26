@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rarity = require(Shared.Rarity) -- trait tier colours only
 local Cards = require(Shared.Cards)
+local CardInfo = require(Shared.CardInfo)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
 local Elements = require(Shared.Elements)
@@ -52,12 +53,12 @@ local function closeDetail()
 	end
 end
 
-local function showDetail(card)
+local function showDetail(card, chosenBorder: string?, parent: Instance?)
 	closeDetail()
 	local entry = State.Cards[card.Id]
 	local owned = entry ~= nil
 	local stars = if entry then entry.Stars else 0
-	local best = if entry then Borders.Best(entry.Borders) else "Normal"
+	local best = chosenBorder or (if entry then Borders.Best(entry.Borders) else "Normal")
 	local tier = Borders.Get(best)
 	local node = if entry then Awaken.Level(entry) else 0
 
@@ -69,17 +70,22 @@ local function showDetail(card)
 		AutoButtonColor = false,
 		Text = "",
 		ZIndex = 20,
-		Parent = modal.Body,
+		Parent = parent or modal.Body,
 	}, {
 		Kit.corner(UDim.new(0, 16)),
 		Kit.gradient(ColorSequence.new(Theme.Color.TileTop:Lerp(tier.Dark, 0.35), Theme.Color.TileBottom:Lerp(Color3.new(0, 0, 0), 0.35)), 90),
 		Kit.stroke(tier.Color, 3, 0.15),
 	})
 	detail = panel
+	local back = Kit.button("< BACK TO CARDS", Theme.Color.Line, Theme.Color.TileBottom, {
+		Name = "BackToCards", Position = UDim2.fromOffset(8, 4), Size = UDim2.fromOffset(170, 28), ZIndex = 23, Parent = panel,
+	})
+	back.Activated:Connect(closeDetail)
 
 	local left = Kit.new("Frame", {
 		Name = "CardSide",
-		Size = UDim2.fromScale(0.4, 1),
+		Position = UDim2.fromOffset(0, 34),
+		Size = UDim2.new(0.4, 0, 1, -34),
 		BackgroundTransparency = 1,
 		ZIndex = 21,
 		Parent = panel,
@@ -87,6 +93,7 @@ local function showDetail(card)
 	local view = CardView.new(card.Id, {
 		Owned = owned,
 		Stars = stars,
+		Awaken = node,
 		Animate = owned,
 		Border = best,
 		Trait = entry and entry.Trait,
@@ -101,8 +108,8 @@ local function showDetail(card)
 
 	local right = Kit.new("ScrollingFrame", {
 		Name = "Info",
-		Position = UDim2.fromScale(0.42, 0),
-		Size = UDim2.fromScale(0.58, 1),
+		Position = UDim2.new(0.42, 0, 0, 34),
+		Size = UDim2.new(0.58, 0, 1, -34),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
@@ -135,6 +142,18 @@ local function showDetail(card)
 	end
 
 	line(if owned then card.Name else "???", Theme.Font.Display, Theme.Color.Text, 30, 28)
+	if owned then
+		line(`{card.Type}: {CardInfo.Job(card)}.`, Theme.Font.Heavy, Theme.Color.Support, 24, 18)
+		line(Kit.statsText(card, stars, best, node, true), Theme.Font.Heavy, Theme.Color.Text, 24, 18)
+		if card.Type == "Support" then
+			line("Supports act automatically, have no HP and cannot be knocked out. A matching slot number pairs them with an attacker.", Theme.Font.Medium, Theme.Color.Muted, 24, 16)
+			line(CardInfo.Link(card, best), Theme.Font.Heavy, Theme.Color.Support, 24, 16)
+		end
+		line(CardInfo.BorderHelp(card, best), Theme.Font.Medium, Theme.Color.Muted, 24, 16)
+		line(`{CardInfo.CopyBonus(stars)}. The first 5 duplicates add 5% each (max 25%); this is separate from the border.`, Theme.Font.Medium, Theme.Color.Gold, 24, 16)
+		line("Base values before temporary battle effects, critical hits and enemy defenses. Healing is limited by missing HP.", Theme.Font.Medium, Theme.Color.Muted, 24, 14)
+		order = Abilities.List(card, right, order, "big", best)
+	end
 	line(
 		`<font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)} BORDER · {tier.Multiplier}x</font>  ·  {card.Type}  ·  {if owned then card.Title else "Not found yet"}`,
 		Theme.Font.Heavy,
@@ -162,17 +181,14 @@ local function showDetail(card)
 	end
 	if owned then
 		line(
-			`★ {stars}/{Config.MaxStars} stars (+{math.floor(stars * Config.StarBonus * 100 + 0.5)}% stats)  ·  {entry.Copies} pulled`,
+			`{CardInfo.CopyBonus(stars)}  ·  {entry.Copies} pulled`,
 			Theme.Font.Bold,
 			Theme.Color.Gold,
 			20,
 			16
 		)
-		local hpText = if card.HP then `   ❤️ HP <b>{Kit.commas(Cards.Stat(card, card.HP, stars, best, node))}</b>` else ""
 		line(
-			`{if card.Type == "Attack" then "⚔️ ATK" else "✨ PWR"} <b>{Kit.commas(Cards.Stat(card, card.Main, stars, best, node))}</b>{hpText}   ⚡ SPD <b>{card.SPD}</b>   Power <b>{Kit.commas(
-				Cards.Power(card, stars, best, node)
-			)}</b>`,
+			`Action speed {card.SPD}  ·  Team rating contribution {Kit.commas(Cards.Power(card, stars, best, node))} (estimate)`,
 			Theme.Font.Medium,
 			Theme.Color.Text,
 			20,
@@ -303,16 +319,23 @@ local function showDetail(card)
 				fav.Label.Text = if want ~= "" then "★ YOUR FAVOURITE" else "☆ SET AS FAVOURITE"
 			end
 		end)
-		order = Abilities.List(card, right, order, "big")
 	else
 		line("Keep rolling to discover this card and its abilities!", Theme.Font.Bold, Theme.Color.Muted, 20, 16)
 	end
-	line("Tap anywhere on this panel to go back.", Theme.Font.Medium, Theme.Color.Muted, 18, 14)
+	line("Use BACK TO CARDS to return to your team.", Theme.Font.Medium, Theme.Color.Muted, 18, 14)
 	panel.Activated:Connect(function()
 		closeDetail()
 		Index.Refresh()
 	end)
 end
+
+-- Also used by DECK: readable, scrollable skills at the selected tile's actual border.
+function Index.Inspect(cardId: string, border: string?, parent: Instance)
+	local card = Cards.Get(cardId)
+	if card then showDetail(card, border, parent) end
+end
+
+Index.CloseDetail = closeDetail
 
 -- One border tier: its odds, how many cards have been found at it (boss cards aside), its completion
 -- reward, and the cards whose best border it is (Base also lists the cards not found yet).

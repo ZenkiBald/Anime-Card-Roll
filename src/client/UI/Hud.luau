@@ -31,6 +31,7 @@ local UIArt = require(script.Parent.UIArt)
 local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local Hud = {}
+local ready = false -- StoreState can arrive while Init is still building the currency chips.
 
 local gui: ScreenGui
 local dock: Frame
@@ -1033,6 +1034,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		end
 	end)
 
+	ready = true
 	Hud.Refresh()
 end
 
@@ -1232,6 +1234,7 @@ function Hud.RefreshGoal()
 end
 
 function Hud.Refresh()
+	if not ready then return end
 	local s = State.Summary
 	setCurrency("Shards", Kit.commas(s.Shards or 0), s.Shards or 0)
 	local traitShards = s.TraitShards or State.Meta.TraitShards or 0

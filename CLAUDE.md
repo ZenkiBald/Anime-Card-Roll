@@ -55,7 +55,9 @@ x ATK; Support PWR ~300, no HP), scaled by rarity (`Cards.Scale`: a Weight 10 ca
 up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
 `Cards.luau`; a rarer card never carries a smaller kit (Weight 6 and rarer have an Ultimate, boss cards a passive too)
-and its subtitle (`Title`) and colour (`Accent`) fit its name and element. Stars +5% each (max 5). Copies pile up per border (`BorderCopies`); every border with copies is its own
+and its subtitle (`Title`) and colour (`Accent`) fit its name and element. The first five duplicates give a
+**Copy bonus** of +5% stats each, up to +25% (still `Stars` internally / in saves). Stars and Awakening pips are
+omitted from card faces; progression is explained in the skill sheet. Copies pile up per border (`BorderCopies`); every border with copies is its own
 tile in the SQUAD vault (Gold x5 beside Rainbow x1), and the tile put in the deck is the border the card fights at
 (`Deck.PlayBorder`, the save's `Play`; DeckService `PlayAs`; AUTO-BUILD resets to the best border); Awakening nodes at 20 / 40 / 60 / 80
 copies (+10% stats, +15% Skill DMG, 400% bond, trait slot 2). **Border fusion** at Hoshi: 100 copies at one border -> 1
@@ -66,7 +68,12 @@ every card by best border with completion rewards per border. A card can be worn
 fire footsteps, Secret celestial motes).
 
 **Deck and battle.** 4 Attack + 4 Support, 3 presets (+2 VIP), AUTO-BUILD / COUNTER-BUILD. Each Support's Slot Link
-buffs the Attack card in its column. Elements: Flame > Frost > Storm > Flame, Light <> Void, Cosmic beats all (x1.3 /
+buffs the Attack card with the matching slot number. Supports have no HP and cannot be knocked out; they cast their
+Basic at the opening and then act automatically. Healing, shielding and skill damage use full border-scaled stats.
+Support percentage buffs / debuffs and Slot Link bonuses scale by Base 1x / Gold 1.25x / Rainbow 1.5x / Secret 1.75x
+(`Cards.SupportBoost`, `EffectAmount`, `LinkAmount`); energy grants, durations, cooldowns, Attack percentage skills,
+traits and shared element synergies keep their own values. Engine stores / emits the scaled amounts.
+Elements: Flame > Frost > Storm > Flame, Light <> Void, Cosmic beats all (x1.3 /
 x0.85); 2 / 4 of an element switch on a synergy; 8 named bonds fire a Dual Ultimate once. Every fight is the leader +
 3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls. Stagger bar (counter
 elements fill it faster) -> 5 s Staggered. Rhythm and threat (`Config.Battle`): bars start part-filled (StartGauge) and one unit acts
@@ -137,9 +144,17 @@ Search / dropdowns and formation trays are quiet sunken wells. The deck screen r
 draw labels above their background gradient so they remain visible.
 
 `UITheme.BorderTiers` still frames cards: bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void 3 px; the border is
-the tier. Stars are small parchment diamonds. Tiles show art, name, xN, Awakening pips, FUSE! at 100 copies and the
+the tier. Tiles show art, a plain ATTACK / SUPPORT label, element, name, xN, FUSE! at 100 copies and the
 rarity number, with no combat stats. Names wrap / scale 8-14; stats live in the inspector / tooltip. Vault tiles are
 larger; the phone inspector collapses until selection; deck thumbnails omit duplicate tiny name / rarity labels.
+DECK explains the two card types and numbered pairs. Attack slots show damage / HP; Support slots show their actual
+Basic healing, shield or boost instead of generic power. The combined estimate is labelled TEAM RATING. Tapping a
+vault card only selects it; EQUIP / REMOVE is explicit. The inspector prioritizes the Basic effect, Skill timing
+and Copy bonus. VIEW SKILLS / BONUSES opens the scrollable Index detail sheet at the selected border, with a visible
+BACK TO CARDS button. `Shared/CardInfo` resolves the same effect amounts used by the server into plain language;
+tooltips, Index, reveals, battle skill popups and fusion previews use concrete numbers. Advanced traits / Awakening
+remain in the details. Battle skill popups scroll within the viewport. HUD refresh waits for initialization so an
+early StoreState update cannot access missing currency chips.
 BAG uses illustrated relic / potion / pack emblems with named plaques, separate status lines, and relic-rarity
 frames (bronze / purple / gold / crimson); packs keep their roll counts. BOSS SCOUT retains its unit trays and
 counter / synergy / bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
@@ -156,7 +171,7 @@ role weapon and id-based hair crest). The user is making character illustrations
 - `src/shared` -> ReplicatedStorage.Shared (both sides; pure data + formulas, tested headless): `Config` (tuning,
   `TestMode`, dev access lists, deck and battle rules), `Cards` (card data + `Pool`, `PullChances`, `Stat`, `Power`,
   `Cost`), `Borders` (the tiers: odds, multipliers, cost, colours), `Odds`, `Rarity` (relic / trait tiers only),
-  `Elements`, `Foils`, `Awaken`, `RollBoost` (Momentum + Surge), `Deck`, `Bosses`, `Rewards`, `Tower`, `Raid`, `Packs`, `Goals`,
+  `CardInfo` (readable effect facts), `Elements`, `Foils`, `Awaken`, `RollBoost` (Momentum + Surge), `Deck`, `Bosses`, `Rewards`, `Tower`, `Raid`, `Packs`, `Goals`,
   `Items` (relics + artifacts), `Traits`, `Meta` (potions, upgrades, Index rewards, daily, gifts, milestones, quests, levels,
   stats, events, wheel, luck / cooldown formulas), `Tutorial`, `Mounts`, `BossModels`, `MonetizationConfig`.
 - `src/server` -> ServerScriptService.Server: `Main.server`, `DataService` (ProfileStore saves), `SaveMigration` (old

@@ -3,8 +3,8 @@
 -- framed by its border tier (UITheme.BorderTiers: bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void
 -- 3 px; the border IS the tier), the art in the middle, and along the bottom the name and copies, then the
 -- card's rarity number at its border (Cards.Rarity, a round number like 7,500,000) in the tier's colour.
--- No combat stats on the tile: they live in the deck screen's inspector and the tooltip. Stars are small parchment diamonds (they are stats, +5% each, not
--- the tier); element and role sit in diamond IconBadges top-right. Size it from outside.
+-- No combat stats on the tile: they live in the inspector / skill sheet. A plain Attack / Support label
+-- says which row it belongs in; the element sits top-right. Copy bonus is explained in the details.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -25,7 +25,6 @@ local ElementUi = require(script.Parent.ElementUi)
 local CardTile = {}
 
 local TweenService = game:GetService("TweenService")
-local AWAKEN_PIPS = 4 -- nodes at 20 / 40 / 60 / 80 copies (Awaken.luau); node 5 is border fusion: the FUSE! seal
 
 local C = UITheme.Colors
 
@@ -39,7 +38,7 @@ export type Options = {
 	Spin: boolean?, -- spin a Secret card's border (only for a few tiles at once)
 	Border: string?, -- the card's best border (Borders.luau): the tier and its frame
 	Stats: boolean?, -- ignored: stats moved to the inspector / tooltip (kept so callers don't break)
-	Awaken: number?, -- the card's Awakening node (0-4): four small pips above the name when given
+	Awaken: number?, -- retained for callers; progression is shown in the detail sheet
 	Fusable: boolean?, -- 100+ copies at this border and a border above it: a pulsing FUSE! seal
 }
 
@@ -189,29 +188,6 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 			Parent = button,
 		}, 14), 1.2)
 	end
-	-- Awakening: four small pips (20 / 40 / 60 / 80 copies), filled for each node open.
-	if owned and options.Awaken ~= nil then
-		local pips = Kit.new("Frame", {
-			Name = "Awakening",
-			Position = UDim2.fromScale(0.07, 0.48),
-			Size = UDim2.fromScale(0.4, 0.06),
-			BackgroundTransparency = 1,
-			ZIndex = 6,
-			Parent = button,
-		}, {
-			Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0.06, 0), VerticalAlignment = Enum.VerticalAlignment.Center }),
-		})
-		for i = 1, AWAKEN_PIPS do
-			local open = i <= (options.Awaken or 0)
-			Kit.new("Frame", {
-				Size = UDim2.fromScale(0.2, 1),
-				BackgroundColor3 = if open then C.SpiritCyan else C.UrushiInset,
-				BorderSizePixel = 0,
-				ZIndex = 6,
-				Parent = pips,
-			}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(if open then C.WashiParchment else C.TamahaganeSlate, 1, if open then 0.3 else 0) })
-		end
-	end
 	-- FUSE!: a vermilion wax seal over the art, pulsing, when this border has the copies to fuse (at Hoshi).
 	if owned and options.Fusable then
 		local seal = Kit.new("Frame", {
@@ -251,43 +227,19 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Parent = button,
 	}, 18), 2)
 
-	-- Stars (top-left): up to five small parchment diamonds, filled for each star.
-	if owned and (options.Stars or 0) > 0 then
-		local pips = Kit.new("Frame", {
-			Name = "Stars",
-			Position = UDim2.fromScale(0.07, 0.06),
-			Size = UDim2.fromScale(0.5, 0.09),
-			BackgroundTransparency = 1,
-			ZIndex = 6,
-			Parent = button,
-		}, {
-			Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0.04, 0), VerticalAlignment = Enum.VerticalAlignment.Center }),
-		})
-		for i = 1, 5 do
-			local filled = i <= (options.Stars or 0)
-			Kit.new("Frame", {
-				Size = UDim2.fromScale(0.15, 0.7),
-				Rotation = 45,
-				BackgroundColor3 = if filled then C.WashiParchment else C.UrushiInset,
-				BorderSizePixel = 0,
-				ZIndex = 6,
-				Parent = pips,
-			}, { Kit.aspect(1, Enum.DominantAxis.Height), Kit.stroke(if filled then C.TamahaganeRust else C.TamahaganeSlate, 1, 0) })
-		end
-	end
+	-- Say which row it belongs in; the border already communicates the tier.
+	Kit.label({
+		Name = "CardType", Text = string.upper(card.Type), Font = Theme.Font.Bold,
+		TextColor3 = if card.Type == "Support" then Color3.fromRGB(139, 221, 177) else Color3.fromRGB(255, 160, 140),
+		TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.fromScale(0.06, 0.03),
+		Size = UDim2.fromScale(0.65, 0.12), ZIndex = 6, Parent = button,
+	}, 11)
 
 	-- Element and role (top-right): diamond IconBadges, shown before the card is found too (for planning).
 	ElementUi.Badge(card.Element, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(0.96, 0.03),
 		Size = UDim2.fromScale(0.22, 0.22),
-		ZIndex = 6,
-		Parent = button,
-	})
-	ElementUi.RoleBadge(card.Role, {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(0.95, 0.24),
-		Size = UDim2.fromScale(0.18, 0.18),
 		ZIndex = 6,
 		Parent = button,
 	})

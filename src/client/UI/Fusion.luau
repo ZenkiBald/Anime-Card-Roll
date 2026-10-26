@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
+local CardInfo = require(Shared.CardInfo)
 local Borders = require(Shared.Borders)
 local Config = require(Shared.Config)
 local Awaken = require(Shared.Awaken)
@@ -120,8 +121,8 @@ end
 
 local function statLine(card, stars: number, border: string, node: number): string
 	local main = Kit.commas(Cards.Stat(card, card.Main, stars, border, node))
-	local text = if card.Type == "Attack" then `⚔️ {main}  ❤️ {Kit.commas(Cards.Stat(card, card.HP or 0, stars, border, node))}` else `✨ {main} PWR`
-	return `{text}\n<b>{Kit.commas(Cards.Power(card, stars, border, node))}</b> power`
+	local text = if card.Type == "Attack" then `DMG {main}  HP {Kit.commas(Cards.Stat(card, card.HP or 0, stars, border, node))}` else CardInfo.Headline(card, stars, border, node)
+	return `{text}\n<b>{Kit.commas(Cards.Power(card, stars, border, node))}</b> team rating`
 end
 
 local drawGrid -- forward declaration

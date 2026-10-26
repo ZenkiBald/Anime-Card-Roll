@@ -9,15 +9,21 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- User review of the card / support clarity pass: SQUAD > AUTO-BUILD > select a card > VIEW SKILLS / BONUSES.
+  Attack shows damage / HP, Support shows actual healing / shield / boost; TEAM RATING is the combined estimate.
+  Card taps only inspect; EQUIP / REMOVE is explicit. Stars are presented as Copy bonus (+5% for the first five
+  duplicates, up to +25%); earned stats / save fields remain. Border scaling now also strengthens support percentage
+  effects / paired bonuses (1 / 1.25 / 1.5 / 1.75x); full healing / shield / damage scaling stays 1 / 4 / 16 / 64x.
+  Source and tests are synced in Studio through Rojo, not published. Existing local town copy predates this card pass;
+  reconnect Rojo when opening it so it receives the current scripts. Real-device review remains parked.
 - User review of the existing-town polish, applied in the actual place (not a concept): fountain border,
   service paving, benches / planters, roomier NPC / stall positions and a jade-and-slate tower set northwest.
   Local saved place: `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl` (ignored by Git; verified it contains
   the geometry / markers / backup). The currently open cloud place also has the edits, but they are NOT published.
   Map changes do not travel through Rojo / git pull: use that local copy or apply `tools/studio/town-polish.luau`
   to the original map and save from Studio. Do not use `rojo build`. Cloudspire / a replacement world were NOT
-  approved; the user rejected the concepts and chose to improve the current town. UI changes are parked.
-- Separate existing startup bug observed in Play: `UI/Hud:330`, `setCurrency`, called by Main's StoreState event
-  before currency chips exist (two errors). No HUD code changed in the town pass. Fix this in a separate pass.
+  approved; the user rejected the concepts and chose to improve the current town. Replacement UI themes are parked;
+  the later card / support clarity request is implemented above.
 - User review of the implemented illustrated UI kit: gold icon menu, lacquer panels, vermilion buttons,
   Gotham typography, BAG emblems and matching battle intro / controls. The user asked to put phone work aside
   and implement the visual concept. Source art / prompts / asset ids: `art/ui/occult/README.md`.
@@ -33,7 +39,22 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
-- 2026-10-26 · Codex · this commit · Polished the existing spawn town in Studio: restrained fountain materials,
+- 2026-10-26 · Codex · this commit · Simplified cards / deck play using the user's references for clarity:
+  Attack damage / HP, concrete Support effects, plain type labels, numbered pairs, TEAM RATING estimate, explicit
+  EQUIP / REMOVE (vault taps only inspect), and a VIEW SKILLS / BONUSES sheet with a real Back button. Shared
+  CardInfo resolves readable values from the effects / border formulas; used in tooltips, full cards, Index,
+  reveals, fusion and battle skill info. Removed unexplained stars / Awakening pips from card faces; Copy bonus
+  explains the existing first-five-dupes stat bonus, traits / Awakening still in details. No names / art ids / save
+  fields changed. Server now scales Support buffs / debuffs / Slot Links gently by border (1 / 1.25 / 1.5 / 1.75x),
+  leaving durations / energy grants / shared synergies / Attack percentages alone. Vex Normal HP 756k -> 790k to
+  keep its fixture in range (63.1 s median). Fixed early StoreState / HUD refresh race. Type check 0 errors (existing
+  warnings), props 5,491 checked / 0 problems, headless ALL CHECKS PASSED including battle / tower tuning and new
+  support tests for all border heals / shields / boosts / links, debuff scaling and player-facing text.
+  Desktop Studio: card selection, skill sheet / Back, repeated inspection leaves saved deck unchanged, no star /
+  Awakening pips on vault cards, no new runtime errors, fresh startup no currency error; one live battle started
+  without errors. Test-clicked Lotus Blossom slot restored to its original state. Studio left in Edit; not published.
+  User comprehension, all touch actions, fusion interaction and the resized battle skill popup still need review.
+- 2026-10-26 · Codex · 331d0a4 · Polished the existing spawn town in Studio: restrained fountain materials,
   thin stone border / service approaches, two wood benches with flower planters, moved the three existing stalls,
   explicit Sage / Fusion / TraitMaster / Wheel / Tower markers and a clearer leaderboard position. Tower palette
   is jade / slate with non-neon bands (door / crystal keep their glow). Reproducible edit script has one-run guard

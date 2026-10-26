@@ -323,11 +323,14 @@ local function showCardInfo(cardId: string)
 		Parent = gui,
 	})
 	cardInfo = cover
-	local panel = Kit.new("Frame", {
+	local panel = Kit.new("ScrollingFrame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(0, 460, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
+		Size = UDim2.fromOffset(math.min(460, workspace.CurrentCamera.ViewportSize.X * 0.9), math.min(600, workspace.CurrentCamera.ViewportSize.Y * 0.8)),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ScrollBarThickness = 4,
+		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		ZIndex = 61,
 		Parent = cover,
@@ -738,11 +741,7 @@ end
 -- Support: portrait, name, what it casts, action and energy bars (no HP).
 local function makeTile(unit, order: number)
 	local card = Cards.Get(unit.CardId)
-	local stars = 0
 	local entry = State.Cards[unit.CardId]
-	if entry then
-		stars = entry.Stars
-	end
 	local borderId = Deck.PlayBorder(entry) -- the border it fights at is the tier
 	local tier = Borders.Get(borderId)
 	local isAttack = card.Type == "Attack"
@@ -823,19 +822,6 @@ local function makeTile(unit, order: number)
 	-- The illustration (or the element-lit bust) in a bevelled metal frame in the border's colour.
 	CardView.Portrait(unit.CardId, true).Parent = portrait
 	CardView.Bevel(portrait, borderId, 2)
-	if stars > 0 then
-		Kit.label({
-			Name = "Stars",
-			Text = string.rep("★", stars),
-			Font = Theme.Font.Heavy,
-			TextColor3 = Theme.Color.Gold,
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.fromScale(0.5, 0.98),
-			Size = UDim2.fromScale(0.9, 0.2),
-			ZIndex = 3,
-			Parent = portrait,
-		}, 14)
-	end
 
 	local info = Kit.new("Frame", {
 		Name = "Info",

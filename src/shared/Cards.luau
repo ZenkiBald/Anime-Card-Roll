@@ -967,6 +967,27 @@ function Cards.StatWithStars(base: number, stars: number): number
 	return math.floor(base * (1 + 0.05 * math.clamp(stars, 0, 5)) + 0.5)
 end
 
+-- Percentage support effects grow gently; multiplying a 25% shield buff by 64 would break combat.
+-- Healing / shielding / damage still use the full border stat multiplier in Cards.Stat.
+function Cards.SupportBoost(card: Card, border: string?): number
+	return if card.Type == "Support" then 1 + 0.25 * (Borders.Index(border or "Normal") - 1) else 1
+end
+
+function Cards.EffectAmount(card: Card, effect: Effect, border: string?): number
+	local amount = effect.Amount or 0
+	if effect.Kind == "Buff" or effect.Kind == "Debuff" then
+		-- Only this card's own kit: shared element synergies / bonds must not inherit its border.
+		for _, a in card.Abilities do
+			if table.find(a.Effects, effect) then return amount * Cards.SupportBoost(card, border) end
+		end
+	end
+	return amount
+end
+
+function Cards.LinkAmount(card: Card, border: string?): number
+	return if card.Link then card.Link.Amount * Cards.SupportBoost(card, border) else 0
+end
+
 -- A stat with stars, the border's tier multiplier (1x / 4x / 16x / 64x), the card's rarity scale
 -- (Cards.Scale) and the Awakening node (node 1: +10%). The border decides power: the rarest card's scale,
 -- 5 stars and node 1 together are about 2.1x, far under the next border's 4x.

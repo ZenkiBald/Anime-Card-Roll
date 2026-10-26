@@ -12,7 +12,6 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
-local Config = require(Shared.Config)
 local Borders = require(Shared.Borders)
 local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
@@ -45,7 +44,7 @@ local function outcomeText(result): string
 	if result.Outcome == "New" then
 		text = "NEW CARD!"
 	elseif result.Outcome == "Star" then
-		text = `★ Star up!  {result.Stars}/{Config.MaxStars}`
+		text = `Copy bonus increased: +{result.Stars * 5}% stats`
 	else
 		text = "Duplicate"
 	end
@@ -704,7 +703,7 @@ function Reveal.Quick(result)
 	local badgeText = if borderId ~= "Normal"
 		then `{string.upper(borderId)}!`
 		elseif result.Outcome == "New" then "NEW"
-		elseif result.Outcome == "Star" then `★{result.Stars}`
+		elseif result.Outcome == "Star" then `COPY +{result.Stars * 5}%`
 		else "DUPE"
 	local badge = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),

@@ -1,6 +1,6 @@
 --!nonstrict
 -- Draws a card, full-art: the character's 2D illustration (Card.Image) fills the card, framed only by its
--- border (the tier: Base / Gold / Rainbow / Secret) and an element glow, with stars, the big name, the
+-- border (the tier: Base / Gold / Rainbow / Secret) and an element glow, with the big name, the
 -- headline ability, tags and DMG / HP on top of it. No rarity badges: the frame says the tier, and the
 -- rarity number chip (Cards.Rarity: how many pulls it takes, e.g. "48,579") says how rare it is.
 -- Cards without an illustration yet show an element-lit bust (CardView.Portrait, used by every card
@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rarity = require(Shared.Rarity) -- trait tier colours only
 local Cards = require(Shared.Cards)
+local CardInfo = require(Shared.CardInfo)
 
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
@@ -29,6 +30,7 @@ local CardView = {}
 export type Options = {
 	Owned: boolean?,
 	Stars: number?,
+	Awaken: number?,
 	Compact: boolean?, -- small grid tile: hides title and stats
 	Animate: boolean?, -- the figure sways (big reveals and detail views only)
 	Border: string?, -- Borders.luau id: the tier (frame and stat multiplier)
@@ -37,10 +39,6 @@ export type Options = {
 }
 
 local SILHOUETTE = Color3.fromRGB(46, 44, 62)
-
-local function starText(stars: number): string
-	return string.rep("★", stars) .. string.rep("☆", 5 - stars)
-end
 
 -- The character's 2D illustration (Card.Image) as an ImageLabel; nil until the card has one (callers
 -- show the card's glyph instead). `animate` is kept for callers; images don't sway.
@@ -540,11 +538,8 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		}),
 	})
 
-	-- Only the stars along the top: the frame already says the tier.
+	-- The frame says the tier; the top chip gives its rarity number.
 	local chips = row(frame, "Chips", 0.025, if compact then 0.1 else 0.06)
-	if owned and stars > 0 and not compact then -- compact cards show ★★★★★ at the bottom instead
-		chip(chips, 1, `★{stars}`, Color3.fromRGB(16, 19, 28), 0.16, Theme.Color.Gold)
-	end
 	-- The rarity number: how many pulls this card at this border takes (Cards.Rarity), in the border's colour.
 	local rarity = if owned then Cards.Rarity(card.Id, border) else 0
 	if rarity > 0 then
@@ -582,8 +577,8 @@ function CardView.new(cardId: string, opts: Options?): Frame
 	if compact then
 		if owned then
 			local starLabel = Kit.label({
-				Name = "Stars",
-				Text = starText(stars),
+				Name = "CardType",
+				Text = string.upper(card.Type),
 				Font = Theme.Font.Heavy,
 				TextColor3 = Theme.Color.Gold,
 				Position = UDim2.fromScale(0.1, 0.7),
@@ -663,17 +658,17 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			end
 		end
 
-		-- Footer: DMG (ATK) and HP for Attack cards, PWR and SPD for Support cards.
+		-- Footer: damage / HP for attackers; actual healing / shielding / boost for supports.
 		if owned then
-			local main = Cards.Stat(card, card.Main, stars, options.Border)
+			local main = Cards.Stat(card, card.Main, stars, options.Border, options.Awaken)
 			local leftText, leftColor, rightText, rightColor
 			if card.Type == "Attack" then
 				leftText, leftColor = `DMG {short(main)}`, Color3.fromRGB(255, 70, 70)
-				rightText = `HP {short(Cards.Stat(card, card.HP or 0, stars, options.Border))}`
+				rightText = `HP {short(Cards.Stat(card, card.HP or 0, stars, options.Border, options.Awaken))}`
 				rightColor = Color3.fromRGB(90, 230, 110)
 			else
-				leftText, leftColor = `PWR {short(main)}`, Color3.fromRGB(110, 200, 255)
-				rightText, rightColor = `SPD {card.SPD}`, Color3.fromRGB(255, 220, 110)
+				leftText, leftColor = CardInfo.Headline(card, stars, options.Border, options.Awaken), Color3.fromRGB(139, 221, 177)
+				rightText, rightColor = "SUPPORT", Color3.fromRGB(139, 221, 177)
 			end
 			for i, info in { { leftText, leftColor }, { rightText, rightColor } } do
 				local stat = Kit.label({

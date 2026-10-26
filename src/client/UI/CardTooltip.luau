@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
+local CardInfo = require(Shared.CardInfo)
 local Borders = require(Shared.Borders)
 local Elements = require(Shared.Elements)
 local Config = require(Shared.Config)
@@ -30,30 +31,9 @@ local WIDTH = 280
 local HOVER_SCALE = 1.15
 local HOVER_DELAY = 0.25
 local LONG_PRESS = 0.35
-local TARGETS = {
-	Enemies = "all enemies",
-	RandomEnemy = "random enemies",
-	Self = "itself",
-	Lowest = "the lowest-HP ally",
-	Attack = "every Attack card",
-	All = "the whole squad",
-	Random = "a random ally",
-}
-
 local gui: ScreenGui? = nil
 local flyout: Frame? = nil
 local owner: GuiObject? = nil -- the card the open flyout belongs to
-
-local function targetText(ability): string
-	for _, effect in ability.Effects do
-		if effect.Kind == "Damage" or effect.Kind == "Burn" or effect.Kind == "Debuff" then
-			return TARGETS[effect.Target] or "the focus target"
-		elseif TARGETS[effect.Target] then
-			return TARGETS[effect.Target]
-		end
-	end
-	return "the focus target"
-end
 
 -- Stagger a skill adds to an enemy leader: every damage hit fills Config.Battle.StaggerPerHit.
 local function staggerText(ability): string
@@ -199,6 +179,7 @@ local function build(cardId: string, border: string): Frame?
 	local stars = if own then own.Stars else 0
 	local node = if own then Awaken.Level(own) else 0
 	line(Kit.statsText(card, stars, border, node, true), Theme.Font.Heavy, UITheme.Colors.WashiParchment, 14)
+	line(`{card.Type}: {CardInfo.Job(card)}. {CardInfo.CopyBonus(stars)}.`, Theme.Font.Bold, Theme.Color.Muted, 13)
 	-- What its duplicates are for: the next Awakening node, and fusing this border's pile at Hoshi.
 	if own then
 		local nextNode = Awaken.Nodes[node + 1]
@@ -225,27 +206,27 @@ local function build(cardId: string, border: string): Frame?
 	if basic then
 		rule()
 		line(`{badge("BASIC", Abilities.Slots.Basic.Color)}  <b>{basic.Name}</b>`, Theme.Font.Heavy, Theme.Color.Text, 15)
-		line(`Target: {targetText(basic)}\n{Abilities.Describe(basic)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
+		line(`Automatic on its action\n{Abilities.Describe(basic, card, stars, border, node)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
 	end
 	if skill then
 		rule()
 		line(`{badge("SKILL", Abilities.Slots.Skill.Color)}  <b>{skill.Name}</b>`, Theme.Font.Heavy, Theme.Color.Text, 15)
-		line(`CD: every {skill.Every or 3} actions  ·  {staggerText(skill)}\n{Abilities.Describe(skill)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
+		line(`Every {skill.Every or 3} actions  ·  {staggerText(skill)}\n{Abilities.Describe(skill, card, stars, border, node)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
 	end
 	if ult then
 		rule()
 		line(`{badge("ULTIMATE", Abilities.Slots.Ultimate.Color)}  <b><i>{ult.Name}</i></b>`, Theme.Font.Heavy, Theme.Color.Text, 15)
-		line(`⚡ {Config.Battle.UltimateCost} energy\n{Abilities.Describe(ult)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
+		line(`Tap at {Config.Battle.UltimateCost} energy\n{Abilities.Describe(ult, card, stars, border, node)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
 	end
 	for _, ability in card.Abilities do
 		if ability.Slot ~= "Basic" and ability.Slot ~= "Skill" and ability.Slot ~= "Ultimate" then
 			local slot = Abilities.Slots[ability.Slot] or Abilities.Slots.Basic
 			rule()
-			line(`{badge(slot.Label, slot.Color)}  <b>{ability.Name}</b>\n{Abilities.Describe(ability)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
+			line(`{badge(slot.Label, slot.Color)}  <b>{ability.Name}</b>\n{Abilities.Describe(ability, card, stars, border, node)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
 		end
 	end
 	if card.Link then
-		line(`🔗 <b>{card.Link.Name}</b>: {card.Link.Text}`, Theme.Font.Medium, Theme.Color.Muted, 13)
+		line(`<b>{card.Link.Name}</b>: {CardInfo.Link(card, border)}`, Theme.Font.Medium, Theme.Color.Muted, 13)
 	end
 
 	-- Bond links.

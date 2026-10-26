@@ -172,7 +172,7 @@ local list: { Boss } = {
 			{ Name = "Rend", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 7, Recommended = 219000, HP = 756000, ATK = 4287, WarnSeconds = 2 },
+			Normal = { D = 7, Recommended = 219000, HP = 790000, ATK = 4287, WarnSeconds = 2 },
 			Hard = { D = 8, Recommended = 323000, HP = 1610000, ATK = 5288, WarnSeconds = 2 },
 			Nightmare = { D = 9, Recommended = 366000, HP = 2930000, ATK = 6326, WarnSeconds = 1 },
 		},

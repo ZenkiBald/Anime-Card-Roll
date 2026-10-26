@@ -9,19 +9,18 @@
 --   the owned cards grid (search in the panel header), and the inspector for the picked card: name,
 --   archetype, element, both trait slots, the Awakening track, EQUIP TO SLOT and VISIT TRAIT MASTER
 --   (closes the panel and lays a guide line to Kenshin in town).
--- Tap a slot to pick where cards go; tap a card to inspect it (tap it again, or EQUIP, to put it in).
+-- Tap a slot to pick where cards go; tap a card to inspect it, then use the explicit EQUIP / REMOVE button.
 -- Every change goes to the server (DeckService), which validates it.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
+local CardInfo = require(Shared.CardInfo)
 local Borders = require(Shared.Borders)
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
-local Rarity = require(Shared.Rarity) -- trait tier colours
 local Elements = require(Shared.Elements)
-local Traits = require(Shared.Traits)
 local Awaken = require(Shared.Awaken)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
@@ -35,6 +34,7 @@ local Sfx = require(script.Parent.Sfx)
 local ElementGuide = require(script.Parent.ElementGuide)
 local Waypoint = require(script.Parent.Waypoint)
 local CardTooltip = require(script.Parent.CardTooltip)
+local Index = require(script.Parent.Index)
 local ElementUi = require(script.Parent.ElementUi)
 local MetaClient = require(script.Parent.Parent.MetaClient)
 local Avatars = require(script.Parent.Parent.Avatars)
@@ -83,9 +83,9 @@ local FIRE_GOLD = Color3.fromRGB(255, 170, 60) -- Hoshi's waypoint
 local working = nil -- the deck being edited (mirrors the active preset)
 local search = ""
 local typeBy = "All"
-local sortBy = "Power"
+local sortBy = "Rating"
 local elementBy = "Any"
-local chips = { Star5 = false, Gold = false, Rainbow = false, Secret = false }
+local chips = { Gold = false, Rainbow = false, Secret = false }
 local hintToken = 0
 local refreshQueued = false
 
@@ -338,7 +338,7 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	})
 	local compact = workspace.CurrentCamera.ViewportSize.Y < 540
 	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, if compact then 0.5 else 0.3), Parent = info }, 17)
-	text({ Text = card.Title or "", Visible = not compact, Font = Theme.Font.Bold, TextColor3 = Theme.Color.Muted, Position = UDim2.fromScale(0, 0.39), Size = UDim2.fromScale(1, 0.22), Parent = info }, 12)
+	text({ Text = if card.Type == "Support" then CardInfo.Job(card) else `HP {Kit.commas(Cards.Stat(card, card.HP or 0, if own then own.Stars else 0, if own then Deck.PlayBorder(own) else "Normal", if own then Awaken.Level(own) else 0))}`, Visible = not compact, Font = Theme.Font.Bold, TextColor3 = Theme.Color.Muted, Position = UDim2.fromScale(0, 0.39), Size = UDim2.fromScale(1, 0.22), Parent = info }, 12)
 	-- Element and role badges, then the card's power.
 	ElementUi.Badge(card.Element, {
 		Position = UDim2.fromScale(0, 0.62),
@@ -347,28 +347,17 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 		ZIndex = 4,
 		Parent = info,
 	})
-	ElementUi.RoleBadge(card.Role, {
-		Position = UDim2.fromScale(0, 0.62),
-		Size = UDim2.fromScale(0.34, 0.34),
-		DominantAxis = Enum.DominantAxis.Height,
-		ZIndex = 4,
-		Parent = info,
-	})
 	local powerText = text({
-		Text = `<font color="#FFC42E">⚡ {Kit.commas(Deck.CardPower(id, State.Cards))}</font>`,
+		Text = CardInfo.Headline(card, if own then own.Stars else 0, if own then Deck.PlayBorder(own) else "Normal", if own then Awaken.Level(own) else 0),
 		Position = UDim2.fromScale(0, 0.66),
 		Size = UDim2.fromScale(1, 0.26),
 		Parent = info,
 	}, 14)
-	-- Keep the role badge and the power clear of the element badge, at any plate size.
+	-- Keep the concrete stat clear of the element badge at any plate size.
 	local function placeBadges()
 		local h = Kit.logicalSize(info).Y * 0.34
-		local role = info:FindFirstChild("Role")
-		if role then
-			role.Position = UDim2.new(0, h + 4, 0.62, 0)
-		end
-		powerText.Position = UDim2.new(0, 2 * h + 10, 0.66, 0)
-		powerText.Size = UDim2.new(1, -(2 * h + 10), 0.26, 0)
+		powerText.Position = UDim2.new(0, h + 6, 0.66, 0)
+		powerText.Size = UDim2.new(1, -(h + 6), 0.26, 0)
 	end
 	info:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeBadges)
 	placeBadges()
@@ -460,7 +449,7 @@ local function drawLink(link: Frame, index: number)
 		end)
 	elseif linked and support then
 		text({
-			Text = support.Link.Name,
+			Text = `PAIR {index}`,
 			TextColor3 = CYAN,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			AnchorPoint = Vector2.new(0.5, 0),
@@ -485,13 +474,13 @@ end
 
 -- Every border a card has copies at is its own vault tile: { Card, Border, Copies at that border }.
 local SORTS = {
-	Power = function(a, b)
+	Rating = function(a, b)
 		return Deck.PowerAt(a.Card.Id, State.Cards, a.Border) > Deck.PowerAt(b.Card.Id, State.Cards, b.Border)
 	end,
 	Border = function(a, b)
 		return Borders.Index(a.Border) > Borders.Index(b.Border)
 	end,
-	Stars = function(a, b)
+	["Copy bonus"] = function(a, b)
 		return (entry(a.Card.Id) and entry(a.Card.Id).Stars or 0) > (entry(b.Card.Id) and entry(b.Card.Id).Stars or 0)
 	end,
 	Copies = function(a, b)
@@ -503,9 +492,6 @@ local SORTS = {
 }
 
 local function passesChips(own, border: string): boolean
-	if chips.Star5 and (own.Stars or 0) < 5 then
-		return false
-	end
 	local wantBorder = chips.Gold or chips.Rainbow or chips.Secret
 	if not wantBorder then
 		return true
@@ -531,7 +517,7 @@ local function drawGrid()
 			end
 		end
 	end
-	local compare = SORTS[sortBy] or SORTS.Power
+	local compare = SORTS[sortBy] or SORTS.Rating
 	table.sort(list, function(a, b)
 		local before, after = compare(a, b), compare(b, a)
 		if before ~= after then
@@ -564,13 +550,10 @@ local function drawGrid()
 			return card.Id, border
 		end)
 		tile.Activated:Connect(function()
-			if inspectId == card.Id and (inspectBorder or Deck.PlayBorder(own)) == border then
-				equip(card.Id, border) -- a second tap puts it in at this border (or takes it out)
-			else
-				inspectId, inspectBorder = card.Id, border
-				Sfx.Play("Click", 1)
-				refresh()
-			end
+			inspectId, inspectBorder = card.Id, border
+			CardTooltip.Close()
+			Sfx.Play("Click", 1)
+			refresh()
 		end)
 	end
 	emptyLabel.Visible = #list == 0
@@ -599,13 +582,14 @@ local function drawInspector()
 	local card = id and Cards.Get(id)
 	local own = id and entry(id)
 	local collapsed = workspace.CurrentCamera.ViewportSize.Y < 540 and (card == nil or own == nil)
-	local reserve = if collapsed then 0 else 140
+	local reserve = if collapsed then 0 else 180
+	inspector.Size = UDim2.new(1, 0, 0, reserve)
 	inspector.Visible = not collapsed
 	grid.Size = UDim2.new(1, 0, 1, -74 - reserve - 38)
 	hintLabel.Position = UDim2.new(0.5, 0, 1, -reserve - 12)
 	if card == nil or own == nil then
 		text({
-			Text = "Tap a card to inspect it: EQUIP it, FUSE its copies or ROLL its TRAITS. Tap it again to put it in your squad.",
+			Text = "Start with AUTO-BUILD. Tap any card to compare it, then VIEW SKILLS for its effects and border upgrades.",
 			TextColor3 = Theme.Color.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextWrapped = true,
@@ -621,7 +605,7 @@ local function drawInspector()
 	local best = if inspectBorder and table.find(owns, inspectBorder) then inspectBorder else playing
 	local border = Borders.Get(best)
 	local element = Elements.Get(card.Element)
-	local left = Kit.new("Frame", { Size = UDim2.new(0.58, -8, 1, 0), BackgroundTransparency = 1, Parent = inspector })
+	local left = Kit.new("Frame", { Name = "Facts", Size = UDim2.new(0.58, -8, 1, 0), BackgroundTransparency = 1, Parent = inspector })
 	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Size = UDim2.new(1, -56, 0, 22), Parent = left }, 20)
 	-- Element and role badges beside the name.
 	ElementUi.Badge(card.Element, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -26, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
@@ -636,23 +620,12 @@ local function drawInspector()
 		Parent = left,
 	}, 13)
 	-- Traits: slot 1, and slot 2 once Awakening node 4 is open.
-	local level = Awaken.Level(own)
-	local function traitLine(slot: number, traitId: string?, y: number)
-		local open = slot == 1 or level >= Traits.Slot2Node
-		local trait = Traits.Get(traitId)
-		local value = if not open
-			then `<font color="#8A94AC">🔒 Locked: unlocks at {Awaken.Nodes[Traits.Slot2Node].Copies} dupes</font>`
-			elseif trait then `<font color="#{Rarity.Get(trait.Tier).Color:ToHex()}">{trait.Icon} {trait.Name}</font>`
-			else `<font color="#8A94AC">None yet</font>`
-		text({ Text = `TRAIT {slot}  {value}`, Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 14)
-	end
-	traitLine(1, own.Trait, 44)
-	traitLine(2, own.Trait2, 63)
-	-- Awakening: five pips, one per node.
-	local pips = {}
-	for node = 1, #Awaken.Nodes do
-		table.insert(pips, if level >= node then `<font color="#3CDCFF">[●]</font>` else `<font color="#5A6480">[○]</font>`)
-	end
+	-- Show its job and real Basic / Skill values first; advanced progression stays in VIEW SKILLS.
+	local basic, skill = Cards.Ability(card, "Basic"), Cards.Ability(card, "Skill")
+	local description = if basic then CardInfo.Describe(card, basic, own.Stars, best, Awaken.Level(own)) else CardInfo.Job(card)
+	text({ Name = "BasicEffect", Text = description, TextWrapped = true, TextColor3 = Theme.Color.Support, Position = UDim2.fromOffset(0, 43), Size = UDim2.new(1, 0, 0, 38), Parent = left }, 14)
+	text({ Text = if skill then `SKILL: {skill.Name} · every {skill.Every or 3} actions` else "Basic acts automatically", TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 83), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 12)
+	text({ Text = `{CardInfo.CopyBonus(own.Stars)} · {own.Copies} pulled`, TextColor3 = Theme.Color.Gold, Position = UDim2.fromOffset(0, 103), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 13)
 	-- Copies at every border (each is its own card in the vault) and the border it fights at.
 	local piles = {}
 	for _, b in owns do
@@ -662,15 +635,14 @@ local function drawInspector()
 	text({
 		Text = `COPIES  {table.concat(piles, " · ")}   <font color="#8A94AC">fights as {Borders.Get(playing).Name}</font>`,
 		RichText = true,
-		Position = UDim2.fromOffset(0, 101),
+		Position = UDim2.fromOffset(0, 123),
 		Size = UDim2.new(1, 0, 0, 18),
 		Parent = left,
 	}, 13)
-	local copies = `{Kit.commas(own.Copies)} dupes`
-	text({ Text = `AWAKENING  {table.concat(pips, "")}  <font color="#8A94AC">({copies})</font>`, Position = UDim2.fromOffset(0, 82), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 14)
 
 	-- Actions.
 	local actions = Kit.new("Frame", {
+		Name = "Actions",
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
 		Size = UDim2.new(0.42, 0, 1, 0),
@@ -742,6 +714,13 @@ local function drawInspector()
 		Size = UDim2.new(1, 0, 0, 30),
 		Parent = actions,
 	})
+	local details = Kit.button("VIEW SKILLS / BONUSES", C.TamahaganeSlate, C.UrushiBase, {
+		Name = "ViewSkills", LayoutOrder = 4, Size = UDim2.new(1, 0, 0, 30), Parent = actions,
+	})
+	details.Activated:Connect(function()
+		CardTooltip.Close()
+		Index.Inspect(card.Id, best, modal.Body)
+	end)
 	avatar.Activated:Connect(function()
 		local want = if State.Meta.Avatar == card.Id then "" else card.Id
 		-- Predict: the aura changes on the character this frame; the server's AuraReplication settles it.
@@ -847,7 +826,7 @@ local function drawPresets()
 end
 
 local function drawFooter()
-	powerLabel.Text = `<font color="#FFC42E">⚡</font> {Kit.commas(Deck.Power(working, State.Cards))} <font size="14" color="#{C.WashiGhost:ToHex()}">DECK POWER</font>`
+	powerLabel.Text = `{Kit.commas(Deck.Power(working, State.Cards))} <font size="13" color="#{C.WashiGhost:ToHex()}">TEAM RATING</font>`
 	drawCost()
 	clear(synergyStrip)
 	local count = 0
@@ -941,14 +920,15 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 	-- LEFT: the formation --------------------------------------------------------------------------------
 	local left = pane({ Name = "Formation", Size = UDim2.new(0.48, -6, 1, 0), Parent = modal.Body })
 	Kit.padding(10).Parent = left
-	text({ Text = "FORMATION: 4v4 SQUAD", Font = Theme.Font.Display, Size = UDim2.new(1, 0, 0, 24), Parent = left }, 22)
-	Controls.Header(left, "Frontline attackers", CRIMSON, { Position = UDim2.fromOffset(0, 30), Size = UDim2.new(0.44, 0, 0, 28) })
-	Controls.Header(left, "Backline supports", CYAN, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 30), Size = UDim2.new(0.44, 0, 0, 28) })
+	text({ Text = "YOUR TEAM · 4 ATTACK + 4 SUPPORT", Font = Theme.Font.Display, Size = UDim2.new(1, 0, 0, 24), Parent = left }, 20)
+	text({ Name = "TeamGuide", Text = "Attackers fight and take hits. Supports help automatically.\nMatching numbers pair cards. Team rating estimates overall strength.", TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 34), Parent = left }, 13)
+	Controls.Header(left, "ATTACK · Damage + HP", CRIMSON, { Position = UDim2.fromOffset(0, 68), Size = UDim2.new(0.44, 0, 0, 28) })
+	Controls.Header(left, "SUPPORT · Heal / Shield / Boost", CYAN, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 68), Size = UDim2.new(0.44, 0, 0, 28) })
 
 	local rowsArea = Kit.new("Frame", {
 		Name = "Rows",
-		Position = UDim2.fromOffset(0, 66),
-		Size = UDim2.new(1, 0, 1, -66 - 112),
+		Position = UDim2.fromOffset(0, 104),
+		Size = UDim2.new(1, 0, 1, -104 - 112),
 		BackgroundTransparency = 1,
 		Parent = left,
 	}, {
@@ -1122,7 +1102,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		typeBy = value
 		refresh()
 	end)
-	Controls.Option(dropdowns, "Sort", { "Power", "Border", "Stars", "Copies", "Name" }, 2, function(value)
+	Controls.Option(dropdowns, "Sort", { "Rating", "Border", "Copy bonus", "Copies", "Name" }, 2, function(value)
 		sortBy = value
 		refresh()
 	end)
@@ -1143,7 +1123,6 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }),
 	})
 	for i, chip in {
-		{ "Star5", "★5", Theme.Color.Gold },
 		{ "Gold", "GOLD", Borders.Get("Gold").Color },
 		{ "Rainbow", "RAINBOW", Color3.fromRGB(255, 120, 220) },
 		{ "Secret", "SECRET", Borders.Get("Secret").Color },
@@ -1216,6 +1195,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		end
 	end
 	modal.OnClose = function()
+		Index.CloseDetail()
 		pulseToken += 1 -- stops the BOND ACTIVE pulses
 	end
 

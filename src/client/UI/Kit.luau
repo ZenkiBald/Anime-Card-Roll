@@ -387,7 +387,7 @@ function Kit.short(n: number): string
 	return tostring(math.floor(n))
 end
 
--- A card's battle stats as rich text: "⚔ DMG 2.2K  ❤ HP 4.4K" (Attack) or "✨ PWR 1.3K" (Support), at its
+-- A card's battle stats as rich text: damage / HP (Attack), real Basic healing / shield / boost (Support), at its
 -- stars, border and Awakening node. `long` spells the numbers out with commas.
 function Kit.statsText(card, stars: number, border: string?, awaken: number?, long: boolean?): string
 	local Cards = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Cards")) :: any
@@ -397,7 +397,8 @@ function Kit.statsText(card, stars: number, border: string?, awaken: number?, lo
 		local hp = fmt(Cards.Stat(card, card.HP or 0, stars, border, awaken))
 		return `<font color="#FF7A5C">⚔ DMG <b>{main}</b></font>   <font color="#5CE6A0">❤ HP <b>{hp}</b></font>`
 	end
-	return `<font color="#6CD8FF">✨ PWR <b>{main}</b></font>   <font color="#B8C2D6">SPD {card.SPD}</font>`
+	local CardInfo = require(game:GetService("ReplicatedStorage").Shared.CardInfo)
+	return `<font color="#8BDDB1"><b>{CardInfo.Headline(card, stars, border, awaken)}</b></font>`
 end
 
 return Kit
