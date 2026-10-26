@@ -394,6 +394,17 @@ local function fromKit(id: string, look: Look): Model?
 	end
 	local model = template:Clone()
 	model.Name = id
+	-- A rig with a face (a Head with a Decal) is turned so the face looks along the pivot's front:
+	-- inserted characters often come saved facing backwards.
+	local head = model:FindFirstChild("Head", true)
+	if head and head:IsA("BasePart") and head:FindFirstChildWhichIsA("Decal") then
+		local facing = head.CFrame.LookVector * Vector3.new(1, 0, 1)
+		if facing.Magnitude > 0.1 then
+			model.PrimaryPart = nil
+			local pivot = model:GetPivot()
+			model.WorldPivot = CFrame.lookAt(pivot.Position, pivot.Position + facing.Unit)
+		end
+	end
 	local height = look.Scale * 6
 	local _, size = model:GetBoundingBox()
 	model:ScaleTo(model:GetScale() * height / size.Y)

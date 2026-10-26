@@ -25,7 +25,10 @@ local GUARD_SCALE = 0.55
 -- Where guards stand, in the leader's frame (it faces -Z): left, right, in front. Wide enough that their
 -- tiles don't overlap from the battle camera; the front guard's tile hangs under its feet (FRONT), so it
 -- never covers the leader or its plate.
-local GUARD_SPOTS = { Vector3.new(-13, 0, -3), Vector3.new(13, 0, -3), Vector3.new(0, 0, -12) }
+-- The front guard stands a little off-centre so it never hides the leader from the camera.
+local GUARD_SPOTS = { Vector3.new(-12, 0, -3), Vector3.new(12, 0, -3), Vector3.new(6, 0, -11) }
+-- The leader towers over its guards and fills about half the screen's height (camera below).
+local LEADER_SCALE = 1.45
 local FRONT = 3
 -- During a fight the place's bloom is turned down (the braziers and neon blew out the middle of the
 -- screen); Stop puts it back.
@@ -35,7 +38,7 @@ local savedBloom: { Effect: BloomEffect, Intensity: number, Threshold: number }?
 local folder: Folder? = nil
 local guis = {} -- BillboardGuis made for this fight
 local figures = {} -- [enemyId] = { Model, Base, Height, Highlight, Tint, Kick, Lunge, Down }
-local hidden = {} -- the world's own boss NPC parts, hidden while we stand in for it
+local hidden = {} -- the world's own boss NPC and portal parts (and emitters), hidden during the fight
 local dof: DepthOfFieldEffect? = nil
 local stepConnection: RBXScriptConnection? = nil
 local plate = nil -- the leader's name + HP plate
@@ -174,12 +177,19 @@ end
 local function hideNpc(boss)
 	local hub = Workspace:FindFirstChild("Hub")
 	local area = hub and hub:FindFirstChild(`World{boss.World}`)
-	local npc = area and area:FindFirstChild(boss.Id)
-	if npc then
-		for _, part in npc:GetDescendants() do
-			if part:IsA("BasePart") then
-				part.LocalTransparencyModifier = 1
-				table.insert(hidden, part)
+	-- The NPC, and the world's portal veil (a 36-stud neon plane right behind the boss's spot, which
+	-- would flood the fight's backdrop).
+	for _, name in { boss.Id, "Portal" } do
+		local thing = area and area:FindFirstChild(name)
+		if thing then
+			for _, part in { thing, table.unpack(thing:GetDescendants()) } do
+				if part:IsA("BasePart") then
+					part.LocalTransparencyModifier = 1
+					table.insert(hidden, part)
+				elseif part:IsA("ParticleEmitter") and part.Enabled then
+					part.Enabled = false
+					table.insert(hidden, part)
+				end
 			end
 		end
 	end
@@ -226,7 +236,7 @@ export type Staged = {
 
 -- Stages the fight; nil when the boss has no spot in this place (the battle screen then keeps its
 -- 2D view). `guards` are the squad's guards in slot order (left, right, front).
-function Arena.Start(boss, guards: { any }, tint: Color3?): Staged?
+function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Staged?
 	Arena.Stop()
 	local arenas = ReplicatedStorage:FindFirstChild("Arenas")
 	local spot = arenas and arenas:FindFirstChild(boss.Id)
@@ -252,10 +262,10 @@ function Arena.Start(boss, guards: { any }, tint: Color3?): Staged?
 		return CFrame.new(floor) * at.Rotation
 	end
 
-	local leader = figure("Boss", boss.Id, onGround(Vector3.zero), 1, tint)
+	local leader = figure("Boss", boss.Id, onGround(Vector3.zero), LEADER_SCALE, tint)
 	-- Sized in studs to the leader, so the boss holder's rings, taps and damage numbers sit on it.
 	local leaderGui = billboard("LeaderStage", leader.Model.PrimaryPart, UDim2.fromScale(leader.Height * 0.95, leader.Height * 0.95), 0)
-	plate = makePlate(leader, boss.Name, boss.Accent)
+	plate = makePlate(leader, name or boss.Name, boss.Accent) -- a tower echo / Colossus shows its own name
 
 	local guardGuis = {}
 	for i, guard in guards do
@@ -282,10 +292,12 @@ function Arena.Start(boss, guards: { any }, tint: Color3?): Staged?
 	-- Low cinematic camera in front of the squad, looking up at the leader, drifting slowly.
 	local camera = Workspace.CurrentCamera
 	camera.CameraType = Enum.CameraType.Scriptable
-	camera.FieldOfView = 55
-	local focus = leader.Base.Position + Vector3.new(0, leader.Height * 0.15, 0)
+	-- Framed so the leader spans the band between the boss bar (top ~20%) and the squad dock (lower 22%).
+	camera.FieldOfView = 50
+	-- Leader's feet at ~66% of the screen and head at ~25%, guards' feet above the dock.
 	local front = leader.Base * CFrame.new(0, -leader.Height / 2, 0)
-	local eyeBase = (front * CFrame.new(0, 2.2, -(20 + leader.Height * 1.4))).Position
+	local focus = (front * CFrame.new(0, leader.Height * 0.4, 0)).Position
+	local eyeBase = (front * CFrame.new(0, leader.Height * 0.3, -(leader.Height * 2.6))).Position
 	local effect = Instance.new("DepthOfFieldEffect")
 	effect.Name = "BattleFocus"
 	effect.FocusDistance = (focus - eyeBase).Magnitude
@@ -357,8 +369,12 @@ function Arena.Stop()
 	end
 	table.clear(guis)
 	table.clear(figures)
-	for _, part in hidden do
-		part.LocalTransparencyModifier = 0
+	for _, thing in hidden do
+		if thing:IsA("ParticleEmitter") then
+			thing.Enabled = true
+		else
+			thing.LocalTransparencyModifier = 0
+		end
 	end
 	table.clear(hidden)
 	if dof then

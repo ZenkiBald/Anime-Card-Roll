@@ -2454,7 +2454,7 @@ local function begin(start, bossId: string, difficulty: string?)
 	local tint = if tower then (if tower.Guardian then Color3.fromRGB(255, 226, 150) else Color3.fromRGB(170, 240, 255)) -- an echo
 		elseif raid then Color3.fromRGB(255, 150, 170) -- a Colossus
 		else nil
-	local staged = Arena.Start(boss, guards, tint)
+	local staged = Arena.Start(boss, guards, tint, if tower then tower.Name elseif raid then raid.Name else nil)
 	backdrop.BackgroundTransparency = if staged then 1 else 0.02
 	backdrop.Active = staged == nil -- staged: taps reach the enemies' world-space billboards
 	local spotlight = gui:FindFirstChild("Spotlight")

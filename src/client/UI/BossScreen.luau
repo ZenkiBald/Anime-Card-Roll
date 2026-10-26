@@ -315,7 +315,10 @@ local function chip(parent: Instance, order: number, edge: Color3, sunken: boole
 	})
 end
 
+-- Text in a chip fills the chip's height; text laid straight into a tray gets a fixed 30 px instead
+-- (a tray sizes itself to its children, so a full-height label there would grow it without end).
 local function chipText(parent: Instance, order: number, value: string, color: Color3, size: number?)
+	local inTray = parent:FindFirstChildOfClass("UIListLayout") ~= nil and (parent :: any).AutomaticSize == Enum.AutomaticSize.Y
 	return Kit.label({
 		LayoutOrder = order,
 		Text = value,
@@ -325,7 +328,7 @@ local function chipText(parent: Instance, order: number, value: string, color: C
 		TextScaled = false,
 		TextSize = size or 14,
 		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.new(0, 0, 1, 0),
+		Size = if inTray then UDim2.new(0, 0, 0, 30) else UDim2.new(0, 0, 1, 0),
 		Parent = parent,
 	}, size or 14)
 end
