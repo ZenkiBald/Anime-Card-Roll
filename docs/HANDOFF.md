@@ -24,6 +24,10 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
+- 2026-10-26 · Claude Code · this commit · HUD polish on Codex's lacquer kit, from the user's desktop screenshot:
+  ROLL is the one big button (AUTO / QUICK smaller toggles), the RECENT PULLS label only shows over pulls, MOUNT
+  label no longer clipped, ODDS line bigger, Next Goal pill larger on desktop and pulses every 3 s while it can be
+  done. Type check 0 errors, props 0 problems; not seen in Studio.
 - 2026-10-26 · Codex · this commit · Implemented the approved visual concept in the real UI. Generated and uploaded
   four textures (navigation atlas, inventory atlas, lacquer panel, vermilion blossom button); source PNGs / prompts /
   ids in `art/ui/occult/README.md`, active wiring in `UI/UIArt` + `Skin`. Vertical gold-icon menu, small currency group,

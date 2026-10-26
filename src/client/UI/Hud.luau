@@ -58,6 +58,7 @@ local raidWanted = false
 local momentumLabel: TextLabel -- above ROLL: the Momentum chain and the next Overcharge Surge
 local momentumFill: Frame -- the 2 px bar under it: Momentum toward RollBoost.Momentum.Max
 local surgeMeter: any -- under it (children read by name): the Overcharge Surge cycle, SurgeProgress 0-24
+local goalReady, goalTicks = false, 0 -- the Next Goal can be done now: it pulses (the 1 s tick)
 local goalPill: any -- above the Momentum header (children read by name): the Next Goal tracker (Goals.Next)
 local goalWanted = false
 local surgeFill: any
@@ -349,7 +350,14 @@ local function applyHidden()
 	raidPill.Visible = raidWanted and not hidden
 	goalPill.Visible = goalWanted and not hidden
 	feed.Visible = not hidden
-	feedHeader.Visible = not hidden
+	-- The RECENT PULLS label only shows over pulls, never as a lone heading.
+	local pulls = 0
+	for _, child in feed:GetChildren() do
+		if child:IsA("GuiObject") then
+			pulls += 1
+		end
+	end
+	feedHeader.Visible = pulls > 0 and not hidden
 end
 
 -- The hub feed is shorter on phones; applyHidden keeps it out of fights and full reveals.
@@ -420,7 +428,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	autoButton = Kit.new("TextButton", {
 		Name = "AutoRoll",
 		LayoutOrder = 1,
-		Size = UDim2.fromScale(0.29, 0.84),
+		Size = UDim2.fromScale(0.27, 0.78),
 		Parent = bar,
 	})
 	rollButtonFace(autoButton, "AUTO", "OFF", Theme.Color.Auto, Theme.Color.AutoDeep, "AutoButton")
@@ -429,7 +437,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	rollButton = Kit.new("TextButton", {
 		Name = "Roll",
 		LayoutOrder = 2,
-		Size = UDim2.fromScale(0.37, 1),
+		Size = UDim2.fromScale(0.41, 1), -- the one big button: AUTO and QUICK are smaller toggles beside it
 		Parent = bar,
 	})
 	rollButtonFace(rollButton, "ROLL", `{Config.Roll.Cooldown}s`, UITheme.Colors.VermilionSeal, UITheme.Colors.VermilionDeep, "RollButton", true)
@@ -454,7 +462,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	quickButton = Kit.new("TextButton", {
 		Name = "QuickRoll",
 		LayoutOrder = 3,
-		Size = UDim2.fromScale(0.29, 0.84),
+		Size = UDim2.fromScale(0.27, 0.78),
 		Parent = bar,
 	})
 	-- QUICK is a toggle: on, ROLL plays the short reveal (faster rolling); the roll itself is the same.
@@ -622,10 +630,10 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		TextColor3 = Color3.fromRGB(190, 255, 210),
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 10, 1, -2),
-		Size = UDim2.new(0.7, 0, 0, 16),
+		Size = UDim2.new(0.9, 0, 0, 20),
 		ZIndex = 3,
 		Parent = luckChip,
-	}, 14)
+	}, 17)
 	Kit.textStroke(Color3.fromRGB(10, 40, 20), 1.5, 0).Parent = luckChip.Odds
 	Kit.pressable(luckChip)
 	luckChip.Activated:Connect(handlers.OnOdds)
@@ -729,7 +737,6 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 
 	-- MOUNT, beside the roll console: a small dark tile (G rides / gets off). The SETTINGS gear sits in
 	-- the server list's header (UI/PlayerList).
-	local touchOnly = game:GetService("UserInputService").TouchEnabled and not game:GetService("UserInputService").KeyboardEnabled
 	petsButton = Kit.new("TextButton", {
 		Name = "Mount",
 		AnchorPoint = Vector2.new(0, 1),
@@ -755,7 +762,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	Skin.Icon(mountIcon, "MOUNT")
 	Skin.Apply(petsButton, "MenuButton")
 	Kit.label({
-		Text = if touchOnly then "MOUNT" else "MOUNT·G",
+		Text = "MOUNT", -- "MOUNT·G" didn't fit the tile; G still rides
 		Font = Theme.Font.Heavy,
 		TextColor3 = Theme.Color.Muted,
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -801,6 +808,8 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	}, 12)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeFeed)
 	placeFeed()
+	feed.ChildAdded:Connect(applyHidden)
+	feed.ChildRemoved:Connect(applyHidden)
 
 	-- Server announcement banner (top centre, below Roblox's top bar) --------------------------
 	banner = Kit.new("Frame", {
@@ -1001,7 +1010,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		end
 		momentumHeader.Size = UDim2.new(0.36, 0, 0, if compact then 16 else 22)
 		goalPill.Position = if compact then UDim2.new(0.5, -150, 1, -102) else UDim2.new(0, 18, 1, -76)
-		goalPill.Size = UDim2.fromOffset(if compact then 300 else 260, if compact then 16 else 22)
+		goalPill.Size = UDim2.fromOffset(if compact then 300 else 300, if compact then 18 else 26)
 		petsButton.Size = UDim2.fromOffset(if compact then 44 else 58, if compact then 44 else 58)
 		Hud.RefreshEvent()
 	end
@@ -1016,6 +1025,11 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 			Hud.RefreshBadges()
 			Hud.RefreshEvent()
 			Hud.RefreshRaid()
+			-- A goal you can claim now keeps breathing until you do (every 3 s, so it isn't noisy).
+			goalTicks += 1
+			if goalReady and goalPill.Visible and goalTicks % 3 == 0 then
+				task.spawn(Effects.Pulse, goalPill:FindFirstChildOfClass("UIScale") or Kit.new("UIScale", { Parent = goalPill }), 1, 0.35, 0.05)
+			end
 		end
 	end)
 
@@ -1210,6 +1224,7 @@ function Hud.RefreshGoal()
 		elseif goal.Kind == "Awakening" then UITheme.Colors.SpiritCyan
 		else UITheme.Colors.SurgeGold
 	Kit.tween(goalPill.Fill, 0.25, { Size = UDim2.fromScale(math.clamp(goal.Progress, 0.04, 1), 1) })
+	goalReady = goal.Ready
 	if goal.Text ~= lastGoalText and goal.Ready then
 		task.spawn(Effects.Pulse, goalPill:FindFirstChildOfClass("UIScale") or Kit.new("UIScale", { Parent = goalPill }), 1, 0.3, 0.06)
 	end
