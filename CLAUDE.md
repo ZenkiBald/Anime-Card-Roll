@@ -6,6 +6,8 @@ https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
 This file describes the game as it is now (2026-10-24). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
+Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
+`docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
 
 ## How the game works
 
