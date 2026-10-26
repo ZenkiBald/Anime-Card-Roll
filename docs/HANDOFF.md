@@ -11,7 +11,8 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 - Phone check of the 2026-10-26 layout pass (`docs/LAUNCH_CHECKLIST.md` section 5): if panel text is too
   small, the scale is `Modal.FitScale` in `src/client/UI/Modal.luau`.
-- Check the per-world lighting in Studio. Each world's values are the `MOODS` table in
+- Town brightness confirmed by the user on 2026-10-26. Check the per-world lighting in Studio.
+  Each world's values are the `MOODS` table in
   `src/client/ZoneFx.luau`, and the town's are in `src/client/LightingSetup.luau`. Run
   `tools/studio/lighting.luau` once in Studio and save.
 
@@ -19,6 +20,10 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
+- 2026-10-26 · Codex · this commit (docs only) · User confirmed "yeah its bright now"; recorded town
+  brightness as checked in the launch checklist and current Studio status. Per-world transitions and phone layout
+  still await feedback. No game code changed. Props: 0 problems; headless tests: ALL CHECKS PASSED.
+  Type check not run: luau-lsp is not installed / available on PATH in this local session.
 - 2026-10-26 · Claude Code · 7a46df3 · Phone layout. On short screens panels lay out at desktop size and
   scale down (`Modal.FitScale`); grids measure with `Kit.logicalSize`. The HUD, server list and quick
   roll pops hide while a panel is open. The top bar fits between Kenji's tracker and the server list,

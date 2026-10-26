@@ -14,7 +14,8 @@ Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENT
 **Studio status.** The 2026-10-22 world / UI / sound pass was verified in Studio. Everything after it was built in cloud
 sessions with headless tests + luau-lsp only; the user has since play-tested the HUD, deck screen, Index, quests and a
 tower fight (screenshots 2026-10-24) and the fixes from that are in (the second round's list is in the checklist,
-section 5). Treat anything not named here as unseen.
+section 5). The user confirmed the town is bright again on 2026-10-26; the per-world lighting transitions and phone layout
+pass still need confirmation. Treat anything not named here as unseen.
 
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and

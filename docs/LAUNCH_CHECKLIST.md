@@ -80,7 +80,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   four unit cards; the Victory panel's pack progress bar and run totals when no pack dropped.
 - [ ] Combat rhythm (2026-10-26): the opening reads as turns (no burst), cards show SKILL in N / SKILL READY, the boss bar
   shows "⚠ MOVE in N", supports lift on their turn, and a strong deck's HP bars still drop (MinHit) so healers heal.
-- [ ] World themes (2026-10-26): town is a bright afternoon again; walking into each world tweens to its own look
+- [x] Town brightness (2026-10-26): user confirmed "yeah its bright now" after the lighting pass.
+- [ ] World themes (2026-10-26): walking into each world tweens to its own look
   (Ember golden sunset, Frostfang snowy morning without blown-out snow, Neon Abyss violet night with neon bloom,
   Stormspire grey storm with lightning) and back to day in town. Re-run `tools/studio/lighting.luau` once and save.
 - [ ] Phone layout (2026-10-26): SQUAD shows four deck rows and the vault grid, BATTLE's tabs clear its title, the BAG
