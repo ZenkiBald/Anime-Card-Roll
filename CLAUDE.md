@@ -18,6 +18,8 @@ section 5). The user confirmed the town is bright again on 2026-10-26 and suppli
 screenshots. The resulting readability pass was checked in Studio's iPhone 14 landscape emulator (HUD, SQUAD, BAG,
 one Normal fight; no new runtime errors). All 27 owned vault tile names and current BAG names fit there.
 The updated layout still needs a real iPhone check; per-world transitions remain unconfirmed. Treat anything not named here as unseen.
+The subsequent illustrated UI kit was implemented and checked in desktop Studio (HUD, SQUAD, BAG, battle controls /
+intro): the uploaded textures loaded, names and filter chips fit, and there were no new runtime errors.
 
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and
@@ -108,31 +110,41 @@ tags, three town leaderboards.
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches
 odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`). Ids are 0 (placeholders) until launch.
 
-**Look.** Dark Feudal Occult: `src/configs/UITheme.luau` tokens (Urushi base / raised / inset lacquer, Tamahagane slate
-/ edge / rust steel, Washi parchment and ghost text, Vermilion wax seal, element glows, FredokaOne headers; no electric
-cyan) feed `UI/Theme`. `UITheme.BorderTiers` frames card tiles (bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void 3
-px: the border is the tier); stars are small parchment diamonds (they're stats, not the tier). The HUD's Surge talisman
-charges spirit blue, shivers void purple for the last 4 rolls, and seals gold when the next roll is the surge (ROLL then
-reads UNLEASH SURGE!); AUTO / QUICK are recessed and light their bezel when on. Panels (`Modal`) are Urushi with a 2 px
-steel edge, a vermilion banner slash and underline, tabs with a vermilion underline when active; on a phone a panel is
-laid out at desktop size and scaled down (`Modal.FitScale`, ~0.6 sideways; turn measured sizes back into offsets with
-`Kit.logicalSize`), and the HUD, server list and quick roll pops step away while a panel is open. Short screens use
-smaller HUD bars / roll controls, a two-line event pill and fewer feed entries; routine Base duplicate pops only show
-in the feed. Away rewards use one compact toast. `Controls` dropdowns
-and search are sunken wells. The deck screen has sunken empty slots, spirit-blue Slot Link tethers (gold for a bond), a
-sunken Cost Challenge meter and synergy / bond tags; AUTO-BUILD is the vermilion seal. Card tiles carry no combat stats
-(frame, art, star diamonds, element / role crests, name, xN, Awakening pips, a pulsing FUSE! seal at 100 copies and
-the rarity number; names wrap and scale 8-14); stats live in the deck inspector and
-the tooltip. Vault tiles are larger; the phone inspector gives its space to the grid until a card is picked,
-and deck thumbnails omit duplicate tiny name / rarity labels. BAG plaques are framed by relic rarity (bronze /
-purple / gold / cosmic crimson) with diamond crests, item names and separate status labels (packs show their roll
-count); plaques are larger on phones. BOSS SCOUT is trays: leader and counter crests with +30% DMG, guard unit chips, synergy / bond
-tags; the boss well is sunken with a vignette; every tab strip uses the vermilion underline. The STORE uses diamond
-crests (monograms, no emoji) and solid vermilion R$ buttons. Components: `JuicyButton` (sheen, spring, sounds,
-CanvasGroup content; roll console + battle pods) and `IconBadge` (diamond badges for element / role / currency). Card
-portraits use the 2D `Image` when set, else a procedural portrait (`CardView` bust: element pattern, layered diamond
-emblem, role weapon, a hair crest picked by a hash of the id, so every card looks different) (the user is making the illustrations:
-`art/STORY_CARD_PROMPTS.md` has a prompt per current card, PNGs in `art/cards/<cardId>.png`).
+**Look.** Illustrated Dark Feudal Occult: Urushi lacquer, antique-gold engraved waves, Washi text and vermilion
+cherry-blossom calls to action. `UI/UIArt` supplies four shared uploaded textures (navigation icons, inventory emblems,
+panel and summon button); source PNGs, asset ids, crops and prompts are in `art/ui/occult/README.md`. `UI/Skin` routes
+the existing panel / button keys into this kit, preserving live text and controls. Panels are 9-sliced; the vermilion
+button uses a cropped background. Flat lacquer remains while images load. The archived cartoon kit stays off.
+`src/configs/UITheme.luau` feeds `UI/Theme`: Gotham headings / body, Garamond on ROLL, subdued 1 px text shadows,
+element colours only where they carry meaning. No thick black letter outlines or multicoloured HUD button trims.
+
+The HUD has one vertical icon-and-label menu, a small framed currency group, a quiet Kenji tracker / claim seal,
+XP and Next Goal at bottom-left on desktop, and AUTO / ROLL / QUICK at bottom-centre with Momentum and Surge in one
+band. The server list starts folded (tap to expand). RECENT PULLS shows up to three rows, two on short screens.
+Surge still charges spirit blue, shivers void purple for the last four rolls, and seals gold (UNLEASH SURGE!).
+AUTO / QUICK light their bezel when active. Short screens keep the earlier scaling / compact layout, with Next Goal
+over the roll console. Routine Base duplicate pops only show in the feed; away rewards use one compact toast.
+
+Panels (`Modal`) use the engraved lacquer artwork, plain headings with a gold rule and vermilion active-tab
+underlines. On phones, `Modal.FitScale` lays out the panel at desktop size and scales it down (~0.6 sideways); turn
+measured sizes back into offsets with `Kit.logicalSize`. The HUD, server list and quick pops hide behind panels.
+Search / dropdowns and formation trays are quiet sunken wells. The deck screen retains spirit-blue Slot Links
+(gold for bonds), its Cost Challenge meter and synergy / bond tags, with a vermilion AUTO-BUILD. Border-filter chips
+draw labels above their background gradient so they remain visible.
+
+`UITheme.BorderTiers` still frames cards: bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void 3 px; the border is
+the tier. Stars are small parchment diamonds. Tiles show art, name, xN, Awakening pips, FUSE! at 100 copies and the
+rarity number, with no combat stats. Names wrap / scale 8-14; stats live in the inspector / tooltip. Vault tiles are
+larger; the phone inspector collapses until selection; deck thumbnails omit duplicate tiny name / rarity labels.
+BAG uses illustrated relic / potion / pack emblems with named plaques, separate status lines, and relic-rarity
+frames (bronze / purple / gold / crimson); packs keep their roll counts. BOSS SCOUT retains its unit trays and
+counter / synergy / bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
+controls, enemy target panels and result frames. All timings and battle rules are unchanged.
+
+`JuicyButton` still supplies sheen, spring and sounds; `IconBadge` carries element / role / currency crests.
+Card portraits use their 2D `Image` when set, else the existing procedural bust (element pattern, diamond emblem,
+role weapon and id-based hair crest). The user is making character illustrations: `art/STORY_CARD_PROMPTS.md` and
+`art/cards/<cardId>.png`. This UI kit does not replace those illustrations or rename any cards / bosses.
 
 ## Layout (Rojo project, `default.project.json`)
 
@@ -154,7 +166,7 @@ emblem, role weapon, a hair crest picked by a hash of the id, so every card look
   Components/JuicyButton + IconBadge, Modal (+ `Modal.Tabbed`), Controls, Hud, Reveal, CardView, CardTile, CardTooltip,
   ElementUi, DeckBuilder, Index, OddsPanel, Bag, PackOpen, Fusion, Alchemy, TraitMaster, BossScreen, Battle, Arena,
   RewardReveal, Store, Gifts, Tutorial, Stats, Shop, Wheel, Pets, Travel, Settings, PlayerList, Profile, Title, DevPanel,
-  Waypoint, Effects, Sfx, Skin, BorderFx, ModelView).
+  Waypoint, Effects, Sfx, Skin, UIArt (uploaded illustrated kit), BorderFx, ModelView).
 - Remotes are declared in `default.project.json` under ReplicatedStorage.Remotes.
 - Not in Rojo (place file only): `workspace.Map` (Town, EmberVillage, FrostfangPeaks, NeonAbyss, StormspireIsle, Markers),
   Terrain, Lighting, `ServerStorage.MapKit`, `ReplicatedStorage.MountKit`, `ReplicatedStorage.BossKit`.

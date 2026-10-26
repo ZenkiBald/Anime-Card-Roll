@@ -46,6 +46,11 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Illustrated UI kit (2026-10-26): desktop Studio HUD, SQUAD, BAG, battle controls / intro; uploaded
+  navigation / inventory atlases and frames load. Vault / BAG names fit; border-filter labels are visible.
+- [ ] User visual review of the implemented kit: menu / roll console, claim seal, selected SQUAD inspector,
+  BAG item art / pack counts, store and battle results. Real-device sharpness / memory and all touch actions remain
+  to check; phone-specific work is parked at the user's request. No place was published by this pass.
 - [x] iPhone readability pass (2026-10-26), Studio iPhone 14 landscape emulator: HUD / SQUAD / BAG and one Normal
   fight; no new runtime errors. All 27 owned vault names and current BAG names fit. Battle feed and DASH hidden.
 - [ ] Real iPhone after this pass: smaller HUD / two-line event pill; vault scrolling, selected-card inspector and

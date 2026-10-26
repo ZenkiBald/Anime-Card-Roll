@@ -19,6 +19,7 @@
 local Kit = require(script.Parent.Parent.Kit)
 local Skin = require(script.Parent.Parent.Skin)
 local Theme = require(script.Parent.Parent.Theme)
+local UIArt = require(script.Parent.Parent.UIArt)
 local UITheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local IconBadge = {}
@@ -87,9 +88,9 @@ function IconBadge.new(props: { [string]: any }): Frame
 		Size = UDim2.fromScale(0.62, 0.62),
 		Image = IconBadge.GlowImage,
 		ImageColor3 = glow,
-		ImageTransparency = 0.7,
+		ImageTransparency = 0.9,
 		BackgroundColor3 = glow,
-		BackgroundTransparency = if IconBadge.GlowImage == "" then 0.7 else 1,
+		BackgroundTransparency = if IconBadge.GlowImage == "" then 0.9 else 1,
 		ZIndex = z + 2,
 		Parent = root,
 	}, { Kit.corner(UDim.new(1, 0)) })
@@ -123,7 +124,7 @@ function IconBadge.new(props: { [string]: any }): Frame
 	})
 	local bezel = Instance.new("UIStroke")
 	bezel.Name = "Bezel"
-	bezel.Thickness = 2
+	bezel.Thickness = 1
 	bezel.Color = UITheme.Colors.Tamahagane
 	bezel.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	bezel.Parent = plate
@@ -165,7 +166,13 @@ function IconBadge.new(props: { [string]: any }): Frame
 
 	-- 5. The icon, upright in the square that fits inside the diamond.
 	local icon: string = Skin.Art(props.ArtKey) or props.IconAsset or "" -- uploaded art (Skin.Icons) beats the glyph
-	if isAsset(icon) then
+	local artKey = if UIArt.HasIcon(props.ArtKey) then props.ArtKey else props.IconAsset
+	if UIArt.HasIcon(artKey) then
+		UIArt.Icon(root, artKey, {
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.68, 0.68), ZIndex = z + 4,
+		})
+	elseif isAsset(icon) then
 		Kit.new("ImageLabel", {
 			Name = "Icon",
 			AnchorPoint = Vector2.new(0.5, 0.5),

@@ -2,7 +2,7 @@
 -- Colours and fonts for every screen, in the Dark Feudal Occult look (Configs/UITheme holds the tokens):
 -- Urushi black lacquer panels, Tamahagane steel edges, Washi parchment text, sharp 5 px corners, and
 -- colour (spirit blue, gold leaf, vermilion, element glows) only where something is rare, active or wants a
--- tap. Chunky FredokaOne headings over Gotham body type.
+-- tap. Clear Gotham headings and body type; the illustrated kit supplies the ornament.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -30,13 +30,13 @@ Theme.Color = {
 	AccentDeep = Color3.fromRGB(16, 60, 90),
 	Roll = Color3.fromRGB(255, 92, 70),
 	RollDeep = Color3.fromRGB(150, 28, 40),
-	Auto = Color3.fromRGB(64, 156, 255),
+	Auto = Color3.fromRGB(210, 180, 122),
 	AutoDeep = Color3.fromRGB(20, 50, 130),
-	Quick = Color3.fromRGB(70, 224, 150),
+	Quick = Color3.fromRGB(210, 180, 122),
 	QuickDeep = Color3.fromRGB(10, 100, 76),
 	Attack = Color3.fromRGB(255, 108, 76),
 	Support = Color3.fromRGB(70, 210, 200),
-	Gold = Color3.fromRGB(255, 196, 46),
+	Gold = Color3.fromRGB(220, 183, 107),
 	Danger = Color3.fromRGB(255, 70, 90),
 	-- Tiles inside panels: a slate step above the panel glass, with a thin edge (recoloured neon when
 	-- rare or active).

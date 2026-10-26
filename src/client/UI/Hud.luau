@@ -27,6 +27,7 @@ local Effects = require(script.Parent.Effects)
 local State = require(script.Parent.Parent.State)
 local JuicyButton = require(script.Parent.Components.JuicyButton)
 local IconBadge = require(script.Parent.Components.IconBadge)
+local UIArt = require(script.Parent.UIArt)
 local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local Hud = {}
@@ -45,6 +46,7 @@ local hiddenBy = { Battle = false, Reveal = false }
 local boostRow: Frame
 local hintLabel: TextLabel
 local feed: Frame
+local feedHeader: TextLabel
 local banner: any
 local bannerLabel: TextLabel
 local toast: any
@@ -57,6 +59,7 @@ local momentumLabel: TextLabel -- above ROLL: the Momentum chain and the next Ov
 local momentumFill: Frame -- the 2 px bar under it: Momentum toward RollBoost.Momentum.Max
 local surgeMeter: any -- under it (children read by name): the Overcharge Surge cycle, SurgeProgress 0-24
 local goalPill: any -- above the Momentum header (children read by name): the Next Goal tracker (Goals.Next)
+local goalWanted = false
 local surgeFill: any
 local surgeCount: TextLabel
 local surgeToken = 0
@@ -132,13 +135,13 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 	local titleLabel = Kit.label({
 		Name = "Title",
 		Text = title,
-		Font = Theme.Font.Display,
+		Font = if seal then Enum.Font.Garamond else Theme.Font.Heavy,
 		TextColor3 = if seal then UITheme.Colors.WashiParchment else color:Lerp(UITheme.Colors.WashiParchment, 0.55),
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.14),
 		Size = UDim2.fromScale(0.86, 0.44),
 		Parent = button,
-	}, 40)
+	}, if seal then 42 else 24)
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.3).Parent = titleLabel
 	Kit.label({
 		Name = "Sub",
@@ -151,6 +154,11 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 		Size = UDim2.fromScale(0.8, 0.26),
 		Parent = button,
 	}, 20)
+	if not seal then
+		UIArt.Icon(button, title, { Position = UDim2.fromScale(0.08, 0.22), Size = UDim2.fromScale(0.2, 0.34), ZIndex = 2 })
+		titleLabel.Position = UDim2.fromScale(0.61, 0.17)
+		titleLabel.Size = UDim2.fromScale(0.66, 0.34)
+	end
 	JuicyButton.Apply(button, { SheenColor = color:Lerp(Color3.new(1, 1, 1), 0.45) })
 end
 
@@ -196,9 +204,9 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 		Name = "Icon",
 		Text = icon,
 		Font = Theme.Font.Heavy,
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.1),
-		Size = UDim2.fromScale(0.62, 0.52),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.065, 0.5),
+		Size = UDim2.fromScale(0.23, 0.76),
 		Parent = button,
 	}, 40)
 	Skin.Icon(iconLabel, iconKey or text) -- uploaded icon art replaces the emoji
@@ -206,17 +214,18 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 		Name = "Label",
 		Text = text,
 		Font = Theme.Font.Heavy,
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 0.94),
-		Size = UDim2.fromScale(0.9, 0.24),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.35, 0.5),
+		Size = UDim2.fromScale(0.57, 0.5),
 		Parent = button,
 	}, 14)
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.4).Parent = label
 	local badge = Kit.new("Frame", {
 		Name = "Badge",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.9, 0.1),
-		Size = UDim2.fromScale(0.36, 0.36),
+		Position = UDim2.fromScale(0.96, 0.14),
+		Size = UDim2.fromOffset(18, 18),
 		BackgroundColor3 = Theme.Color.Danger,
 		Visible = false,
 		ZIndex = 4,
@@ -252,7 +261,7 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 		AutoButtonColor = false,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
-		Parent = topBar,
+		Parent = topBar:FindFirstChild("Chips"),
 	}, {
 		Kit.corner(UDim.new(0.5, 0)),
 		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiRaised, UITheme.Colors.UrushiBlack), 90),
@@ -284,11 +293,12 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 	-- the chip's left edge.
 	IconBadge.new({
 		Name = "Icon",
+		ArtKey = key,
 		IconAsset = if iconKey and Skin.Icons[iconKey] then Skin.Icons[iconKey] else emoji,
 		GlowColor = edge,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, 6, 0.5, 0),
-		Size = UDim2.new(1.45, 0, 1.45, 0),
+		Position = UDim2.new(0, 18, 0.5, 0),
+		Size = UDim2.new(1, 0, 1, 0),
 		DominantAxis = Enum.DominantAxis.Height,
 		ZIndex = 3,
 		Parent = chip,
@@ -305,6 +315,10 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 	}, 30)
 	Kit.textStroke(Color3.fromRGB(10, 12, 19), 2.5, 0).Parent = value
 	Kit.new("UIScale", { Name = "Pop", Scale = 1, Parent = chip })
+	chip.BackgroundTransparency = 1
+	chip.UIStroke.Transparency = 1
+	chip.Gloss.Visible = false
+	chip.Tint.Visible = false
 	currency[key] = chip
 	return chip
 end
@@ -333,7 +347,9 @@ local function applyHidden()
 	levelBar.Visible = not hidden
 	eventPill.Visible = not hidden
 	raidPill.Visible = raidWanted and not hidden
+	goalPill.Visible = goalWanted and not hidden
 	feed.Visible = not hidden
+	feedHeader.Visible = not hidden
 end
 
 -- The hub feed is shorter on phones; applyHidden keeps it out of fights and full reveals.
@@ -346,9 +362,12 @@ local function placeFeed()
 		feed.Position = UDim2.new(1, -12, 0.3, 0)
 		feed.Size = UDim2.fromScale(0.2, 0.18)
 	else
-		feed.AnchorPoint = Vector2.new(1, 0.5)
-		feed.Position = UDim2.new(1, -12, FEED_Y, 0)
-		feed.Size = UDim2.fromScale(0.22, 0.34)
+		feed.AnchorPoint = Vector2.new(1, 0)
+		feed.Position = UDim2.new(1, -12, 0.3, 0)
+		feed.Size = UDim2.new(0.2, 0, 0, 88)
+	end
+	if feedHeader then
+		feedHeader.Position = UDim2.new(1, -18, 0.3, -20)
 	end
 end
 
@@ -458,9 +477,9 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	-- Urushi mini-header on top of the roll console: Momentum text, and a 2 px bar filling to the cap.
 	local momentumHeader = Kit.new("Frame", {
 		Name = "MomentumHeader",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 0, -3),
-		Size = UDim2.new(1, 0, 0, 22),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0, 0.5),
+		Size = UDim2.new(0.36, 0, 0, 22),
 		BackgroundColor3 = UITheme.Colors.UrushiBlack,
 		BackgroundTransparency = 0.2,
 		ClipsDescendants = true,
@@ -474,13 +493,13 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	goalPill = Kit.new("Frame", {
 		Name = "NextGoal",
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 0, -29),
-		Size = UDim2.new(1, 0, 0, 20),
+		Position = UDim2.new(0, 18, 1, -76),
+		Size = UDim2.fromOffset(260, 22),
 		BackgroundColor3 = UITheme.Colors.UrushiInset,
 		BackgroundTransparency = 0.1,
 		ClipsDescendants = true,
 		Visible = false,
-		Parent = row,
+		Parent = gui,
 	}, {
 		Kit.corner(UDim.new(1, 0)),
 		Kit.stroke(UITheme.Colors.TamahaganeSlate, 1, 0),
@@ -542,8 +561,8 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	-- when the next roll is the surge (Hud.RefreshMomentum).
 	surgeMeter = Kit.new("CanvasGroup", {
 		Name = "SurgeMeter",
-		Position = UDim2.fromScale(0, 0.22),
-		Size = UDim2.fromScale(1, 0.56),
+		Position = UDim2.fromScale(0.38, 0.22),
+		Size = UDim2.fromScale(0.62, 0.56),
 		BackgroundColor3 = UITheme.Colors.UrushiInset,
 		BackgroundTransparency = 0,
 		Parent = row,
@@ -580,22 +599,22 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Name = "TopBar",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.new(0, 500, 0, 52),
+		Size = UDim2.new(0, 460, 0, 44),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
-		Kit.new("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			Padding = UDim.new(0, 22),
-		}),
 		Kit.new("UIScale", { Name = "Fit", Scale = 1 }),
 	})
-	currencyChip("Shards", 1, "Shard", "💎", Color3.fromRGB(196, 140, 255), 160)
-	currencyChip("TraitShards", 2, nil, "🧬", Color3.fromRGB(80, 230, 200), 130)
-	local luckChip = currencyChip("Rolls", 3, nil, "🎲", Theme.Color.Gold, 150)
+	Skin.Apply(topBar, "Panel")
+	Kit.new("Frame", { Name = "Chips", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = topBar }, {
+		Kit.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 12),
+		}),
+	})
+	currencyChip("Shards", 1, "Shard", "💎", Theme.Color.Gold, 140)
+	currencyChip("TraitShards", 2, nil, "🧬", Theme.Color.Gold, 110)
+	local luckChip = currencyChip("Rolls", 3, nil, "🎲", Theme.Color.Gold, 120)
 	Kit.label({
 		Name = "Odds",
 		Text = "🍀 1x · ODDS ›",
@@ -671,35 +690,37 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Parent = gui,
 	})
 	local grid = Kit.new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(74, 74),
-		CellPadding = UDim2.fromOffset(8, 8),
+		FillDirectionMaxCells = 1,
+		CellSize = UDim2.fromOffset(174, 46),
+		CellPadding = UDim2.fromOffset(0, 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = menu,
 	})
 	menuButton("BATTLE", "⚔️", 1, Theme.Color.Roll, handlers.OnBattle)
-	menuButton("BAG", "🎒", 2, Theme.Color.Quick, handlers.OnBag)
-	menuButton("SQUAD", "🃏", 3, Theme.Color.Neon, handlers.OnSquad, "DECK")
+	menuButton("BAG", "🎒", 3, Theme.Color.Quick, handlers.OnBag)
+	menuButton("SQUAD", "🃏", 2, Theme.Color.Neon, handlers.OnSquad, "DECK")
 	menuButton("QUESTS", "📜", 4, Theme.Color.Gold, handlers.OnQuests, "GIFTS")
 	menuButton("TRAVEL", "🧭", 5, Theme.Color.Support, handlers.OnTravel)
 	menuButton("STORE", "👑", 6, Color3.fromRGB(255, 196, 46), handlers.OnStore)
 	if handlers.OnDev then
 		menuButton("DEV", "🛠️", 7, Theme.Color.Danger, handlers.OnDev)
 	end
-	local menuRows = if handlers.OnDev then 4 else 3
+	local menuRows = if handlers.OnDev then 7 else 6
 
 	-- Scale the left column with the screen (a phone held sideways is ~0.6).
 	local function layoutLeft()
 		local size = gui.AbsoluteSize
 		fitScale = math.clamp(math.min(size.X / 1100, size.Y / 640), 0.6, 1)
-		local cell = math.floor(74 * fitScale)
-		local pad = math.floor(8 * fitScale)
-		local top = math.floor(64 * fitScale)
-		questSlot.Size = UDim2.fromOffset(math.floor(300 * fitScale), math.floor(56 * fitScale))
+		local cell = math.floor(44 * fitScale)
+		local width = math.floor(174 * fitScale)
+		local pad = math.floor(6 * fitScale)
+		local top = math.floor(56 * fitScale)
+		questSlot.Size = UDim2.fromOffset(math.floor(280 * fitScale), math.floor(66 * fitScale))
 		questSlot.Position = UDim2.fromOffset(12, top)
 		local menuTop = if questActive then top + questSlot.Size.Y.Offset + pad + 4 else top
-		grid.CellSize = UDim2.fromOffset(cell, cell)
-		grid.CellPadding = UDim2.fromOffset(pad, pad)
-		menu.Size = UDim2.fromOffset(2 * cell + pad, menuRows * cell + (menuRows - 1) * pad)
+		grid.CellSize = UDim2.fromOffset(width, cell)
+		grid.CellPadding = UDim2.fromOffset(0, pad)
+		menu.Size = UDim2.fromOffset(width, menuRows * cell + (menuRows - 1) * pad)
 		menu.Position = UDim2.fromOffset(12, menuTop)
 	end
 	layoutLeftFn = layoutLeft
@@ -723,14 +744,16 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Kit.gradient(ColorSequence.new(Color3.fromRGB(28, 33, 48), Color3.fromRGB(11, 13, 21)), 90),
 		Kit.stroke(Theme.Color.Line, 1.2, 0),
 	})
-	Kit.label({
-		Text = "🐾",
+	local mountIcon = Kit.label({
+		Text = "",
 		Font = Theme.Font.Heavy,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.06),
 		Size = UDim2.fromScale(0.6, 0.56),
 		Parent = petsButton,
 	}, 22)
+	Skin.Icon(mountIcon, "MOUNT")
+	Skin.Apply(petsButton, "MenuButton")
 	Kit.label({
 		Text = if touchOnly then "MOUNT" else "MOUNT·G",
 		Font = Theme.Font.Heavy,
@@ -771,6 +794,11 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 
 	-- Short (phone) screens: the feed sits higher and shorter, under the folded server list and clear of
 	-- the jump / DASH buttons.
+	feedHeader = Kit.label({
+		Name = "FeedHeader", Text = "RECENT PULLS", Font = Theme.Font.Heavy, TextColor3 = Theme.Color.Gold,
+		TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -18, 0.3, -20), Size = UDim2.fromOffset(180, 16), Parent = gui,
+	}, 12)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeFeed)
 	placeFeed()
 
@@ -959,21 +987,21 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	-- Narrow phones: the level bar and event pill shrink with the top bar.
 	local function fitBars()
 		local compact = compactHud()
-		local scale = math.min(math.clamp((gui.AbsoluteSize.X - 150) / 600, 0.55, 1), if compact then 0.65 else 1)
-		levelBar.Fit.Scale = scale
-		levelBar.Position = UDim2.new(0.5, 0, 0, if compact then 48 else 8 + 72 * scale)
-		eventPill.Position = UDim2.new(0.5, 0, 0, if compact then 72 else 8 + 104 * scale)
-		raidPill.Position = UDim2.new(0.5, 0, 0, if compact then 106 else 8 + 104 * scale + 34)
+		levelBar.Fit.Scale = if compact then 0.55 else 0.65
+		levelBar.AnchorPoint = Vector2.new(0, 1)
+		levelBar.Position = UDim2.new(0, 30, 1, -22)
+		eventPill.Position = UDim2.new(0.5, 0, 0, if compact then 48 else 62)
+		raidPill.Position = UDim2.new(0.5, 0, 0, if compact then 84 else 96)
 		toast.Position = UDim2.new(0.5, 0, 0, if compact then 142 else 140)
 		dock.Size = UDim2.fromScale(if compact then 0.5 else 0.56, 0.15)
 		local limits = dock:FindFirstChildOfClass("UISizeConstraint")
 		if limits then
 			limits.MinSize = Vector2.new(300, if compact then 46 else 64)
-			limits.MaxSize = Vector2.new(if compact then 480 else 620, if compact then 54 else 112)
+			limits.MaxSize = Vector2.new(if compact then 480 else 620, if compact then 54 else 88)
 		end
-		momentumHeader.Size = UDim2.new(1, 0, 0, if compact then 16 else 22)
-		goalPill.Position = UDim2.new(0, 0, 0, if compact then -22 else -29)
-		goalPill.Size = UDim2.new(1, 0, 0, if compact then 16 else 20)
+		momentumHeader.Size = UDim2.new(0.36, 0, 0, if compact then 16 else 22)
+		goalPill.Position = if compact then UDim2.new(0.5, -150, 1, -102) else UDim2.new(0, 18, 1, -76)
+		goalPill.Size = UDim2.fromOffset(if compact then 300 else 260, if compact then 16 else 22)
 		petsButton.Size = UDim2.fromOffset(if compact then 44 else 58, if compact then 44 else 58)
 		Hud.RefreshEvent()
 	end
@@ -1170,7 +1198,8 @@ function Hud.RefreshGoal()
 		Shards = State.Summary.Shards or 0,
 		Upgrades = State.Meta.Upgrades,
 	})
-	goalPill.Visible = goal ~= nil
+	goalWanted = goal ~= nil
+	goalPill.Visible = goalWanted and not hiddenBy.Battle and not hiddenBy.Reveal
 	if goal == nil then
 		return
 	end
@@ -1397,15 +1426,15 @@ function setShiver(on: boolean)
 	end
 	shivering = on
 	if not on or Theme.FxLow then
-		surgeMeter.Position = UDim2.fromScale(0, 0.22)
+		surgeMeter.Position = UDim2.fromScale(0.38, 0.22)
 		return
 	end
 	task.spawn(function()
 		while shivering and surgeMeter.Parent do
-			surgeMeter.Position = UDim2.new(0, math.random(-1, 1), 0.22, math.random(-1, 1))
+			surgeMeter.Position = UDim2.new(0.38, math.random(-1, 1), 0.22, math.random(-1, 1))
 			task.wait(0.05)
 		end
-		surgeMeter.Position = UDim2.fromScale(0, 0.22)
+		surgeMeter.Position = UDim2.fromScale(0.38, 0.22)
 	end)
 end
 
@@ -1495,12 +1524,13 @@ function Hud.FeedAdd(result)
 		LayoutOrder = feedOrder,
 		Size = UDim2.new(1, 0, 0, 26),
 		BackgroundColor3 = Theme.Color.Panel,
-		BackgroundTransparency = 0.25,
+		BackgroundTransparency = 0.12,
 		Parent = feed,
 	}, {
 		Kit.corner(UDim.new(0.4, 0)),
 		Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }),
 	})
+	Skin.Apply(entry, "Panel")
 	Kit.new("Frame", {
 		Name = "Dot",
 		AnchorPoint = Vector2.new(0, 0.5),
@@ -1530,7 +1560,7 @@ function Hud.FeedAdd(result)
 	table.sort(entries, function(a, b)
 		return a.LayoutOrder < b.LayoutOrder
 	end)
-	for i = 1, #entries - 7 do
+	for i = 1, #entries - (if compactHud() then 2 else 3) do
 		entries[i]:Destroy()
 	end
 

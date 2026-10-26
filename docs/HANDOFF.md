@@ -9,7 +9,10 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
-- Real iPhone check after the screenshot readability pass (`docs/LAUNCH_CHECKLIST.md` section 5): HUD, larger
+- User review of the implemented illustrated UI kit: gold icon menu, lacquer panels, vermilion buttons,
+  Gotham typography, BAG emblems and matching battle intro / controls. The user asked to put phone work aside
+  and implement the visual concept. Source art / prompts / asset ids: `art/ui/occult/README.md`.
+- Parked: real iPhone check after the screenshot readability pass (`docs/LAUNCH_CHECKLIST.md` section 5): HUD, larger
   vault / BAG tiles, selected-card inspector, fixed guard targets / focus, 2x AUTO CLIMB, and DASH restored in town.
   Studio's iPhone 14 landscape emulator was checked; the user has not seen these latest changes on their phone.
 - Town brightness confirmed by the user on 2026-10-26. Check the per-world lighting in Studio.
@@ -21,7 +24,19 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
-- 2026-10-26 · Codex · this commit · iPhone screenshot polish: compact HUD and away reward toast, fewer routine
+- 2026-10-26 · Codex · this commit · Implemented the approved visual concept in the real UI. Generated and uploaded
+  four textures (navigation atlas, inventory atlas, lacquer panel, vermilion blossom button); source PNGs / prompts /
+  ids in `art/ui/occult/README.md`, active wiring in `UI/UIArt` + `Skin`. Vertical gold-icon menu, small currency group,
+  bottom-left XP / Next Goal on desktop, one-band Momentum / Surge, quiet Kenji tracker, matching shared panels,
+  buttons, BAG emblems, battle controls / enemy tiles / smaller straight intro panels. Gotham type and subdued text
+  shadows replace the thick cartoon lettering; ROLL uses Garamond. Fixed invisible filter chips (their background
+  gradient was tinting button Text black); labels now draw above it. Server / saves / odds / battle tuning / names /
+  character illustrations unchanged. Type check 0 errors (existing warnings); props 0 problems; headless ALL CHECKS
+  PASSED. Desktop Studio: HUD, SQUAD, BAG and Hard / Nightmare battle UI checked, textures load, names / filter labels
+  fit, no new runtime errors. Corrected atlas / slice coordinates for Roblox's 1024 px served images. Temporary upload
+  server stopped; Studio returned to Edit. Nothing published. User visual review, remaining screens / interactions,
+  actual-device sharpness / memory and live asset loading still need checking; phone work parked by user.
+- 2026-10-26 · Codex · 3caef39 · iPhone screenshot polish: compact HUD and away reward toast, fewer routine
   duplicate pops, larger vault / BAG tiles with complete names, a phone inspector that collapses until selection,
   clearer deck thumbnails / names, fixed phone guard target rail, bounded damage floats, queued single callouts,
   Skill countdowns below names, no battle roll feed / DASH. Fixed raid banner TextButton.Text / label collision.

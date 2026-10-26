@@ -16,6 +16,8 @@ local Borders = require(Shared.Borders)
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local CardView = require(script.Parent.CardView)
+local Skin = require(script.Parent.Skin)
+local UIArt = require(script.Parent.UIArt)
 
 local PlayerList = {}
 
@@ -210,6 +212,7 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSetti
 		Kit.stroke(Theme.Color.Line, 1.2, 0),
 		Kit.new("UIScale", { Name = "Fit", Scale = 1 }),
 	})
+	Skin.Apply(panel, "Panel")
 	countLabel = Kit.label({
 		Name = "Count",
 		Text = "SERVER",
@@ -280,6 +283,8 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSetti
 		end)
 		Kit.pressable(gear)
 		gear.Activated:Connect(openSettings)
+		cog.Visible = false
+		UIArt.Icon(gear, "SETTINGS", { Position = UDim2.fromScale(0.15, 0.15), Size = UDim2.fromScale(0.7, 0.7), ZIndex = 3 })
 	end
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = countLabel
 	foldButton = Kit.button("›", Theme.Color.PanelLight, Theme.Color.Panel, {
@@ -314,7 +319,7 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSetti
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	fit()
-	folded = gui.AbsoluteSize.Y < 500
+	folded = true -- the world stays visible; tap to expand profiles
 	applyHidden()
 
 	Players.PlayerAdded:Connect(PlayerList.Refresh)

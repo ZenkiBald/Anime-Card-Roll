@@ -36,7 +36,7 @@ local function tile(className: string, props: { [string]: any }, edge: Color3?):
 	return Kit.new(className, base, {
 		Kit.corner(CORNER),
 		Kit.gradient(ColorSequence.new(TILE_TOP, TILE_BOTTOM), 90),
-		Kit.stroke(edge or UITheme.Colors.TamahaganeSlate, 1.5, 0),
+		Kit.stroke(if className == "Frame" then UITheme.Colors.TamahaganeSlate else edge or UITheme.Colors.TamahaganeSlate, 1, 0.25),
 	})
 end
 Controls.Tile = tile
@@ -299,16 +299,22 @@ function Controls.Chip(parent: Instance, text: string, color: Color3, order: num
 		Size = UDim2.new(0, 0, 1, 0),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Font = Theme.Font.Heavy,
-		Text = text,
+		Text = "",
 		TextSize = 14,
 		TextColor3 = Theme.Color.Muted,
 		Parent = parent,
+	})
+	-- A UIGradient on the button also tints its own Text nearly black. Draw text above the lacquer.
+	local label = Kit.new("TextLabel", {
+		Name = "Label", Text = text, Font = Theme.Font.Heavy, TextSize = 14,
+		TextColor3 = Theme.Color.Muted, BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Parent = button,
 	})
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = button })
 	local function set(value: boolean)
 		on = value
 		button.UIStroke.Color = if on then color else Theme.Color.Line
-		button.TextColor3 = if on then color:Lerp(Color3.new(1, 1, 1), 0.25) else Theme.Color.Muted
+		label.TextColor3 = if on then color:Lerp(Color3.new(1, 1, 1), 0.25) else Theme.Color.Muted
 	end
 	Kit.pressable(button)
 	button.Activated:Connect(function()

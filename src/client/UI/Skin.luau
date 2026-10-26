@@ -1,7 +1,7 @@
 --!nonstrict
--- Image skins for the UI (art/UI_KIT_PROMPTS.md lists what to make).
--- Paste each uploaded asset id ("rbxassetid://123...") next to its key. Anything left empty keeps the
--- built-in look, so the game reskins piece by piece as images arrive.
+-- Shared illustrated UI: UIArt owns the current lacquer frames and icon atlases.
+-- Archived cartoon definitions below retain the screen skin keys and old art for reference.
+-- Optional per-card / badge art in Skin.Icons still works where the new atlases have no entry.
 --
 -- Panels, banners, buttons and card frames are 9-sliced: Size is the image's pixel size, Margin how
 -- many pixels at each edge stay unstretched (or MarginX / MarginY separately), Scale how big those
@@ -9,9 +9,10 @@
 -- instead (buttons: their art is almost all edge vertically, so a fixed Scale spills out of short ones).
 
 local Skin = {}
+local UIArt = require(script.Parent.UIArt)
 
--- The obsidian look (2026-10-23) draws panels, buttons and card frames in code: the cartoon kit art
--- below is kept but switched off. Icons still apply. Set true to bring the kit art back.
+-- Archived cartoon card frames stay off: card borders must continue to convey their border tier.
+-- The current UIArt panel / button kit is independent of this legacy switch.
 Skin.KitArt = false
 
 -- Sizes and margins match the kit drawn in the "Anime Card Roll - UI Kit" Figma file (exported at 2x).
@@ -137,28 +138,16 @@ end
 
 function Skin.Has(name: string): boolean
 	local def = Skin.Images[name]
-	return Skin.KitArt and def ~= nil and def.Id ~= ""
+	return def ~= nil
 end
 
 -- Puts the named image behind `target`'s content and hides its built-in fill, gradient, outline and
 -- gloss. Returns the image, or nil when that skin has no id yet (the built-in look stays).
 function Skin.Apply(target: GuiObject, name: string): ImageLabel?
-	local def = Skin.Images[name]
-	if not Skin.KitArt or def == nil or def.Id == "" then
+	if Skin.Images[name] == nil then
 		return nil
 	end
-	target.BackgroundTransparency = 1
-	for _, child in target:GetChildren() do
-		if child:IsA("UIGradient") or child:IsA("UIStroke") then
-			child.Enabled = false
-		elseif child.Name == "Gloss" and child:IsA("GuiObject") then
-			child.Visible = false
-		end
-	end
-	local label = image(def.Id, def)
-	label.ZIndex = 0 -- behind the button's own text and icons
-	label.Parent = target
-	return label
+	return UIArt.Plate(target, name == "RollButton" or name == "ButtonRed")
 end
 
 -- Greys out a skinned button (can't afford, locked, maxed). Unskinned ones fade their fill instead.
@@ -224,14 +213,19 @@ function Skin.Verify(playerGui: Instance): { string }
 			labels[`{key} ({id})`] = label
 		end
 	end
-	for key, def in Skin.Images do
-		add(key, def.Id)
-	end
-	for key, id in Skin.Frames do
-		add(`{key} frame`, id)
+	add("Urushi panels", UIArt.Panel)
+	add("Vermilion button", UIArt.Roll)
+	add("Illustrated icons", UIArt.Icons)
+	add("Inventory emblems", UIArt.Items)
+	if Skin.KitArt then
+		for key, id in Skin.Frames do
+			add(`{key} frame`, id)
+		end
 	end
 	for key, id in Skin.Icons do
-		add(`{key} icon`, id)
+		if not UIArt.HasIcon(key) then
+			add(`{key} icon`, id)
+		end
 	end
 	local deadline = os.clock() + 15
 	local failed
@@ -266,6 +260,9 @@ end
 
 -- Replaces an emoji icon label with the uploaded icon image, if there is one.
 function Skin.Icon(label: TextLabel, key: string): ImageLabel?
+	if UIArt.HasIcon(key) then
+		return UIArt.Replace(label, key)
+	end
 	local id = Skin.Icons[key]
 	if id == nil or id == "" then
 		return nil

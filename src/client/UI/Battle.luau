@@ -611,7 +611,7 @@ local NEON = {
 	Void = Color3.fromRGB(176, 70, 255),
 	Cosmic = Color3.fromRGB(40, 240, 210),
 }
-local CUT_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
+local CUT_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
 
 -- An obsidian slash across the screen naming an Ultimate: slides in from the left with a punch,
 -- holds 0.7 s, then slashes out to the right trailing sparks.
@@ -643,6 +643,7 @@ local function cutIn(cardId: string, ultName: string)
 			}),
 		}),
 	})
+	Skin.Apply(band, "Panel")
 	for _, y in { 0, 1 } do -- the glowing neon edges
 		Kit.new("Frame", {
 			Name = "Edge",
@@ -1140,6 +1141,8 @@ local function makeGuardTile(enemy, slot: Frame)
 		Size = UDim2.fromScale(0.3, 0.46),
 		Parent = button,
 	}, 40)
+	Skin.Icon(icon, `Role:{enemy.Role}`)
+	Skin.Apply(button, "Panel")
 	ElementUi.Badge(enemy.Element, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(0.34, 0.02),
@@ -1873,12 +1876,13 @@ local function playIntro(boss, subtitle: string, deckPower: number, seconds: num
 		local frame = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(if fromLeft then -0.4 else 1.4, if fromLeft then 0.38 else 0.62),
-			Size = UDim2.fromScale(0.7, 0.2),
-			Rotation = -6,
+			Size = UDim2.fromScale(0.6, 0.14),
+			Rotation = 0,
 			BackgroundColor3 = Color3.new(1, 1, 1),
 			BorderSizePixel = 0,
 			Parent = intro,
 		}, { Kit.gradient(ColorSequence.new(deep, color), if fromLeft then 0 else 180) })
+		Skin.Apply(frame, if fromLeft then "Panel" else "RollButton")
 		local name = Kit.label({
 			Text = title,
 			Font = Theme.Font.Display,
@@ -1886,7 +1890,7 @@ local function playIntro(boss, subtitle: string, deckPower: number, seconds: num
 			Position = UDim2.fromScale(0.08, 0.1),
 			Size = UDim2.fromScale(0.84, 0.55),
 			Parent = frame,
-		}, 56)
+		}, 40)
 		Kit.textStroke(Color3.new(0, 0, 0), 3, 0.1).Parent = name
 		Kit.label({
 			Text = sub,
@@ -1895,7 +1899,7 @@ local function playIntro(boss, subtitle: string, deckPower: number, seconds: num
 			Position = UDim2.fromScale(0.08, 0.66),
 			Size = UDim2.fromScale(0.84, 0.26),
 			Parent = frame,
-		}, 24)
+		}, 18)
 		Kit.tween(frame, 0.32, { Position = UDim2.fromScale(0.5, if fromLeft then 0.38 else 0.62) }, Enum.EasingStyle.Quart)
 		return frame
 	end
@@ -1910,7 +1914,7 @@ local function playIntro(boss, subtitle: string, deckPower: number, seconds: num
 		Size = UDim2.fromScale(0.3, 0.16),
 		ZIndex = 5,
 		Parent = intro,
-	}, 90)
+	}, 64)
 	Kit.textStroke(Color3.new(0, 0, 0), 4, 0).Parent = vs
 	local vsScale = Kit.new("UIScale", { Scale = 0, Parent = vs })
 	task.delay(0.25, function()

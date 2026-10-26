@@ -17,6 +17,7 @@ local Modal = require(script.Parent.Modal)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
+local Skin = require(script.Parent.Skin)
 
 local TutorialUi = {}
 
@@ -58,15 +59,15 @@ local function drawBanner()
 		return
 	end
 	local quest = Tutorial.Steps[state.Step]
-	bannerTitle.Text = `📜 KENJI {state.Step}/{state.Total} · <b>{string.upper(quest.Name)}</b>`
+	bannerTitle.Text = `KENJI'S PATH  {state.Step}/{state.Total}`
 	if state.Ready then
-		bannerText.Text = `<font color="#FFC42E"><b>✓ DONE · TAP TO CLAIM</b></font>  {rewardText(quest)}`
+		bannerText.Text = `{quest.Name} complete · Tap to claim`
 	else
 		bannerText.Text = `{quest.Text}  <b>{state.Count}/{state.Goal}</b>`
 	end
 	claimPill.Visible = state.Ready
 	banner.UIStroke.Color = if state.Ready then Theme.Color.Gold else SAGE
-	banner.UIStroke.Thickness = if state.Ready then 3 else 2
+	banner.UIStroke.Thickness = 1
 	if state.Ready and not wasReady then
 		banner.Pop.Scale = 1.25
 		Kit.tween(banner.Pop, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
@@ -192,6 +193,7 @@ function TutorialUi.Init(
 		Kit.stroke(SAGE, 2, 0),
 		Kit.new("UIScale", { Name = "Pop", Scale = 1 }),
 	})
+	Skin.Apply(banner, "Panel")
 	bannerTitle = Kit.label({
 		Name = "Title",
 		Text = "",
@@ -218,14 +220,17 @@ function TutorialUi.Init(
 	claimPill = Kit.new("Frame", {
 		Name = "Claim",
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, 8, 0, 0),
-		Size = UDim2.fromScale(0.26, 0.46),
-		BackgroundColor3 = Theme.Color.Gold,
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromScale(0.2, 0.6),
+		BackgroundColor3 = Theme.Color.RollDeep,
 		Visible = false,
 		ZIndex = 3,
 		Parent = banner,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Color3.new(1, 1, 1), 2, 0) })
-	Kit.label({ Text = "CLAIM!", Font = Theme.Font.Display, TextColor3 = Color3.fromRGB(40, 24, 0), Size = UDim2.fromScale(1, 1), ZIndex = 4, Parent = claimPill }, 16)
+	Skin.Apply(claimPill, "RollButton")
+	Kit.label({ Text = "CLAIM", Font = Theme.Font.Heavy, TextColor3 = Theme.Color.Text, Size = UDim2.fromScale(1, 1), ZIndex = 4, Parent = claimPill }, 12)
+	bannerTitle.Size = UDim2.fromScale(0.72, 0.4)
+	bannerText.Size = UDim2.fromScale(0.72, 0.42)
 	Kit.pressable(banner)
 	banner.Activated:Connect(function()
 		if state and state.Ready then

@@ -107,9 +107,12 @@ function Modal.Banner(parent: Instance, title: string, textSize: number?): any -
 		Parent = banner,
 	})
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.4).Parent = label
-	if Skin.Apply(banner, "Banner") then
-		sparkle.Visible = false -- the banner art has its own
-	end
+	-- The panel supplies the artwork; keep its heading quiet and readable over a plain surface.
+	banner.BackgroundTransparency = 1
+	banner:FindFirstChildOfClass("UIGradient").Enabled = false
+	banner:FindFirstChildOfClass("UIStroke").Enabled = false
+	sparkle.BackgroundColor3 = Theme.Color.Gold
+	banner.Underline.BackgroundColor3 = Theme.Color.Gold
 	return banner
 end
 
@@ -272,7 +275,7 @@ function Modal:Open()
 	local backdrop = self.Gui:FindFirstChild("Backdrop")
 	if backdrop then
 		backdrop.BackgroundTransparency = 1
-		Kit.tween(backdrop, 0.2, { BackgroundTransparency = 0.25 })
+		Kit.tween(backdrop, 0.2, { BackgroundTransparency = 0.38 })
 	end
 	setBlur(true)
 	if self.OnOpen then

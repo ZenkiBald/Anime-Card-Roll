@@ -79,10 +79,10 @@ end
 -- Outline around the letters of a TextLabel (not a box around it). It fades with the text, so a
 -- hint tweened to TextTransparency 1 doesn't leave its outline behind as ghost letters.
 function Kit.textStroke(color: Color3, thickness: number?, transparency: number?): UIStroke
-	local base = transparency or 0
+	local base = math.max(transparency or 0, 0.55)
 	local stroke = Kit.new("UIStroke", {
 		Color = color,
-		Thickness = thickness or 1.5,
+		Thickness = math.min(thickness or 1.5, 1),
 		Transparency = base,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 	})

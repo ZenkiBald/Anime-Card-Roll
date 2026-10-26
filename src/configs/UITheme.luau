@@ -25,7 +25,7 @@ local UITheme = {
 		WashiParchment = Color3.fromRGB(236, 229, 216), -- #ECE5D8 primary labels and text
 		WashiGhost = Color3.fromRGB(140, 133, 123), -- #8C857B secondary labels, stats, counts
 		-- Frames: Tamahagane folded steel.
-		TamahaganeSlate = Color3.fromRGB(44, 48, 56), -- #2C3038 bezels and thin edges
+		TamahaganeSlate = Color3.fromRGB(67, 59, 45), -- quiet antique-brass bezels
 		TamahaganeEdge = Color3.fromRGB(86, 92, 104), -- #565C68 highlights, notches
 		TamahaganeRust = Color3.fromRGB(26, 28, 34), -- #1A1C22 the dark side of a bevel
 		-- Calls to action: Vermilion wax seal.
@@ -35,11 +35,11 @@ local UITheme = {
 		-- The Surge talisman's three states (Hud): charging, imminent, sealed.
 		SpiritCyan = Color3.fromRGB(79, 195, 247), -- #4FC3F7 charging (rolls 0-19 of the cycle)
 		VoidSurge = Color3.fromRGB(126, 87, 194), -- #7E57C2 imminent (20-23)
-		SurgeGold = Color3.fromRGB(255, 215, 0), -- #FFD700 sealed: the next roll is the surge
+		SurgeGold = Color3.fromRGB(220, 183, 107), -- warm gold leaf, sealed surge
 		SpiritSheen = Color3.fromRGB(236, 229, 216), -- the flowing sheen on JuicyButton rims (parchment, not cyan)
 		-- Older names, the same values, so every screen built on them follows the new tokens.
 		UrushiBlack = Color3.fromRGB(11, 11, 14), -- = UrushiBase
-		Tamahagane = Color3.fromRGB(44, 48, 56), -- = TamahaganeSlate
+		Tamahagane = Color3.fromRGB(67, 59, 45), -- = TamahaganeSlate
 		TamahaganeLight = Color3.fromRGB(86, 92, 104), -- = TamahaganeEdge
 		VermilionSeal = Color3.fromRGB(201, 59, 43), -- = VermilionWax
 		TextMuted = Color3.fromRGB(140, 133, 123), -- = WashiGhost
@@ -74,7 +74,7 @@ local UITheme = {
 	} :: { [string]: { Icon: string, Color: Color3 } },
 
 	Fonts = {
-		Header = Enum.Font.FredokaOne, -- chunky shonen headers
+		Header = Enum.Font.GothamBold, -- clear, restrained headings; art supplies the ornament
 		Body = Enum.Font.GothamMedium,
 		Stats = Enum.Font.GothamBold,
 	},
