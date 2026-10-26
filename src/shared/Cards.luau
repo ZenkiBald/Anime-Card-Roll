@@ -886,7 +886,7 @@ end
 -- Rarer cards hit harder at the same border (the user's call, 2026-10-24): a card's stats scale by
 -- (CommonWeight / its Weight) ^ Exponent, so a common card (Weight 10) is 1x, a Weight 1 card about
 -- 1.41x and the boss cards (Weight 0.6-1) up to 1.53x. Still far under the next border's 4x, with
--- stars and Awakening on top (1.53 x 1.375 = 2.1x), so the border always wins.
+-- no duplicate stat bonus; battle mastery adds no base ATK or HP, so borders always win.
 Cards.RarityScale = { CommonWeight = 10, Exponent = 0.15 }
 
 function Cards.Scale(card: Card): number
@@ -998,9 +998,9 @@ function Cards.Ability(card: Card, slot: string): Ability?
 	return nil
 end
 
--- Stat with the star bonus applied (+5% per star, max 5 stars).
+-- Legacy function signature retained; duplicate counts no longer multiply stats.
 function Cards.StatWithStars(base: number, stars: number): number
-	return math.floor(base * (1 + 0.05 * math.clamp(stars, 0, 5)) + 0.5)
+	return math.floor(base + 0.5) -- duplicate counts never affect stats
 end
 
 -- Percentage support effects grow gently; multiplying a 25% shield buff by 64 would break combat.
@@ -1033,16 +1033,14 @@ function Cards.SupportValue(card: Card, stars: number, border: string?, awaken: 
 	if not card.Support then return 0 end
 	if card.Support.Fixed then return card.Support.Amount end
 	return Cards.RoundPercent(math.min(0.5, card.Support.Amount * Cards.SupportBoost(card, border)
-		* (1 + Config.StarBonus * math.clamp(stars, 0, Config.MaxStars)) * Awaken.StatMultiplier(awaken)))
+		* Awaken.StatMultiplier(awaken)))
 end
 
 function Cards.SupportScore(card: Card, stars: number, border: string?, awaken: number?): number
-	return if card.Support then Borders.Multiplier(border) * Cards.Scale(card) * (1 + 0.05 * stars) * Awaken.StatMultiplier(awaken) else 0
+	return if card.Support then Borders.Multiplier(border) * Cards.Scale(card) * Awaken.StatMultiplier(awaken) else 0
 end
 
--- A stat with stars, the border's tier multiplier (1x / 4x / 16x / 64x), the card's rarity scale
--- (Cards.Scale) and the Awakening node (node 1: +10%). The border decides power: the rarest card's scale,
--- 5 stars and node 1 together are about 2.1x, far under the next border's 4x.
+-- Base stats scale only with border and rarity. Legacy stars / awaken arguments remain compatible.
 function Cards.Stat(card: Card, base: number, stars: number, border: string?, awaken: number?): number
 	return Cards.StatWithStars(base * Borders.Multiplier(border) * Cards.Scale(card) * Awaken.StatMultiplier(awaken), stars)
 end

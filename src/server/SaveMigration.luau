@@ -63,6 +63,19 @@ end
 -- Runs every step on a whole save (profile.Data). Returns a list of what it did (for logs and tests).
 function SaveMigration.Migrate(data: any): { string }
 	local done = {}
+	-- Copy strength is retired; keep collections and existing second-slot access, without free mastery.
+	if data.BattleMasteryVersion ~= 1 then
+		for _, entry in data.Cards or {} do
+			if type(entry) == "table" then
+				if (tonumber(entry.Awaken) or 0) >= 4 or (tonumber(entry.Fusion) or 0) > 0 or entry.Trait2 ~= nil then entry.Trait2Unlocked = true end
+				entry.Stars = 0
+				entry.Awaken = nil
+				entry.Mastery = if type(entry.Mastery) == "table" then entry.Mastery else {}
+			end
+		end
+		data.BattleMasteryVersion = 1
+		table.insert(done, "copy bonuses retired; battle mastery started")
+	end
 	-- Card accessories: refunded as Shards.
 	local gear = data.Gear
 	if type(gear) == "table" and (type(gear.Accessories) == "table" or type(gear.Cards) == "table") then

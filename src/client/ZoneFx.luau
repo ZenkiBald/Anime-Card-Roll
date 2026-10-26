@@ -95,7 +95,7 @@ local function lightningLoop()
 		local color = current and LIGHTNING[current]
 		local character = Players.LocalPlayer.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if color and root and not State.InBattle then
+		if color and root and (not State.InBattle or State.BattleHidden) then
 			strike(color, root.Position)
 		end
 	end
@@ -126,7 +126,7 @@ local function petalStep(dt: number)
 	local colors = current and PETALS[current]
 	local character = Players.LocalPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local want = if colors and root and not State.InBattle then (if Theme.FxLow then 14 else 36) else 0
+	local want = if colors and root and (not State.InBattle or State.BattleHidden) then (if Theme.FxLow then 14 else 36) else 0
 	local folder = petalFolder
 	if folder == nil then
 		folder = Instance.new("Folder")
@@ -247,7 +247,7 @@ function ZoneFx.Start()
 			task.wait(0.5)
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
-			if root and not State.InBattle then
+			if root and (not State.InBattle or State.BattleHidden) then
 				local zone = zoneAt(root.Position, zones)
 				if zone ~= current then
 					current = zone

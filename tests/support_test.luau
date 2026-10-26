@@ -1,6 +1,16 @@
 -- Authored abilities must describe real triggers, costs, statuses and shared rounded values.
 local Cards, Info, Engine, Config = MODULES.Cards, MODULES.CardInfo, MODULES.BattleEngine, MODULES.Config
 local F = FIXTURES
+
+do
+	local owned = F.own({"mirai", "hana"})
+	local units = F.units(F.deck({"mirai"},{"hana"}), owned)
+	units[2].Trait = {{Stat="SPD",Amount=0.05},{Stat="StartEnergy",Amount=0.25}}
+	local battle = MODULES.BattleEngine.new({Units=units,BossId="kurogane",Difficulty="Normal",Rng=Random.new(5)})
+	check(battle.ById.A1.Buffs["SupportTrait:S1:1"] ~= nil, "Support speed trait reaches its matching attacker")
+	check(battle.ById.A1.Energy >= 25 and battle.ById.S1.HP == 0, "Support starting-charge trait charges the attacker without giving Support HP")
+	check(MODULES.Cards.SupportValue(MODULES.Cards.Get("hana"),0,"Normal",0) == MODULES.Cards.SupportValue(MODULES.Cards.Get("hana"),5,"Normal",4), "duplicate counts never strengthen a passive")
+end
 local function setup(id, border, stars)
 	local owned = F.own({ "rook", "tomo", id }, stars or 0, { [id] = border or "Normal" })
 	return Engine.new({ Units = F.units(F.deck({ "rook", "tomo" }, { id }), owned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(17) })

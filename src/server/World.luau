@@ -50,8 +50,8 @@ local THEMES = {
 -- booths, portals, gates) only shows within SIGN_RANGE studs and fades in as you walk up (HubFx), and none
 -- draws over the world (AlwaysOnTop off), so the hub never piles plates on top of each other or the HUD.
 -- Plates are 35% smaller than the old 260 x 70 (playtest 2026-10-26: 160-stud plates stacked into a soup).
-local SIGN_RANGE = 45
-local SIGN_SIZE = UDim2.fromOffset(169, 46)
+local SIGN_RANGE = 140
+local SIGN_SIZE = UDim2.fromOffset(224, 60)
 
 local function shadowed(label: TextLabel)
 	label.TextStrokeTransparency = 1
@@ -82,7 +82,8 @@ local function styleSign(gui: BillboardGui, fade: boolean, range: number?)
 	gui.LightInfluence = 0
 	gui.AlwaysOnTop = false
 	if fade then
-		gui.MaxDistance = range or SIGN_RANGE
+		local model = gui:FindFirstAncestorOfClass("Model")
+		gui.MaxDistance = range or (if model and model:GetAttribute("Bob") == true then 90 else SIGN_RANGE)
 		-- The size-by-distance limits aren't in every API version (and may not be scriptable): try them.
 		pcall(function()
 			(gui :: any).DistanceLowerLimit = 10;

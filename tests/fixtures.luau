@@ -17,10 +17,12 @@ function Fixtures.own(ids, stars, borders, awaken)
 		owned[id] = {
 			Copies = 1,
 			Stars = stars or 0,
-			Awaken = if (awaken or 0) > 0 then awaken else nil,
+			Mastery = {},
 			Borders = if border ~= "Normal" then { [border] = true } else nil,
 			BorderCopies = { [border] = 1 },
 		}
+		local needed = MODULES.Awaken.Nodes[awaken or 0]
+		for i = 1, if needed then needed.Challenges else 0 do owned[id].Mastery[`fixture:{i}`] = true end
 	end
 	return owned
 end
@@ -50,7 +52,7 @@ function Fixtures.units(deck, owned)
 		for i, id in deck[row] do
 			if id ~= "" then
 				-- Awakening as the server applies it: stats and bonds by node, and the node's battle effects.
-				local node = owned[id].Awaken or 0
+				local node = Awaken.Level(owned[id])
 				local effects = Awaken.Effects(node)
 				table.insert(list, {
 					Id = `{string.sub(row, 1, 1)}{i}`,
@@ -148,7 +150,10 @@ function Fixtures.fixtureDeck(fixture)
 	for _, id in fixture.Support do
 		table.insert(ids, id)
 	end
-	local owned = Fixtures.own(ids, fixture.Stars, fixture.Borders, fixture.Awaken)
+	local owned = Fixtures.own(ids, 0, fixture.Borders)
+	local boss = MODULES.Bosses.Get(fixture.Boss)
+	local difficulty = if boss then boss.Difficulties[fixture.Difficulty].D else 1
+	for _, entry in owned do for i=1,difficulty-1 do entry.Mastery[`fixture:{i}`] = true end end
 	return Fixtures.deck(fixture.Attack, fixture.Support), owned
 end
 

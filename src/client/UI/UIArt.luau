@@ -2,6 +2,7 @@
 -- Illustrated Urushi kit. Source PNGs and atlas coordinates live in art/ui/occult/.
 -- Four shared textures, live text, and 9-sliced panels keep the kit inexpensive to draw.
 local UIArt = {}
+UIArt.Enabled = false -- clean panels let the character illustrations carry the visual detail
 
 UIArt.Icons = "rbxassetid://97204181847223"
 UIArt.Panel = "rbxassetid://96750861620965"
@@ -40,11 +41,13 @@ local function sprite(key: string?): (number?, boolean)
 end
 
 function UIArt.HasIcon(key: string?): boolean
+	if not UIArt.Enabled then return false end
 	local index = sprite(key)
 	return index ~= nil
 end
 
 function UIArt.Icon(parent: Instance?, key: string, props: { [string]: any }?): ImageLabel?
+	if not UIArt.Enabled then return nil end
 	local index, item = sprite(key)
 	if index == nil then
 		return nil
@@ -86,7 +89,8 @@ function UIArt.Replace(label: TextLabel, key: string): ImageLabel?
 	return icon
 end
 
-function UIArt.Plate(target: GuiObject, primary: boolean?): ImageLabel
+function UIArt.Plate(target: GuiObject, primary: boolean?): ImageLabel?
+	if not UIArt.Enabled then return nil end
 	local old = target:FindFirstChild("Skin")
 	if old and old:IsA("ImageLabel") then
 		return old

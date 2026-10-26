@@ -70,7 +70,6 @@ local backButton: TextButton
 local presetHolder: Frame
 local presetButton: any = nil
 local presetCount = 0
-local typeButton: any
 local inspector: Frame
 local pulseToken = 0
 
@@ -82,7 +81,9 @@ local inspectBorder: string? = nil -- which of its borders (each border it has c
 local FIRE_GOLD = Color3.fromRGB(255, 170, 60) -- Hoshi's waypoint
 local working = nil -- the deck being edited (mirrors the active preset)
 local search = ""
-local typeBy = "All"
+local typeBy = "Attack"
+local vaultTiles = {}
+local typeTabs = {}
 local sortBy = "Rating"
 local elementBy = "Any"
 local chips = { Gold = false, Rainbow = false, Secret = false }
@@ -485,9 +486,6 @@ local SORTS = {
 	Border = function(a, b)
 		return Borders.Index(a.Border) > Borders.Index(b.Border)
 	end,
-	["Copy bonus"] = function(a, b)
-		return (entry(a.Card.Id) and entry(a.Card.Id).Stars or 0) > (entry(b.Card.Id) and entry(b.Card.Id).Stars or 0)
-	end,
 	Copies = function(a, b)
 		return a.Copies > b.Copies
 	end,
@@ -505,7 +503,7 @@ local function passesChips(own, border: string): boolean
 end
 
 local function drawGrid()
-	clear(grid)
+	local seen = {}
 	local list = {}
 	for id, own in State.Cards do
 		local card = Cards.Get(id)
@@ -537,29 +535,46 @@ local function drawGrid()
 		local card, border = item.Card, item.Border
 		local own = entry(card.Id)
 		local playing = Deck.PlayBorder(own) == border
-		local tile = CardTile.new(card.Id, {
-			Owned = true,
-			Stars = own.Stars,
-			Border = border,
-			Copies = item.Copies, -- copies at this border
-			Power = Deck.PowerAt(card.Id, State.Cards, border),
-			Stats = true,
-			Awaken = Awaken.Level(own),
-			Fusable = item.Copies >= Config.FusionCopies and Borders.Next(border) ~= nil,
-			InDeck = playing and findInDeck(card.Id) ~= nil,
-			Selected = card.Id == inspectId and border == (inspectBorder or Deck.PlayBorder(own)),
-		})
+		local key = card.Id .. ":" .. border
+		seen[key] = true
+		local tile = vaultTiles[key]
+		if not tile or not tile.Parent then
+			tile = CardTile.new(card.Id, {
+				Owned = true,
+				Stars = own.Stars,
+				Border = border,
+				Copies = item.Copies, -- copies at this border
+				Power = Deck.PowerAt(card.Id, State.Cards, border),
+				Stats = true,
+				Awaken = Awaken.Level(own),
+				Fusable = item.Copies >= Config.FusionCopies and Borders.Next(border) ~= nil,
+				InDeck = playing and findInDeck(card.Id) ~= nil,
+				Selected = card.Id == inspectId and border == (inspectBorder or Deck.PlayBorder(own)),
+			})
+			vaultTiles[key] = tile
+			tile.Parent = grid
+			CardTooltip.Attach(tile, function()
+				return card.Id, border
+			end)
+			tile.Activated:Connect(function()
+				inspectId, inspectBorder = card.Id, border
+				CardTooltip.Close()
+				Sfx.Play("Click", 1)
+				refresh()
+			end)
+		end
 		tile.LayoutOrder = i
-		tile.Parent = grid
-		CardTooltip.Attach(tile, function()
-			return card.Id, border
-		end)
-		tile.Activated:Connect(function()
-			inspectId, inspectBorder = card.Id, border
-			CardTooltip.Close()
-			Sfx.Play("Click", 1)
-			refresh()
-		end)
+		local count = tile:FindFirstChild("Copies")
+		if count then count.Text = `x{Kit.commas(item.Copies)}` end
+		local fuse = tile:FindFirstChild("Fuse")
+		if fuse then fuse.Visible = item.Copies >= Config.FusionCopies and Borders.Next(border) ~= nil end
+		local selection = tile:FindFirstChild("Selected")
+		if selection then selection.Visible = card.Id == inspectId and border == (inspectBorder or Deck.PlayBorder(own)) end
+		local equipped = tile:FindFirstChild("InDeck")
+		if equipped then equipped.Visible = playing and findInDeck(card.Id) ~= nil end
+	end
+	for key, tile in vaultTiles do
+		if not seen[key] then tile:Destroy(); vaultTiles[key] = nil end
 	end
 	emptyLabel.Visible = #list == 0
 	emptyLabel.Text = if search ~= "" then "No cards match your search"
@@ -719,7 +734,7 @@ local function drawInspector()
 		Size = UDim2.new(1, 0, 0, 30),
 		Parent = actions,
 	})
-	local details = Kit.button("VIEW SKILLS / BONUSES", C.TamahaganeSlate, C.UrushiBase, {
+	local details = Kit.button("VIEW SKILLS / MASTERY", C.TamahaganeSlate, C.UrushiBase, {
 		Name = "ViewSkills", LayoutOrder = 4, Size = UDim2.new(1, 0, 0, 30), Parent = actions,
 	})
 	details.Activated:Connect(function()
@@ -879,8 +894,8 @@ function refresh()
 	drawGrid()
 	drawInspector()
 	drawFooter()
-	if typeButton then
-		typeButton.Value.Text = typeBy
+	for kind, button in typeTabs do
+		button.BackgroundTransparency = if kind == typeBy then 0 else 0.6
 	end
 	task.defer(sizeGrid)
 end
@@ -892,7 +907,9 @@ local function queueRefresh()
 	refreshQueued = true
 	task.delay(0.5, function()
 		refreshQueued = false
-		refresh()
+		if modal.IsOpen then
+			if CardTooltip.IsOpen() then queueRefresh() else drawGrid() end
+		end
 	end)
 end
 
@@ -959,6 +976,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 			local function pick()
 				local isSelected = selected ~= nil and selected.Row == deckRow and selected.Index == i
 				selected = if isSelected then nil else { Row = deckRow, Index = i }
+				typeBy = deckRow
 				local id = working[deckRow][i]
 				if not isSelected then
 					if id ~= "" then
@@ -1092,10 +1110,10 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 	-- RIGHT: the card vault ----------------------------------------------------------------------------
 	local right = pane({ Name = "Vault", Position = UDim2.new(0.48, 6, 0, 0), Size = UDim2.new(0.52, -6, 1, 0), Parent = modal.Body })
 	Kit.padding(10).Parent = right
-	text({ Text = "CARD VAULT", Font = Theme.Font.Display, Size = UDim2.new(0.4, 0, 0, 24), Parent = right }, 22)
+	text({ Text = "CARD VAULT", Position = UDim2.fromOffset(0, 42), Font = Theme.Font.Display, Size = UDim2.new(0.4, 0, 0, 24), Parent = right }, 22)
 	local dropdowns = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
+		Position = UDim2.new(1, 0, 0, 40),
 		Size = UDim2.new(0.62, 0, 0, 34),
 		BackgroundTransparency = 1,
 		ZIndex = 5,
@@ -1103,11 +1121,13 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 	}, {
 		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }),
 	})
-	typeButton = Controls.Option(dropdowns, "Type", { "All", "Attack", "Support" }, 1, function(value)
-		typeBy = value
-		refresh()
-	end)
-	Controls.Option(dropdowns, "Sort", { "Rating", "Border", "Copy bonus", "Copies", "Name" }, 2, function(value)
+	local tabs = Kit.new("Frame", { Name = "CardTypeTabs", Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, Parent = right })
+	for i, kind in { "Attack", "Support" } do
+		local button = Kit.button(string.upper(kind), ROW_COLORS[kind], Theme.Color.Backdrop, { Name = kind, Position = UDim2.new((i-1)*0.5, 0, 0, 0), Size = UDim2.new(0.5, -4, 1, 0), Parent = tabs })
+		typeTabs[kind] = button
+		button.Activated:Connect(function() typeBy = kind; selected = { Row = kind, Index = 1 }; grid.CanvasPosition = Vector2.zero; refresh() end)
+	end
+	Controls.Option(dropdowns, "Sort", { "Rating", "Border", "Copies", "Name" }, 2, function(value)
 		sortBy = value
 		refresh()
 	end)
@@ -1120,7 +1140,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		refresh()
 	end)
 	local chipRow = Kit.new("Frame", {
-		Position = UDim2.fromOffset(0, 40),
+		Position = UDim2.fromOffset(0, 80),
 		Size = UDim2.new(1, 0, 0, 26),
 		BackgroundTransparency = 1,
 		Parent = right,
@@ -1140,8 +1160,8 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 
 	grid = Kit.new("ScrollingFrame", {
 		Name = "Grid",
-		Position = UDim2.fromOffset(0, 74),
-		Size = UDim2.new(1, 0, 1, -74 - 178),
+		Position = UDim2.fromOffset(0, 114),
+		Size = UDim2.new(1, 0, 1, -114 - 178),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
@@ -1200,6 +1220,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		end
 	end
 	modal.OnClose = function()
+		CardTooltip.Close()
 		Index.CloseDetail()
 		pulseToken += 1 -- stops the BOND ACTIVE pulses
 	end

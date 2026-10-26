@@ -46,6 +46,24 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Mastery / exploration / UI pass (2026-10-26): separate ATTACK and SUPPORT vault tabs; Support-only
+  contents checked. Hover tooltip remained open through multiple Auto Rolls and closed with SQUAD. Clean
+  panels / text navigation replace the ornate atlases; original art files and all card / boss names remain.
+- [x] Live baseline 25.4k starter fight: hidden at 73% leader HP, normal camera and character streaming focus
+  restored; character moved while the server fight continued. Returning restored the cinematic camera and
+  the current fight state. Win awarded one mastery mark with the card still at one copy.
+- [x] Auto Trait checked beside Kenshin using an isolated test deck / wallet: repeated capped batches continued
+  until funds ran out; a selected trait applied on success; Stop finished one batch without starting another.
+  Original cards / decks / traits / shards / settings restored afterward. No new runtime errors in those checks.
+- [x] World labels: destination range 140 studs, NPC range 90, larger NPC plates, fade only over final 20%.
+  Final Studio instance reported both ranges. All 12 guard models / classic Roblox faces built successfully.
+- [x] Required checks: type check 0 errors (existing warnings); UI properties 5,555 / 0 problems; headless ALL
+  CHECKS PASSED. All 12 story fixtures win 100%, median 61.4–79.2 s; tower / Pagoda / raids also pass.
+- [ ] User review: Mastery sheet at 1 / 3 / 6 / 10 different story challenges, separate card tabs, Auto Trait
+  run totals / Stop, hidden auto-climb / retry, signs at distance and faction guards in normal play. Phone work
+  stays parked. Source is synced through Rojo; not published. Existing BossKit leader models still predate
+  the current card names / artwork; they were preserved, not silently replaced.
+
 - [x] Cohesive card art (2026-10-26): all 26 illustrations visibly rendered in a temporary actual-CardTile
   gallery; SQUAD and full Limitless Sage portrait crop checked in Studio, no new client runtime errors.
   All sources are distinct 1254 x 1254 PNGs. Asset ids / old ids / hashes are in the art manifest.

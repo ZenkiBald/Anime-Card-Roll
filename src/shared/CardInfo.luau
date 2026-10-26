@@ -16,7 +16,7 @@ local function percent(value: number): string
 	return tostring(math.floor(math.abs(value) * 100 + 0.5)) .. "%"
 end
 function CardInfo.CopyBonus(stars: number): string
-	return `Copy bonus +{math.clamp(stars, 0, 5) * 5}%`
+	return "Duplicates are used for border fusion"
 end
 function CardInfo.Job(card: Cards.Card): string
 	return if card.Support then card.Support.Name else card.Title

@@ -5,7 +5,7 @@
 --
 -- Candidates, each with a progress 0-1 from the previous step to the next one:
 --   Fusion     a card's pile at one border toward Config.FusionCopies (100 -> 1 at the next border)
---   Awakening  a card's copies toward its next node (20 / 40 / 60 / 80)
+--   Mastery    different story boss challenges completed with a card (1 / 3 / 6 / 10)
 --   Milestone  total rolls toward the next unclaimed roll milestone (Meta.Milestones)
 --   Upgrade    Shards toward the next Shard Shop level (Meta.Upgrades)
 -- A fusion that is ready wins outright (it's an action: "see Hoshi"); otherwise the highest progress.
@@ -19,7 +19,7 @@ local Meta = require(script.Parent.Meta)
 local Goals = {}
 
 export type Goal = {
-	Kind: string, -- "Fusion" | "Awakening" | "Milestone" | "Upgrade"
+	Kind: string, -- "Fusion" | "Mastery" | "Milestone" | "Upgrade"
 	Text: string, -- "Next Fusion: Celestial Strategist Gold (86/100)"
 	Progress: number, -- 0-1
 	Ready: boolean, -- it can be claimed / done now
@@ -76,16 +76,16 @@ function Goals.Next(info: Info): Goal?
 				end
 			end
 		end
-		-- Awakening: copies toward the next node (nodes 1-4; node 5 is fusion, above).
-		local copies = if type(entry.Copies) == "number" then entry.Copies else 0
+		-- Mastery: distinct boss challenges, never duplicate rolls.
+		local copies = Awaken.Count(entry)
 		local level = Awaken.Level(entry)
 		local nextNode = Awaken.Nodes[level + 1]
 		if nextNode and nextNode.Node <= 4 then
-			local from = if level > 0 then Awaken.Nodes[level].Copies else 0
-			local span = math.max(1, nextNode.Copies - from)
+			local from = if level > 0 then Awaken.Nodes[level].Challenges else 0
+			local span = math.max(1, nextNode.Challenges - from)
 			best = better(best, {
-				Kind = "Awakening",
-				Text = `Next Awakening: {card.Name} ({copies}/{nextNode.Copies})`,
+				Kind = "Mastery",
+				Text = `Next Mastery: {card.Name} ({copies}/{nextNode.Challenges})`,
 				Progress = math.clamp((copies - from) / span, 0, 0.999),
 				Ready = false,
 			})

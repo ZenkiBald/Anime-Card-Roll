@@ -166,6 +166,7 @@ function IconBadge.new(props: { [string]: any }): Frame
 
 	-- 5. The icon, upright in the square that fits inside the diamond.
 	local icon: string = Skin.Art(props.ArtKey) or props.IconAsset or "" -- uploaded art (Skin.Icons) beats the glyph
+	if not UIArt.Enabled then icon = ({Shard="SH",Shards="SH",TraitShards="TS",Rolls="#"})[props.ArtKey] or string.upper(string.sub((props.ArtKey or "?"):match(":([^:]+)$") or props.ArtKey or "?", 1, 2)) end
 	local artKey = if UIArt.HasIcon(props.ArtKey) then props.ArtKey else props.IconAsset
 	if UIArt.HasIcon(artKey) then
 		UIArt.Icon(root, artKey, {

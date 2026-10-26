@@ -19,7 +19,7 @@ end
 local TEMPLATE = {
 	DataVersion = 1,
 	-- [cardId] = { Copies, Stars, Fusion?, Borders?, Foils? (found foil ids), Awaken? (highest Awakening
-	-- node), Trait? (slot 1), Trait2? (slot 2), Pending? ({ Slot, Traits } an unchosen Trait Master roll) }
+	-- node, retired), Mastery? (distinct boss challenge keys), Trait2Unlocked? (legacy access), Trait? (slot 1), Trait2? (slot 2), Pending? ({ Slot, Traits } an unchosen Trait Master roll) }
 	Cards = {},
 	TotalRolls = 0,
 	Shards = 0,
@@ -126,6 +126,8 @@ function DataService.CardState(entry)
 		BorderCopies = entry.BorderCopies,
 		Foils = entry.Foils,
 		Awaken = entry.Awaken,
+		Mastery = entry.Mastery,
+		Trait2Unlocked = entry.Trait2Unlocked,
 		Trait = entry.Trait,
 		Trait2 = entry.Trait2,
 		Pending = entry.Pending,

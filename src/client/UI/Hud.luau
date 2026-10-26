@@ -156,7 +156,7 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 		Size = UDim2.fromScale(0.8, 0.26),
 		Parent = button,
 	}, 20)
-	if not seal then
+	if not seal and UIArt.Enabled then
 		UIArt.Icon(button, title, { Position = UDim2.fromScale(0.08, 0.22), Size = UDim2.fromScale(0.2, 0.34), ZIndex = 2 })
 		titleLabel.Position = UDim2.fromScale(0.61, 0.17)
 		titleLabel.Size = UDim2.fromScale(0.66, 0.34)
@@ -211,17 +211,17 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 		Size = UDim2.fromScale(0.23, 0.76),
 		Parent = button,
 	}, 40)
-	Skin.Icon(iconLabel, iconKey or text) -- uploaded icon art replaces the emoji
+	iconLabel.Visible = false -- navigation reads as a plain label beside the character artwork
 	local label = Kit.label({
 		Name = "Label",
 		Text = text,
 		Font = Theme.Font.Heavy,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.35, 0.5),
-		Size = UDim2.fromScale(0.57, 0.5),
+		Position = UDim2.fromScale(0.08, 0.5),
+		Size = UDim2.fromScale(0.82, 0.6),
 		Parent = button,
-	}, 14)
+	}, 17)
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.4).Parent = label
 	local badge = Kit.new("Frame", {
 		Name = "Badge",
@@ -269,7 +269,7 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiRaised, UITheme.Colors.UrushiBlack), 90),
 		Kit.stroke(UITheme.Colors.Tamahagane, 2, 0),
 	})
-	chip.BackgroundTransparency = Theme.Glass.Frame
+	chip.BackgroundTransparency = 0
 	-- The chip's colour as a thin inner line, so the steel edge still says which currency it is.
 	Kit.new("Frame", {
 		Name = "Tint",

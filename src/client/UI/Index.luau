@@ -152,11 +152,11 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = order + 2, ZIndex = 22, Parent = right }, {
 		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }),
 	})
-	local toggle = Kit.new("TextButton", { Name = "CollectionToggle", Text = "SHOW COLLECTION & BONUSES", Font = Theme.Font.Bold, TextSize = 14,
+	local toggle = Kit.new("TextButton", { Name = "CollectionToggle", Text = "SHOW COLLECTION & MASTERY", Font = Theme.Font.Bold, TextSize = 14,
 		TextColor3 = Theme.Color.Muted, BackgroundColor3 = Theme.Color.TileBottom, Size = UDim2.new(1, 0, 0, 32), LayoutOrder = order + 1, ZIndex = 23, Parent = right }, { Kit.corner(UDim.new(0, 8)) })
 	toggle.Activated:Connect(function()
 		extras.Visible = not extras.Visible
-		toggle.Text = if extras.Visible then "HIDE COLLECTION & BONUSES" else "SHOW COLLECTION & BONUSES"
+		toggle.Text = if extras.Visible then "HIDE COLLECTION & MASTERY" else "SHOW COLLECTION & MASTERY"
 	end)
 	infoParent = extras
 	line(
@@ -256,7 +256,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		if best ~= "Normal" then
 			line(if card.Type == "Support" then CardInfo.BorderHelp(card, best) else `Wearing {tier.Name}: {tier.Multiplier}x base stats`, Theme.Font.Bold, tier.Color, 18, 15)
 		end
-		-- Foils found, Awakening nodes, and the trait slots (rolled at the Trait Master).
+		-- Foils found, Mastery ranks, and the trait slots (rolled at the Trait Master).
 		local foundFoils = entry.Foils or {}
 		local foilParts = {}
 		for i, foil in Foils.List do
@@ -274,9 +274,9 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		local nodeParts = {}
 		for _, n in Awaken.Nodes do
 			local open = node >= n.Node
-			table.insert(nodeParts, `<font color="#{if open then "FFC42E" else "6E6A88"}">{if open then "●" else "○"} {n.Copies}: {n.Text}</font>`)
+			table.insert(nodeParts, `<font color="#{if open then "FFC42E" else "6E6A88"}">{if open then "●" else "○"} {n.Challenges}: {n.Text}</font>`)
 		end
-		line(`✴️ Awakening  ({entry.Copies} copies)\n{table.concat(nodeParts, "\n")}`, Theme.Font.Bold, Theme.Color.Text, 20, 15)
+		line(`BATTLE MASTERY  ({Awaken.Count(entry)} distinct boss challenges)\nWin different story boss difficulties with this card equipped. Repeats and duplicate pulls grant no marks.\n{table.concat(nodeParts, "\n")}`, Theme.Font.Bold, Theme.Color.Text, 20, 15)
 		local function traitLineText(id: string?): string
 			local trait = Traits.Get(id)
 			return if trait
@@ -285,7 +285,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		end
 		line(`Trait 1  {traitLineText(entry.Trait)}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)
 		line(
-			if node >= Traits.Slot2Node then `Trait 2  {traitLineText(entry.Trait2)}` else `Trait 2  🔒 opens at Awakening node {Traits.Slot2Node}`,
+			if entry.Trait2Unlocked or node >= Traits.Slot2Node then `Trait 2  {traitLineText(entry.Trait2)}` else `Trait 2  🔒 opens at Mastery rank {Traits.Slot2Node}`,
 			Theme.Font.Heavy,
 			Theme.Color.Text,
 			20,

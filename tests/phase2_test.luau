@@ -30,12 +30,12 @@ check(seen.aura and seen.golden and seen.demon and seen.aura > seen.golden and s
 check(Foils.Best({ aura = true, demon = true }) == "demon" and Foils.Best(nil) == "standard", "a card wears its best foil")
 
 -- 2. Awakening ------------------------------------------------------------------------------------
-check(Awaken.FromCopies(19) == 0 and Awaken.FromCopies(20) == 1 and Awaken.FromCopies(80) == 4 and Awaken.FromCopies(400) == 4, "every 20 copies open a node, up to 4 before fusing")
-check(Awaken.Level({ Copies = 5, Awaken = 3 }) == 3, "a node stays open after the copies are spent")
-check(Awaken.Level({ Copies = 1, Fusion = 1 }) == 5, "a fused card has node 5")
+check(Awaken.FromCopies(19) == 0 and Awaken.FromCopies(20) == 0 and Awaken.FromCopies(80) == 0 and Awaken.FromCopies(400) == 0, "duplicate copies never grant mastery")
+check(Awaken.Level({ Copies = 999, Awaken = 4 }) == 0, "legacy copy bonuses do not grant battle mastery")
+check(Awaken.Level({ Copies = 1, Fusion = 1 }) == 0, "fusion grants only the next border, never mastery")
 local card = Cards.Get("tomo")
 local scaled = 100 * Cards.Scale(card)
-check(math.abs(Cards.Stat(card, 100, 0, nil, 1) - scaled * 1.1) <= 0.5 and math.abs(Cards.Stat(card, 100, 0, nil, 0) - scaled) <= 0.5, "node 1 adds +10% base stats")
+check(math.abs(Cards.Stat(card, 100, 0, nil, 1) - scaled) <= 0.5 and math.abs(Cards.Stat(card, 100, 0, nil, 0) - scaled) <= 0.5, "mastery never multiplies base stats")
 
 -- 3. Momentum and surges -----------------------------------------------------------------------------
 local speed, luck = RollBoost.MomentumBonus(500)
@@ -167,7 +167,7 @@ do
 		return 0
 	end
 	local base, awakened = bondHit(0), bondHit(3)
-	check(awakened > base * 1.3, `Awakening node 3 lifts the bond combo (300% -> 400%: {base} -> {awakened})`)
+	check(awakened > base * 1.15 and awakened < base * 1.18, `Mastery rank 3 lifts the bond combo (300% -> 350%: {base} -> {awakened})`)
 end
 
 -- Trait Master AUTO ROLL: rolls until a ticked trait lands (applied), at most the cap.

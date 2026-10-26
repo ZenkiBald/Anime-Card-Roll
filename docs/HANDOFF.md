@@ -9,42 +9,59 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
-- User review of the completed 26-card AI artwork set: all cards now have matching illustrations, uploaded and
-  connected in `Cards.ART`. Sources / prompts / hashes / asset ids / previous five ids are in
-  `art/cards/cohesive-20261026/`. All PNGs are 1254 x 1254; card frames crop them. Desktop Studio showed all 26
-  actual CardTile components and the full Limitless Sage portrait. Review reveals and battle pods next.
-  Same five represented anime inspirations; no new franchises added. Names, kits and saves kept. Not published.
-
-- User review of the authored card-kit overhaul: SQUAD > select a card > VIEW SKILLS / BONUSES. All 26 cards
-  have authored ability names / mechanical copy; no job boilerplate, paired-only preface, auto-action reminder or
-  stagger diagnostics. Each passive mixes a trigger with a cost or status / RNG mechanic. Actual percentage
-  strengths round to multiples of 5, including scaled Support values. Activation Limit / Effect Cap pills replace
-  limit paragraphs. The skill sheet collapses collection data under COLLECTION & BONUSES; hover cards scroll.
-  Try Nine-Tails Sovereign's Crimson Chakra Cloak, Dream Reaper's Illusion of Crows and Titan Warder's entry cost.
-  All 4+4 slots, card / boss names, ids, art and save format remain. Studio source is synced through Rojo, not
-  published. Review the costs / effects during a longer fight, including HEAL BLOCK; real-device play is parked.
-- User review of the existing-town polish, applied in the actual place (not a concept): fountain border,
-  service paving, benches / planters, roomier NPC / stall positions and a jade-and-slate tower set northwest.
-  Local saved place: `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl` (ignored by Git; verified it contains
-  the geometry / markers / backup). The currently open cloud place also has the edits, but they are NOT published.
-  Map changes do not travel through Rojo / git pull: use that local copy or apply `tools/studio/town-polish.luau`
-  to the original map and save from Studio. Do not use `rojo build`. Cloudspire / a replacement world were NOT
-  approved; the user rejected the concepts and chose to improve the current town. Replacement UI themes are parked;
-  the later card / support clarity request is implemented above.
-- User review of the implemented illustrated UI kit: gold icon menu, lacquer panels, vermilion buttons,
-  Gotham typography, BAG emblems and matching battle intro / controls. The user asked to put phone work aside
-  and implement the visual concept. Source art / prompts / asset ids: `art/ui/occult/README.md`.
-- Parked: real iPhone check after the screenshot readability pass (`docs/LAUNCH_CHECKLIST.md` section 5): HUD, larger
-  vault / BAG tiles, selected-card inspector, fixed guard targets / focus, 2x AUTO CLIMB, and DASH restored in town.
-  Studio's iPhone 14 landscape emulator was checked; the user has not seen these latest changes on their phone.
-- Town brightness confirmed by the user on 2026-10-26. Check the per-world lighting in Studio.
-  Each world's values are the `MOODS` table in
-  `src/client/ZoneFx.luau`, and the town's are in `src/client/LightingSetup.luau`. Run
-  `tools/studio/lighting.luau` once in Studio and save.
+- User review of the completed mastery / exploration pass: SQUAD has separate ATTACK / SUPPORT tabs above
+  CARD VAULT. Copy stat bonuses and copy Awakening are gone; duplicates are for border fusion. Win different
+  story boss difficulties with each card to earn Mastery at 1 / 3 / 6 / 10 challenges. SEE VIEW SKILLS / MASTERY.
+  Existing collections and second trait slots are preserved. Review the progression pace and enemy team choices.
+- Auto Roll no longer rebuilds the whole open vault or interrupts it with reveals. Tiles are cached; grid
+  insertion / sorting waits while reading a hover tooltip. Check selection, scroll, filters and new-border pulls.
+- HIDE BATTLE lets you explore while the server fights. RETURN TO BATTLE shows HP / time, then VIEW RESULT.
+  Hidden auto-climb / retry remains hidden. Review long runs / milestone results; no second concurrent fight.
+- Auto Trait now runs successive bounded batches until a selected target, Stop, closing, insufficient shards
+  or leaving Kenshin. Stop finishes the current batch; cumulative roll / cost totals are shown. Supports' traits,
+  foil and mastery now affect their supported attacker. Recheck the new behavior during ordinary play.
+- UI image atlases are disabled (archived, not deleted): clean panels, text menu and restrained markers let
+  the 26 illustrations lead. Labels reach 140 studs for destinations / 90 for NPCs, fading only at the edge.
+- Enemy guards now have distinct faction / role models, names and themed moves. Ember follows its current
+  Itachi-like 3D leader with a Crimson-Eye clan retinue; the other existing fantasy leaders have Frost / Void /
+  Storm Courts. IMPORTANT: BossKit leader models still predate the new card names / art. That mismatch needs
+  a separate leader-art decision; no card / boss names or leader models were silently replaced in this pass.
+- All 26 card illustrations remain in `art/cards/cohesive-20261026/` with prompts, hashes, ids and old ids.
+  Review reveals and battle pods. The old five portrait PNGs remain untouched.
+- Town polish is still place-only, not published: `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl`, or
+  `tools/studio/town-polish.luau` applied to the original map. Map changes do not travel through Git / Rojo.
+  Reconnect Rojo when opening that local copy, since its stored scripts predate these source changes.
+- Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
 
 Each entry: date · who · commit · what changed · what's left or unsure.
+
+- 2026-10-26 · Codex · this commit · Completed the approved progression / team / UI / exploration plan plus
+  separate ATTACK / SUPPORT vault tabs and Auto Trait investigation. Retired duplicate stat bonuses and copy
+  Awakening; fusion remains 100:1. Server-owned per-card Mastery marks use distinct story fight keys: 1 / 3 / 6 /
+  10 challenges give 5% speed / 10% Skill+Ultimate / 350% bond / trait slot 2. Repeats, losses, unpaired Supports,
+  towers and raids grant none. Idempotent save migration clears legacy copy strength, preserves existing second
+  trait access (including old fusion unlocks), collections and presets. Mastery never multiplies base stats.
+  Retuned story HP / ATK / recommendations and one raid pool factor; fixtures use no star bonus and earned
+  mastery. Supports now pass traits / foil / mastery effects to the supported card, fixing previously inert
+  Support traits. Auto Trait continues capped server batches, with Stop / close / funds / range handling and
+  cumulative costs; all Trait actions rate-limit, target lists are bounded, old trait stays on a miss.
+  Cached vault tiles preserve reading during Auto Roll; topology waits while a tooltip is open; panels mute
+  auto reveals. Formation slot selects its matching vault tab. Removed ornate UI atlases in favor of clean
+  panels / text navigation; kept all original image files, card / boss names, ids and kits. Added hide / return
+  battle view with HP / time / result widget, normal movement / dash / zone effects and character streaming
+  focus; server combat and hidden chaining continue. Distinct clan / court guard models replace boss clones,
+  with their model portraits in battle; guard ids / combat roles kept. Signs now 140 / 90 studs with larger NPC
+  plates and edge-only fading. Existing BossKit leader / card-art mismatch documented rather than overwritten.
+  Checks: type 0 errors (existing warnings), props 5,555 / 0, headless ALL CHECKS PASSED; all 12 story fixtures
+  100% wins / 61.4–79.2 s medians, towers / Pagoda / raids pass. Added migration, no-copy-stats, unique mastery
+  and Support trait routing regressions. Studio: both tabs / Support-only contents; stable hover across rolls;
+  normal camera / streaming / movement while hidden and cinematic restore; baseline live win awarded 1 mark at
+  1 copy; Auto Trait no-hit continuation / success / Stop tested with a temporary wallet; original profile fields
+  restored before stopping Play. Final guard models / classic faces built, 140 / 90 label ranges checked, no new
+  product runtime errors. Studio left in Edit, synced through Rojo, not published. User review remains above.
+  Unrelated untracked .codex and five original root PNGs left alone. Pull and reconnect Rojo before next session.
 
 - 2026-10-26 · Codex · this commit · Completed the approved cohesive AI artwork batch: 26 distinct square
   1254 x 1254 PNGs, including the three approved previews and new matching versions of the previous five portraits.

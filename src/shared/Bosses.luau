@@ -118,7 +118,7 @@ local list: { Boss } = {
 		},
 		Difficulties = {
 			Normal = { D = 1, Recommended = 25400, HP = 116219, ATK = 44, WarnSeconds = 2 },
-			Hard = { D = 2, Recommended = 31700, HP = 147305, ATK = 54, WarnSeconds = 2 },
+			Hard = { D = 2, Recommended = 25400, HP = 123000, ATK = 54, WarnSeconds = 2 },
 			Nightmare = { D = 3, Recommended = 47800, HP = 336845, ATK = 82, WarnSeconds = 1 },
 		},
 	},
@@ -144,8 +144,8 @@ local list: { Boss } = {
 			{ Name = "Crystal Shard", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 4, Recommended = 64300, HP = 242197, ATK = 220, WarnSeconds = 2 },
-			Hard = { D = 5, Recommended = 98100, HP = 739971, ATK = 303, WarnSeconds = 2 },
+			Normal = { D = 4, Recommended = 64300, HP = 278527, ATK = 220, WarnSeconds = 2 },
+			Hard = { D = 5, Recommended = 98100, HP = 850967, ATK = 303, WarnSeconds = 2 },
 			Nightmare = { D = 6, Recommended = 117200, HP = 957771, ATK = 279, WarnSeconds = 1 },
 		},
 	},
@@ -172,9 +172,9 @@ local list: { Boss } = {
 			{ Name = "Rend", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 7, Recommended = 117200, HP = 777761, ATK = 278, WarnSeconds = 2 },
-			Hard = { D = 8, Recommended = 151900, HP = 1460836, ATK = 343, WarnSeconds = 2 },
-			Nightmare = { D = 9, Recommended = 175600, HP = 2518163, ATK = 410, WarnSeconds = 1 },
+			Normal = { D = 7, Recommended = 117200, HP = 894425, ATK = 278, WarnSeconds = 2 },
+			Hard = { D = 8, Recommended = 121500, HP = 1285536, ATK = 274, WarnSeconds = 2 },
+			Nightmare = { D = 9, Recommended = 127700, HP = 1888622, ATK = 287, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -200,9 +200,9 @@ local list: { Boss } = {
 		},
 		Difficulties = {
 			-- Nightmare's recommended deck needs a few fusions (see tests/fixtures.luau).
-			Normal = { D = 10, Recommended = 174400, HP = 3305273, ATK = 347, WarnSeconds = 2 },
-			Hard = { D = 11, Recommended = 174400, HP = 3595270, ATK = 312, WarnSeconds = 2 },
-			Nightmare = { D = 12, Recommended = 174400, HP = 3507557, ATK = 321, WarnSeconds = 1 },
+			Normal = { D = 10, Recommended = 126900, HP = 2379797, ATK = 243, WarnSeconds = 2 },
+			Hard = { D = 11, Recommended = 126900, HP = 2588594, ATK = 218, WarnSeconds = 2 },
+			Nightmare = { D = 12, Recommended = 126900, HP = 2525441, ATK = 225, WarnSeconds = 1 },
 		},
 	},
 }
@@ -250,44 +250,44 @@ end
 local WARDER = { Taunt = true, Protect = 0.3 }
 
 local guardList: { GuardType } = {
-	guard("ashigaru", "Ash Ashigaru", "🗡️", "Striker", 1, "Flame", Color3.fromRGB(255, 120, 70), {
-		{ Name = "Ember Thrust", Target = "Single", Pct = 1.8, Every = 4, Warn = true, Burn = { Pct = 0.1, Turns = 2 } },
-		{ Name = "Spear Jab", Target = "Single", Pct = 1 },
+	guard("ashigaru", "Crimson-Eye Shinobi", "🗡️", "Striker", 1, "Flame", Color3.fromRGB(255, 120, 70), {
+		{ Name = "Crimson Eye Rush", Target = "Single", Pct = 1.8, Every = 4, Warn = true, Burn = { Pct = 0.1, Turns = 2 } },
+		{ Name = "Clan Blade", Target = "Single", Pct = 1 },
 	}),
-	guard("embermonk", "Ember Monk", "🔥", "Mender", 1, "Light", Color3.fromRGB(255, 170, 90), mender("Cinder Prayer", "War Chant", "Palm Strike")),
-	guard("ironclad", "Ironclad", "🛡️", "Warder", 1, "Flame", Color3.fromRGB(170, 120, 100), {
-		{ Name = "Quake Stomp", Target = "All", Pct = 0.4, Every = 4 },
-		{ Name = "Shield Bash", Target = "Single", Pct = 0.8 },
+	guard("embermonk", "Crow Illusionist", "🔥", "Mender", 1, "Light", Color3.fromRGB(255, 170, 90), mender("Crow Renewal", "Crimson Eye Formation", "Illusion Palm")),
+	guard("ironclad", "Armored Clan Warlord", "🛡️", "Warder", 1, "Flame", Color3.fromRGB(170, 120, 100), {
+		{ Name = "Armored Shockwave", Target = "All", Pct = 0.4, Every = 4 },
+		{ Name = "War Fan Strike", Target = "Single", Pct = 0.8 },
 	}, WARDER),
-	guard("frostarcher", "Frost Archer", "🏹", "Hexer", 2, "Frost", Color3.fromRGB(140, 220, 255), {
+	guard("frostarcher", "Frost Court Archer", "🏹", "Hexer", 2, "Frost", Color3.fromRGB(140, 220, 255), {
 		{ Name = "Rime Volley", Target = "Random", Pct = 0.6, Hits = 2, Every = 4, Freeze = true },
-		{ Name = "Ice Arrow", Target = "Single", Pct = 1 },
+		{ Name = "Crystal Arrow", Target = "Single", Pct = 1 },
 	}),
-	guard("snowmaiden", "Snow Maiden", "❄️", "Mender", 2, "Light", Color3.fromRGB(200, 235, 255), mender("Frost Bloom", "Winter Hymn", "Snow Lash")),
-	guard("glaciergolem", "Glacier Golem", "🧊", "Warder", 2, "Frost", Color3.fromRGB(110, 170, 220), {
-		{ Name = "Permafrost", Target = "All", Pct = 0.35, Every = 4, Slow = { Amount = 0.15, Turns = 2 } },
-		{ Name = "Ice Fist", Target = "Single", Pct = 0.8 },
+	guard("snowmaiden", "Frost Court Mender", "❄️", "Mender", 2, "Light", Color3.fromRGB(200, 235, 255), mender("Restoring Crystal", "Frost Court Hymn", "Frost Touch")),
+	guard("glaciergolem", "Glacier Sentinel", "🧊", "Warder", 2, "Frost", Color3.fromRGB(110, 170, 220), {
+		{ Name = "Permafrost Field", Target = "All", Pct = 0.35, Every = 4, Slow = { Amount = 0.15, Turns = 2 } },
+		{ Name = "Glacier Fist", Target = "Single", Pct = 0.8 },
 	}, WARDER),
-	guard("shade", "Void Shade", "🌑", "Striker", 3, "Void", Color3.fromRGB(190, 80, 255), {
-		{ Name = "Umbral Rend", Target = "Single", Pct = 2, Every = 4, Warn = true },
-		{ Name = "Shadow Claw", Target = "Single", Pct = 1 },
+	guard("shade", "Void Court Duelist", "🌑", "Striker", 3, "Void", Color3.fromRGB(190, 80, 255), {
+		{ Name = "Void Flash", Target = "Single", Pct = 2, Every = 4, Warn = true },
+		{ Name = "Shadow Cut", Target = "Single", Pct = 1 },
 	}),
-	guard("nullwitch", "Null Witch", "🔮", "Hexer", 3, "Void", Color3.fromRGB(230, 110, 255), {
-		{ Name = "Entropy", Target = "All", Pct = 0.35, Every = 4, Slow = { Amount = 0.2, Turns = 2 } },
-		{ Name = "Hex Bolt", Target = "Single", Pct = 1, Burn = { Pct = 0.08, Turns = 2 } },
+	guard("nullwitch", "Mirror Court Hexer", "🔮", "Hexer", 3, "Void", Color3.fromRGB(230, 110, 255), {
+		{ Name = "Binding Illusion", Target = "All", Pct = 0.35, Every = 4, Slow = { Amount = 0.2, Turns = 2 } },
+		{ Name = "Mirror Curse", Target = "Single", Pct = 1, Burn = { Pct = 0.08, Turns = 2 } },
 	}),
-	guard("voidknight", "Void Knight", "⚔️", "Warder", 3, "Void", Color3.fromRGB(120, 70, 170), {
+	guard("voidknight", "Armored Void Knight", "⚔️", "Warder", 3, "Void", Color3.fromRGB(120, 70, 170), {
 		{ Name = "Gravity Well", Target = "All", Pct = 0.4, Every = 4 },
-		{ Name = "Null Blade", Target = "Single", Pct = 0.8 },
+		{ Name = "Void Cleave", Target = "Single", Pct = 0.8 },
 	}, WARDER),
-	guard("thunderhawk", "Thunder Hawk", "🦅", "Striker", 4, "Storm", Color3.fromRGB(255, 230, 90), {
-		{ Name = "Talon Storm", Target = "Random", Pct = 0.7, Hits = 3, Every = 4 },
-		{ Name = "Dive", Target = "Single", Pct = 1 },
+	guard("thunderhawk", "Storm Spear Vanguard", "🦅", "Striker", 4, "Storm", Color3.fromRGB(255, 230, 90), {
+		{ Name = "Thunder Spears", Target = "Random", Pct = 0.7, Hits = 3, Every = 4 },
+		{ Name = "Storm Lunge", Target = "Single", Pct = 1 },
 	}, { SPD = 120 }),
-	guard("stormpriest", "Storm Priest", "⛈️", "Mender", 4, "Light", Color3.fromRGB(150, 170, 255), mender("Rain of Life", "Thunder Hymn", "Static Touch")),
-	guard("raiju", "Raiju", "⚡", "Hexer", 4, "Storm", Color3.fromRGB(255, 210, 60), {
-		{ Name = "Paralyze", Target = "Single", Pct = 0.8, Every = 3, Freeze = true },
-		{ Name = "Spark Bite", Target = "Random", Pct = 0.5, Hits = 2 },
+	guard("stormpriest", "Storm Court Priest", "⛈️", "Mender", 4, "Light", Color3.fromRGB(150, 170, 255), mender("Storm Renewal", "Thunder Hymn", "Static Touch")),
+	guard("raiju", "Thunder Hexer", "⚡", "Hexer", 4, "Storm", Color3.fromRGB(255, 210, 60), {
+		{ Name = "Thunder Bind", Target = "Single", Pct = 0.8, Every = 3, Freeze = true },
+		{ Name = "Spark Claws", Target = "Random", Pct = 0.5, Hits = 2 },
 	}),
 }
 

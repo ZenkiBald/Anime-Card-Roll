@@ -28,7 +28,7 @@ Config.Unlocks = {
 }
 
 Config.MaxStars = 5
-Config.StarBonus = 0.05 -- +5% stats per star
+Config.StarBonus = 0 -- legacy save field; duplicates grant no combat stats
 
 -- Fusion (Hoshi in town): this many copies of one card at one border fuse into 1 copy at the next
 -- border (Base -> Gold -> Rainbow -> Secret).

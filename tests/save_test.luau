@@ -2,6 +2,24 @@
 -- the per-border copy piles add up to the card's total, and running it twice changes nothing.
 local SaveMigration = MODULES.SaveMigration
 
+do
+	local entry = { Copies=120, Stars=5, Awaken=4, Trait2="swift", BorderCopies={Normal=119,Gold=1}, Borders={Normal=true,Gold=true} }
+	local data = { Cards={rook=entry} }
+	SaveMigration.Migrate(data)
+	check(entry.Stars == 0 and entry.Awaken == nil and MODULES.Awaken.Level(entry) == 0, "copy stats retire without granting free mastery")
+	check(entry.Copies == 120 and entry.BorderCopies.Gold == 1 and entry.Trait2Unlocked, "migration preserves copies, borders and existing second trait slot")
+	local mark = "kurogane:Normal"
+	check(MODULES.Awaken.Award(entry, mark) and not MODULES.Awaken.Award(entry, mark), "one mastery mark per distinct challenge; farming repeats grants none")
+	SaveMigration.Migrate(data)
+	check(MODULES.Awaken.Count(entry) == 1 and MODULES.Awaken.Level(entry) == 1, "mastery survives a repeated save migration")
+	for i=2,10 do MODULES.Awaken.Award(entry, `challenge:{i}`) end
+	check(MODULES.Awaken.Level(entry) == 4, "ten distinct boss challenges unlock the second trait slot")
+	check(MODULES.Cards.Stat(MODULES.Cards.Get("rook"),550,0,"Normal") == MODULES.Cards.Stat(MODULES.Cards.Get("rook"),550,5,"Normal",4), "copies and mastery cannot multiply base damage")
+	local fused = {Cards={rook={Copies=100,Stars=5,Fusion=1}}}
+	SaveMigration.Migrate(fused)
+	check(fused.Cards.rook.Trait2Unlocked and MODULES.Awaken.Level(fused.Cards.rook)==0, "legacy fusion keeps second-slot access without free mastery")
+end
+
 local function deepCopy(t)
 	if type(t) ~= "table" then
 		return t

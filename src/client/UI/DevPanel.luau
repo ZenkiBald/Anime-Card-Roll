@@ -152,7 +152,7 @@ function DevPanel.Init(playerGui: Instance)
 	unlock.Activated:Connect(function()
 		devCall("UnlockFights")
 	end)
-	local maxStars = Kit.button("MAX MY STARS", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
+	local maxStars = Kit.button("+5 COPIES ALL", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
 		LayoutOrder = 2,
 		Size = UDim2.fromOffset(160, 36),
 		Parent = fightRow,
@@ -270,7 +270,7 @@ function DevPanel.Init(playerGui: Instance)
 	end)
 
 	-- Phase 2: Trait Shards, Awakening copies and foils, to try the Trait Master and nodes.
-	local phaseRow = section(list, 17, "TRAIT SHARDS · AWAKENING · FOILS")
+	local phaseRow = section(list, 17, "TRAIT SHARDS · FUSION COPIES · FOILS")
 	for i, info in {
 		{ "+200 TRAIT SHARDS", "GiveTraitShards", Color3.fromRGB(80, 230, 200) },
 		{ "+20 COPIES ALL", "GiveCopies", Theme.Color.Gold },

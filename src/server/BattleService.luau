@@ -153,6 +153,14 @@ local function recordResult(player: Player, state)
 	if battle.Result == "Win" then
 		record.FirstClear = data.Progress.Cleared[key] ~= true
 		data.Progress.Cleared[key] = true
+		record.Cards = {}
+		for _, unit in battle.Allies do
+			local id = unit.Card.Id
+			local owned = data.Cards[id]
+			if owned and (unit.Type == "Attack" or unit.Paired) and Awaken.Award(owned, key) then
+				record.Cards[id] = DataService.CardState(owned)
+			end
+		end
 		local time = math.floor(battle.Time * 10) / 10
 		local best = data.Progress.BestTime[key]
 		if best == nil or time < best then
@@ -222,6 +230,7 @@ local function run(player: Player, state)
 		summary.FirstClear = record.FirstClear
 		summary.NewBest = record.NewBest
 		summary.Progress = record.Progress
+		summary.Cards = record.Cards
 		summary.Tower = record.Tower
 		summary.Floor = state.Floor
 		summary.Mode = state.Mode
@@ -276,7 +285,7 @@ local function deckUnits(data, deck, mutator: Tower.Mutator?)
 				local card = Cards.Get(id)
 				local node = Awaken.Level(owned)
 				-- Unit effects: both trait slots (slot 2 once it's open), the best foil, Awakening, mutator.
-				local slot2 = if node >= Traits.Slot2Node then owned.Trait2 else nil
+				local slot2 = if owned.Trait2Unlocked or node >= Traits.Slot2Node then owned.Trait2 else nil
 				local effects = Traits.SlotEffects(owned.Trait, slot2)
 				for _, list in { Foils.Effects(Foils.Best(owned.Foils)), Awaken.Effects(node), Tower.MutatorEffects(mutator, card and card.Element or "") } do
 					for _, effect in list do
@@ -475,6 +484,10 @@ function BattleService.Start()
 			end
 		elseif state == nil then
 			return
+		elseif action == "View" then
+			if type(value) ~= "boolean" then return end
+			state.Hidden = not value
+			setArenaFocus(player, if value then state.Engine.BossId else nil)
 		elseif action == "Ultimate" then
 			-- The engine checks the card is alive, has an Ultimate and 100 energy.
 			if type(value) == "string" and state.Started then

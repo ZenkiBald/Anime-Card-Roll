@@ -5,6 +5,7 @@
 -- Models stand on y = 0 and face -Z; their PrimaryPart is an invisible "Root" at the waist.
 
 local BossModels = {}
+local Bosses = require(script.Parent.Bosses)
 
 export type Look = {
 	Scale: number,
@@ -374,7 +375,7 @@ local BUILDERS: { [string]: (Model, Look) -> () } = {
 }
 
 function BossModels.Has(id: string): boolean
-	return LOOKS[id] ~= nil
+	return LOOKS[id] ~= nil or Bosses.GuardTypes[id] ~= nil
 end
 
 function BossModels.Height(id: string): number
@@ -427,7 +428,59 @@ end
 
 -- Builds the figure for a boss id (or "sage" / "fuser"). Unknown ids get a plain figure.
 function BossModels.Build(id: string): Model
+	local guard = Bosses.GuardTypes[id]
 	local look = LOOKS[id] or LOOKS.sage
+	if guard then
+		local colors = {
+			{ Color3.fromRGB(45,35,39), Color3.fromRGB(176,55,43), Color3.fromRGB(235,190,151) },
+			{ Color3.fromRGB(154,204,231), Color3.fromRGB(230,242,249), Color3.fromRGB(221,231,240) },
+			{ Color3.fromRGB(49,32,66), Color3.fromRGB(112,61,142), Color3.fromRGB(190,176,196) },
+			{ Color3.fromRGB(33,49,75), Color3.fromRGB(211,172,73), Color3.fromRGB(218,205,187) },
+		}
+		local palette = colors[guard.World]
+		look = { Scale=1, Skin=palette[3], Body=palette[1], Arms=palette[1], Legs=palette[2], Trim=guard.Color, Eyes=guard.Color }
+		local model = Instance.new("Model"); model.Name = guard.Name
+		body(model, look, guard.Role == "Mender" or guard.Role == "Hexer")
+		-- Classic Roblox faces and real hair silhouettes keep the retinue readable as characters.
+		local head = model:FindFirstChild("Head") :: Part
+		head.Shape = Enum.PartType.Block
+		local mesh = Instance.new("SpecialMesh"); mesh.MeshType = Enum.MeshType.Head; mesh.Parent = head
+		local face = Instance.new("Decal"); face.Name="Face"; face.Texture="rbxasset://textures/face.png"; face.Face=Enum.NormalId.Front; face.Parent=head
+		for _, name in {"LeftEye","RightEye"} do local eye=model:FindFirstChild(name);if eye then eye:Destroy() end end
+		local root = add(model,"Root",Vector3.one,CFrame.new(0,3,0),look.Body); root.Transparency=1;model.PrimaryPart=root
+		local hair = if guard.World == 1 then Color3.fromRGB(24,22,28) elseif guard.World == 2 then Color3.fromRGB(230,239,245) else Color3.fromRGB(35,30,42)
+		add(model,"Hair",Vector3.new(1.45,0.4,1.4),CFrame.new(0,5.25,0),hair)
+		add(model,"BackHair",Vector3.new(1.4,if guard.Role=="Mender" then 1.8 else 0.9,0.35),CFrame.new(0,if guard.Role=="Mender" then 4.25 else 4.65,0.65),hair)
+		add(model,"Fringe",Vector3.new(0.5,0.65,0.2),CFrame.new(-0.4,4.95,-0.66)*CFrame.Angles(0,0,-0.3),hair)
+		if guard.World == 1 then
+			add(model,"ShinobiHeadband",Vector3.new(1.38,0.25,0.12),CFrame.new(0,4.99,-0.67),Color3.fromRGB(165,172,182),Enum.Material.Metal)
+			add(model,"ClanSash",Vector3.new(2.1,0.25,1.08),CFrame.new(0,2.15,0),palette[2])
+			add(model,"ClanFan",Vector3.new(0.6,0.6,0.12),CFrame.new(0,3.4,-0.56),palette[2],nil,Enum.PartType.Ball)
+			add(model,"ClanFanHandle",Vector3.new(0.12,0.4,0.12),CFrame.new(0,3.03,-0.59),Color3.fromRGB(225,222,210))
+			if guard.Role == "Mender" then add(model,"CrowCloak",Vector3.new(2.3,2.6,0.25),CFrame.new(0,2.8,0.7),hair) end
+		elseif guard.World == 2 then
+			for _,x in {-0.5,0,0.5} do add(model,"IceCrest",Vector3.new(0.22,0.9,0.22),CFrame.new(x,5.6,0),guard.Color,Enum.Material.Glass) end
+			add(model,"BattleArmor",Vector3.new(2.15,1.2,0.25),CFrame.new(0,3.35,-0.6),palette[2])
+		elseif guard.World == 3 then
+			add(model,"VoidCape",Vector3.new(2.2,3,0.18),CFrame.new(0,3,0.65),palette[1])
+			add(model,"VoidBlade",Vector3.new(0.15,3,0.25),CFrame.new(1.8,2.3,-0.4),Color3.fromRGB(200,210,225),Enum.Material.Metal)
+		else
+			add(model,"LeftHorn",Vector3.new(0.22,0.85,0.22),CFrame.new(-0.55,5.45,0)*CFrame.Angles(0,0,0.3),palette[2])
+			add(model,"RightHorn",Vector3.new(0.22,0.85,0.22),CFrame.new(0.55,5.45,0)*CFrame.Angles(0,0,-0.3),palette[2])
+			if guard.Role == "Striker" or guard.Role == "Mender" then
+				add(model,"StormSpear",Vector3.new(0.16,4.5,0.16),CFrame.new(1.9,2.5,-0.4),Color3.fromRGB(130,139,155),Enum.Material.Metal)
+				add(model,"SpearTip",Vector3.new(0.5,0.9,0.5),CFrame.new(1.9,5.15,-0.4)*CFrame.Angles(0,0,math.rad(45)),palette[2])
+			end
+		end
+		if guard.Role == "Warder" then
+			for _,x in {-1.5,1.5} do add(model,"Pauldron",Vector3.new(1.3,0.8,1.3),CFrame.new(x,3.9,0),palette[2]) end
+		elseif guard.Role == "Mender" then
+			add(model,"MedicinePack",Vector3.new(1.8,1.5,0.7),CFrame.new(0,3,0.9),palette[2])
+		elseif guard.Role == "Hexer" then
+			add(model,"FocusOrb",Vector3.new(0.6,0.6,0.6),CFrame.new(-1.5,1.7,-0.7),guard.Color,Enum.Material.Neon,Enum.PartType.Ball)
+		else add(model,"ArmGuard",Vector3.new(1.08,1,1.1),CFrame.new(1.5,2.7,0),palette[2]) end
+		return model
+	end
 	local made = fromKit(id, look)
 	if made then
 		return made

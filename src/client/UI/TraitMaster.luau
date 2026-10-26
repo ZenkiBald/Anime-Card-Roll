@@ -37,7 +37,7 @@ local BIG_PAUSE = 1.5 -- seconds the buttons wait after a Legendary / Mythic rol
 local REASONS = {
 	TooFar = "Stand beside Kenshin to roll traits",
 	NoTraitShards = "Not enough Trait Shards (bosses, the tower, raids, quests and gifts pay them)",
-	SlotLocked = `Trait slot 2 opens at Awakening node {Traits.Slot2Node} ({Awaken.Nodes[Traits.Slot2Node].Copies} copies)`,
+	SlotLocked = `Trait slot 2 opens at Mastery rank {Traits.Slot2Node} ({Awaken.Nodes[Traits.Slot2Node].Challenges} distinct boss challenges)`,
 	Pending = "Choose KEEP or APPLY first",
 	TooFast = "One roll at a time",
 	NotOwned = "You don't own that card",
@@ -55,6 +55,7 @@ local busy = false
 local hintToken = 0
 local lockSlot = 1 -- LOCK & ROLL keeps this slot
 local autoSlot = 1 -- AUTO ROLL rolls this slot
+local autoCancelled = false
 local autoView = false -- the detail panel shows AUTO ROLL (drawAuto) instead of the card
 local lastAuto: { Title: string, Color: Color3, Detail: string }? = nil -- the last run's result, kept on the stage
 local targets: { [string]: boolean } = {} -- AUTO ROLL stops on these (for the session)
@@ -91,7 +92,7 @@ local function traitText(id: string?): string
 end
 
 local function slotOpen(entry, slot: number): boolean
-	return slot == 1 or Awaken.Level(entry) >= Traits.Slot2Node
+	return slot == 1 or (entry.Trait2Unlocked == true or Awaken.Level(entry) >= Traits.Slot2Node)
 end
 
 local function line(parent: Instance, order: number, text: string, color: Color3, size: number, font: Enum.Font?): TextLabel
@@ -223,7 +224,7 @@ local function playAuto(stage: Frame, result, done: () -> ())
 				label.Text = `{trait.Icon} {string.upper(trait.Name)}`
 				label.TextColor3 = Rarity.Get(trait.Tier).Color
 			end
-			count.Text = `ROLL {i} / {#rolled}`
+			count.Text = `BATCH ROLL {i} / {#rolled}`
 			Sfx.Play("Click", 1.3)
 			task.wait(if i > #rolled - 4 then 0.12 else 0.035)
 		end
@@ -231,7 +232,7 @@ local function playAuto(stage: Frame, result, done: () -> ())
 		if hit then
 			label.Text = `{hit.Icon} {string.upper(hit.Name)}!`
 			label.TextColor3 = Rarity.Get(hit.Tier).Color
-			count.Text = `Hit on roll {#rolled} · 🧬{result.Spent} spent · applied to slot {result.Slot}`
+			count.Text = `Hit on roll {result.TotalRolled or #rolled} · 🧬{result.TotalSpent or result.Spent} spent · applied to slot {result.Slot}`
 			local big = Traits.TierIndex(hit.Id) >= Traits.BigTier
 			local color = if Traits.TierIndex(hit.Id) >= 4 then Color3.fromRGB(255, 60, 80) else Theme.Color.Gold
 			Effects.Flash(stage, color, 0.6, 0.4)
@@ -241,7 +242,7 @@ local function playAuto(stage: Frame, result, done: () -> ())
 		else
 			label.Text = "NO HIT"
 			label.TextColor3 = Theme.Color.Muted
-			count.Text = `No ticked trait in {#rolled} rolls · 🧬{result.Spent} spent · the old trait stays`
+			count.Text = `No ticked trait in {result.TotalRolled or #rolled} rolls · 🧬{result.TotalSpent or result.Spent} spent · the old trait stays`
 			Sfx.Play("Reward", 0.9)
 			task.wait(0.6)
 		end
@@ -288,12 +289,12 @@ local function drawDetail()
 		line(info, 3, `SLOT 2   {traitText(entry.Trait2)}`, Theme.Color.Text, 17, Theme.Font.Heavy)
 	else
 		local node = Awaken.Nodes[Traits.Slot2Node]
-		line(info, 3, `SLOT 2   🔒 opens at {node.Copies} copies (Awakening node {node.Node}) · you have {entry.Copies}`, Theme.Color.Muted, 16)
+		line(info, 3, `SLOT 2   🔒 opens at {node.Challenges} distinct boss challenges (Mastery rank {node.Node}) · completed {Awaken.Count(entry)}`, Theme.Color.Muted, 16)
 	end
 	line(
 		info,
 		4,
-		`A roll is pure luck: Rare 75% · Epic 20% · Legendary 4.5% · Mythic 0.5%. You choose KEEP OLD or APPLY NEW, so a roll never makes a card worse.`,
+		`{if card.Type == "Support" then "Traits affect the supported card. " else ""}A roll is pure luck: Rare 75% · Epic 20% · Legendary 4.5% · Mythic 0.5%. You choose KEEP OLD or APPLY NEW, so a roll never makes a card worse.`,
 		Theme.Color.Muted,
 		14
 	)
@@ -615,7 +616,7 @@ function drawAuto(id: string, entry, card)
 	Kit.label({
 		Text = if ticked == 0
 			then "Tick at least one trait above."
-			else `Stops on <b>{ticked}</b> trait{if ticked == 1 then "" else "s"} · <b>{string.format("%.2f", chance * 100)}%</b> a roll (about <b>{Kit.commas(math.ceil(1 / chance))}</b> rolls)\nThis tap: up to <b>{rolls}</b> rolls = 🧬<b>{Kit.commas(rolls * Traits.RollCost)}</b> (🧬{Traits.RollCost} each, the rest stays)`,
+			else `Stops on <b>{ticked}</b> trait{if ticked == 1 then "" else "s"} · <b>{string.format("%.2f", chance * 100)}%</b> a roll (about <b>{Kit.commas(math.ceil(1 / chance))}</b> rolls)\nRuns until a selected trait, Stop or empty shards. Each batch: up to <b>{rolls}</b> rolls = 🧬<b>{Kit.commas(rolls * Traits.RollCost)}</b> (🧬{Traits.RollCost} each, the rest stays)`,
 		RichText = true,
 		Font = Theme.Font.Bold,
 		TextColor3 = Theme.Color.Text,
@@ -633,6 +634,8 @@ function drawAuto(id: string, entry, card)
 	Kit.dim(start, ticked == 0 or rolls < 1)
 	start.Activated:Connect(function()
 		if busy then
+			autoCancelled = true
+			start.Label.Text = "STOP AFTER THIS BATCH"
 			return
 		end
 		local picked = {}
@@ -646,18 +649,31 @@ function drawAuto(id: string, entry, card)
 			return
 		end
 		busy = true
-		local result = call("AutoRoll", id, { Slot = autoSlot, Targets = picked })
-		if result == nil then
+		autoCancelled = false
+		local slot = autoSlot
+		start.Label.Text = "AUTO RUNNING · STOP"
+		local function finish()
 			busy = false
-			return
+			if modal.IsOpen then drawGrid() end
 		end
-		Sfx.Play("Whoosh", 1)
-		playAuto(stage, result, function()
-			busy = false
-			if modal.IsOpen then
-				drawGrid()
-			end
-		end)
+		local run
+		local totalRolled, totalSpent = 0, 0
+		run = function()
+			if autoCancelled or not modal.IsOpen then finish(); return end
+			local result = call("AutoRoll", id, { Slot = slot, Targets = picked })
+			if result == nil then finish(); return end
+			totalRolled += #(result.Rolled or {})
+			totalSpent += result.Spent or 0
+			result.TotalRolled, result.TotalSpent = totalRolled, totalSpent
+			Sfx.Play("Whoosh", 1)
+			playAuto(stage, result, function()
+				if result.Hit or autoCancelled or not modal.IsOpen then finish()
+				elseif (State.Summary.TraitShards or 0) < Traits.RollCost then
+					hint(REASONS.NoTraitShards); finish()
+				else task.delay(0.4, run) end
+			end)
+		end
+		run()
 	end)
 end
 
@@ -761,6 +777,7 @@ function TraitMaster.Init(playerGui: Instance)
 		BackgroundTransparency = 0.25,
 		Parent = modal.Body,
 	}, { Kit.corner(UDim.new(0, 18)), Kit.stroke(TEAL, 2, 0.4), Kit.padding(10) })
+	modal.OnClose = function() autoCancelled = true end
 	modal.OnOpen = function()
 		if not busy then
 			drawGrid()

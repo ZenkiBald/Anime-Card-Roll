@@ -2,10 +2,10 @@
 -- Card traits: rolled at Kenshin the Trait Master in town (or from the Index card detail), never on
 -- pulls: a fresh card has no trait. A roll costs Trait Shards (RollCost); the player sees the new trait
 -- and chooses KEEP OLD or APPLY NEW, so a bad roll never downgrades a card. Pure luck: the tier odds
--- below, the same for everyone, shown in the ODDS panel. A card that reaches Awakening node 4
+-- below, the same for everyone, shown in the ODDS panel. A card that reaches Battle Mastery rank 4
 -- (Awaken.luau) opens a second trait slot; LOCK & ROLL (LockCost) keeps one slot and rolls the other
 -- twice, so the player picks the better of two. AUTO ROLL rolls one slot again and again (RollCost each,
--- up to AutoMax a tap) until it lands one of the traits the player ticked, which it applies; with no
+-- up to AutoMax per server batch) until it lands one of the traits the player ticked, which it applies; with no
 -- hit the old trait stays.
 -- Traits are battle-only buffs (speed, crits, guard, a head start on the Ultimate) applied as permanent
 -- unit buffs in BattleEngine: they never add ATK or HP, so Deck Power and "rarity always wins" stay put.
@@ -75,7 +75,7 @@ Traits.RollCost = 10 -- Trait Shards for one roll at the Trait Master
 Traits.LockCost = 25 -- LOCK & ROLL: keep one slot, roll the other twice and pick
 Traits.Slot2Node = 4 -- Awakening node that opens trait slot 2
 Traits.BigTier = 3 -- Legendary and up: the roll button pauses and the screen flashes
-Traits.AutoMax = 100 -- AUTO ROLL: at most this many rolls (RollCost each) per tap
+Traits.AutoMax = 100 -- AUTO ROLL: at most this many rolls (RollCost each) per server batch
 
 Traits.ById = {} :: { [string]: Trait }
 local tierIndex: { [string]: number } = {}

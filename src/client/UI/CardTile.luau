@@ -4,7 +4,7 @@
 -- 3 px; the border IS the tier), the art in the middle, and along the bottom the name and copies, then the
 -- card's rarity number at its border (Cards.Rarity, a round number like 7,500,000) in the tier's colour.
 -- No combat stats on the tile: they live in the inspector / skill sheet. A plain Attack / Support label
--- says which row it belongs in; the element sits top-right. Copy bonus is explained in the details.
+-- says which row it belongs in; the element sits top-right. Duplicates are for fusion; battle mastery is explained in the details.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -24,7 +24,6 @@ local ElementUi = require(script.Parent.ElementUi)
 
 local CardTile = {}
 
-local TweenService = game:GetService("TweenService")
 
 local C = UITheme.Colors
 
@@ -189,9 +188,10 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		}, 14), 1.2)
 	end
 	-- FUSE!: a vermilion wax seal over the art, pulsing, when this border has the copies to fuse (at Hoshi).
-	if owned and options.Fusable then
+	if owned then
 		local seal = Kit.new("Frame", {
 			Name = "Fuse",
+			Visible = options.Fusable == true,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.44),
 			Size = UDim2.fromScale(0.56, 0.15),
@@ -209,10 +209,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 			ZIndex = 8,
 			Parent = seal,
 		}, 16), 1.2)
-		local scale = Kit.new("UIScale", { Parent = seal })
-		local pulse = TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-		TweenService:Create(scale, pulse, { Scale = 1.12 }):Play()
-		TweenService:Create(rim, pulse, { Color = C.VermilionHover }):Play()
+
 	end
 	local rarity = if owned then Cards.Rarity(cardId, borderId) else 0
 	outlined(Kit.label({
@@ -245,9 +242,10 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	})
 
 	-- In the deck: a small vermilion seal under the stars.
-	if options.InDeck then
+	if owned then
 		local seal = Kit.new("Frame", {
 			Name = "InDeck",
+			Visible = options.InDeck == true,
 			Position = UDim2.fromScale(0.06, 0.28),
 			Size = UDim2.fromScale(0.18, 0.18),
 			BackgroundColor3 = C.VermilionWax,
@@ -270,9 +268,10 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		}, 18), 1)
 	end
 
-	if options.Selected then
+	if owned then
 		local ring = Kit.new("Frame", {
 			Name = "Selected",
+			Visible = options.Selected == true,
 			Size = UDim2.fromScale(1, 1),
 			BackgroundColor3 = C.WashiParchment,
 			BackgroundTransparency = 0.9,

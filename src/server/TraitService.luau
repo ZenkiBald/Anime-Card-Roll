@@ -29,7 +29,7 @@ local rng = Random.new()
 local limiter = RateLimit.new(3, 6)
 
 local function slotOpen(entry, slot: number): boolean
-	return slot == 1 or (slot == 2 and Awaken.Level(entry) >= Traits.Slot2Node)
+	return slot == 1 or (slot == 2 and (entry.Trait2Unlocked == true or Awaken.Level(entry) >= Traits.Slot2Node))
 end
 
 local function roll(): string
@@ -59,8 +59,12 @@ local function autoRoll(player: Player, data, cardId: string, entry, arg: unknow
 	if (slot ~= 1 and slot ~= 2) or type(list) ~= "table" then
 		return { Ok = false, Reason = "BadRequest" }
 	end
-	local targets, count = {}, 0
-	for _, id in list do
+	local targets, count, entries = {}, 0, 0
+	for index, id in list do
+		entries += 1
+		if entries > #Traits.List or type(index) ~= "number" or index % 1 ~= 0 or index < 1 or index > #Traits.List then
+			return { Ok = false, Reason = "BadRequest" }
+		end
 		if type(id) ~= "string" or Traits.Get(id) == nil or count >= #Traits.List then
 			return { Ok = false, Reason = "BadRequest" }
 		end
@@ -78,9 +82,6 @@ local function autoRoll(player: Player, data, cardId: string, entry, arg: unknow
 	local current = if slot == 2 then entry.Trait2 else entry.Trait
 	if current and targets[current] then
 		return { Ok = false, Reason = "HasTarget" }
-	end
-	if not limiter:Allow(player) then
-		return { Ok = false, Reason = "TooFast" }
 	end
 	if not NpcRange.Near(player, "traitmaster") then
 		return { Ok = false, Reason = "TooFar" }
@@ -105,6 +106,7 @@ local function autoRoll(player: Player, data, cardId: string, entry, arg: unknow
 end
 
 local function handle(player: Player, action: unknown, cardId: unknown, arg: unknown)
+	if not limiter:Allow(player) then return { Ok = false, Reason = "TooFast" } end
 	if type(cardId) ~= "string" then
 		return { Ok = false, Reason = "BadRequest" }
 	end
@@ -167,9 +169,6 @@ local function handle(player: Player, action: unknown, cardId: unknown, arg: unk
 	end
 	if not slotOpen(entry, slot) then
 		return { Ok = false, Reason = "SlotLocked" }
-	end
-	if not limiter:Allow(player) then
-		return { Ok = false, Reason = "TooFast" }
 	end
 	if not NpcRange.Near(player, "traitmaster") then
 		return { Ok = false, Reason = "TooFar" } -- traits are rolled beside Kenshin

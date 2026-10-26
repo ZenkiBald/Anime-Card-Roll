@@ -110,6 +110,7 @@ local function newUnit(spec: UnitSpec)
 		Border = spec.Border or "Normal",
 		Stars = spec.Stars,
 		SupportMods = {},
+		EquipEffects = spec.Trait or {},
 		Triggered = {},
 		HealingLock = 0,
 		HPCost = 0,
@@ -285,6 +286,13 @@ function Engine.new(setup: Setup)
 		local slot = string.match(unit.Id, "^S(%d+)$")
 		local front = slot and self.ById[`A{slot}`]
 		if link and front and front.HasHP then
+			-- A passive card never acts. Its traits, foil and mastery therefore belong to its paired attacker.
+			for i, effect in unit.EquipEffects do
+				if effect.Stat == "StartEnergy" then
+					if front.Ultimate then front.Energy = math.min(B.UltimateCost, front.Energy + effect.Amount * B.UltimateCost) end
+				elseif effect.Stat == "HPCost" then front.HPCost += effect.Amount
+				else front.Buffs[`SupportTrait:{unit.Id}:{i}`] = { Stat=effect.Stat, Amount=effect.Amount, Left=math.huge } end
+			end
 			local amount = Cards.SupportValue(unit.Card, unit.Stars, unit.Border, unit.Awaken)
 			local mod = { Source = unit, Def = link, Amount = amount, Used = 0, Healed = 0 }
 			unit.Modifier = mod

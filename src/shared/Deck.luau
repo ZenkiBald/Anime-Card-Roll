@@ -10,7 +10,7 @@ local Elements = require(script.Parent.Elements)
 local Awaken = require(script.Parent.Awaken)
 
 export type Deck = { Attack: { string }, Support: { string } }
-export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, BorderCopies: { [string]: number }?, Awaken: number?, Play: string? } }
+export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, BorderCopies: { [string]: number }?, Awaken: number?, Mastery: { [string]: boolean }?, Trait2Unlocked: boolean?, Play: string? } }
 
 local Deck = {}
 

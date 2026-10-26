@@ -186,10 +186,6 @@ local function doRoll(player: Player, profile, luck: number?, batch: { XP: numbe
 	if entry == nil then
 		entry = { Copies = 1, Stars = 0 }
 		data.Cards[card.Id] = entry
-	elseif entry.Stars < Config.MaxStars then
-		entry.Copies += 1
-		entry.Stars += 1
-		outcome = "Star"
 	else
 		entry.Copies += 1
 		outcome = "Copy"
@@ -201,11 +197,9 @@ local function doRoll(player: Player, profile, luck: number?, batch: { XP: numbe
 		MetaService.AddXP(player, data, xp)
 	end
 
-	-- Awakening: every 20 copies open a node, for good.
-	local oldNode = entry.Awaken or 0
-	local node = math.max(oldNode, Awaken.FromCopies(entry.Copies))
-	entry.Awaken = if node > 0 then node else nil
-	local newNode = if node > oldNode then node else nil
+	-- Mastery comes only from server-recorded story challenges.
+	entry.Stars = 0
+	local newNode = nil
 
 	-- The copy goes on the pile of its border; the card keeps every border it has found and wears the best.
 	local newBorder = addCopy(entry, border)
@@ -241,6 +235,8 @@ local function doRoll(player: Player, profile, luck: number?, batch: { XP: numbe
 		NewFoil = newFoil,
 		Foils = entry.Foils,
 		Awaken = entry.Awaken,
+		Mastery = entry.Mastery,
+		Trait2Unlocked = entry.Trait2Unlocked,
 		NewNode = newNode, -- an Awakening node this pull opened
 		CardTrait = entry.Trait, -- the card's trait (rolled at the Trait Master)
 		Surge = o.Surge,
@@ -679,14 +675,12 @@ function RollService.Start()
 				end
 			end
 		elseif action == "MaxStars" then
+			-- Legacy developer action id: now grants only fusion copies.
 			for _, entry in profile.Data.Cards do
-				if entry.Stars < Config.MaxStars then
-					local add = Config.MaxStars - entry.Stars
-					entry.Copies += add
-					entry.BorderCopies = entry.BorderCopies or {}
-					entry.BorderCopies.Normal = (entry.BorderCopies.Normal or 0) + add -- keep the per-border piles in step
-					entry.Stars = Config.MaxStars
-				end
+				entry.Copies += 5
+				entry.BorderCopies = entry.BorderCopies or {}
+				entry.BorderCopies.Normal = (entry.BorderCopies.Normal or 0) + 5
+				entry.Stars = 0
 			end
 		elseif action == "FillCopies" then
 			-- Every owned card gets enough copies at its best border for the next border fusion.
@@ -775,13 +769,12 @@ function RollService.Start()
 		elseif action == "GiveTraitShards" then
 			MetaService.Grant(profile.Data, { TraitShards = 200 })
 		elseif action == "GiveCopies" then
-			-- +20 copies on every owned card: an Awakening node each time.
+			-- Fusion copies only; developer copy grants cannot grant mastery.
 			for _, entry in profile.Data.Cards do
 				entry.Copies += Awaken.Every
 				entry.BorderCopies = entry.BorderCopies or {}
 				entry.BorderCopies.Normal = (entry.BorderCopies.Normal or 0) + Awaken.Every
-				entry.Stars = math.max(entry.Stars, math.min(Config.MaxStars, entry.Copies - 1))
-				entry.Awaken = math.max(entry.Awaken or 0, Awaken.FromCopies(entry.Copies))
+				entry.Stars = 0
 			end
 		elseif action == "GiveFoils" then
 			-- Every foil on every owned card, to see them on cards and in battle.

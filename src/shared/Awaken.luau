@@ -1,66 +1,49 @@
 --!strict
--- Awakening: on the way to Hoshi's 100-copy border fusion, every 20 copies of a card unlock an Awakening
--- node on it, for good (the save keeps the highest node reached, Cards[id].Awaken; fusing uses the copies
--- up but never takes a node back).
---   1 (20 copies)   +10% base stats (Cards.Stat)
---   2 (40 copies)   +15% Skill and Ultimate damage (battle)
---   3 (60 copies)   the card's bonds (Elements.luau) hit for 400% instead of 300%
---   4 (80 copies)   opens trait slot 2 at the Trait Master (Traits.Slot2Node)
---   5 (100 copies)  fuse into the next border at Hoshi (4x the stats; the card is the whole reward)
--- Stars come first (the first 5 duplicates). Node 1's +10% keeps "the border always wins": 5 stars x node 1
--- is 1.25 x 1.1 = 1.375, far under the next border's 4x (odds_test checks).
-
+-- Battle mastery. Module name retained for consumers; copies never grant combat bonuses.
 local Awaken = {}
-
-export type Node = { Node: number, Copies: number, Name: string, Text: string }
-
-Awaken.Every = 20
-Awaken.StatBonus = 0.1 -- node 1
-Awaken.SkillBonus = 0.15 -- node 2
-Awaken.BondPct = 4 -- node 3: the bond's Pct (Elements.Bonds use 3)
-
+export type Node = { Node: number, Challenges: number, Name: string, Text: string }
+Awaken.Every = 20 -- developer copy tool only
+Awaken.StatBonus = 0
+Awaken.SkillBonus = 0.1
+Awaken.BondPct = 3.5
 Awaken.Nodes = {
-	{ Node = 1, Copies = 20, Name = "Awakened Body", Text = "+10% base stats" },
-	{ Node = 2, Copies = 40, Name = "Awakened Technique", Text = "+15% Skill and Ultimate damage" },
-	{ Node = 3, Copies = 60, Name = "Awakened Bond", Text = "Its bond combo hits for 400% instead of 300%" },
-	{ Node = 4, Copies = 80, Name = "Awakened Soul", Text = "Opens trait slot 2 at the Trait Master" },
-	{ Node = 5, Copies = 100, Name = "Border Fusion", Text = "Fuse 100 copies into 1 at the next border at Hoshi (4x stats)" },
+	{ Node = 1, Challenges = 1, Name = "Battle Rhythm", Text = "+5% attack speed" },
+	{ Node = 2, Challenges = 3, Name = "Practiced Technique", Text = "+10% Skill and Ultimate damage" },
+	{ Node = 3, Challenges = 6, Name = "Trusted Partner", Text = "Bond combo deals 350% instead of 300%" },
+	{ Node = 4, Challenges = 10, Name = "Second Nature", Text = "Opens trait slot 2" },
 } :: { Node }
-
--- The node a card has from its copies right now (1-4; node 5 is reached by fusing).
-function Awaken.FromCopies(copies: number): number
-	return math.clamp(math.floor(copies / Awaken.Every), 0, 4)
+function Awaken.FromCopies(_copies: number): number
+	return 0
 end
-
--- The card's node: the highest it has reached (saved), its copies now, and 5 once it has fused.
-function Awaken.Level(entry: { Copies: number, Awaken: number?, Fusion: number? }?): number
-	if entry == nil then
-		return 0
+function Awaken.Count(entry: any): number
+	local count = 0
+	for _, cleared in if entry and type(entry.Mastery) == "table" then entry.Mastery else {} do
+		if cleared == true then count += 1 end
 	end
-	local level = math.max(entry.Awaken or 0, Awaken.FromCopies(entry.Copies))
-	if (entry.Fusion or 0) > 0 then
-		level = 5
-	end
+	return count
+end
+function Awaken.Level(entry: any): number
+	local count, level = Awaken.Count(entry), 0
+	for _, node in Awaken.Nodes do if count >= node.Challenges then level = node.Node end end
 	return level
 end
-
--- The stat multiplier node 1 gives.
-function Awaken.StatMultiplier(level: number?): number
-	return if (level or 0) >= 1 then 1 + Awaken.StatBonus else 1
+function Awaken.StatMultiplier(_level: number?): number
+	return 1
 end
-
--- Battle effects from the node (the trait effect format, plus SkillDMG).
 function Awaken.Effects(level: number?): { { Stat: string, Amount: number } }
-	if (level or 0) >= 2 then
-		return { { Stat = "SkillDMG", Amount = Awaken.SkillBonus } }
-	end
-	return {}
+	local effects = {}
+	if (level or 0) >= 1 then table.insert(effects, { Stat = "SPD", Amount = 0.05 }) end
+	if (level or 0) >= 2 then table.insert(effects, { Stat = "SkillDMG", Amount = Awaken.SkillBonus }) end
+	return effects
 end
-
--- The next node to reach and how many copies it needs, or nil when all four are open.
-function Awaken.Next(entry: { Copies: number, Awaken: number?, Fusion: number? }): Node?
-	local level = Awaken.Level(entry)
-	return Awaken.Nodes[level + 1]
+function Awaken.Next(entry: any): Node?
+	return Awaken.Nodes[Awaken.Level(entry) + 1]
 end
-
+-- One mark per story boss/difficulty with this card equipped; repeats, towers and losses grant none.
+function Awaken.Award(entry: any, challenge: string): boolean
+	entry.Mastery = if type(entry.Mastery) == "table" then entry.Mastery else {}
+	if entry.Mastery[challenge] then return false end
+	entry.Mastery[challenge] = true
+	return true
+end
 return Awaken

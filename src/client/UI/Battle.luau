@@ -42,6 +42,10 @@ local JuicyButton = require(script.Parent.Components.JuicyButton)
 local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local Battle = {}
+local battleHidden = false
+local returnGui: ScreenGui
+local returnButton: any
+local setHidden
 
 export type Hooks = {
 	OnStart: () -> (), -- battle screen opened (hide the roll HUD)
@@ -89,6 +93,16 @@ local leaderFocus: Frame -- the TARGET marker over the leader
 local enemyNames = {} -- [enemy id] = name, for callouts
 local current = nil -- the fight on screen
 local lastSnap = nil
+setHidden = function(on: boolean)
+	battleHidden = on
+	State.BattleHidden = on
+	gui.Enabled = not on
+	returnGui.Enabled = on
+	Arena.SetHidden(on)
+	Remotes.BattleInput:FireServer("View", not on)
+	if on then hooks.OnEnd() else hooks.OnStart() end
+end
+
 local introUntil = 0 -- os.clock() when the intro's FIGHT! has gone: callouts wait for it
 local hintToken = 0
 local warnToken = 0
@@ -1134,7 +1148,8 @@ local function makeGuardTile(enemy, slot: Frame)
 		Size = UDim2.fromScale(0.3, 0.46),
 		Parent = button,
 	}, 40)
-	Skin.Icon(icon, `Role:{enemy.Role}`)
+	icon.Visible = false
+	ModelView.new(enemy.GuardId, { Name="AllyPortrait", Position=UDim2.fromScale(0.01,0), Size=UDim2.fromScale(0.33,0.55), BackgroundTransparency=1, Parent=button }, 8)
 	Skin.Apply(button, "Panel")
 	ElementUi.Badge(enemy.Element, {
 		AnchorPoint = Vector2.new(1, 0),
@@ -1294,6 +1309,11 @@ local function applySnapshot(snap)
 		return
 	end
 	lastSnap = snap
+	if returnButton and not current.Ended then
+		local leader = snap.U.Boss
+		local pct = if leader then math.floor(100 * leader.H / current.Info.Boss.MaxHP) else 0
+		returnButton.Label.Text = `RETURN TO BATTLE · {pct}% HP\n{timerLabel.Text}`
+	end
 	local cost = current.Info.UltimateCost
 	for id, s in snap.U do
 		if id == "Boss" then
@@ -2058,6 +2078,7 @@ end
 
 local function showResults(summary)
 	current.Ended = true
+	returnButton.Label.Text = `{string.upper(summary.Result)} · VIEW RESULT`
 	countWin(summary)
 	if summary.Result ~= "Win" then
 		totalsEnded = true
@@ -2912,8 +2933,12 @@ local function begin(start, bossId: string, difficulty: string?)
 	setRetryLabel()
 	applySnapshot(start.Snap)
 
-	gui.Enabled = true
-	hooks.OnStart()
+	State.BattleHidden = battleHidden
+	gui.Enabled = not battleHidden
+	Arena.SetHidden(battleHidden)
+	if battleHidden then Remotes.BattleInput:FireServer("View", false) end
+	returnGui.Enabled = battleHidden
+	if battleHidden then hooks.OnEnd() else hooks.OnStart() end
 	-- The deck's synergies and bonds ride on the intro's YOUR DECK banner.
 	local extras = {}
 	for _, synergy in start.Info.Synergies or {} do
@@ -2992,6 +3017,9 @@ function exit()
 		cardInfo = nil
 	end
 	current = nil
+	battleHidden = false
+	State.BattleHidden = false
+	if returnGui then returnGui.Enabled = false end
 	lastSnap = nil
 	State.InBattle = false
 	table.clear(enemyTiles)
@@ -3014,6 +3042,9 @@ end
 
 function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	hooks = battleHooks
+	returnGui = Kit.new("ScreenGui", { Name = "HiddenBattleGui", ResetOnSpawn = false, DisplayOrder = 45, Enabled = false, Parent = playerGui })
+	returnButton = Kit.button("RETURN TO BATTLE", Theme.Color.PanelLight, Theme.Color.Panel, { Name = "ReturnToBattle", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 110), Size = UDim2.fromOffset(260, 66), Parent = returnGui })
+	returnButton.Activated:Connect(function() if current then setHidden(false) end end)
 	gui = Kit.screenGui("BattleGui", 4, playerGui)
 	gui.IgnoreGuiInset = true
 	gui.Enabled = false
@@ -3483,6 +3514,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		Size = UDim2.new(1, 0, 0.22, 0),
 		Parent = controlsFrame,
 	})
+	local hideButton = Kit.button("HIDE BATTLE", Theme.Color.PanelLight, Theme.Color.Panel, { Name = "HideBattle", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 8), Size = UDim2.fromOffset(150, 36), Parent = gui })
+	hideButton.Activated:Connect(function() if current then setHidden(true) end end)
 	local armed = false
 	forfeitButton.Activated:Connect(function()
 		if current == nil or current.Ended then
@@ -3556,6 +3589,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 			applySnapshot(message.Snap)
 		end
 		if message.Done then
+			for id, card in message.Done.Cards or {} do State.ApplyCard(id, card) end
 			if message.Done.Progress then
 				State.ApplyProgress(message.Done.Progress)
 			end

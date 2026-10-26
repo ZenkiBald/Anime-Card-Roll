@@ -220,8 +220,8 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 	Hud.StartCooldown(State.Cooldown())
 	Hud.FeedAdd(result)
 	showExtras(result)
-	if State.InBattle then
-		return -- during a fight Auto Roll results only go to the feed
+	if State.InBattle or Modal.AnyOpen() then
+		return -- reading panels and hidden fights must not be interrupted by auto reveals
 	end
 	-- Auto Roll never stops: a Rainbow / Secret pull plays its full reveal (Reveal.Quick hands it over)
 	-- while the server holds the next roll for it, then rolling carries on.

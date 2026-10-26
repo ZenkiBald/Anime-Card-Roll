@@ -60,6 +60,7 @@ local State = {
 	},
 	MetaAt = os.clock(), -- when Meta arrived; timers count down from here
 	InBattle = false,
+	BattleHidden = false,
 	TestMode = false,
 	Dev = false, -- may use the DEV panel (DevAccess on the server)
 	Mount = "pup",
@@ -211,6 +212,8 @@ function State.ApplyRoll(result)
 			BorderCopies = result.BorderCopies,
 			Foils = result.Foils,
 			Awaken = result.Awaken,
+			Mastery = result.Mastery or old.Mastery,
+			Trait2Unlocked = result.Trait2Unlocked or old.Trait2Unlocked,
 			Trait = result.CardTrait,
 			Trait2 = old.Trait2,
 			Pending = old.Pending,

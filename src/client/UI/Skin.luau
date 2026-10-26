@@ -197,6 +197,7 @@ end
 -- Only drawn labels load, so they sit on screen at 0.99 transparency (a disabled gui, offscreen or
 -- fully transparent label never reports IsLoaded).
 function Skin.Verify(playerGui: Instance): { string }
+	if not UIArt.Enabled then return {} end
 	local holder = Instance.new("ScreenGui")
 	holder.Name = "SkinCheck"
 	holder.DisplayOrder = -100
@@ -245,6 +246,7 @@ end
 -- The uploaded art for an icon key (Skin.Icons), or nil while it has none. Keys with a ":" fall back to
 -- the part before the last ":" ("Pack:1000:Flame" -> "Pack:1000"), so a family can share one image.
 function Skin.Art(key: string?): string?
+	if not UIArt.Enabled then return nil end
 	while key do
 		local id = Skin.Icons[key]
 		if id and id ~= "" then
@@ -260,6 +262,12 @@ end
 
 -- Replaces an emoji icon label with the uploaded icon image, if there is one.
 function Skin.Icon(label: TextLabel, key: string): ImageLabel?
+	if not UIArt.Enabled then
+		local marks = { Shard = "SH", Shards = "SH", TraitShards = "TS", Rolls = "#", MOUNT = "G", AUTO = "A", QUICK = "Q" }
+		label.Text = marks[key] or string.sub(key:match(":([^:]+)$") or key, 1, 2):upper()
+		label.TextColor3 = Color3.fromRGB(207, 217, 214)
+		return nil
+	end
 	if UIArt.HasIcon(key) then
 		return UIArt.Replace(label, key)
 	end

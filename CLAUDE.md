@@ -29,7 +29,8 @@ wooden benches with flower planters. Stalls / services sit around the edge; an e
 jade-and-slate spire northwest of the fountain. `tools/studio/town-polish.luau` applies these place-only edits once
 and keeps a reversible backup in ServerStorage. The local saved place is under `studio-local/` (ignored by Git).
 Town services only work beside their NPC (server `NpcRange`, 24 studs); every world sign and NPC plate shows
-within 45 studs only, fades in (HubFx), never draws over the world, and hides with player name tags while a panel,
+within 140 studs for destinations and 90 for NPC plates; larger plates stay opaque through 80% of their range.
+They fade at the edge (HubFx), never draw over the world, and hide with player name tags while a panel,
 fight or reveal is up (`Modal.Changed`, `HubFx.SetWorldLabelsHidden`). TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
 double jump. Lighting: a bright town afternoon (`LightingSetup`); each world has its own theme (`ZoneFx` moods: Ember golden sunset, Frostfang snowy morning, Neon Abyss violet night, Stormspire grey storm with lightning) and zone music.
 
@@ -55,15 +56,24 @@ x ATK), scaled by rarity (`Cards.Scale`: a Weight 10 card 1x, Weight 1 about 1.4
 up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
 `Cards.luau`; Attack cards at Weight 6 and rarer have an Ultimate, boss cards a passive too; Support cards have one passive definition
-and its subtitle (`Title`) and colour (`Accent`) fit its name and element. The first five duplicates give a
-**Copy bonus** of +5% stats each, up to +25% (still `Stars` internally / in saves). Stars and Awakening pips are
-omitted from card faces; progression is explained in the skill sheet. Copies pile up per border (`BorderCopies`); every border with copies is its own
-tile in the SQUAD vault (Gold x5 beside Rainbow x1), and the tile put in the deck is the border the card fights at
-(`Deck.PlayBorder`, the save's `Play`; DeckService `PlayAs`; AUTO-BUILD resets to the best border); Awakening nodes at 20 / 40 / 60 / 80
-copies (+10% stats, +15% Skill DMG, 400% bond, trait slot 2). **Border fusion** at Hoshi: 100 copies at one border -> 1
-copy at the next (FUSE or FUSE ALL, which cascades); the card at the next border is the whole reward (no luck, Trait
-Shards or XP). Traits are bought at Kenshin with Trait Shards (battle-only: SPD / crit / guard / energy, never ATK /
-HP); AUTO rolls a slot until a ticked trait lands (up to `Traits.AutoMax` rolls a tap) and applies it. The Index lists
+and its subtitle (`Title`) and colour (`Accent`) fit its name and element. Duplicate pulls grant **no combat
+bonus**: Stars remain a legacy save field, always zero on normal rolls, and copy-based Awakening is retired.
+Copies pile up per border (`BorderCopies`); each owned border has its own tile, and the deck fights at the chosen
+border (`Deck.PlayBorder`, save `Play`). **Border fusion** at Hoshi still costs 100 copies of one border for one
+copy at the next border, with no extra reward.
+
+**Battle Mastery** replaces copy upgrades (`Awaken.luau` retains its old module name). Each participating Attack
+and paired Support earns one mark for winning each distinct story boss/difficulty, even if previously cleared
+with another card. Repeated clears, losses, raids and towers grant no marks. Marks are saved as the card's
+`Mastery` map keyed by `Bosses.FightKey`. At 1 / 3 / 6 / 10 challenges: +5% attack speed, +10% Skill / Ultimate
+damage, a 350% bond combo instead of 300%, then trait slot 2. Mastery never multiplies base ATK / HP or passive
+percentages. Existing second-slot access survives migration (`Trait2Unlocked`); old copies grant no free mastery.
+Cards, borders, copies, traits and presets are preserved by the idempotent SaveMigration step.
+
+Traits are bought at Kenshin with Trait Shards (battle-only: SPD / crit / guard / energy, never ATK /
+HP); AUTO continues until a ticked trait lands, Stop, closing the panel, insufficient shards or leaving Kenshin.
+Each server request validates / charges at most `Traits.AutoMax` rolls; Stop finishes the current batch. The UI
+shows cumulative rolls and spending for the run. A miss keeps the old trait. Every action is rate-limited. The Index lists
 every card by best border with completion rewards per border. A card can be worn as your avatar (element aura; Rainbow
 fire footsteps, Secret celestial motes).
 
@@ -71,10 +81,11 @@ fire footsteps, Secret celestial motes).
 Attack card with the matching slot number. Supports have no damage, HP, action bar, Skill or Ultimate; counters,
 reflected statuses and Black Flames belong to the supported Attack card. Ownership, ids and presets are unchanged.
 `Cards.Support` owns the trigger, effect, cost, chance, limits and authored text. `Cards.SupportValue` applies border
-strength (Base 1 / Gold 1.25 / Rainbow 1.5 / Secret 1.75x), Copy bonus and Awakening, then rounds the **actual server
+strength (Base 1 / Gold 1.25 / Rainbow 1.5 / Secret 1.75x), then rounds the **actual server
 value** to the nearest 5 percentage points (positive minimum 5%, maximum 50%). Fixed effects use their authored value;
 Crimson Chakra Cloak always returns at 85% HP. Trigger counts, chances, penalties, secondary Burns and healing caps
-are fixed. Passive cards add no Attack rating; AUTO-BUILD ranks them separately by border / rarity / copies / Awakening.
+are fixed. Passive cards add no Attack rating; AUTO-BUILD ranks them separately by border / rarity. Support traits, foils and mastery affect the supported Attack
+card; they no longer sit unused on a passive unit.
 
 Support kits (base strengths; inspect the card for its rounded value at another border):
 
@@ -110,16 +121,25 @@ gold bars are Ultimate charge. Support chips show passive status / remaining use
 or actual healing / shields instead of assigning every support a healing score.
 The boss bar shows its next big move (snapshot Nx). Cost Challenge (Deck Cost by border 2/4/6/8, cap 30) for x2 Trait Shards.
 The engine (`BattleEngine`) is pure and runs headless in tests. Fights are staged in 3D at the boss's spot in its world
-(`UI/Arena`, low cinematic camera, guards as tinted smaller copies; beams fly from the card slots to the 3D figures,
+(`UI/Arena`, low cinematic camera, guards as separate faction / role models, with model portraits in their target panels; beams fly from the card slots to the 3D figures,
 hits flash and recoil, guards lunge, boss skills and crits shake the camera; a defeated guard or leader topples
 and fades in dark red; callouts show one at a time with at most three queued); no map = the 2D fallback. Damage
 numbers have bounded pixel sizes and at most two per target; on the squad's cards they spawn above the frame.
 On short phone screens, guard target panels sit in a fixed right rail and the duplicate leader plate hides;
 Action countdowns use the line below each Attack card's name. Auto Roll continues with its feed hidden during fights,
-and DASH hides until returning to the hub. Supports have no cast tags.
+and DASH hides while watching. HIDE BATTLE restores the normal camera, movement, dash, zone effects and HUD
+while the server fight continues. A RETURN TO BATTLE widget shows leader HP / time, or VIEW RESULT when finished.
+Hidden auto-climb / retry stays hidden; results do not interrupt exploration. A validated, rate-limited BattleInput
+View action restores character streaming focus while exploring. Supports have no cast tags.
 
-**Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended Attack rating 25.4k ... 175.6k; the fixtures are Base in
-World 1, Gold after, World 4 Gold 5-star with Awakening 1-3). Boss wins pay reward rolls (luck / floors by D), Shards,
+Story retinues now have distinct names / moves / models: Crimson-Eye clan guards in Ember, Frost Court, Void Court
+and Storm Court. Guard ids / roles / effects remain compatible with mixed tower squads. Existing BossKit assets
+are retained: their older 3D appearances do not all match the new card art / names (Ember is still Itachi-like;
+the other three use fantasy models). Retinues follow those current world / model themes; replacing the leaders
+needs a separate art pass. No card or boss names changed.
+
+**Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended Attack rating 25.4k ... 127.7k; fixtures use Base in
+World 1 and Gold later, zero stars and the mastery available from preceding distinct story challenges). Boss wins pay reward rolls (luck / floors by D), Shards,
 Roll Packs and Trait Shards (no gear); after a win AUTO-RETRY (opt-in, in the battle controls above SPEED and on
 the results screen) restarts the same fight; in the towers the same switch is AUTO CLIMB. With it on, a win shows a 1 s banner (no
 results panel unless it's a milestone, relic / artifact or boss-card unlock) and the next fight starts with a 0.3 s
@@ -144,31 +164,32 @@ daily quests, playtime gifts, time-away rewards (`Meta.OfflineReward`: a Roll Pa
 offline, after 10 min, up to 8 h; `LastSeen` in the save), roll milestones, Lucky Wheel, server events (LUCKY STORM /
 ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.client`): a SQUAD badge + hint when AUTO-BUILD would
 beat the active deck by 5%, and a hint when a card can fuse at Hoshi. The HUD's Next Goal pill (above Momentum,
-`Goals.Next`) shows the reward closest to landing (a fusion, an Awakening node, a roll milestone, a Shard upgrade). Social: server list with favourite cards, profiles, name
+`Goals.Next`) shows the reward closest to landing (a fusion, a battle mastery rank, a roll milestone, a Shard upgrade). Social: server list with favourite cards, profiles, name
 tags, three town leaderboards.
 
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches
 odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`). Ids are 0 (placeholders) until launch.
 
-**Look.** Illustrated Dark Feudal Occult: Urushi lacquer, antique-gold engraved waves, Washi text and vermilion
-cherry-blossom calls to action. `UI/UIArt` supplies four shared uploaded textures (navigation icons, inventory emblems,
-panel and summon button); source PNGs, asset ids, crops and prompts are in `art/ui/occult/README.md`. `UI/Skin` routes
-the existing panel / button keys into this kit, preserving live text and controls. Panels are 9-sliced; the vermilion
-button uses a cropped background. Flat lacquer remains while images load. The archived cartoon kit stays off.
-`src/configs/UITheme.luau` feeds `UI/Theme`: Gotham headings / body, Garamond on ROLL, subdued 1 px text shadows,
-element colours only where they carry meaning. No thick black letter outlines or multicoloured HUD button trims.
+**Look.** Character artwork leads the UI. Clean dark panels, plain text navigation, restrained borders and
+simple element / currency markers replace the ornate image kit. `UIArt.Enabled = false` disables the old panel,
+summon-button and icon atlases without deleting them; `Skin` keeps the existing code-native controls and frames.
+`src/configs/UITheme.luau` still feeds Theme, with Gotham text and element / border colours where meaningful.
+The earlier image kit remains archived under `art/ui/occult/` for reference.
 
-The HUD has one vertical icon-and-label menu, a small framed currency group, a quiet Kenji tracker / claim seal,
+The HUD has one vertical text menu, an opaque currency group, a quiet Kenji tracker / claim seal,
 XP and Next Goal at bottom-left on desktop, and AUTO / ROLL / QUICK at bottom-centre with Momentum and Surge in one
 band. The server list starts folded (tap to expand). RECENT PULLS shows up to three rows, two on short screens.
 Surge still charges spirit blue, shivers void purple for the last four rolls, and seals gold (UNLEASH SURGE!).
 AUTO / QUICK light their bezel when active. Short screens keep the earlier scaling / compact layout, with Next Goal
-over the roll console. Routine Base duplicate pops only show in the feed; away rewards use one compact toast.
+over the roll console. Automatic roll reveals stay muted while panels or fights are open; away rewards use one compact toast.
 
-Panels (`Modal`) use the engraved lacquer artwork, plain headings with a gold rule and vermilion active-tab
+Panels (`Modal`) use clean dark fills, plain headings with a fine rule and vermilion active-tab
 underlines. On phones, `Modal.FitScale` lays out the panel at desktop size and scales it down (~0.6 sideways); turn
 measured sizes back into offsets with `Kit.logicalSize`. The HUD, server list and quick pops hide behind panels.
-Search / dropdowns and formation trays are quiet sunken wells. The deck screen retains spirit-blue Slot Links
+Search / dropdowns and formation trays are quiet sunken wells. SQUAD has separate ATTACK / SUPPORT tabs above CARD VAULT, without an All-type tab. Clicking a formation slot
+selects its matching vault tab. Background rolling updates cached tiles in place; sorting / inserting tiles waits
+while a tooltip is open. Selection, filters, scrolling and inspected abilities survive routine rolls; panels mute
+automatic reveals. The deck screen retains spirit-blue Slot Links
 (gold for bonds), its Cost Challenge meter and synergy / bond tags, with a vermilion AUTO-BUILD. Border-filter chips
 draw labels above their background gradient so they remain visible.
 
@@ -179,17 +200,17 @@ larger; the phone inspector collapses until selection; deck thumbnails omit dupl
 DECK explains the two card types and numbered pairs. Attack slots show damage / HP; Support slots show their actual
 passive strength instead of generic power. Only attackers contribute to ATTACK RATING. Tapping a
 vault card only selects it; EQUIP / REMOVE is explicit. The inspector prioritizes the authored passive effect or Attack Basic and action / Skill timing
-and Copy bonus. VIEW SKILLS / BONUSES opens the scrollable Index detail sheet at the selected border, with a visible
+and fusion copy counts. VIEW SKILLS / MASTERY opens the scrollable Index detail sheet at the selected border, with a visible
 BACK TO CARDS button. `Shared/CardInfo` resolves authored ability templates from the same server data (`{pN}`, `{aN}`, `{tN}` read effect
 N; Support tokens read the rounded percentage, chance, threshold and cost). Copy uses supported card / DMG / named
 techniques and statuses, with no system-job boilerplate or stagger diagnostics. Only percentages, turn counts and
 Burn / Bleed / Freeze / Stun / Weaken are highlighted. `CardInfo.Badges` supplies Activation Limit / Effect Cap pills;
 `UI/Abilities` draws a check from Frames and reuses the same rendering in tooltips, Index, reveals and battle popups.
 Hover cards are dark, scrollable and bounded to the viewport; pointer movement into them keeps them open. The skill
-sheet shows techniques first; COLLECTION & BONUSES expands odds, fusion, traits, Awakening and other collection data. Advanced traits / Awakening
+sheet shows techniques first; COLLECTION & MASTERY expands odds, fusion, traits, battle mastery and other collection data. Advanced traits / mastery
 remain in the details. Battle skill popups scroll within the viewport. HUD refresh waits for initialization so an
 early StoreState update cannot access missing currency chips.
-BAG uses illustrated relic / potion / pack emblems with named plaques, separate status lines, and relic-rarity
+BAG uses simple named relic / potion / pack markers with named plaques, separate status lines, and relic-rarity
 frames (bronze / purple / gold / crimson); packs keep their roll counts. BOSS SCOUT retains its unit trays and
 counter / synergy / bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
 controls, enemy target panels and result frames. The current triggered ability kits are described above.
@@ -233,7 +254,7 @@ Card / boss names, abilities, stats and saves are unchanged by the artwork pass.
 - Card copy follows the user's Anime Card Clash style brief: authored technique names and mechanical prose,
   "the supported card", no system-job boilerplate / auto-action / stagger diagnostics. Every passive / Aura /
   Signature and Support combines a trigger with a trade-off or status / RNG mechanic. Percentages are multiples
-  of 5 in the actual data / server formula, including border / Copy bonus scaling; never round only the tooltip.
+  of 5 in the actual data / server formula, including border scaling; never round only the tooltip.
   Exact roll odds remain exact. Highlight only key percentages, turn counts and named status effects; activation
   limits / effect caps belong in `CardInfo.Badges` pills, backed by server counters. Use lore-themed ability
   terminology; keep the existing card / boss identities and art unless the user explicitly changes them.
@@ -242,7 +263,8 @@ Card / boss names, abilities, stats and saves are unchanged by the artwork pass.
   the server, rate-limit it (`RateLimit`), and check ownership / NPC range where it applies.
 - Attack borders always win: Base 1x / Gold 4x / Rainbow 16x / Secret 64x; base stats within +-10% of one line (HP = 2 x ATK),
   then rarer cards scale up (`Cards.Scale`: (10 / Weight) ^ 0.15, boss cards up to about 1.5x, the user's call);
-  stars +5% each, max 5; a maxed card on one border never reaches a 0-star card on the next (odds_test checks). Traits stay
+  duplicates grant no stats; mastery never multiplies ATK / HP. A card on one border never reaches the next
+  through mastery (odds_test checks). Traits stay
   small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border fusion only: 100 copies at one border -> 1 at the next.
 - Content is data: a new card is one entry in `Cards.luau` (stats, abilities, `Role`, `Weight`, `Element`, `Image`); a
   boss or difficulty one entry in `Bosses.luau`; a relic or artifact in `Items.luau`; a trait in `Traits.luau`; a potion / gift /

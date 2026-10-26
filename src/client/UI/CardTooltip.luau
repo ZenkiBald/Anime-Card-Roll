@@ -28,6 +28,10 @@ local gui: ScreenGui? = nil
 local flyout: Frame? = nil
 local owner: GuiObject? = nil -- the card the open flyout belongs to
 
+function CardTooltip.IsOpen(): boolean
+	return flyout ~= nil
+end
+
 function CardTooltip.Close()
 	if flyout then
 		flyout:Destroy()

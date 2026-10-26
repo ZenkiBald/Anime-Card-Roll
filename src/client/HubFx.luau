@@ -38,7 +38,7 @@ local TIPS = {
 	"Long reveal? Tap SKIP to jump straight to the card.",
 	"The Infinite Tower never ends: every floor is a new foe, and every 10th a Guardian, and from floor 50 a rare relic can drop.",
 	"Kenshin the Trait Master, beside Hoshi, rolls traits for Trait Shards. Bosses, the tower and raids pay them.",
-	"Every 20 copies of a card open an Awakening node: stats, Skill damage, a stronger bond, then a second trait slot.",
+	"Win different story boss challenges with a card to earn battle mastery. Duplicate copies are for border fusion.",
 	"Every 25th roll is an Overcharge Surge: wait for the gold ring, then tap ROLL for three cards at once (a tap before it lights only gets the plain surge).",
 	"Fill a boss's Stagger bar with counter elements: it can't act, drops its DEF and takes +50% from Ultimates.",
 	"Hoshi condenses ten Roll Packs into a Big Roll Pack, and infuses Mega Packs with an element.",
@@ -166,7 +166,6 @@ end
 
 -- Every world sign (tagged FadeSign by World) fades in as you walk up: solid within FADE_NEAR studs,
 -- gone at the BillboardGui's MaxDistance. Each label's 1 px shadow keeps its text in step.
-local FADE_NEAR = 28
 
 -- While a panel, a fight or a reveal is up, world signs and players' name tags hide, so no plate reads
 -- through a panel or bleeds into the top HUD. `reason` keys stack (Modal / Battle / Reveal).
@@ -216,7 +215,7 @@ local function fadeSigns()
 		end
 		-- A sign fades over the last 40% of its range (or from FADE_NEAR, whichever is nearer).
 		local far = math.max(gui.MaxDistance, 2)
-		local near = math.min(FADE_NEAR, far * 0.6)
+		local near = far * 0.8
 		local fade = math.clamp(((position - eye).Magnitude - near) / (far - near), 0, 1)
 		for _, label in gui:GetChildren() do
 			if label:IsA("TextLabel") then

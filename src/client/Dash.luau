@@ -84,7 +84,7 @@ local function onDash(_, inputState: Enum.UserInputState)
 	if now - lastDash >= COOLDOWN then
 		charges = CHARGES
 	end
-	if State.InBattle or blocked() or charges <= 0 or now - lastDash < CHAIN_GAP then
+	if (State.InBattle and not State.BattleHidden) or blocked() or charges <= 0 or now - lastDash < CHAIN_GAP then
 		return Enum.ContextActionResult.Sink
 	end
 	local character = Players.LocalPlayer.Character
@@ -135,7 +135,7 @@ local function jumpRing(root: BasePart)
 end
 
 local function onJumpRequest()
-	if not airJumpReady or airJumped or State.InBattle or blocked() then
+	if not airJumpReady or airJumped or (State.InBattle and not State.BattleHidden) or blocked() then
 		return
 	end
 	local character = Players.LocalPlayer.Character

@@ -14,7 +14,8 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BossModels = require(Shared.BossModels)
-local Bosses = require(Shared.Bosses)
+local arenaHidden = false
+local compactMode = false
 
 local Kit = require(script.Parent.Kit)
 local ZoneFx = require(script.Parent.Parent.ZoneFx)
@@ -247,6 +248,7 @@ export type Staged = {
 -- 2D view). `guards` are the squad's guards in slot order (left, right, front).
 function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Staged?
 	Arena.Stop()
+	arenaHidden = false
 	local arenas = ReplicatedStorage:FindFirstChild("Arenas")
 	local spot = arenas and arenas:FindFirstChild(boss.Id)
 	local stand = spot and spot:GetAttribute("Stand")
@@ -282,9 +284,7 @@ function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Stage
 		if offset == nil then
 			break
 		end
-		local g = Bosses.GuardTypes[guard.GuardId]
-		local color = if g then g.Color else Color3.fromRGB(255, 90, 90)
-		local fig = figure(guard.Id, boss.Id, onGround(offset), GUARD_SCALE, color)
+		local fig = figure(guard.Id, guard.GuardId, onGround(offset), GUARD_SCALE, nil)
 		local lift = fig.Height / 2 + 2.4
 		guardGuis[i] = billboard(`Guard{i}`, fig.Model.PrimaryPart, UDim2.fromOffset(150, 84), lift)
 	end
@@ -319,6 +319,7 @@ function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Stage
 	local start = os.clock()
 	local side = front.RightVector
 	stepConnection = RunService.RenderStepped:Connect(function(dt)
+		if arenaHidden then return end
 		local t = os.clock() - start
 		local eye = eyeBase + side * math.sin(t * 0.18) * 4
 		if os.clock() < shake.Until then
@@ -526,13 +527,30 @@ function Arena.SetLeaderHp(ratio: number)
 end
 
 function Arena.SetCompact(on: boolean)
+	compactMode = on
 	if plate then
-		plate.Gui.Enabled = not on -- the screen's boss bar already carries the name and HP
+		plate.Gui.Enabled = not on and not arenaHidden -- the screen's boss bar already carries the name and HP
 	end
 end
 
 function Arena.Active(): boolean
 	return folder ~= nil
+end
+
+function Arena.SetHidden(on: boolean)
+	arenaHidden = on
+	if folder then folder.Parent = if on then nil else Workspace end
+	for _, g in guis do g.Enabled = not on end
+	if plate then plate.Gui.Enabled = not on and not compactMode end
+	if dof then dof.Enabled = not on end
+	local camera = Workspace.CurrentCamera
+	camera.CameraType = if on then Enum.CameraType.Custom else if folder then Enum.CameraType.Scriptable else Enum.CameraType.Custom
+	camera.FieldOfView = if on or not folder then 70 else 50
+	if on and Players.LocalPlayer.Character then camera.CameraSubject = Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid") end
+	if savedBloom then
+		savedBloom.Effect.Intensity = if on then savedBloom.Intensity else math.min(savedBloom.Intensity, FIGHT_BLOOM.Intensity)
+		savedBloom.Effect.Threshold = if on then savedBloom.Threshold else math.max(savedBloom.Threshold, FIGHT_BLOOM.Threshold)
+	end
 end
 
 function Arena.Stop()
