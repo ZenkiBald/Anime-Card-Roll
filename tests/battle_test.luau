@@ -66,6 +66,7 @@ end
 do
 	local b = Engine.new({ Units = F.units(F.deck({ "rook", "tomo" }, {}), starterOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
 	b.ById.A1.SPD, b.ById.A2.SPD = 100, 100
+	b.ById.A1.Buffs, b.ById.A2.Buffs = {}, {}
 	b.ById.A1.Gauge, b.ById.A2.Gauge = 1, 1
 	b:Step(Config.Battle.Tick)
 	local first

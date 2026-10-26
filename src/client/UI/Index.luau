@@ -123,6 +123,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 	})
 
 	local order = 0
+	local infoParent: Instance = right
 	local function line(text: string, font: Enum.Font, color: Color3, height: number, maxText: number)
 		order += 1
 		return Kit.label({
@@ -137,25 +138,29 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 			Size = UDim2.new(1, 0, 0, height),
 			LayoutOrder = order,
 			ZIndex = 22,
-			Parent = right,
+			Parent = infoParent,
 		}, maxText)
 	end
 
 	line(if owned then card.Name else "???", Theme.Font.Display, Theme.Color.Text, 30, 28)
 	if owned then
-		line(`{card.Type}: {CardInfo.Job(card)}.`, Theme.Font.Heavy, Theme.Color.Support, 24, 18)
 		line(Kit.statsText(card, stars, best, node, true), Theme.Font.Heavy, Theme.Color.Text, 24, 18)
-		if card.Type == "Support" then
-			line("Supports are passive: no damage, HP or turns. Pair with the same Attack slot number. Effects stop helping when that attacker falls.", Theme.Font.Medium, Theme.Color.Muted, 24, 16)
-			line(CardInfo.Link(card, best), Theme.Font.Heavy, Theme.Color.Support, 24, 16)
-		end
-		line(CardInfo.BorderHelp(card, best), Theme.Font.Medium, Theme.Color.Muted, 24, 16)
-		line(`{CardInfo.CopyBonus(stars)}. The first 5 duplicates add 5% each (max 25%); this is separate from the border.`, Theme.Font.Medium, Theme.Color.Gold, 24, 16)
-		line("Base values before temporary battle effects, critical hits and enemy defenses. Healing is limited by missing HP.", Theme.Font.Medium, Theme.Color.Muted, 24, 14)
 		order = Abilities.List(card, right, order, "big", best)
 	end
+	-- Collection data remains available without competing with the ability text.
+	local extras = Kit.new("Frame", { Name = "CollectionDetails", Visible = false, BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = order + 2, ZIndex = 22, Parent = right }, {
+		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }),
+	})
+	local toggle = Kit.new("TextButton", { Name = "CollectionToggle", Text = "SHOW COLLECTION & BONUSES", Font = Theme.Font.Bold, TextSize = 14,
+		TextColor3 = Theme.Color.Muted, BackgroundColor3 = Theme.Color.TileBottom, Size = UDim2.new(1, 0, 0, 32), LayoutOrder = order + 1, ZIndex = 23, Parent = right }, { Kit.corner(UDim.new(0, 8)) })
+	toggle.Activated:Connect(function()
+		extras.Visible = not extras.Visible
+		toggle.Text = if extras.Visible then "HIDE COLLECTION & BONUSES" else "SHOW COLLECTION & BONUSES"
+	end)
+	infoParent = extras
 	line(
-		`<font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)} BORDER · {if card.Type == "Support" then Cards.SupportBoost(card, best) else tier.Multiplier}x</font>  ·  {card.Type}  ·  {if owned then card.Title else "Not found yet"}`,
+		`<font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)} BORDER{if card.Type == "Attack" then ` · {tier.Multiplier}x` else ""}</font>  ·  {card.Type}  ·  {if owned then card.Title else "Not found yet"}`,
 		Theme.Font.Heavy,
 		Theme.Color.Muted,
 		20,
@@ -187,13 +192,9 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 			20,
 			16
 		)
-		line(
-			if card.Type == "Attack" then `Action speed {card.SPD} · Attack rating {Kit.commas(Cards.Power(card, stars, best, node))}` else "PASSIVE · no damage, HP or action timer",
-			Theme.Font.Medium,
-			Theme.Color.Text,
-			20,
-			16
-		)
+		if card.Type == "Attack" then
+			line(`Action speed {card.SPD} · Attack rating {Kit.commas(Cards.Power(card, stars, best, node))}`, Theme.Font.Medium, Theme.Color.Text, 20, 16)
+		end
 		-- Border fusion: 100 copies at one border fuse into 1 copy at the next (Hoshi, in town).
 		local copies = entry.BorderCopies or {}
 		local copyParts = {}
@@ -309,7 +310,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 			LayoutOrder = order,
 			Size = UDim2.new(0, 230, 0, 40),
 			ZIndex = 22,
-			Parent = right,
+			Parent = infoParent,
 		})
 		fav.Activated:Connect(function()
 			local want = if State.Meta.Favorite == card.Id then "" else card.Id

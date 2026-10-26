@@ -25,8 +25,9 @@
 --   taunting guard, else the weakest enemy) | Enemies (every enemy) | RandomEnemy (each hit picks again).
 --   The player's side for the rest: Self | Lowest | Attack | All | Random.
 --   Heals, shields, cleanses and evades only reach Attack cards (Support cards have no HP).
--- When (Passive only): BossAbove50 | SelfBelow50 | OnAct | OnHit; nil = always on.
--- Secret signatures are the only coded mechanics: Kind = Eclipse | DawnOath.
+-- Trigger bundles: OnEntry | OnHit | OnCrit | OnKill | OnAct | BelowHalf. Chance and Limit apply to the whole bundle.
+-- Text tokens {pN}/{aN}/{tN} read Pct/Amount/Turns from effect N; CardInfo resolves them.
+-- Bleed shares the damage-over-time scheduler with Burn, while retaining its own status. HealingLock blocks HP recovery.
 export type Effect = {
 	Kind: string,
 	Pct: number?,
@@ -37,6 +38,7 @@ export type Effect = {
 	Turns: number?,
 	Chance: number?,
 	When: string?,
+	MaxHP: boolean?,
 	IgnoreDef: boolean?,
 	ResetSkill: boolean?,
 	Every: number?,
@@ -47,7 +49,10 @@ export type Ability = {
 	Name: string,
 	Text: string,
 	Effects: { Effect },
-	Every: number?, -- Skill: used instead of the Basic every N actions
+	Every: number?, -- Skill cooldown, or a passive action interval
+	Trigger: string?,
+	Chance: number?,
+	Limit: number?,
 }
 
 export type Card = {
@@ -65,7 +70,7 @@ export type Card = {
 	Accent: Color3, -- portrait background colour
 	Image: string?, -- the card's 2D illustration ("rbxassetid://..."); cards without one show their glyph
 	Abilities: { Ability },
-	Support: { Name: string, Kind: string, Amount: number, Uses: number?, Threshold: number?, Stat: string? }?,
+	Support: { Name: string, Kind: string, Amount: number, Uses: number?, Threshold: number?, Stat: string?, Trigger: string, Text: string, Chance: number?, Penalty: number?, Turns: number?, Burn: number?, Fixed: boolean? }?,
 	-- Support cards: the Slot Link passive given to the Attack card in the matching front slot (Support
 	-- slot 1 links to Attack slot 1, ...). Stat is a trait stat (Traits.luau); BattleEngine applies it.
 	Link: { Name: string, Stat: string, Amount: number, Text: string }?,
@@ -77,8 +82,10 @@ local Borders = require(script.Parent.Borders)
 local Awaken = require(script.Parent.Awaken)
 local Odds = require(script.Parent.Odds)
 
-local function ability(slot: string, name: string, text: string, effects: { Effect }, every: number?): Ability
-	return { Slot = slot, Name = name, Text = text, Effects = effects, Every = every }
+local function ability(slot: string, name: string, text: string, effects: { Effect }, every: number?, rules: { Trigger: string?, Chance: number?, Limit: number? }?): Ability
+	return { Slot = slot, Name = name, Text = text, Effects = effects, Every = every,
+		Trigger = if rules then rules.Trigger else nil, Chance = if rules then rules.Chance else nil,
+		Limit = if rules then rules.Limit else nil }
 end
 
 local list: { Card } = {
@@ -97,13 +104,18 @@ local list: { Card } = {
 		Glyph = "RK",
 		Accent = Color3.fromRGB(196, 120, 72),
 		Abilities = {
-			ability("Basic", "Bulwark Jab", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Armored Charge", "Every 3 actions: taunt 2 turns + 160% ATK", {
+			ability("Basic", "Colossus Fist", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Wallbreaker Rush", "Draw enemy attacks for {t1} turns, then charge for {p2} DMG.", {
 				{ Kind = "Taunt", Turns = 2 },
 				{ Kind = "Damage", Pct = 1.6 },
 			}, 3),
-			ability("Passive", "Plated Hide", "Takes 10% less damage", { { Kind = "Buff", Stat = "Guard", Amount = 0.1 } }),
-			ability("Ultimate", "Colossal Stomp", "180% ATK to every enemy", {
+			ability("Passive", "Armored Advance", "On entry, harden this card's armor to reduce incoming DMG by {a1}, but lose {a2} attack speed.", {
+				{ Kind = "Buff", Stat = "Guard", Amount = 0.15 },
+				{ Kind = "Buff", Stat = "SPD", Amount = -0.1 },
+			}, nil, { Trigger = "OnEntry" }),
+			ability("Ultimate", "Crushing Footfall", "Crush every enemy for {p1} DMG.", {
 				{ Kind = "Damage", Pct = 1.8, Target = "Enemies" },
 			}),
 		},
@@ -122,11 +134,16 @@ local list: { Card } = {
 		Glyph = "KD",
 		Accent = Color3.fromRGB(120, 140, 170),
 		Abilities = {
-			ability("Basic", "Soul Thread", "2 hits x 50% ATK on random enemies", { { Kind = "Damage", Pct = 0.5, Hits = 2, Target = "RandomEnemy" } }),
-			ability("Skill", "Rejection Shield", "Every 3 actions: shield all Attack cards 80% ATK", {
-				{ Kind = "Shield", Pct = 0.8, Target = "All" },
+			ability("Basic", "Spirit Thread", "Send out two soul threads, each dealing {p1} DMG to a random enemy.", {
+				{ Kind = "Damage", Pct = 0.5, Hits = 2, Target = "RandomEnemy" },
+			}),
+			ability("Skill", "Soul Rejection", "Weave a shield worth {p1} DMG around every ally.", {
+				{ Kind = "Shield", Pct = 0.8, Target = "Attack" },
 			}, 3),
-			ability("Passive", "Thread of Return", "Mends herself for 12% ATK each time she acts", { { Kind = "Heal", Pct = 0.12, Target = "Self", When = "OnAct" } }),
+			ability("Passive", "Thread of Renewal", "After attacking, a {chance} chance to mend this card for {p1} DMG and remove a Burn or Freeze.", {
+				{ Kind = "Heal", Pct = 0.15, Target = "Self" },
+				{ Kind = "Cleanse", Amount = 1, Target = "Self" },
+			}, nil, { Trigger = "OnAct", Chance = 0.25, Limit = 5 }),
 		},
 	},
 	{
@@ -143,16 +160,18 @@ local list: { Card } = {
 		Glyph = "TM",
 		Accent = Color3.fromRGB(255, 160, 70),
 		Abilities = {
-			ability("Basic", "Dawn Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Rolling Tide", "Every 3 actions: 2 hits x 90% ATK", {
+			ability("Basic", "Sunlit Edge", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Flowing Sun", "Cut through an enemy twice, dealing {p1} DMG with each slash.", {
 				{ Kind = "Damage", Pct = 0.9, Hits = 2 },
 			}, 3),
-			ability("Passive", "Rising Sun Rhythm", "+15% damage while the enemy leader is above 50% HP", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.15, When = "BossAbove50" },
-			}),
-			ability("Ultimate", "Sun Dance", "400% ATK + Burn (6% ATK per turn, 3 turns)", {
+			ability("Passive", "Ember Breathing", "Critical hits ignite the enemy with Burn, dealing {p1} DMG each turn for {t1} turns.", {
+				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
+			}, nil, { Trigger = "OnCrit" }),
+			ability("Ultimate", "Dance of Dawn", "Unleash a {p1} DMG sun slash and inflict Burn for {p2} DMG each turn for {t2} turns.", {
 				{ Kind = "Damage", Pct = 4 },
-				{ Kind = "Burn", Pct = 0.06, Turns = 3 },
+				{ Kind = "Burn", Pct = 0.05, Turns = 3 },
 			}),
 		},
 	},
@@ -170,17 +189,20 @@ local list: { Card } = {
 		Glyph = "MR",
 		Accent = Color3.fromRGB(255, 220, 90),
 		Abilities = {
-			ability("Basic", "Hollow Orb", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
-			ability("Skill", "Infinity Barrage", "Every 3 actions: 4 hits x 100% ATK on random enemies", {
+			ability("Basic", "Repulsion Palm", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1.2 },
+			}),
+			ability("Skill", "Infinity Collapse", "Fold space around random enemies with four strikes, each dealing {p1} DMG.", {
 				{ Kind = "Damage", Pct = 1, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
-			ability("Ultimate", "Hollow Convergence", "900% ATK + the target takes +25% damage for 3 turns", {
+			ability("Ultimate", "Void Convergence", "Collapse the void for {p1} DMG. The enemy takes {a2} more DMG for {t2} turns.", {
 				{ Kind = "Damage", Pct = 9 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.25, Turns = 3 },
 			}),
-			ability("Aura", "Limitless Field", "All Attack cards +10% ATK", {
+			ability("Aura", "Infinite Pressure", "On entry, grant every ally {a1} DMG. Maintaining the field costs this card {a2} attack speed.", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
-			}),
+				{ Kind = "Buff", Stat = "SPD", Amount = -0.1, Target = "Self" },
+			}, nil, { Trigger = "OnEntry" }),
 		},
 	},
 	{
@@ -197,14 +219,17 @@ local list: { Card } = {
 		Glyph = "SI",
 		Accent = Color3.fromRGB(90, 180, 255),
 		Abilities = {
-			ability("Basic", "Cursed Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Familiar's Rush", "Every 3 actions: 3 hits x 80% ATK", {
+			ability("Basic", "Cursed Edge", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Shadow Familiar Rush", "A shadow familiar tears into the enemy three times for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 3 },
 			}, 3),
-			ability("Passive", "Familiar's Hunger", "+20% ATK below 50% HP", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
-			}),
-			ability("Ultimate", "Hundred Familiars", "3 hits x 80% ATK on random enemies", {
+			ability("Passive", "Ravenous Pact", "When this card defeats an opponent, its familiar grants {a1} DMG for {t1} turns, but this card takes {a2} more DMG for {t2} turns.", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.25, Turns = 3 },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 3 },
+			}, nil, { Trigger = "OnKill", Limit = 3 }),
+			ability("Ultimate", "Chimera Procession", "Release three familiars at random enemies, each dealing {p1} DMG.", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 3, Target = "RandomEnemy" },
 			}),
 		},
@@ -223,20 +248,23 @@ local list: { Card } = {
 		Glyph = "AK",
 		Accent = Color3.fromRGB(230, 60, 70),
 		Abilities = {
-			ability("Basic", "Rend", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Spatial Cleave", "Every 3 actions: 250% ATK + target DEF -15% for 2 turns", {
+			ability("Basic", "Rending Cut", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Spatial Severance", "Cut through the enemy's defenses by {a1} for {t1} turns, then deal {p2} DMG.", {
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 2 },
 				{ Kind = "Damage", Pct = 2.5 },
 			}, 3),
-			ability("Passive", "Malice Edge", "Crits deal 200% instead of 150%", {
-				{ Kind = "Buff", Stat = "CritDamage", Amount = 0.5 },
-			}),
-			ability("Ultimate", "Dismantle Storm", "6 hits x 130% ATK on random enemies", {
+			ability("Passive", "Cursed Incision", "Critical hits carve a Bleed into the enemy, dealing {p1} DMG each turn for {t1} turns.", {
+				{ Kind = "Bleed", Pct = 0.15, Turns = 3 },
+			}, nil, { Trigger = "OnCrit" }),
+			ability("Ultimate", "Malevolent Barrage", "Rain down six cursed slashes on random enemies, each dealing {p1} DMG.", {
 				{ Kind = "Damage", Pct = 1.3, Hits = 6, Target = "RandomEnemy" },
 			}),
-			ability("Aura", "Malevolent Domain", "All Attack cards +10% ATK", {
+			ability("Aura", "Shrine of Malice", "On entry, every ally gains {a1} DMG, but the shrine makes them take {a2} more DMG.", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
-			}),
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Target = "Attack" },
+			}, nil, { Trigger = "OnEntry" }),
 		},
 	},
 	{
@@ -253,12 +281,17 @@ local list: { Card } = {
 		Glyph = "KR",
 		Accent = Color3.fromRGB(255, 200, 70),
 		Abilities = {
-			ability("Basic", "Proud Strike", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Radiant Surge", "Every 3 actions: 300% ATK", { { Kind = "Damage", Pct = 3 } }, 3),
-			ability("Passive", "Pride Awakened", "+20% ATK below 50% HP", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
+			ability("Basic", "Royal Strike", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
 			}),
-			ability("Ultimate", "Golden Barrage", "8 hits x 90% ATK on random enemies", {
+			ability("Skill", "Pride Breaker", "Unleash a royal Ki blast for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 3 },
+			}, 3),
+			ability("Passive", "Unbroken Pride", "When below 50% HP, awaken golden Ki for {a1} DMG. Reckless pride makes this card take {a2} more DMG.", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.25 },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1 },
+			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
+			ability("Ultimate", "Golden Ki Barrage", "Fire eight Ki blasts at random enemies for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.9, Hits = 8, Target = "RandomEnemy" },
 			}),
 		},
@@ -277,14 +310,16 @@ local list: { Card } = {
 		Glyph = "NO",
 		Accent = Color3.fromRGB(150, 110, 255),
 		Abilities = {
-			ability("Basic", "Shade Bolt", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Divine Hounds", "Every 3 actions: 3 hits x 70% ATK on random enemies", {
+			ability("Basic", "Shadow Fang", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Hound Pursuit", "Three shadow hounds pursue random enemies, each dealing {p1} DMG.", {
 				{ Kind = "Damage", Pct = 0.7, Hits = 3, Target = "RandomEnemy" },
 			}, 3),
-			ability("Passive", "Shadow Brand", "15% chance to Burn (5% ATK per turn, 3 turns)", {
-				{ Kind = "Burn", Pct = 0.05, Turns = 3, Chance = 0.15, When = "OnHit" },
-			}),
-			ability("Ultimate", "Shadow Garden", "350% ATK + target DEF -15% for 3 turns", {
+			ability("Passive", "Shadow Bind", "On a hit, a {chance} chance for the hounds to Weaken the enemy by {a1} for {t1} turns.", {
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.15, Turns = 2 },
+			}, nil, { Trigger = "OnHit", Chance = 0.2 }),
+			ability("Ultimate", "Chimera Garden", "Drown the enemy in shadows, lowering defense by {a1} for {t1} turns before dealing {p2} DMG.", {
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
 				{ Kind = "Damage", Pct = 3.5 },
 			}),
@@ -304,14 +339,19 @@ local list: { Card } = {
 		Glyph = "RJ",
 		Accent = Color3.fromRGB(40, 30, 70),
 		Abilities = {
-			ability("Basic", "Reflex Strike", "120% ATK", { { Kind = "Damage", Pct = 1.2 } }),
-			ability("Skill", "Afterimage Cross", "Every 3 actions: 400% ATK", { { Kind = "Damage", Pct = 4 } }, 3),
-			ability("Ultimate", "Unthinking Divinity", "1,500% ATK, ignores DEF and Warders", {
+			ability("Basic", "Instinct Strike", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1.2 },
+			}),
+			ability("Skill", "Afterimage Assault", "Disappear beyond sight, then strike for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 4 },
+			}, 3),
+			ability("Ultimate", "Limit-Breaking Fist", "Break through defense and protection with a {p1} DMG strike.", {
 				{ Kind = "Damage", Pct = 15, IgnoreDef = true },
 			}),
-			ability("Signature", "Moving Without Thought", "Every 5th action, he acts again at once", {
-				{ Kind = "Eclipse", Every = 5 },
-			}),
+			ability("Signature", "Perfect Instinct", "After every 5 attacks, a {chance} chance to land a {p1} DMG afterimage strike and evade the next enemy hit.", {
+				{ Kind = "Damage", Pct = 1.25 },
+				{ Kind = "Evade", Hits = 1, Target = "Self" },
+			}, 5, { Trigger = "OnAct", Chance = 0.5 }),
 		},
 	},
 
@@ -328,9 +368,18 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "HN",
 		Accent = Color3.fromRGB(120, 200, 110),
-		Support = { Name = "Blossom Guard", Kind = "LowHeal", Amount = 0.15, Uses = 1, Threshold = 0.4 },
+		Support = {
+			Name = "Hundred-Petal Renewal",
+			Kind = "LowHeal",
+			Trigger = "BelowHalf",
+			Amount = 0.2,
+			Threshold = 0.5,
+			Uses = 1,
+			Turns = 2,
+			Text = "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP. It cannot be healed for {turns} turns.",
+		},
 		Abilities = {
-			ability("Passive", "Blossom Guard", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Hundred-Petal Renewal", "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP. It cannot be healed for {turns} turns.", {  }),
 		},
 	},
 	{
@@ -345,9 +394,17 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "GR",
 		Accent = Color3.fromRGB(200, 170, 110),
-		Support = { Name = "Stone Shoulder", Kind = "Guard", Amount = 0.08, Stat = "Guard" },
+		Support = {
+			Name = "Severing Counter",
+			Kind = "Counter",
+			Trigger = "OnDamaged",
+			Amount = 0.15,
+			Chance = 0.25,
+			Uses = 4,
+			Text = "After an enemy attack, the supported card has a {chance} chance to return {amount} of the DMG taken as a counterstrike.",
+		},
 		Abilities = {
-			ability("Passive", "Stone Shoulder", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Severing Counter", "After an enemy attack, the supported card has a {chance} chance to return {amount} of the DMG taken as a counterstrike.", {  }),
 		},
 	},
 	{
@@ -362,9 +419,18 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "SZ",
 		Accent = Color3.fromRGB(255, 210, 70),
-		Support = { Name = "Flash Tempo", Kind = "Haste", Amount = 0.08, Stat = "SPD" },
+		Support = {
+			Name = "Thunder Breathing",
+			Kind = "Haste",
+			Trigger = "OnEntry",
+			Amount = 0.2,
+			Penalty = 0.1,
+			Turns = 3,
+			Uses = 1,
+			Text = "On entry, the supported card gains {amount} attack speed for {turns} turns. Lightning-fast cuts deal {penalty} less DMG during that time.",
+		},
 		Abilities = {
-			ability("Passive", "Flash Tempo", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Thunder Breathing", "On entry, the supported card gains {amount} attack speed for {turns} turns. Lightning-fast cuts deal {penalty} less DMG during that time.", {  }),
 		},
 	},
 	{
@@ -379,9 +445,18 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "IB",
 		Accent = Color3.fromRGB(150, 170, 200),
-		Support = { Name = "Shadow Cloak", Kind = "Dodge", Amount = 0.06 },
+		Support = {
+			Name = "Cloud-Step Feint",
+			Kind = "Dodge",
+			Trigger = "OnAttacked",
+			Amount = 0.1,
+			Penalty = 0.1,
+			Turns = 1,
+			Uses = 4,
+			Text = "When attacked, the supported card has a {amount} chance to evade. Each successful feint inflicts Weaken, reducing the attacker's DMG by {penalty} for {turns} turn.",
+		},
 		Abilities = {
-			ability("Passive", "Shadow Cloak", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Cloud-Step Feint", "When attacked, the supported card has a {amount} chance to evade. Each successful feint inflicts Weaken, reducing the attacker's DMG by {penalty} for {turns} turn.", {  }),
 		},
 	},
 	{
@@ -396,9 +471,19 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "YA",
 		Accent = Color3.fromRGB(150, 200, 255),
-		Support = { Name = "Mirror Sight", Kind = "Weaken", Amount = 0.08, Uses = 4 },
+		Support = {
+			Name = "Illusion of Crows",
+			Kind = "Weaken",
+			Trigger = "OnSkillHit",
+			Amount = 0.15,
+			Chance = 0.25,
+			Burn = 0.1,
+			Turns = 2,
+			Uses = 4,
+			Text = "The supported card's Skill or Ultimate has a {chance} chance to summon Crows. They inflict Weaken for {amount} less enemy DMG over {turns} turns, and Black Flames Burn for {burn} DMG each turn for 3 turns.",
+		},
 		Abilities = {
-			ability("Passive", "Mirror Sight", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Illusion of Crows", "The supported card's Skill or Ultimate has a {chance} chance to summon Crows. They inflict Weaken for {amount} less enemy DMG over {turns} turns, and Black Flames Burn for {burn} DMG each turn for 3 turns.", {  }),
 		},
 	},
 	{
@@ -413,9 +498,18 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "TS",
 		Accent = Color3.fromRGB(140, 150, 165),
-		Support = { Name = "Iron Back", Kind = "OpeningShield", Amount = 0.15, Uses = 1 },
+		Support = {
+			Name = "Living Sand Armor",
+			Kind = "OpeningShield",
+			Trigger = "OnEntry",
+			Amount = 0.25,
+			Penalty = 0.1,
+			Turns = 2,
+			Uses = 1,
+			Text = "On entry, sand shields the supported card for {amount} of its max HP. The heavy armor reduces attack speed by {penalty} for {turns} turns.",
+		},
 		Abilities = {
-			ability("Passive", "Iron Back", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Living Sand Armor", "On entry, sand shields the supported card for {amount} of its max HP. The heavy armor reduces attack speed by {penalty} for {turns} turns.", {  }),
 		},
 	},
 	{
@@ -430,9 +524,18 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "LM",
 		Accent = Color3.fromRGB(110, 140, 255),
-		Support = { Name = "Wing Chart", Kind = "Critical", Amount = 0.06, Stat = "Crit" },
+		Support = {
+			Name = "Wisteria Antidote",
+			Kind = "KillMend",
+			Trigger = "OnKill",
+			Amount = 0.2,
+			Penalty = 0.1,
+			Turns = 2,
+			Uses = 3,
+			Text = "When the supported card defeats an opponent, recover {amount} of its max HP. The antidote dulls its next attacks, reducing DMG by {penalty} for {turns} turns.",
+		},
 		Abilities = {
-			ability("Passive", "Wing Chart", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Wisteria Antidote", "When the supported card defeats an opponent, recover {amount} of its max HP. The antidote dulls its next attacks, reducing DMG by {penalty} for {turns} turns.", {  }),
 		},
 	},
 	{
@@ -447,9 +550,18 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "OR",
 		Accent = Color3.fromRGB(90, 220, 220),
-		Support = { Name = "Borrowed Time", Kind = "StartEnergy", Amount = 0.25 },
+		Support = {
+			Name = "Borrowed Tomorrow",
+			Kind = "StartEnergy",
+			Trigger = "OnEntry",
+			Amount = 0.25,
+			Penalty = 0.1,
+			Turns = 2,
+			Uses = 1,
+			Text = "On entry, the supported card gains {amount} Ultimate charge, but borrowing time reduces its attack speed by {penalty} for {turns} turns.",
+		},
 		Abilities = {
-			ability("Passive", "Borrowed Time", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Borrowed Tomorrow", "On entry, the supported card gains {amount} Ultimate charge, but borrowing time reduces its attack speed by {penalty} for {turns} turns.", {  }),
 		},
 	},
 	{
@@ -464,9 +576,18 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "AU",
 		Accent = Color3.fromRGB(255, 214, 140),
-		Support = { Name = "Seal's Last Gate", Kind = "LastStand", Amount = 0, Uses = 1 },
+		Support = {
+			Name = "Crimson Chakra Cloak",
+			Kind = "LastStand",
+			Trigger = "OnFatal",
+			Amount = 0.85,
+			Penalty = 0.25,
+			Uses = 1,
+			Fixed = true,
+			Text = "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.",
+		},
 		Abilities = {
-			ability("Passive", "Seal's Last Gate", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Crimson Chakra Cloak", "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.", {  }),
 		},
 	},
 
@@ -485,18 +606,20 @@ local list: { Card } = {
 		Glyph = "HY",
 		Accent = Color3.fromRGB(255, 110, 50),
 		Abilities = {
-			ability("Basic", "Scorching Cut", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Cinder Vow", "Every 3 actions: 2 hits x 70% ATK on every enemy, this card +20% SPD for 2 turns, and a 30% ATK shield on every Attack card", {
+			ability("Basic", "Flame Arc", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Blazing Resolve", "Slash every enemy twice for {p1} DMG each. Gain {a2} attack speed for {t2} turns and shield every ally for {p3} DMG.", {
 				{ Kind = "Damage", Pct = 0.7, Hits = 2, Target = "Enemies" },
-				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2, Target = "Self" },
+				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2 },
 				{ Kind = "Shield", Pct = 0.3, Target = "Attack" },
 			}, 3),
-			ability("Passive", "Ember Trail", "15% chance to Burn (5% ATK per turn, 3 turns)", {
-				{ Kind = "Burn", Pct = 0.05, Turns = 3, Chance = 0.15, When = "OnHit" },
-			}),
-			ability("Ultimate", "Purgatory Gate", "160% ATK to every enemy + Burn them (6% ATK per turn, 3 turns)", {
+			ability("Passive", "Scorching Wake", "On a hit, a {chance} chance to leave Burn behind, dealing {p1} DMG each turn for {t1} turns.", {
+				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
+			}, nil, { Trigger = "OnHit", Chance = 0.2 }),
+			ability("Ultimate", "Purgatory Dance", "Sweep every enemy for {p1} DMG and inflict Burn for {p2} DMG each turn for {t2} turns.", {
 				{ Kind = "Damage", Pct = 1.6, Target = "Enemies" },
-				{ Kind = "Burn", Pct = 0.06, Turns = 3, Target = "Enemies" },
+				{ Kind = "Burn", Pct = 0.1, Turns = 3, Target = "Enemies" },
 			}),
 		},
 	},
@@ -512,9 +635,16 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "AM",
 		Accent = Color3.fromRGB(100, 160, 240),
-		Support = { Name = "Puppet Mend", Kind = "Cleanse", Amount = 0, Uses = 2 },
+		Support = {
+			Name = "Puppet Reversal",
+			Kind = "Cleanse",
+			Trigger = "OnStatus",
+			Amount = 0.15,
+			Uses = 2,
+			Text = "When the supported card receives Burn or Freeze, sever the strings: cleanse those effects and reflect them onto the attacker. Reflected Burn deals {amount} DMG for 3 turns.",
+		},
 		Abilities = {
-			ability("Passive", "Puppet Mend", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Puppet Reversal", "When the supported card receives Burn or Freeze, sever the strings: cleanse those effects and reflect them onto the attacker. Reflected Burn deals {amount} DMG for 3 turns.", {  }),
 		},
 	},
 	{
@@ -531,13 +661,17 @@ local list: { Card } = {
 		Glyph = "TB",
 		Accent = Color3.fromRGB(250, 210, 90),
 		Abilities = {
-			ability("Basic", "Crescent Slash", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Soul Cleave", "Every 3 actions: 280% ATK + the target takes 10% more damage for 2 turns", {
+			ability("Basic", "Soul Slash", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Crescent Severance", "Mark an enemy to take {a1} more DMG for {t1} turns, then sever its soul for {p2} DMG.", {
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.1, Turns = 2 },
 				{ Kind = "Damage", Pct = 2.8 },
 			}, 3),
-			ability("Passive", "Reaper's Sight", "+15% crit chance", { { Kind = "Buff", Stat = "Crit", Amount = 0.15 } }),
-			ability("Ultimate", "Moonfall Cleave", "5 hits x 140% ATK, ignoring DEF and Warders", {
+			ability("Passive", "Reaper's Mark", "Critical hits scar the enemy's soul with Weaken, reducing its DMG by {a1} for {t1} turns.", {
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.15, Turns = 2 },
+			}, nil, { Trigger = "OnCrit" }),
+			ability("Ultimate", "Moonless Sky", "Send five crescent blades through defense and protection for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 1.4, Hits = 5, IgnoreDef = true },
 			}),
 		},
@@ -554,9 +688,17 @@ local list: { Card } = {
 		SPD = 0, -- passive: no action bar
 		Glyph = "AY",
 		Accent = Color3.fromRGB(255, 220, 80),
-		Support = { Name = "Voltage Ward", Kind = "Lifesteal", Amount = 0.04, Threshold = 0.2 },
+		Support = {
+			Name = "Stormheart Siphon",
+			Kind = "Lifesteal",
+			Trigger = "OnHit",
+			Amount = 0.1,
+			Chance = 0.25,
+			Threshold = 0.25,
+			Text = "When the supported card deals direct DMG, a {chance} chance to drain {amount} of that DMG as HP.",
+		},
 		Abilities = {
-			ability("Passive", "Voltage Ward", "Passive effect for the paired Attack card", {}),
+			ability("Passive", "Stormheart Siphon", "When the supported card deals direct DMG, a {chance} chance to drain {amount} of that DMG as HP.", {  }),
 		},
 	},
 	-- BOSS CARDS: unlocked into the pool by each boss's first Normal clear -----------------------
@@ -575,15 +717,18 @@ local list: { Card } = {
 		Glyph = "KG",
 		Accent = Color3.fromRGB(230, 90, 40),
 		Abilities = {
-			ability("Basic", "Magma Claw", "110% ATK", { { Kind = "Damage", Pct = 1.1 } }),
-			ability("Skill", "Forge Brand", "Every 3 actions: 220% ATK + Burn (10% ATK per turn, 3 turns)", {
+			ability("Basic", "Chakra Claw", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1.1 },
+			}),
+			ability("Skill", "Chakra Eruption", "Burst through the enemy for {p1} DMG. Searing Chakra inflicts Burn for {p2} DMG each turn for {t2} turns.", {
 				{ Kind = "Damage", Pct = 2.2 },
 				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
 			}, 3),
-			ability("Passive", "Calamity's Wrath", "+20% ATK below 50% HP", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.2, When = "SelfBelow50" },
-			}),
-			ability("Ultimate", "Fox's Slagfall", "6 hits x 80% ATK on random enemies", {
+			ability("Passive", "Crimson Cloak", "When below 50% HP, unleash the beast's Chakra for {a1} DMG, but the unstable cloak makes this card take {a2} more DMG.", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.25 },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1 },
+			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
+			ability("Ultimate", "Beast Bomb Barrage", "Launch six Beast Bombs at random enemies for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 6, Target = "RandomEnemy" },
 			}),
 		},
@@ -603,13 +748,18 @@ local list: { Card } = {
 		Glyph = "RV",
 		Accent = Color3.fromRGB(110, 190, 255),
 		Abilities = {
-			ability("Basic", "Rime Lance", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Stilled Hour", "Every 4 actions: 250% ATK, enemies -15% SPD for 2 turns", {
+			ability("Basic", "Death Ray", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Emperor's Command", "Deal {p1} DMG and suppress every enemy's attack speed by {a2} for {t2} turns.", {
 				{ Kind = "Damage", Pct = 2.5 },
 				{ Kind = "Debuff", Stat = "SPD", Amount = 0.15, Turns = 2, Target = "Enemies" },
 			}, 4),
-			ability("Passive", "Crystal Wall", "Takes 6% less damage", { { Kind = "Buff", Stat = "Guard", Amount = 0.06 } }),
-			ability("Ultimate", "Crystal Sovereignty", "350% ATK, ignores DEF", {
+			ability("Passive", "Golden Tyranny", "When this card defeats an opponent, recover {p1} HP. Its arrogance makes it take {a2} more DMG for {t2} turns.", {
+				{ Kind = "Heal", Pct = 0.15, MaxHP = true, Target = "Self" },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 2 },
+			}, nil, { Trigger = "OnKill", Limit = 3 }),
+			ability("Ultimate", "Planet Breaker", "Erase an enemy with a {p1} DMG blast that ignores defense.", {
 				{ Kind = "Damage", Pct = 3.5, IgnoreDef = true },
 			}),
 		},
@@ -629,15 +779,18 @@ local list: { Card } = {
 		Glyph = "VX",
 		Accent = Color3.fromRGB(150, 70, 230),
 		Abilities = {
-			ability("Basic", "Void Maw", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Rend the Guard", "Every 3 actions: 180% ATK, enemy DEF -15% for 3 turns", {
+			ability("Basic", "Illusion Cut", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Shattered Reflection", "Deal {p1} DMG and expose a false opening, lowering defense by {a2} for {t2} turns.", {
 				{ Kind = "Damage", Pct = 1.8 },
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
 			}, 3),
-			ability("Passive", "Perfect Illusion", "The first 2 enemy hits on this card miss", {
+			ability("Passive", "Perfect Hypnosis", "On entry, create two Illusions to evade incoming hits. Maintaining them makes this card take {a2} more DMG for {t2} turns.", {
 				{ Kind = "Evade", Hits = 2, Target = "Self" },
-			}),
-			ability("Ultimate", "Devour All", "4 hits x 120% ATK + every enemy takes 15% more damage for 3 turns", {
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 2 },
+			}, nil, { Trigger = "OnEntry" }),
+			ability("Ultimate", "False Heaven", "Strike through four false realities for {p1} DMG each. Every enemy takes {a2} more DMG for {t2} turns.", {
 				{ Kind = "Damage", Pct = 1.2, Hits = 4 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.15, Turns = 3, Target = "Enemies" },
 			}),
@@ -658,17 +811,22 @@ local list: { Card } = {
 		Glyph = "TR",
 		Accent = Color3.fromRGB(255, 220, 80),
 		Abilities = {
-			ability("Basic", "Static Fist", "100% ATK", { { Kind = "Damage", Pct = 1 } }),
-			ability("Skill", "Forked Storm", "Every 3 actions: 4 hits x 60% ATK on random enemies", {
+			ability("Basic", "Blood Whip", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Thorned Blood", "Four blood thorns pierce random enemies for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.6, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
-			ability("Passive", "Endless Regeneration", "Heals itself 10% ATK each time it acts", {
-				{ Kind = "Heal", Pct = 0.1, Target = "Self", When = "OnAct" },
-			}),
-			ability("Aura", "Progenitor's Blood", "All Attack cards +8% ATK", {
-				{ Kind = "Buff", Stat = "ATK", Amount = 0.08, Target = "Attack" },
-			}),
-			ability("Ultimate", "Judgment Bolt", "300% ATK to every enemy", {
+			ability("Passive", "Demon Rebirth", "When below 50% HP, cleanse Burn and Freeze and regenerate {p1} HP. This card can no longer be healed.", {
+				{ Kind = "Cleanse", Amount = 2, Target = "Self" },
+				{ Kind = "Heal", Pct = 0.25, MaxHP = true, Target = "Self" },
+				{ Kind = "HealingLock" },
+			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
+			ability("Aura", "Progenitor's Gift", "On entry, share cursed blood for {a1} DMG on every ally. The pact makes them take {a2} more DMG.", {
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Target = "Attack" },
+			}, nil, { Trigger = "OnEntry" }),
+			ability("Ultimate", "Black Blood Tempest", "Engulf every enemy in a {p1} DMG blood storm.", {
 				{ Kind = "Damage", Pct = 3, Target = "Enemies" },
 			}),
 		},
@@ -866,10 +1024,16 @@ function Cards.LinkAmount(card: Card, border: string?): number
 	return if card.Link then card.Link.Amount * Cards.SupportBoost(card, border) else 0
 end
 
+function Cards.RoundPercent(value: number): number
+	if value == 0 then return 0 end
+	return math.max(0.05, math.floor(math.abs(value) * 20 + 0.5) / 20) * (if value < 0 then -1 else 1)
+end
+
 function Cards.SupportValue(card: Card, stars: number, border: string?, awaken: number?): number
 	if not card.Support then return 0 end
-	return math.min(0.5, card.Support.Amount * Cards.SupportBoost(card, border)
-		* (1 + Config.StarBonus * math.clamp(stars, 0, Config.MaxStars)) * Awaken.StatMultiplier(awaken))
+	if card.Support.Fixed then return card.Support.Amount end
+	return Cards.RoundPercent(math.min(0.5, card.Support.Amount * Cards.SupportBoost(card, border)
+		* (1 + Config.StarBonus * math.clamp(stars, 0, Config.MaxStars)) * Awaken.StatMultiplier(awaken)))
 end
 
 function Cards.SupportScore(card: Card, stars: number, border: string?, awaken: number?): number

@@ -9,13 +9,14 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
-- User review of passive Supports / Attack-driven combat: SQUAD > inspect a Support > VIEW SKILLS / BONUSES.
-  Supports have no damage / HP / action bar and modify only the matching attacker. Healing / survival are bounded;
-  all 4+4 slots, ownership, names and art remain. Attack action / Skill countdowns are in seconds; results distinguish
-  passive triggers / dodges / applied bonuses from healing. ATTACK RATING excludes passive cards, so the number is
-  lower; bosses / towers / raids were retuned to that rating. No save format change. Desktop Studio source is synced
-  through Rojo, not published. Fixed-effect supports (last stand / cleanse) retain the same limits at every border;
-  percentage passives strengthen by border / Copy bonus / Awakening. Real-device review remains parked.
+- User review of the authored card-kit overhaul: SQUAD > select a card > VIEW SKILLS / BONUSES. All 26 cards
+  have authored ability names / mechanical copy; no job boilerplate, paired-only preface, auto-action reminder or
+  stagger diagnostics. Each passive mixes a trigger with a cost or status / RNG mechanic. Actual percentage
+  strengths round to multiples of 5, including scaled Support values. Activation Limit / Effect Cap pills replace
+  limit paragraphs. The skill sheet collapses collection data under COLLECTION & BONUSES; hover cards scroll.
+  Try Nine-Tails Sovereign's Crimson Chakra Cloak, Dream Reaper's Illusion of Crows and Titan Warder's entry cost.
+  All 4+4 slots, card / boss names, ids, art and save format remain. Studio source is synced through Rojo, not
+  published. Review the costs / effects during a longer fight, including HEAL BLOCK; real-device play is parked.
 - User review of the existing-town polish, applied in the actual place (not a concept): fountain border,
   service paving, benches / planters, roomier NPC / stall positions and a jade-and-slate tower set northwest.
   Local saved place: `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl` (ignored by Git; verified it contains
@@ -39,7 +40,26 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
-- 2026-10-26 · Codex · this commit · Made all 11 Supports paired passive modifiers, following the user's
+- 2026-10-26 · Codex · this commit · Rewrote all 26 cards' technique names / descriptions in the user's requested
+  style. Authored templates resolve effect values directly; no debug-job / auto-action / paired-only / stagger
+  text, ordinary-number highlighting or limit prose. Shared ability rows provide Activation Limit / Effect Cap
+  pills with a drawn check. Tooltip is dark, bounded and scrollable; full skill sheet collapses collection data.
+  Every passive / Aura / Signature / Support now combines a trigger with a cost or status / RNG. Generic Attack
+  bundles handle entry / hit / crit / kill / action / below-half triggers, chances and caps. Supports include
+  counterstrikes, entry bargains, Crows / Black Flames, reflected statuses, kill-heal costs, 85% HP Chakra revival
+  for -25% DMG / no further healing, and capped chance-based draining. Server percentage scaling rounds to 5-point
+  steps; text uses that same value. Added distinct Bleed / reflected enemy Freeze and HEAL BLOCK status. Healing
+  locks cover every HP-heal route; posthumous damage cannot heal a dead card. Reactive cleansing cancels other
+  simultaneous Burn ticks. Card / boss identities, art, stats / weights, ownership / presets and save schema kept.
+  Type check: 0 errors (existing warnings); props: 5,530 / 0 problems; headless: ALL CHECKS PASSED, all 12 bosses
+  100% wins / 73.8-88.7 s medians, tower / Pagoda / raids pass. New regressions cover all copy / border text,
+  two-mechanic passives, live chances / costs / caps, multi-hit triggers, Bleed, Freeze and simultaneous cleansing.
+  Desktop Studio: cloak sheet / limit badge, collection toggle, Attack tooltip, bounded five-technique preview /
+  scrolling, and a live Hard fight; no new runtime errors. Studio left in Edit; not published. User review of
+  ability feel and the HEAL BLOCK badge in a longer fight remains; real-device work stays parked. Town local
+  place still predates current scripts: reconnect Rojo when opening it. User untracked art / .codex left alone.
+
+- 2026-10-26 · Codex · 41ac30b · Made all 11 Supports paired passive modifiers, following the user's
   correction: no damage, HP, action bar, active Skill / Ultimate or repeated team healing. Kept 4 Attack + 4 Support,
   names / ids / art, ownership and presets. Added bounded emergency heal, opening shield, dodge, speed, crit,
   guard, starting energy, weakening, two cleanses, one fatal-hit survival and capped lifesteal. Percentages use

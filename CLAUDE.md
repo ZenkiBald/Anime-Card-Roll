@@ -67,19 +67,39 @@ HP); AUTO rolls a slot until a ticked trait lands (up to `Traits.AutoMax` rolls 
 every card by best border with completion rewards per border. A card can be worn as your avatar (element aura; Rainbow
 fire footsteps, Secret celestial motes).
 
-**Deck and battle.** 4 Attack + 4 Support, 3 presets (+2 VIP), AUTO-BUILD / COUNTER-BUILD. Each Support is a passive modifier for the Attack card with the matching slot number. Supports have **no damage,
-HP, action bar, Skill or Ultimate**. They are never enemy targets and do not take turns. `Cards.Support` defines the
-modifier; `Cards.SupportValue` applies border strength (Base 1 / Gold 1.25 / Rainbow 1.5 / Secret 1.75x), Copy bonus
-and Awakening stat multiplier, capped at 50%. Trigger counts and healing caps never scale. Fixed effects (last stand
-and cleanse) have the same limits at every border. Passive cards add no Attack rating (`Cards.Power`); AUTO-BUILD
-ranks them separately by border / rarity / Copy bonus / Awakening. Existing ownership and all 4+4 presets remain.
-The 11 support effects are: Lotus Blossom emergency heal (15% max HP below 40%, once); Fist of Severance damage reduction
-(8%); Thunder Flash action speed (+8%); Phantom Blade dodge (6% per enemy hit, excludes burns); Dream Reaper weakening
-(Skill / Ultimate hit reduces one target's ATK by 8% for two turns, four casts); Iron Bastion opening shield
-(15% max HP, once); Celestial Strategist critical chance (+6%); Time Weaver starting Ultimate energy (25%); Nine-Tails Sovereign
-last stand (survive one fatal hit at 1 HP, no invulnerability); Shadow Puppeteer cleanse (two burn / freeze applications);
-Storm Oracle lifesteal (4% direct damage, max 20% of the attacker's max HP per battle, no overkill). Names / ids / art
-are unchanged. Actual names are authoritative in `Cards.luau`; every effect only helps its paired attacker.
+**Deck and battle.** 4 Attack + 4 Support, 3 presets (+2 VIP), AUTO-BUILD / COUNTER-BUILD. Each Support modifies the
+Attack card with the matching slot number. Supports have no damage, HP, action bar, Skill or Ultimate; counters,
+reflected statuses and Black Flames belong to the supported Attack card. Ownership, ids and presets are unchanged.
+`Cards.Support` owns the trigger, effect, cost, chance, limits and authored text. `Cards.SupportValue` applies border
+strength (Base 1 / Gold 1.25 / Rainbow 1.5 / Secret 1.75x), Copy bonus and Awakening, then rounds the **actual server
+value** to the nearest 5 percentage points (positive minimum 5%, maximum 50%). Fixed effects use their authored value;
+Crimson Chakra Cloak always returns at 85% HP. Trigger counts, chances, penalties, secondary Burns and healing caps
+are fixed. Passive cards add no Attack rating; AUTO-BUILD ranks them separately by border / rarity / copies / Awakening.
+
+Support kits (base strengths; inspect the card for its rounded value at another border):
+
+| Card | Passive |
+| --- | --- |
+| Lotus Blossom | Below 50% HP, cleanse Burn / Freeze and heal 20% max HP; healing blocked for 2 turns; 1 activation. |
+| Fist of Severance | After an enemy hit, 25% chance to return 15% of DMG taken as an Attack-card counter; 4 activations. |
+| Thunder Flash | On entry, +20% attack speed but -10% DMG for 3 turns; 1 activation. |
+| Phantom Blade | 10% evade chance; successful evades Weaken the attacker by 10% for 1 turn; 4 activations. |
+| Dream Reaper | Skills / Ultimates roll once per cast: 25% chance to Weaken by 15% for 2 turns and Burn for 10% DMG each turn for 3 turns; 4 activations. |
+| Iron Bastion | On entry, 25% max HP shield; -10% attack speed for 2 turns; 1 activation. |
+| Celestial Strategist | On defeating an opponent, heal 20% max HP but deal 10% less DMG for 2 turns; 3 activations. |
+| Time Weaver | On entry, 25% Ultimate charge in exchange for -10% attack speed for 2 turns; 1 activation, requires an Ultimate. |
+| Nine-Tails Sovereign | Upon a fatal blow, return at 85% HP; permanently -25% DMG and no further healing; 1 activation. |
+| Shadow Puppeteer | Cleanse and reflect Burn / Freeze; reflected Burn is 15% DMG for 3 turns; 2 applications. |
+| Storm Oracle | Direct hits have a 25% chance to drain 10% of actual DMG as HP; capped at 25% max HP per fight; overkill excluded. |
+
+Attack passives, Auras and Signatures are generic triggered bundles (`Ability.Trigger`, `Chance`, `Limit`, optional
+`Every`). `BattleEngine:Trigger` handles OnEntry / OnHit / OnCrit / OnKill / OnAct / BelowHalf, tracks activations and
+prevents reentry into the same bundle. On-hit effects roll for every actual hit; Crows explicitly share one roll per
+Skill / Ultimate cast. Every passive combines a trigger with a cost or status / RNG mechanic. On-entry Auras also
+carry their authored costs. `Bleed` and `Burn` share the timed-damage scheduler but have separate status flags / text.
+Healing locks apply to every HP-healing route (`HealingLock` effect, timed Support costs or permanent cloak cost),
+with a HEAL BLOCK badge (snapshot N). Reflected Freeze costs the enemy its next action (snapshot Z); Bleed is L.
+Posthumous damage cannot consume a healing activation or heal a defeated card.
 Elements: Flame > Frost > Storm > Flame, Light <> Void, Cosmic beats all (x1.3 /
 x0.85); 2 / 4 of an element switch on a synergy; 8 named bonds fire a Dual Ultimate once. Every fight is the leader +
 3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls. Stagger bar (counter
@@ -158,16 +178,21 @@ rarity number, with no combat stats. Names wrap / scale 8-14; stats live in the 
 larger; the phone inspector collapses until selection; deck thumbnails omit duplicate tiny name / rarity labels.
 DECK explains the two card types and numbered pairs. Attack slots show damage / HP; Support slots show their actual
 passive strength instead of generic power. Only attackers contribute to ATTACK RATING. Tapping a
-vault card only selects it; EQUIP / REMOVE is explicit. The inspector prioritizes the passive effect / limits or Attack Basic and action / Skill timing
+vault card only selects it; EQUIP / REMOVE is explicit. The inspector prioritizes the authored passive effect or Attack Basic and action / Skill timing
 and Copy bonus. VIEW SKILLS / BONUSES opens the scrollable Index detail sheet at the selected border, with a visible
-BACK TO CARDS button. `Shared/CardInfo` resolves the same effect amounts used by the server into plain language;
-tooltips, Index, reveals, battle skill popups and fusion previews use concrete numbers. Advanced traits / Awakening
+BACK TO CARDS button. `Shared/CardInfo` resolves authored ability templates from the same server data (`{pN}`, `{aN}`, `{tN}` read effect
+N; Support tokens read the rounded percentage, chance, threshold and cost). Copy uses supported card / DMG / named
+techniques and statuses, with no system-job boilerplate or stagger diagnostics. Only percentages, turn counts and
+Burn / Bleed / Freeze / Stun / Weaken are highlighted. `CardInfo.Badges` supplies Activation Limit / Effect Cap pills;
+`UI/Abilities` draws a check from Frames and reuses the same rendering in tooltips, Index, reveals and battle popups.
+Hover cards are dark, scrollable and bounded to the viewport; pointer movement into them keeps them open. The skill
+sheet shows techniques first; COLLECTION & BONUSES expands odds, fusion, traits, Awakening and other collection data. Advanced traits / Awakening
 remain in the details. Battle skill popups scroll within the viewport. HUD refresh waits for initialization so an
 early StoreState update cannot access missing currency chips.
 BAG uses illustrated relic / potion / pack emblems with named plaques, separate status lines, and relic-rarity
 frames (bronze / purple / gold / crimson); packs keep their roll counts. BOSS SCOUT retains its unit trays and
 counter / synergy / bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
-controls, enemy target panels and result frames. All timings and battle rules are unchanged.
+controls, enemy target panels and result frames. The current triggered ability kits are described above.
 
 `JuicyButton` still supplies sheen, spring and sounds; `IconBadge` carries element / role / currency crests.
 Card portraits use their 2D `Image` when set, else the existing procedural bust (element pattern, diamond emblem,
@@ -202,6 +227,14 @@ role weapon and id-based hair crest). The user is making character illustrations
 
 ## Rules to keep
 
+- Card copy follows the user's Anime Card Clash style brief: authored technique names and mechanical prose,
+  "the supported card", no system-job boilerplate / auto-action / stagger diagnostics. Every passive / Aura /
+  Signature and Support combines a trigger with a trade-off or status / RNG mechanic. Percentages are multiples
+  of 5 in the actual data / server formula, including border / Copy bonus scaling; never round only the tooltip.
+  Exact roll odds remain exact. Highlight only key percentages, turn counts and named status effects; activation
+  limits / effect caps belong in `CardInfo.Badges` pills, backed by server counters. Use lore-themed ability
+  terminology; keep the existing card / boss identities and art unless the user explicitly changes them.
+
 - The server owns every roll, stat and result; the client only requests and animates. Validate every remote argument on
   the server, rate-limit it (`RateLimit`), and check ownership / NPC range where it applies.
 - Attack borders always win: Base 1x / Gold 4x / Rainbow 16x / Secret 64x; base stats within +-10% of one line (HP = 2 x ATK),
@@ -210,7 +243,7 @@ role weapon and id-based hair crest). The user is making character illustrations
   small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border fusion only: 100 copies at one border -> 1 at the next.
 - Content is data: a new card is one entry in `Cards.luau` (stats, abilities, `Role`, `Weight`, `Element`, `Image`); a
   boss or difficulty one entry in `Bosses.luau`; a relic or artifact in `Items.luau`; a trait in `Traits.luau`; a potion / gift /
-  milestone / quest in `Meta.luau`. Support entries use generic `Support.Kind` handlers; only Secret signatures get card-specific engine exceptions.
+  milestone / quest in `Meta.luau`. Support entries use generic `Support.Kind` handlers; Attack passives / Auras / Signatures use generic trigger bundles.
 - Save format changes need a step in `SaveMigration` (safe to run twice) and a case in `tests/save_test.luau`.
 - Potions, upgrades and gifts are earned in game only (Shard bundles are gated like random items because Shards buy luck).
   Robux sales live only in MonetizationConfig / MonetizationService; any perk that changes odds or gives random rewards

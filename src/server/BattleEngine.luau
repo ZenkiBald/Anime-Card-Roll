@@ -110,6 +110,8 @@ local function newUnit(spec: UnitSpec)
 		Border = spec.Border or "Normal",
 		Stars = spec.Stars,
 		SupportMods = {},
+		Triggered = {},
+		HealingLock = 0,
 		HPCost = 0,
 		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Border, spec.Awaken),
 		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Border, spec.Awaken) else 0,
@@ -292,12 +294,16 @@ function Engine.new(setup: Setup)
 				if front.Ultimate then
 					front.Energy = math.min(B.UltimateCost, front.Energy + amount * B.UltimateCost)
 					mod.Used = 1
+					front.Buffs[`Cost:{unit.Id}`] = { Stat = "SPD", Amount = -(link.Penalty or 0), Left = turns(link.Turns) }
 				end
-			elseif link.Stat then
-				front.Buffs[`Link:{unit.Id}`] = { Stat = link.Stat, Amount = amount, Left = math.huge }
+			elseif link.Kind == "Haste" then
+				front.Buffs[`Link:{unit.Id}`] = { Stat = "SPD", Amount = amount, Left = turns(link.Turns) }
+				front.Buffs[`Cost:{unit.Id}`] = { Stat = "ATK", Amount = -(link.Penalty or 0), Left = turns(link.Turns) }
+				mod.Used = 1
 			elseif link.Kind == "OpeningShield" then
 				front.Shield = round(front.MaxHP * amount)
 				front.ShieldLeft = math.huge
+				front.Buffs[`Cost:{unit.Id}`] = { Stat = "SPD", Amount = -(link.Penalty or 0), Left = turns(link.Turns) }
 				unit.Healed = front.Shield
 				mod.Used = 1
 			end
@@ -308,6 +314,10 @@ function Engine.new(setup: Setup)
 	-- Passives, auras and signatures that are on from the start.
 	for _, unit in self.Allies do
 		for _, ability in unit.Card.Abilities do
+			if ability.Trigger then
+				table.insert(unit.Triggered, { Ability = ability, Used = 0 })
+				continue
+			end
 			for _, effect in ability.Effects do
 				if ability.Slot == "Passive" then
 					if effect.When then
@@ -327,6 +337,7 @@ function Engine.new(setup: Setup)
 			end
 		end
 	end
+	for _, unit in self.Allies do self:Trigger(unit, "OnEntry") end
 	-- Synergies: the deck's element counts switch on whole-deck bonuses for the fight.
 	local elements, cardIds = {}, {}
 	for _, unit in self.Allies do
@@ -540,8 +551,8 @@ function Engine:EnemyTargets(target: string?)
 		local alive = self:AliveEnemies()
 		return if #alive > 0 then { alive[self.Rng:NextInteger(1, #alive)] } else {}
 	end
-	local enemy = self:CardTarget()
-	return if enemy then { enemy } else {}
+	local enemy = self.EffectTarget or self:CardTarget()
+	return if enemy and enemy.Alive then { enemy } else {}
 end
 
 local function lowest(list)
@@ -656,6 +667,7 @@ function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: 
 	})
 
 	if enemy.HP <= 0 then
+		if source then self:OpponentDefeated(source) end
 		if enemy.Leader then
 			self:Finish("Win")
 			return
@@ -713,29 +725,70 @@ function Engine:HitEnemy(unit, enemy, pct: number, ignoreDef: boolean?, kind: st
 	if enemy.Leader and enemy.Staggered <= 0 and not self.Over then
 		self:FillStagger(enemy, unit.Element)
 	end
-	local dealt = math.min(enemy.HP, amount)
+	local dealt = math.max(0, math.min(enemy.HP, amount))
 	self:DamageEnemy(enemy, unit, amount, crit, kind or "Hit", elementFlag(element))
+	if crit and enemy.Alive then self:Trigger(unit, "OnCrit", enemy) end
+	if enemy.Alive then self:Trigger(unit, "OnHit", enemy) end
 	for _, mod in unit.SupportMods do
-		if mod.Def.Kind == "Lifesteal" and unit.Alive and dealt > 0 then
-			local cap = round(unit.MaxHP * (mod.Def.Threshold or 0.2))
+		if mod.Def.Kind == "Lifesteal" and unit.Alive and dealt > 0 and unit.HealingLock <= 0 and self.Rng:NextNumber() < (mod.Def.Chance or 1) then
+			local cap = round(unit.MaxHP * (mod.Def.Threshold or 0.25))
 			local healed = math.min(round(dealt * mod.Amount), cap - mod.Healed, unit.MaxHP - unit.HP)
 			if healed > 0 then
-				mod.Healed += healed
-				self:SupportHeal(mod, unit, healed)
+				mod.Healed += self:SupportHeal(mod, unit, healed)
 			end
 		elseif mod.Def.Kind == "Weaken" and burst and enemy.Alive and mod.Used < (mod.Def.Uses or 0) and mod.LastAction ~= self.ActionToken then
 			mod.LastAction = self.ActionToken
-			mod.Used += 1
-			enemy.Debuffs[`Support:{mod.Source.Id}`] = { Stat = "ATK", Amount = mod.Amount, Left = turns(2) }
-			self:Emit({ K = "Debuff", U = unit.Id, T = enemy.Id, Stat = "ATK", A = mod.Amount })
+			if self.Rng:NextNumber() < (mod.Def.Chance or 1) then
+				mod.Used += 1
+				enemy.Debuffs[`Support:{mod.Source.Id}`] = { Stat = "ATK", Amount = mod.Amount, Left = turns(mod.Def.Turns) }
+				self:Emit({ K = "Debuff", U = unit.Id, T = enemy.Id, Stat = "ATK", A = mod.Amount })
+				if mod.Def.Burn then
+					table.insert(enemy.Burns, { Damage = round(unit.Main * mod.Def.Burn), Ticks = 3, Timer = B.TurnSeconds, Source = unit, Kind = "Burn" })
+					self:Emit({ K = "Burned", U = unit.Id, T = enemy.Id })
+				end
+			end
 		end
 	end
 end
 
-function Engine:SupportHeal(mod, target, amount: number)
-	target.HP = math.min(target.MaxHP, target.HP + amount)
+function Engine:SupportHeal(mod, target, amount: number): number
+	if not target.Alive or target.HealingLock > 0 then return 0 end
+	amount = math.max(0, math.min(amount, target.MaxHP - target.HP))
+	target.HP += amount
 	mod.Source.Healed += amount
 	self:Emit({ K = "Heal", U = mod.Source.Id, T = target.Id, A = amount })
+	return amount
+end
+
+-- A reactive ability rolls once for the whole bundle and shares its limit across every effect.
+function Engine:Trigger(unit, trigger: string, enemy)
+	if self.Over or not unit.Alive or not unit.HasHP then return end
+	for _, entry in unit.Triggered do
+		local ability = entry.Ability
+		if entry.Running or ability.Trigger ~= trigger or (ability.Limit and entry.Used >= ability.Limit) then continue end
+		if trigger == "BelowHalf" and (unit.HP <= 0 or unit.HP > unit.MaxHP * 0.5) then continue end
+		if trigger == "OnAct" and ability.Every and unit.Actions % ability.Every ~= 0 then continue end
+		if ability.Chance and self.Rng:NextNumber() >= ability.Chance then continue end
+		entry.Running = true
+		entry.Used += 1
+		local previous = self.EffectTarget
+		self.EffectTarget = enemy
+		for _, effect in ability.Effects do self:RunEffect(unit, effect, false, ability.Name) end
+		self.EffectTarget = previous
+		entry.Running = false
+	end
+end
+
+function Engine:OpponentDefeated(unit)
+	if not unit.Alive or not unit.HasHP then return end
+	self:Trigger(unit, "OnKill")
+	for _, mod in unit.SupportMods do
+		if mod.Def.Kind == "KillMend" and mod.Used < (mod.Def.Uses or 0) then
+			mod.Used += 1
+			self:SupportHeal(mod, unit, round(unit.MaxHP * mod.Amount))
+			unit.Buffs[`Cost:{mod.Source.Id}`] = { Stat = "ATK", Amount = -(mod.Def.Penalty or 0), Left = turns(mod.Def.Turns) }
+		end
+	end
 end
 
 -- One card hit's worth of Stagger on the leader; a full bar Staggers it.
@@ -771,16 +824,27 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 		self:Emit({ K = kind, U = sourceId, T = target.Id, A = 0 })
 		return
 	end
+	local previousHP = target.HP
 	local absorbed = math.min(target.Shield, round(amount * (1 - (pierce or 0)))) -- a pierce goes past shields
 	target.Shield -= absorbed
 	target.HP -= amount - absorbed
 	self:Emit({ K = kind, U = sourceId, T = target.Id, A = amount, Sh = if absorbed > 0 then absorbed else nil, El = el })
 
 	if target.HP > 0 then
+		self:Trigger(target, "BelowHalf")
 		for _, mod in target.SupportMods do
-			if mod.Def.Kind == "LowHeal" and mod.Used < (mod.Def.Uses or 0) and target.HP <= target.MaxHP * (mod.Def.Threshold or 0.4) then
+			local source = sourceId and self.ById[sourceId]
+			if mod.Def.Kind == "Counter" and kind == "Hit" and source and source.Type == "Enemy" and source.Alive and mod.Used < (mod.Def.Uses or 0) and self.Rng:NextNumber() < (mod.Def.Chance or 1) then
+				mod.Used += 1
+				local reflected = round(math.min(previousHP, amount - absorbed) * mod.Amount)
+				if reflected > 0 then self:DamageEnemy(source, target, reflected, false, "Hit") end
+			end
+			if mod.Def.Kind == "LowHeal" and mod.Used < (mod.Def.Uses or 0) and target.HealingLock <= 0 and target.HP <= target.MaxHP * (mod.Def.Threshold or 0.5) then
 				mod.Used += 1
 				self:SupportHeal(mod, target, math.min(round(target.MaxHP * mod.Amount), target.MaxHP - target.HP))
+				table.clear(target.Burns)
+				target.Frozen = false
+				target.HealingLock = turns(mod.Def.Turns)
 			end
 		end
 		return
@@ -788,7 +852,9 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 	for _, mod in target.SupportMods do
 		if mod.Def.Kind == "LastStand" and mod.Used < (mod.Def.Uses or 0) then
 			mod.Used += 1
-			target.HP = 1
+			target.HP = math.max(1, round(target.MaxHP * mod.Amount))
+			target.HealingLock = math.huge
+			target.Buffs[`Cost:{mod.Source.Id}`] = { Stat = "ATK", Amount = -(mod.Def.Penalty or 0), Left = math.huge }
 			self:Emit({ K = "SupportProc", U = mod.Source.Id, T = target.Id, N = mod.Def.Name })
 			return
 		end
@@ -804,7 +870,7 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 	target.HP = 0
 	target.Alive = false
 	target.Shield = 0
-	target.Burns = {}
+	table.clear(target.Burns)
 	target.Frozen = false
 	target.Taunt = 0
 	target.Gauge = 0
@@ -820,8 +886,9 @@ function Engine:HitAlly(enemy, target, move)
 		return
 	end
 	for _, mod in target.SupportMods do
-		if mod.Def.Kind == "Dodge" and self.Rng:NextNumber() < mod.Amount then
+		if mod.Def.Kind == "Dodge" and mod.Used < (mod.Def.Uses or math.huge) and self.Rng:NextNumber() < mod.Amount then
 			mod.Used += 1
+			enemy.Debuffs[`Feint:{mod.Source.Id}`] = { Stat = "ATK", Amount = mod.Def.Penalty or 0, Left = turns(mod.Def.Turns) }
 			self:Emit({ K = "Miss", U = enemy.Id, T = target.Id })
 			return
 		end
@@ -854,15 +921,21 @@ function Engine:HitAlly(enemy, target, move)
 		target.Frozen = true
 		self:Emit({ K = "Frozen", T = target.Id })
 	end
-	self:SupportCleanse(target)
+	self:SupportCleanse(target, enemy)
 end
 
-function Engine:SupportCleanse(target)
+function Engine:SupportCleanse(target, enemy)
 	for _, mod in target.SupportMods do
 		if mod.Def.Kind == "Cleanse" and mod.Used < (mod.Def.Uses or 0) and (target.Frozen or #target.Burns > 0) then
 			mod.Used += 1
+			if enemy and enemy.Alive then
+				if target.Frozen then enemy.Frozen = true end
+				if #target.Burns > 0 then
+					table.insert(enemy.Burns, { Damage = round(target.Main * mod.Amount), Ticks = 3, Timer = B.TurnSeconds, Source = target, Kind = "Burn" })
+				end
+			end
 			target.Frozen = false
-			target.Burns = {}
+			table.clear(target.Burns)
 			self:Emit({ K = "Cleanse", U = mod.Source.Id, T = target.Id })
 		end
 	end
@@ -888,7 +961,7 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 				self:RunEffect(unit, passive, false)
 			end
 		end
-	elseif kind == "Burn" then
+	elseif kind == "Burn" or kind == "Bleed" then
 		if effect.Chance == nil or rng:NextNumber() < effect.Chance then
 			for _, enemy in self:EnemyTargets(effect.Target) do
 				table.insert(enemy.Burns, {
@@ -896,13 +969,15 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 					Ticks = effect.Turns or 3,
 					Timer = B.TurnSeconds,
 					Source = unit,
+					Kind = kind,
 				})
-				self:Emit({ K = "Burned", U = unit.Id, T = enemy.Id })
+				self:Emit({ K = "Burned", U = unit.Id, T = enemy.Id, Status = kind })
 			end
 		end
 	elseif kind == "Heal" then
 		for _, target in self:Targets(unit, effect.Target or "Lowest", kind) do
-			local healed = math.min(round(unit.Main * effect.Pct), target.MaxHP - target.HP)
+			if target.HealingLock > 0 then continue end
+			local healed = math.min(round((if effect.MaxHP then target.MaxHP else unit.Main) * effect.Pct), target.MaxHP - target.HP)
 			target.HP += healed
 			unit.Healed += healed
 			if not quiet then
@@ -979,6 +1054,8 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 				self:Emit({ K = "Revive", U = unit.Id, T = target.Id, A = target.HP })
 			end
 		end
+	elseif kind == "HealingLock" then
+		unit.HealingLock = math.huge
 	elseif kind == "Evade" then
 		for _, target in self:Targets(unit, effect.Target or "Self", kind) do
 			target.Evades += effect.Hits or 1
@@ -1033,6 +1110,7 @@ function Engine:CardAct(unit)
 		unit.HP -= cost
 		self:Emit({ K = "HPCost", T = unit.Id, A = cost })
 	end
+	self:Trigger(unit, "OnAct")
 	for _, passive in unit.Passives do
 		if passive.When == "OnAct" then
 			self:RunEffect(unit, passive, true)
@@ -1244,6 +1322,7 @@ local function tickBurns(burns, dt: number, hit)
 			burn.Timer += B.TurnSeconds
 			burn.Ticks -= 1
 			hit(burn)
+			if burns[i] ~= burn then continue end -- a reactive cleanse may have removed this tick
 		end
 		if burn.Ticks <= 0 then
 			table.remove(burns, i)
@@ -1275,6 +1354,7 @@ function Engine:Step(dt: number)
 			tickTimers(unit.Buffs, dt)
 			unit.Taunt = math.max(0, unit.Taunt - dt)
 			unit.Invuln = math.max(0, unit.Invuln - dt)
+			unit.HealingLock = math.max(0, unit.HealingLock - dt)
 			if unit.Shield > 0 then
 				unit.ShieldLeft -= dt
 				if unit.ShieldLeft <= 0 then
@@ -1298,7 +1378,7 @@ function Engine:Step(dt: number)
 			tickTimers(enemy.Buffs, dt)
 			tickBurns(enemy.Burns, dt, function(burn)
 				local amount = round(burn.Damage * (1 - self:Protection(enemy)))
-				self:DamageEnemy(enemy, burn.Source, self:ThroughBarrier(enemy, amount, false), false, "Burn")
+				self:DamageEnemy(enemy, burn.Source, self:ThroughBarrier(enemy, amount, false), false, burn.Kind or "Burn")
 			end)
 		end
 	end
@@ -1357,11 +1437,11 @@ function Engine:Step(dt: number)
 			acted += 1
 			unit.ActedAt = self.Time
 			unit.Gauge -= 1
-			if unit.Type == "Enemy" then
-				self:EnemyAct(unit)
-			elseif unit.Frozen then
+			if unit.Frozen then
 				unit.Frozen = false
 				self:Emit({ K = "Thaw", U = unit.Id })
+			elseif unit.Type == "Enemy" then
+				self:EnemyAct(unit)
 			else
 				self:CardAct(unit)
 			end
@@ -1506,6 +1586,7 @@ function Engine:Snapshot()
 		if unit.Invuln > 0 then
 			flags ..= "I"
 		end
+		if unit.HealingLock > 0 then flags ..= "N" end
 		units[unit.Id] = {
 			H = if unit.HasHP then math.max(0, round(unit.HP)) else nil,
 			S = if unit.HasHP then round(unit.Shield) else nil,
@@ -1528,9 +1609,13 @@ function Engine:Snapshot()
 				end
 			end
 		end
-		if #enemy.Burns > 0 then
-			flags ..= "B"
+		local burned, bled = false, false
+		for _, dot in enemy.Burns do
+			if dot.Kind == "Bleed" then bled = true else burned = true end
 		end
+		if burned then flags ..= "B" end
+		if bled then flags ..= "L" end
+		if enemy.Frozen then flags ..= "Z" end
 		if enemy.Enraged then
 			flags ..= "E"
 		end

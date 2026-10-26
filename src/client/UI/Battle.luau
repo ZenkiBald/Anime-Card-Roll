@@ -118,6 +118,8 @@ local BOSS_STATUS = {
 	S = "SLOWED",
 	V = "VULNERABLE",
 	B = "BURNING",
+	L = "BLEEDING",
+	Z = "FROZEN",
 	E = "ENRAGED",
 	W = "CHARGING",
 	R = "BARRIER",
@@ -464,6 +466,7 @@ end
 
 -- Crisp status badges docked top right on a battle card (instead of tinting the card).
 local BADGES = {
+	{ Flag = "N", Text = "HEAL BLOCK", Color = Color3.fromRGB(220, 130, 145) },
 	{ Flag = "U", Text = "BUFFED ▲", Color = Color3.fromRGB(255, 210, 60) },
 	{ Flag = "B", Text = "BURN 🔥", Color = Color3.fromRGB(255, 96, 40) },
 	{ Flag = "Z", Text = "FROZEN ❄", Color = Color3.fromRGB(120, 220, 255) },
@@ -1524,10 +1527,10 @@ local function playEvent(event)
 				castTag(tile, event.N, if event.Ab == "Opening" then "Basic" else "Skill")
 			end
 		end
-	elseif kind == "Hit" or kind == "Burn" then
+	elseif kind == "Hit" or kind == "Burn" or kind == "Bleed" then
 		local frame = targetFrame(event.T)
 		if event.T == "Boss" then
-			local color = if kind == "Burn" then Theme.Color.Roll
+			local color = if kind == "Burn" or kind == "Bleed" then Theme.Color.Roll
 				elseif event.Bl then SHIELD_COLOR
 				elseif event.C then Theme.Color.Gold
 				else Color3.new(1, 1, 1)
@@ -1565,7 +1568,7 @@ local function playEvent(event)
 			end
 		elseif enemyTiles[event.T] then
 			local guard = enemyTiles[event.T]
-			local color = if kind == "Burn" then Theme.Color.Roll
+			local color = if kind == "Burn" or kind == "Bleed" then Theme.Color.Roll
 				elseif event.Bl then SHIELD_COLOR
 				elseif event.C then Theme.Color.Gold
 				else Color3.new(1, 1, 1)
@@ -1590,7 +1593,7 @@ local function playEvent(event)
 			end
 			if event.A == 0 then
 				float(tile.Card, "SAFE", Theme.Color.Gold)
-			elseif kind == "Burn" then
+			elseif kind == "Burn" or kind == "Bleed" then
 				float(tile.Card, `-{Kit.commas(event.A)}`, Theme.Color.Roll)
 			else
 				float(tile.Card, `-{Kit.commas(event.A)}{elementMark(event.El)}`, if event.Sh then SHIELD_COLOR else Theme.Color.Danger)
@@ -1622,8 +1625,8 @@ local function playEvent(event)
 	elseif kind == "Buff" then
 		local tile = tiles[event.U]
 		if tile then
-			local label = if event.Stat == "Guard" then "GUARD" else event.Stat
-			float(tile.Card, `{label} +{math.floor(event.A * 100 + 0.5)}%`, Theme.Color.Gold)
+			local label = if event.Stat == "Guard" then "GUARD" elseif event.Stat == "ATK" then "DMG" elseif event.Stat == "SPD" then "SPEED" else event.Stat
+			float(tile.Card, `{label} {if event.A < 0 then "-" else "+"}{math.floor(math.abs(event.A) * 100 + 0.5)}%`, Theme.Color.Gold)
 		end
 		for _, id in event.T or {} do
 			local target = tiles[id]
@@ -1643,7 +1646,7 @@ local function playEvent(event)
 			end
 		end
 	elseif kind == "Burned" then
-		float(targetFrame(event.T), "BURN", Theme.Color.Roll)
+		float(targetFrame(event.T), if event.Status == "Bleed" then "BLEED" else "BURN", Theme.Color.Roll)
 	elseif kind == "Miss" then
 		float(targetFrame(event.T), "MISS", Theme.Color.Muted, true)
 	elseif kind == "KO" then

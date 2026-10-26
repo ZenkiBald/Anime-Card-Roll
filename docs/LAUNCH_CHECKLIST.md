@@ -46,6 +46,16 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Authored card kits / tooltip pass (2026-10-26): desktop Crimson Chakra Cloak sheet shows 85% return / 25%
+  DMG cost and a drawn-check Activation Limit pill. Collection data collapses / expands. Attack hover card shows
+  authored Basic / Skill / Passive / Ultimate with only percentages and turn counts highlighted. Five-technique
+  tooltip preview was constrained to 300 px and scrolled to Y=100 (canvas 622 px). One live Hard fight starts and
+  runs with new technique names / passive status and no new runtime errors. Headless verifies trigger costs,
+  reflected Freeze / Burn, Bleed, healing locks, chance bundles / limits and every border / Copy bonus's copy.
+- [ ] User review: Nine-Tails Sovereign's Crimson Chakra Cloak, Dream Reaper's Illusion of Crows, Titan Warder's
+  Armored Advance cost, hover / battle inspection and COLLECTION & BONUSES. Check the new HEAL BLOCK badge during
+  a longer fight. Source is synced through Rojo; not published. Real-device review remains parked.
+
 - [x] Passive Support pass (2026-10-26): desktop Gold Support sheet shows the paired effect, actual percentage,
   Copy bonus and per-battle limit. Live Normal fight shows Attack / Skill seconds and passive use counts;
   Support pods have no action / energy / HP bars. Results show passive triggers / applied bonuses instead of
