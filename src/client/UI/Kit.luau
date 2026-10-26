@@ -146,6 +146,21 @@ function Kit.label(props: { [string]: any }, maxText: number?): TextLabel
 	return label
 end
 
+-- A frame's size before any UIScale above it (panels are scaled down on phones): use it wherever a
+-- measured size is turned back into offsets, e.g. grid cells.
+function Kit.logicalSize(inst: GuiObject): Vector2
+	local scale = 1
+	local node: Instance? = inst
+	while node and not node:IsA("LayerCollector") do
+		local uiScale = node:FindFirstChildOfClass("UIScale")
+		if uiScale then
+			scale *= uiScale.Scale
+		end
+		node = node.Parent
+	end
+	return if scale > 0 then inst.AbsoluteSize / scale else inst.AbsoluteSize
+end
+
 -- Plays and returns a tween.
 function Kit.tween(
 	inst: Instance,

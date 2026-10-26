@@ -341,7 +341,11 @@ Battle.Init(playerGui, {
 HubFx.Start()
 Modal.Changed:Connect(function(anyOpen: boolean)
 	HubFx.SetWorldLabelsHidden("Modal", anyOpen)
+	-- The HUD and server list step away behind a panel, and quick roll pops wait (the pulls still land).
+	Hud.SetPanelOpen(anyOpen)
+	PlayerList.SetHidden("Modal", anyOpen)
 end)
+Reveal.Muted = Modal.AnyOpen
 -- Music and lighting follow the zone you walk into.
 ZoneFx.Start()
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)

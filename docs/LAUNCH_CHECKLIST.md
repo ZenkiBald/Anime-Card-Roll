@@ -83,6 +83,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 - [ ] World themes (2026-10-26): town is a bright afternoon again; walking into each world tweens to its own look
   (Ember golden sunset, Frostfang snowy morning without blown-out snow, Neon Abyss violet night with neon bloom,
   Stormspire grey storm with lightning) and back to day in town. Re-run `tools/studio/lighting.luau` once and save.
+- [ ] Phone layout (2026-10-26): SQUAD shows four deck rows and the vault grid, BATTLE's tabs clear its title, the BAG
+  tabs fit, no HUD shows through or over an open panel (no DUPE pops on top), the top bar clears Kenji's tracker and
+  the server list, and the Auto Roll feed sits above the DASH / jump buttons.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

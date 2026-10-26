@@ -503,7 +503,7 @@ function Index.Refresh()
 			child:Destroy()
 		end
 	end
-	local width = list.AbsoluteSize.X - 40
+	local width = Kit.logicalSize(list).X - 40
 	if width > 0 then
 		local count = math.clamp(math.floor(width / 120), 3, 9)
 		cellSize = math.floor((width - 10 * (count - 1)) / count)

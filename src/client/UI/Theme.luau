@@ -47,7 +47,7 @@ Theme.Color = {
 
 -- Glass: how see-through panels and the frames inside them are.
 Theme.Glass = {
-	Panel = 0.15,
+	Panel = 0.05,
 	Frame = 0.1,
 }
 

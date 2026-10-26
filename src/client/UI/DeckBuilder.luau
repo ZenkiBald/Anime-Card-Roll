@@ -354,7 +354,7 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	}, 14)
 	-- Keep the role badge and the power clear of the element badge, at any plate size.
 	local function placeBadges()
-		local h = info.AbsoluteSize.Y * 0.34
+		local h = Kit.logicalSize(info).Y * 0.34
 		local role = info:FindFirstChild("Role")
 		if role then
 			role.Position = UDim2.new(0, h + 4, 0.62, 0)
@@ -572,7 +572,7 @@ local function drawGrid()
 end
 
 local function sizeGrid()
-	local width = grid.AbsoluteSize.X - 12
+	local width = Kit.logicalSize(grid).X - 12
 	if width <= 0 then
 		return
 	end

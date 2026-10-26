@@ -35,6 +35,8 @@ local toastOrder = 0
 -- Called with true when full reveals start showing and false when the last one closes
 -- (Main hides the HUD meanwhile).
 Reveal.OnBusy = nil :: ((boolean) -> ())?
+-- True while quick pops should wait (Main: a panel is open).
+Reveal.Muted = nil :: (() -> boolean)?
 
 local BUILD_PULSES ={ Rare = 1, Epic = 2, Legendary = 3, Mythic = 3, Secret = 4 }
 
@@ -625,6 +627,15 @@ local function pump()
 	end)
 end
 
+-- Quick-roll pops sit above the HUD's Next Goal pill: a little higher and smaller on a short (phone)
+-- screen, where the HUD's stack starts higher up.
+local function placeToasts()
+	local height = gui.AbsoluteSize.Y
+	local short = height > 0 and height < 500
+	toastArea.Position = UDim2.fromScale(0.5, if short then 0.64 else 0.7)
+	toastArea.Size = UDim2.fromScale(0.7, if short then 0.13 else 0.16)
+end
+
 function Reveal.Init(playerGui: Instance)
 	gui = Kit.screenGui("RevealGui", 20, playerGui)
 	gui.IgnoreGuiInset = true
@@ -645,6 +656,8 @@ function Reveal.Init(playerGui: Instance)
 			Padding = UDim.new(0, 8),
 		}),
 	})
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeToasts)
+	placeToasts()
 end
 
 function Reveal.IsBusy(): boolean
@@ -669,8 +682,8 @@ function Reveal.Quick(result)
 		Reveal.Full(result) -- any Rainbow / Secret border always gets the full show
 		return
 	end
-	if running then
-		return -- a full reveal is on screen: the pull still lands in the feed, without a pop over it
+	if running or (Reveal.Muted and Reveal.Muted()) then
+		return -- a full reveal or a panel is on screen: the pull still lands in the feed, without a pop over it
 	end
 
 	toastOrder += 1

@@ -156,6 +156,17 @@ function Modal.CloseButton(parent: Instance): TextButton
 	return close
 end
 
+-- How much a panel is scaled down on this screen: 1 on a desktop or tablet, about 0.6 on a phone held
+-- sideways (the HUD's left column uses the same rule).
+function Modal.FitScale(view: Vector2): number
+	return math.clamp(math.min(view.X / 1100, view.Y / 640), 0.6, 1)
+end
+
+-- Whether any panel is open (the quick roll pops wait while one is).
+function Modal.AnyOpen(): boolean
+	return openModal ~= nil
+end
+
 function Modal.new(playerGui: Instance, name: string, title: string, size: Vector2, maxSize: Vector2)
 	local self = setmetatable({}, Modal)
 	self.IsOpen = false
@@ -167,7 +178,7 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		Name = "Backdrop",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Theme.Color.Backdrop,
-		BackgroundTransparency = 0.35,
+		BackgroundTransparency = 0.25,
 		AutoButtonColor = false,
 		Text = "",
 		Parent = self.Gui,
@@ -190,10 +201,31 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		Kit.corner(),
 		Kit.gradient(ColorSequence.new(PANEL_TOP, PANEL_BOTTOM), 90),
 		Kit.stroke(C.TamahaganeSlate, 2, 0),
-		Kit.new("UISizeConstraint", { MaxSize = maxSize, MinSize = Vector2.new(280, 220) }),
+		Kit.new("UISizeConstraint", { Name = "Limit", MaxSize = maxSize, MinSize = Vector2.new(280, 220) }),
 	})
 	self.Scale = Kit.new("UIScale", { Scale = 1, Parent = self.Panel })
 	Skin.Apply(self.Panel, "Panel")
+	-- Phones: the panel is laid out at desktop size and scaled down to the screen (Modal.FitScale), so a
+	-- short landscape screen shows the same layout smaller instead of squashing rows to nothing. It
+	-- also takes almost the whole screen there.
+	self.Fit = 1
+	local function fit()
+		local view = self.Gui.AbsoluteSize
+		if view.X < 1 or view.Y < 1 then
+			return
+		end
+		local scale = Modal.FitScale(view)
+		local compact = scale < 0.85
+		local width = if compact then math.max(size.X, 0.97) else size.X
+		local height = if compact then math.max(size.Y, 0.96) else size.Y
+		self.Fit = scale
+		self.Panel.Size = UDim2.fromScale(width / scale, height / scale)
+		-- A phone is wide for its height: let the panel run a little wider than on a desktop.
+		self.Panel.Limit.MaxSize = if compact then Vector2.new(maxSize.X * 1.25, maxSize.Y) else maxSize
+		self.Scale.Scale = scale
+	end
+	self.Gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	fit()
 
 	self.Header = Kit.new("Frame", {
 		Name = "Header",
@@ -232,14 +264,15 @@ function Modal:Open()
 	self.IsOpen = true
 	self.Gui.Enabled = true
 	-- Pop in: the panel rises and grows a little while the backdrop fades in.
-	self.Scale.Scale = 0.88
-	Kit.tween(self.Scale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
-	self.Panel.Position = UDim2.fromScale(0.5, 0.57)
-	Kit.tween(self.Panel, 0.25, { Position = UDim2.fromScale(0.5, 0.52) }, Enum.EasingStyle.Back)
+	local rest = if self.Fit < 0.85 then 0.5 else 0.52
+	self.Scale.Scale = 0.88 * self.Fit
+	Kit.tween(self.Scale, 0.25, { Scale = self.Fit }, Enum.EasingStyle.Back)
+	self.Panel.Position = UDim2.fromScale(0.5, rest + 0.05)
+	Kit.tween(self.Panel, 0.25, { Position = UDim2.fromScale(0.5, rest) }, Enum.EasingStyle.Back)
 	local backdrop = self.Gui:FindFirstChild("Backdrop")
 	if backdrop then
 		backdrop.BackgroundTransparency = 1
-		Kit.tween(backdrop, 0.2, { BackgroundTransparency = 0.35 })
+		Kit.tween(backdrop, 0.2, { BackgroundTransparency = 0.25 })
 	end
 	setBlur(true)
 	if self.OnOpen then

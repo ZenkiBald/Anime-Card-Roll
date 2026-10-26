@@ -106,7 +106,9 @@ cyan) feed `UI/Theme`. `UITheme.BorderTiers` frames card tiles (bronze 1 px, gol
 px: the border is the tier); stars are small parchment diamonds (they're stats, not the tier). The HUD's Surge talisman
 charges spirit blue, shivers void purple for the last 4 rolls, and seals gold when the next roll is the surge (ROLL then
 reads UNLEASH SURGE!); AUTO / QUICK are recessed and light their bezel when on. Panels (`Modal`) are Urushi with a 2 px
-steel edge, a vermilion banner slash and underline, tabs with a vermilion underline when active; `Controls` dropdowns
+steel edge, a vermilion banner slash and underline, tabs with a vermilion underline when active; on a phone a panel is
+laid out at desktop size and scaled down (`Modal.FitScale`, ~0.6 sideways; turn measured sizes back into offsets with
+`Kit.logicalSize`), and the HUD, server list and quick roll pops step away while a panel is open; `Controls` dropdowns
 and search are sunken wells. The deck screen has sunken empty slots, spirit-blue Slot Link tethers (gold for a bond), a
 sunken Cost Challenge meter and synergy / bond tags; AUTO-BUILD is the vermilion seal. Card tiles carry no combat stats
 (frame, art, star diamonds, element / role crests, name, xN, Awakening pips, a pulsing FUSE! seal at 100 copies and

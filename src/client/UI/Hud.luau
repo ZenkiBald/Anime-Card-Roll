@@ -331,6 +331,26 @@ local function applyHidden()
 	raidPill.Visible = raidWanted and not hidden
 end
 
+-- Where the Auto Roll feed sits: top-right in a fight, else mid-right (higher and shorter on a phone).
+local function placeFeed()
+	if feed == nil or gui == nil then
+		return
+	end
+	if hiddenBy.Battle then
+		feed.AnchorPoint = Vector2.new(1, 0)
+		feed.Position = UDim2.new(1, -12, 0.08, 0)
+		feed.Size = UDim2.fromScale(0.18, 0.36)
+	elseif gui.AbsoluteSize.Y > 0 and gui.AbsoluteSize.Y < 500 then
+		feed.AnchorPoint = Vector2.new(1, 0)
+		feed.Position = UDim2.new(1, -12, 0.27, 0)
+		feed.Size = UDim2.fromScale(0.22, 0.3)
+	else
+		feed.AnchorPoint = Vector2.new(1, 0.5)
+		feed.Position = UDim2.new(1, -12, FEED_Y, 0)
+		feed.Size = UDim2.fromScale(0.22, 0.34)
+	end
+end
+
 export type Handlers = {
 	OnRoll: () -> (),
 	OnQuick: () -> (),
@@ -590,9 +610,10 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	Kit.pressable(luckChip)
 	luckChip.Activated:Connect(handlers.OnOdds)
 	-- Narrow phone screens: shrink the bar to fit between Roblox's top-left buttons and the edge.
+	-- It sits between the left column (Kenji's tracker) and the server list, about 210 px each.
 	local function fitTopBar()
 		local width = gui.AbsoluteSize.X
-		topBar.Fit.Scale = math.clamp((width - 150) / 560, 0.5, 1)
+		topBar.Fit.Scale = math.clamp((width - 420) / 520, 0.5, 1)
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTopBar)
 	fitTopBar()
@@ -734,9 +755,10 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Position = UDim2.new(1, -12, FEED_Y, 0),
 		Size = UDim2.fromScale(0.22, 0.34),
 		BackgroundTransparency = 1,
+		ClipsDescendants = true,
 		Parent = gui,
 	}, {
-		Kit.new("UISizeConstraint", { MinSize = Vector2.new(150, 120), MaxSize = Vector2.new(280, 360) }),
+		Kit.new("UISizeConstraint", { MinSize = Vector2.new(150, 56), MaxSize = Vector2.new(280, 360) }),
 		Kit.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Vertical,
 			VerticalAlignment = Enum.VerticalAlignment.Bottom,
@@ -745,6 +767,11 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 			Padding = UDim.new(0, 4),
 		}),
 	})
+
+	-- Short (phone) screens: the feed sits higher and shorter, under the folded server list and clear of
+	-- the jump / DASH buttons.
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeFeed)
+	placeFeed()
 
 	-- Server announcement banner (top centre, below Roblox's top bar) --------------------------
 	banner = Kit.new("Frame", {
@@ -1282,20 +1309,20 @@ end
 function Hud.SetBattleMode(on: boolean)
 	hiddenBy.Battle = on
 	applyHidden()
-	if on then
-		feed.AnchorPoint = Vector2.new(1, 0)
-		feed.Position = UDim2.new(1, -12, 0.08, 0)
-		feed.Size = UDim2.fromScale(0.18, 0.36)
-	else
-		feed.AnchorPoint = Vector2.new(1, 0.5)
-		feed.Position = UDim2.new(1, -12, FEED_Y, 0)
-		feed.Size = UDim2.fromScale(0.22, 0.34)
-	end
+	placeFeed()
 end
 
 -- The whole HUD off (behind the title screen) or back on.
+local hudVisible, panelOpen = true, false
 function Hud.SetVisible(on: boolean)
-	gui.Enabled = on
+	hudVisible = on
+	gui.Enabled = hudVisible and not panelOpen
+end
+
+-- While a panel is open the HUD steps away entirely, so nothing shows through or over it.
+function Hud.SetPanelOpen(on: boolean)
+	panelOpen = on
+	gui.Enabled = hudVisible and not panelOpen
 end
 
 -- Full card reveals take the whole screen: the dock, menu and top bar step aside.
