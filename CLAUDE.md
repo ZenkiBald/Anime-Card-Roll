@@ -20,7 +20,7 @@ its boss. Town NPCs: Kenji (guide), Hoshi (fusion + pack alchemy), Kenshin (trai
 tower gate and leaderboards. Town services only work beside their NPC (server `NpcRange`, 24 studs); every world sign and NPC plate shows
 within 45 studs only, fades in (HubFx), never draws over the world, and hides with player name tags while a panel,
 fight or reveal is up (`Modal.Changed`, `HubFx.SetWorldLabelsHidden`). TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
-double jump. Twilight lighting (`LightingSetup`), zone music and moods (`ZoneFx`).
+double jump. Lighting: a bright town afternoon (`LightingSetup`); each world has its own theme (`ZoneFx` moods: Ember golden sunset, Frostfang snowy morning, Neon Abyss violet night, Stormspire grey storm with lightning) and zone music.
 
 **Rolling.** The server owns every roll. Each pull picks a card by its `Weight` from the pool (`Cards.Pool`; a boss's
 own card joins after that boss's first Normal clear) and rolls its **border**, which is the tier: Base ("Normal" in

@@ -80,6 +80,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   four unit cards; the Victory panel's pack progress bar and run totals when no pack dropped.
 - [ ] Combat rhythm (2026-10-26): the opening reads as turns (no burst), cards show SKILL in N / SKILL READY, the boss bar
   shows "⚠ MOVE in N", supports lift on their turn, and a strong deck's HP bars still drop (MinHit) so healers heal.
+- [ ] World themes (2026-10-26): town is a bright afternoon again; walking into each world tweens to its own look
+  (Ember golden sunset, Frostfang snowy morning without blown-out snow, Neon Abyss violet night with neon bloom,
+  Stormspire grey storm with lightning) and back to day in town. Re-run `tools/studio/lighting.luau` once and save.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
 
 ## 6. Smoke test on the live game (first hour)

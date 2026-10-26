@@ -911,22 +911,22 @@ function World.Build()
 
 	hub.Parent = workspace
 
-	-- Evening sky, soft fog.
-	Lighting.ClockTime = 18.2
-	Lighting.Brightness = 2
-	Lighting.Ambient = Color3.fromRGB(70, 60, 100)
-	Lighting.OutdoorAmbient = Color3.fromRGB(110, 96, 150)
+	-- Bright afternoon, light haze (the same town day as the client's LightingSetup).
+	Lighting.ClockTime = 14
+	Lighting.Brightness = 3
+	Lighting.Ambient = Color3.fromRGB(90, 90, 100)
+	Lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 150)
 	local atmosphere = Instance.new("Atmosphere")
-	atmosphere.Density = 0.32
-	atmosphere.Color = Color3.fromRGB(150, 120, 200)
-	atmosphere.Decay = Color3.fromRGB(60, 40, 90)
+	atmosphere.Density = 0.25
+	atmosphere.Color = Color3.fromRGB(199, 210, 225)
+	atmosphere.Decay = Color3.fromRGB(106, 130, 160)
 	atmosphere.Glare = 0.2
-	atmosphere.Haze = 1.4
+	atmosphere.Haze = 0.8
 	atmosphere.Parent = Lighting
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.6
-	bloom.Size = 28
-	bloom.Threshold = 1.6
+	bloom.Intensity = 0.4
+	bloom.Size = 24
+	bloom.Threshold = 2.4
 	bloom.Parent = Lighting
 end
 

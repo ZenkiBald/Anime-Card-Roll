@@ -13,7 +13,7 @@ Edit-mode scripts that built the world saved in the place (`workspace.Map`, Terr
 - `scan.luau` - backdoor scanner, pasted straight into the command bar: lists every script outside our Rojo
   folders, flags the ones that load assets by id / run strings / show the fake "Error 501 ... paste this into the
   command bar" screen, and deletes the flagged ones when `DELETE = true`. Never paste code a game screen asks for.
-- `lighting.luau` - sets the place's Lighting to the twilight look and `Technology = Future` (only
+- `lighting.luau` - sets the place's Lighting to the bright town day and `Technology = Future` (only
   settable in Studio; `src/client/LightingSetup.luau` applies the rest on every client). Save after.
 - `sync.luau` - stopgap for when Rojo isn't connected: pulls `src/` from `python -m http.server 34875
   --directory src` into the open place (only the Shared / Server / Client script folders).

@@ -1,7 +1,8 @@
 --!nonstrict
--- Which zone the player is walking in: the music crossfades and the light shifts from the twilight base
--- (ember dusk in Ember Village, cold blue dusk on Frostfang Peaks, violet night in the Neon Abyss, storm
--- dusk with lightning on Stormspire Isle), with sakura petals drifting in town and autumn leaves in Ember Village.
+-- Which zone the player is walking in: the music crossfades and each world takes its own light on top of
+-- the bright town day (golden sunset in Ember Village, a crisp snowy morning on Frostfang Peaks, violet
+-- neon night in the Neon Abyss, a grey storm with lightning on Stormspire Isle), with sakura petals
+-- drifting in town and autumn leaves in Ember Village.
 -- Zones come from ReplicatedStorage.Zones (World publishes them from the map's Zone_ markers);
 -- a place without a map just plays the town music. Lighting changes here are local to this player.
 
@@ -16,30 +17,32 @@ local State = require(script.Parent.State)
 
 local ZoneFx = {}
 
--- Lighting per zone, on top of the twilight base (LightingSetup); anything not listed goes back to the
--- base. All dusk or night: warm ember dusk, cold blue dusk on the peaks (exposure down so snow and
--- Rimeveil don't blow out), violet night in the Abyss, storm dusk.
+-- Lighting per world, on top of the bright town day (LightingSetup); the town has no entry, so walking
+-- back in tweens everything to the base. Each world reads differently at a glance: golden sunset,
+-- snowy morning (exposure down so snow and Rimeveil don't blow out), neon night (bloom up for the
+-- signs), grey storm.
 local MOODS = {
 	EmberVillage = {
-		Lighting = { ClockTime = 18.1, Brightness = 2, OutdoorAmbient = Color3.fromRGB(80, 55, 50) },
-		Atmosphere = { Color = Color3.fromRGB(70, 45, 40), Decay = Color3.fromRGB(40, 20, 18), Density = 0.34, Haze = 1.7 },
-		Grade = { TintColor = Color3.fromRGB(255, 236, 220), Saturation = 0.05 },
+		Lighting = { ClockTime = 17.3, Brightness = 2.6, OutdoorAmbient = Color3.fromRGB(150, 105, 80), Ambient = Color3.fromRGB(90, 60, 45) },
+		Atmosphere = { Color = Color3.fromRGB(230, 160, 110), Decay = Color3.fromRGB(150, 80, 50), Density = 0.3, Haze = 1.4, Glare = 0.6 },
+		Grade = { TintColor = Color3.fromRGB(255, 230, 205), Saturation = 0.18 },
 	},
 	FrostfangPeaks = {
-		Lighting = { ClockTime = 17.9, Brightness = 1.9, OutdoorAmbient = Color3.fromRGB(60, 70, 95), ExposureCompensation = -0.4 },
-		Atmosphere = { Color = Color3.fromRGB(60, 72, 100), Decay = Color3.fromRGB(25, 32, 55), Density = 0.34, Haze = 1.4 },
-		Grade = { TintColor = Color3.fromRGB(230, 240, 255), Saturation = -0.08, Contrast = 0.2 },
+		Lighting = { ClockTime = 10.5, Brightness = 2.6, OutdoorAmbient = Color3.fromRGB(150, 170, 200), Ambient = Color3.fromRGB(100, 115, 140), ExposureCompensation = -0.3 },
+		Atmosphere = { Color = Color3.fromRGB(210, 225, 245), Decay = Color3.fromRGB(150, 175, 210), Density = 0.35, Haze = 1.2 },
+		Grade = { TintColor = Color3.fromRGB(235, 245, 255), Saturation = -0.05, Contrast = 0.1 },
 	},
 	NeonAbyss = {
-		Lighting = { ClockTime = 0.4, Brightness = 1.4, OutdoorAmbient = Color3.fromRGB(50, 35, 80), Ambient = Color3.fromRGB(35, 25, 60) },
-		Atmosphere = { Color = Color3.fromRGB(50, 30, 85), Decay = Color3.fromRGB(20, 10, 40), Density = 0.42, Haze = 2 },
-		Grade = { TintColor = Color3.fromRGB(235, 220, 255), Saturation = 0.1 },
+		Lighting = { ClockTime = 0.4, Brightness = 1.4, OutdoorAmbient = Color3.fromRGB(70, 50, 110), Ambient = Color3.fromRGB(45, 32, 75) },
+		Atmosphere = { Color = Color3.fromRGB(60, 35, 100), Decay = Color3.fromRGB(25, 12, 50), Density = 0.4, Haze = 2, Glare = 0 },
+		Grade = { TintColor = Color3.fromRGB(235, 220, 255), Saturation = 0.15, Contrast = 0.15 },
+		Bloom = { Intensity = 0.8, Threshold = 1.4 },
 	},
-	-- Storm dusk: dim, cold and hazy; lightning (below) does the rest.
+	-- Grey storm: overcast, cold and hazy; lightning (below) does the rest.
 	StormspireIsle = {
-		Lighting = { ClockTime = 17.6, Brightness = 1.6, OutdoorAmbient = Color3.fromRGB(55, 60, 80), ExposureCompensation = 0 },
-		Atmosphere = { Color = Color3.fromRGB(45, 50, 70), Decay = Color3.fromRGB(20, 24, 40), Density = 0.42, Haze = 2.2 },
-		Grade = { TintColor = Color3.fromRGB(215, 225, 255), Saturation = -0.12, Contrast = 0.2 },
+		Lighting = { ClockTime = 15, Brightness = 1.4, OutdoorAmbient = Color3.fromRGB(95, 100, 115), Ambient = Color3.fromRGB(60, 65, 80) },
+		Atmosphere = { Color = Color3.fromRGB(120, 125, 140), Decay = Color3.fromRGB(70, 75, 90), Density = 0.45, Haze = 2.4, Glare = 0 },
+		Grade = { TintColor = Color3.fromRGB(225, 230, 245), Saturation = -0.15, Contrast = 0.15 },
 	},
 }
 
@@ -172,6 +175,7 @@ local function targets()
 		Lighting = Lighting,
 		Atmosphere = Lighting:FindFirstChildOfClass("Atmosphere"),
 		Grade = Lighting:FindFirstChildOfClass("ColorCorrectionEffect"),
+		Bloom = Lighting:FindFirstChildOfClass("BloomEffect"),
 	}
 end
 

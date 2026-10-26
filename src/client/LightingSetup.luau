@@ -1,7 +1,8 @@
 --!nonstrict
--- The game's base light: moody twilight with bloom on neon trims and aura glows, a little contrast and
--- a cold haze. Runs once on each client at start; ZoneFx then shifts it per zone (its moods tween from
--- these values and back). Effects already in the place are reused, not duplicated.
+-- The game's base light: a bright, clear afternoon (the town's look), warm sun, soft blue sky haze and a
+-- light bloom that only catches neon trims and aura glows. Runs once on each client at start; ZoneFx then
+-- gives each world its own theme (its moods tween from these values and back to them in town). Effects
+-- already in the place are reused, not duplicated.
 -- Lighting.Technology can't be set by a game script (Studio only): tools/studio/lighting.luau sets it
 -- to Future in the place file. The pcall below is just in case Roblox ever opens it up.
 
@@ -10,36 +11,37 @@ local Lighting = game:GetService("Lighting")
 local LightingSetup = {}
 
 LightingSetup.Lighting = {
-	TimeOfDay = "18:45:00",
-	Brightness = 1.8,
-	OutdoorAmbient = Color3.fromRGB(45, 50, 75),
-	Ambient = Color3.fromRGB(20, 25, 40),
-	ShadowSoftness = 0.2,
+	TimeOfDay = "14:00:00",
+	Brightness = 3,
+	OutdoorAmbient = Color3.fromRGB(140, 140, 150),
+	Ambient = Color3.fromRGB(90, 90, 100),
+	ExposureCompensation = 0,
+	ShadowSoftness = 0.3,
 	GlobalShadows = true,
-	EnvironmentDiffuseScale = 0.4,
-	EnvironmentSpecularScale = 0.6,
+	EnvironmentDiffuseScale = 1,
+	EnvironmentSpecularScale = 1,
 }
 
 LightingSetup.Grade = {
-	Contrast = 0.18,
-	Saturation = -0.05,
-	TintColor = Color3.fromRGB(245, 240, 255),
+	Contrast = 0.08,
+	Saturation = 0.12,
+	TintColor = Color3.fromRGB(255, 250, 240),
 	Brightness = 0,
 }
 
 LightingSetup.Bloom = {
-	Intensity = 0.65,
+	Intensity = 0.4,
 	Size = 24,
-	Threshold = 1.8,
+	Threshold = 2.4,
 }
 
 LightingSetup.Atmosphere = {
-	Density = 0.32,
-	Offset = 0.25,
-	Color = Color3.fromRGB(30, 35, 55),
-	Decay = Color3.fromRGB(15, 18, 30),
-	Glare = 0.4,
-	Haze = 1.5,
+	Density = 0.25,
+	Offset = 0.1,
+	Color = Color3.fromRGB(199, 210, 225),
+	Decay = Color3.fromRGB(106, 130, 160),
+	Glare = 0.2,
+	Haze = 0.8,
 }
 
 -- The first effect of a class already in Lighting, else a new one.
