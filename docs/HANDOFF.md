@@ -50,7 +50,11 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 
-- 2026-10-27 · Codex · this commit · Finished the approved Support artwork batch. Kept the exact three
+- 2026-10-27 · Codex · this commit · Completed the production prompt archive after the artwork push:
+  generation-plan.json now includes all eight exact prompts, source paths and card ids. No image or code
+  changes. Required checks rerun successfully: type 0 errors, props 5,565 / 0, headless ALL CHECKS PASSED.
+
+- 2026-10-27 · Codex · bb15483 · Finished the approved Support artwork batch. Kept the exact three
   approved previews and generated eight matching illustrations with built-in imagegen; no extra character
   series. Relics / seals / techniques / close-up hands, no complete characters or faces. Cleaned stray borrowed
   symbols from Binding Blood Vow and a tiny signature-like mark from Eight Trigrams Seal via imagegen edits.
