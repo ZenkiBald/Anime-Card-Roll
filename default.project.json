@@ -10,6 +10,9 @@
       "Configs": {
         "$path": "src/configs"
       },
+      "BossKit": {
+        "$path": "assets/models/bosses-20261027/BossKit.rbxm"
+      },
       "Remotes": {
         "$className": "Folder",
         "GetState": { "$className": "RemoteFunction" },

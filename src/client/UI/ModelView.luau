@@ -53,9 +53,20 @@ function ModelView.new(id: string, props: { [string]: any }?, turn: number?, spi
 
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = 32
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, height * 0.62, -height * 2.15), Vector3.new(0, height * 0.5, 0))
 	camera.Parent = viewport
 	viewport.CurrentCamera = camera
+	local _,bounds = model:GetBoundingBox()
+	local function fitCamera()
+		local size = viewport.AbsoluteSize
+		local aspect = if size.Y > 0 and size.X > 0 then size.X / size.Y else 0.72
+		local tangent = math.tan(math.rad(camera.FieldOfView / 2))
+		-- Tails / wings can be wider than the character is tall. Frame both axes plus depth.
+		local distance = math.max(height * 2.15, math.max(bounds.Y, bounds.X / aspect) * 0.56 / tangent + bounds.Z / 2)
+		camera.CFrame = CFrame.lookAt(Vector3.new(0, height * 0.62, -distance), Vector3.new(0, height * 0.5, 0))
+	end
+	fitCamera()
+	local fitConnection = viewport:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCamera)
+	viewport.Destroying:Once(function() fitConnection:Disconnect() end)
 
 	local start = os.clock()
 	local phase = math.random() * 10

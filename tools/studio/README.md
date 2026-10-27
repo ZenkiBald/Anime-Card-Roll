@@ -10,6 +10,12 @@ Edit-mode scripts that built the world saved in the place (`workspace.Map`, Terr
   "ember" | "frost" | "abyss" | "markers" | "all" }`. Re-running a part replaces that zone's folder.
 - `stage.luau` - loads Creator Store models into `workspace.Staging` side by side for picking, and
   deletes every script inside them (free models can carry backdoors).
+- `install-boss-models.luau` - one-time Edit-only installer for the four user-selected boss sources.
+  Sanitizes before parenting, normalizes facing, archives the old kit / sanitized sources in
+  `ServerStorage.BossReplacementBackup_20261027`, and removes the loose originals from Workspace.
+  Already applied on 2026-10-27; do not rerun over that backup. The exported sanitized kit now lives in
+  `assets/models/bosses-20261027/BossKit.rbxm` and syncs through Rojo automatically. The previous kit
+  is archived beside it; see that folder's README / manifest. Full-place backups remain Studio saves.
 - `scan.luau` - backdoor scanner, pasted straight into the command bar: lists every script outside our Rojo
   folders, flags the ones that load assets by id / run strings / show the fake "Error 501 ... paste this into the
   command bar" screen, and deletes the flagged ones when `DELETE = true`. Never paste code a game screen asks for.

@@ -1,0 +1,21 @@
+{
+  "files": {
+    "BossKit.rbxm": {
+      "bytes": 508122,
+      "sha256": "7976d957fb1ffe370401d2545862af0d92aeee3f1fc37403dee1ae80679e31bb"
+    },
+    "PreviousBossKit.rbxm": {
+      "bytes": 160428,
+      "sha256": "315027188166799b1828ee129402ff887f0ef52fbe020a84263dd2d5b576f7be"
+    }
+  },
+  "mapping": {
+    "kurogane": "Naruto Kurama Avatar",
+    "rimeveil": "R6 Golden Frieza Rig",
+    "vex": "Madara Susanoo",
+    "tenrai": "Muzan [R6]"
+  },
+  "scripts": 0,
+  "guis": 0,
+  "remotes": 0
+}

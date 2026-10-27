@@ -46,6 +46,18 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] User-selected boss models (2026-10-27): all four actual ModelView portraits and Arena previews
+  checked with existing guards: Kurama / Frieza / Susanoo / Muzan. Susanoo shell shading corrected;
+  Muzan ground ray ignores the hidden world NPC, feet match terrain within idle bob. One real Kurama
+  Normal fight won in 26.8 s with the owner's strong deck; result / rewards appeared. New and archived
+  BossKit assets contain zero scripts / GUI / remotes. Fresh runtime scans found no fake recovery GUI.
+  Type check 0 errors, props 5,465 / 0 problems, full headless ALL CHECKS PASSED. Kit is now in Git / Rojo;
+  Studio left Edit, nothing published. No combat tuning / names / saves changed.
+- [ ] Review all four bosses in ordinary play, later difficulties / tower, phone and crowded streaming.
+  Neon arena's existing foreground boulder can obscure the third guard; map adjustment remains separate.
+  Cosmetic rigs use the existing arena motions; imported animation scripts were removed. Save the open
+  place to retain sanitized source backups / removal of loose imports; a new full-place backup was not saved.
+
 - [x] Endless tower / elements / bulk packs (2026-10-27): 80-story ~1,600-stud skyline with local cloud
   bank / mist, Torii / cyan runes / doorway vortex; five-story streaming sections, lower skyline Persistent.
   Combined saved map + runtime parts about 12.2k. Four real R15 service rigs build and all four have one

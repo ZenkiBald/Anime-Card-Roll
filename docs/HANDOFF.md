@@ -9,6 +9,14 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- BOSS MODEL REPLACEMENTS COMPLETE (2026-10-27): user's Kurama / Frieza / Susanoo / Muzan models
+  replace kurogane / rimeveil / vex / tenrai respectively. Boss names / ids / combat / rewards / saves
+  retained. Sanitized BossKit now travels through Git / Rojo from assets/models/bosses-20261027;
+  previous kit archived beside it. Four portraits / arena previews checked, plus actual Kurama Normal
+  win and rewards. Required checks pass. Reconnect Rojo / restart Play; user review / phone / later
+  difficulties remain in checklist section 5. Open Studio has sanitized source backups in ServerStorage;
+  save that place to retain those backups / loose-import cleanup (no new full-place copy saved).
+
 - ENDLESS TOWER / ELEMENTS / BULK PACKS COMPLETE (2026-10-27): 80-story ~1,600-stud pagoda skyline,
   tapering every ten stories, local cloud bank / mist hides the top. Torii / cyan runes / portal vortex;
   five-story streaming chunks, lower skyline through clouds stays Persistent. Four R15 service rigs /
@@ -94,6 +102,32 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-27 · Codex · this commit · Replaced four battle / world / portrait boss templates with
+  the user's inserted models: Nine-Tails Fox (Kurama) -> kurogane, Golden Frieza -> rimeveil,
+  Susanoo (Madara) -> vex, Muzan Kibutsuji -> tenrai. No names / ids / stats / rules / saves changed.
+  Edit installer clones before parenting, strips scripts / remotes / GUI / sounds / package links /
+  imported emitters, anchors noninteractive parts and normalizes nested rigs to face -Z. Cosmetic
+  Humanoid evaluation disabled so torso collision cannot return. Susanoo's 33 dark Neon shell parts
+  use shaded blue SmoothPlastic; ModelView fits tails / wings to actual viewport aspect. Arena rays
+  ignore the original world NPC, fixing Muzan floating above the terrain. Old kit / sanitized originals
+  moved to ServerStorage.BossReplacementBackup_20261027; loose old Itachi also archived there.
+  Exported current 508,122-byte BossKit.rbxm and previous 160,428-byte kit, with hashes / manifest /
+  mapping README. New default.project.json BossKit node carries replacements via Git / Rojo;
+  service fallback templates retained. Both exported kits audited: zero scripts / GUI / remotes.
+  No inserted code or recovery command executed. A gallery capture briefly still showed the earlier
+  fake recovery overlay; subsequent fresh server / client source and GUI scans found no matching
+  content and fresh sessions were clear. Do not infer what caused that transient capture.
+  Studio: four real ModelView portraits and four Arena previews with existing guards; a real Kurama
+  Normal battle won in 26.8 s with the owner's strong deck and displayed rewards. Muzan feet within
+  idle bob of terrain; Susanoo armor readable. Existing Neon foreground boulder can hide third guard;
+  map change left for later. Existing sound 203785492 asset-type warnings remain; no new gameplay errors.
+  Checks: luau-lsp 0 errors (four preexisting warnings), props 5,465 names / 0 problems, full bundled
+  headless ALL CHECKS PASSED including battle / tower fixtures. Studio left Edit, final sources / model
+  synced through Rojo, temporary local export helper stopped, HttpEnabled restored false; no publish.
+  Local full-place backup was not saved; the portable model assets are committed, but save the open
+  place to retain source backups / removal of loose imports. Ordinary play / phone / later difficulty /
+  crowded streaming review remains. Unrelated untracked card art and .codex files left untouched.
 
 - 2026-10-27 · Codex · this commit · Applied the user's endless-tower / elements / multi-pack brief
   and selected Gemini advice. TownServices now builds 80 pagoda stories at 20-stud spacing (~1,600),

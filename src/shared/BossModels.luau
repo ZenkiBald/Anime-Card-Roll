@@ -1,6 +1,6 @@
 --!strict
 -- NPC figures, shared so the hub NPCs and the battle screen's 3D boss portrait are the same model:
--- an AI-made mesh from ReplicatedStorage.BossKit when the place has one, otherwise a blocky figure
+-- a sanitized Creator Store model from ReplicatedStorage.BossKit when available, otherwise a blocky figure
 -- built from plain parts.
 -- Models stand on y = 0 and face -Z; their PrimaryPart is an invisible "Root" at the waist.
 
@@ -383,7 +383,7 @@ function BossModels.Height(id: string): number
 	return (if look then look.Scale else 1) * 6
 end
 
--- AI-made figures saved in the place at ReplicatedStorage.BossKit (named by id, not in Rojo) replace
+-- Sanitized figures in the Rojo-managed BossKit asset (named by id) replace
 -- the block figures: scaled to the same height, standing on y = 0 facing -Z, with the same invisible
 -- Root at the waist, so the hub NPCs and the battle view use them the same way.
 local function fromKit(id: string, look: Look): Model?
@@ -395,10 +395,23 @@ local function fromKit(id: string, look: Look): Model?
 	end
 	local model = template:Clone()
 	model.Name = id
+	-- Defense in depth: model assets are visual data, never a way to distribute executable scripts.
+	for _,inst in model:GetDescendants() do
+		if inst:IsA("LuaSourceContainer") or inst:IsA("LayerCollector") or inst:IsA("RemoteEvent")
+			or inst:IsA("RemoteFunction") or inst:IsA("PackageLink") or inst:IsA("Sound")
+			or inst:IsA("ProximityPrompt") or inst:IsA("ClickDetector") then
+			inst:Destroy()
+		elseif inst:IsA("Humanoid") then
+			-- Retain clothing / rig appearance without the character controller restoring torso collisions.
+			inst.EvaluateStateMachine=false
+			inst.DisplayDistanceType=Enum.HumanoidDisplayDistanceType.None
+			inst.BreakJointsOnDeath=false
+		end
+	end
 	-- A rig with a face (a Head with a Decal) is turned so the face looks along the pivot's front:
 	-- inserted characters often come saved facing backwards.
 	local head = model:FindFirstChild("Head", true)
-	if head and head:IsA("BasePart") and head:FindFirstChildWhichIsA("Decal") then
+	if not model:GetAttribute("CanonicalFacing") and head and head:IsA("BasePart") and head:FindFirstChildWhichIsA("Decal") then
 		local facing = head.CFrame.LookVector * Vector3.new(1, 0, 1)
 		if facing.Magnitude > 0.1 then
 			model.PrimaryPart = nil

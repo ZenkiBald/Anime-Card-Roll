@@ -263,6 +263,11 @@ function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Stage
 	ZoneFx.MoodAt(stand.Position)
 
 	local ignore = { made }
+	local hub = Workspace:FindFirstChild("Hub")
+	local world = hub and hub:FindFirstChild("World" .. tostring(boss.World))
+	local npc = world and world:FindFirstChild(boss.Id)
+	-- An imported rig can have collidable torso parts even while hidden for the cinematic.
+	if npc then table.insert(ignore, npc) end
 	local character = Players.LocalPlayer.Character
 	if character then
 		table.insert(ignore, character)

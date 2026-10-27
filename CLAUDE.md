@@ -157,10 +157,14 @@ Hidden auto-climb / retry stays hidden; results do not interrupt exploration. A 
 View action restores character streaming focus while exploring. Supports have no cast tags.
 
 Story retinues now have distinct names / moves / models: Crimson-Eye clan guards in Ember, Frost Court, Void Court
-and Storm Court. Guard ids / roles / effects remain compatible with mixed tower squads. Existing BossKit assets
-are retained: their older 3D appearances do not all match the new card art / names (Ember is still Itachi-like;
-the other three use fantasy models). Retinues follow those current world / model themes; replacing the leaders
-needs a separate art pass. No card or boss names changed.
+and Storm Court. Guard ids / roles / effects remain compatible with mixed tower squads. The Rojo-managed
+`assets/models/bosses-20261027/BossKit.rbxm` supplies the user's selected boss appearances: kurogane uses
+Naruto Kurama Avatar, rimeveil uses R6 Golden Frieza Rig, vex uses Madara Susanoo, and tenrai uses Muzan [R6].
+Existing boss / card names, ids, stats and retinues remain. Imported scripts / remotes / GUI / sounds / emitters
+were removed; clones also strip executable / interactive content. Cosmetic Humanoids retain clothing with
+state evaluation disabled. Templates face -Z; Susanoo's shell uses shaded blue rather than dark Neon.
+ModelView fits tails / wings to viewport width; arena ground rays ignore the world boss NPC. The former kit
+is archived beside the new asset as `PreviousBossKit.rbxm`; the installer and manifest document provenance.
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended Attack rating 25.4k ... 127.7k; fixtures use Base in
 World 1 and Gold later, zero stars and the mastery available from preceding distinct story challenges). Boss wins pay reward rolls (luck / floors by D), Shards,
@@ -308,8 +312,9 @@ The character artwork pass did not change identities. The later character-to-Att
   RewardReveal, Store, Gifts, Tutorial, Stats, Shop, Wheel, Pets, Travel, Settings, PlayerList, Profile, Title, DevPanel,
   Waypoint, Effects, Sfx, Skin, UIArt (uploaded illustrated kit), BorderFx, ModelView).
 - Remotes are declared in `default.project.json` under ReplicatedStorage.Remotes.
+- `assets/models/bosses-20261027/BossKit.rbxm` -> ReplicatedStorage.BossKit (four boss templates and service fallbacks).
 - Not in Rojo (place file only): `workspace.Map` (Town, EmberVillage, FrostfangPeaks, NeonAbyss, StormspireIsle, Markers),
-  Terrain, Lighting, `ServerStorage.MapKit`, `ReplicatedStorage.MountKit`, `ReplicatedStorage.BossKit`.
+  Terrain, Lighting, `ServerStorage.MapKit`, `ReplicatedStorage.MountKit`.
   `tools/studio/*.luau` rebuild or tweak it (see its README).
 
 ## Rules to keep
