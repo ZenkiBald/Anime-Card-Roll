@@ -22,7 +22,7 @@ local Cards = require(Shared.Cards)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Theme = require(script.Parent.UI.Theme)
-local CardTile = require(script.Parent.UI.CardTile)
+local Showcase = require(script.Parent.Showcase)
 
 local Avatars = {}
 
@@ -40,7 +40,7 @@ local function clear(character)
 	local aura = auras[character]
 	if aura then
 		aura.Attachment:Destroy()
-		if aura.Showcase then aura.Showcase:Destroy() end
+		if aura.Showcase then aura.Showcase.Part:Destroy() end
 		auras[character] = nil
 	end
 end
@@ -86,49 +86,9 @@ local function build(character: Model, root: BasePart, element: string, border: 
 		motes.Enabled = false
 		motes.Parent = attachment
 	end
-	-- A real world-space card sits behind the shoulder, never across the avatar's torso.
-	local showcase = nil
-	if cardId and Cards.Get(cardId) then
-		showcase = Instance.new("Part")
-		showcase.Name = "ShowcaseFlexCard"
-		showcase.Size = Vector3.new(1.65, 2.3, 0.08)
-		showcase.Color = color:Lerp(Color3.new(0,0,0), .65)
-		showcase.Material = Enum.Material.SmoothPlastic
-		showcase.CanCollide = false
-		showcase.CanTouch = false
-		showcase.CanQuery = false
-		showcase.CastShadow = false
-		showcase.Massless = true
-		showcase.CFrame = root.CFrame * CFrame.new(2.2, 1.6, 3.0)
-		showcase.Parent = folder
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = root
-		weld.Part1 = showcase
-		weld.Parent = showcase
-		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
-			local surface = Instance.new("SurfaceGui")
-			surface.Name = "ShowcaseArt"
-			surface.Face = face
-			surface.CanvasSize = Vector2.new(264, 368)
-			surface.LightInfluence = 0
-			surface.AlwaysOnTop = false
-			surface.MaxDistance = RANGE
-			surface.Parent = showcase
-			local tile = CardTile.new(cardId, { Owned = true, Border = border })
-			tile.Size = UDim2.fromScale(1,1)
-			tile.Active = false
-			tile.Parent = surface
-		end
-		local origin = Instance.new("Attachment")
-		origin.Name = "ShowcaseParticles"
-		origin.Parent = showcase
-		local shine = sparks:Clone()
-		shine.Name = "CardSparkles"
-		shine.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-		shine.Rate = if Theme.FxLow then 2 else 5
-		shine.Speed = NumberRange.new(.3, .8)
-		shine.Parent = origin
-	end
+	local showcase = if cardId and Cards.Get(cardId) then Showcase.new(root, cardId, border, color, folder) else nil
+	-- The showcase supplies its own stronger light; don't double-light the same avatar.
+	light.Enabled = showcase == nil
 	auras[character] = {
 		Key = `{element}:{border}:{cardId or ""}`,
 		Showcase = showcase,
@@ -216,6 +176,7 @@ end
 local function update(now: number)
 	local camera = Workspace.CurrentCamera
 	local seen = {}
+	local visibleShowcases = {}
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -236,6 +197,15 @@ local function update(now: number)
 			build(character, root, element, border, cardId)
 			aura = auras[character]
 		end
+		if aura.Showcase and camera then
+			local part = aura.Showcase.Part
+			local _, onScreen = camera:WorldToViewportPoint(part.Position)
+			if onScreen then
+				table.insert(visibleShowcases, { Show = aura.Showcase, Distance = if player == Players.LocalPlayer then -1 else (camera.CFrame.Position - part.Position).Magnitude })
+			else
+				Showcase.Quality(aura.Showcase, 0)
+			end
+		end
 		local walking = humanoid.MoveDirection.Magnitude > 0.1 and humanoid.FloorMaterial ~= Enum.Material.Air and humanoid.Sit == false
 		if aura.Motes then
 			aura.Motes.Enabled = walking
@@ -245,6 +215,8 @@ local function update(now: number)
 			footstep(root, humanoid, aura)
 		end
 	end
+	table.sort(visibleShowcases, function(a,b) return a.Distance < b.Distance end)
+	for i, entry in visibleShowcases do Showcase.Quality(entry.Show, if i <= 3 then 1 else .2) end
 	for character in auras do
 		if not seen[character] then
 			clear(character)

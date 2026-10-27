@@ -9,6 +9,17 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- SHOWCASE / ROLL CLEANUP COMPLETE (2026-10-27): large 3.8 x 5.4 tilted shoulder showcase, bright art,
+  three-layer 3D aura / light, stacked border / name / odds billboard. Full rates for local / nearest
+  three visible showcases, reduced elsewhere / LOW; shared UI loop also animates world gradients.
+  `UI/RollCard` clears roll art: top name / element, bottom rarity, gold NEW! only for server-confirmed
+  first card / Index border. Quick, full and reward rolls use it; collection / inspector layouts kept.
+  Studio checks passed; phone / crowded-server / night / moving / respawn review remains. Rojo socket
+  disconnected during testing; final changed reveal scripts were synced directly, restart / reconnect
+  Rojo next time. Studio left Edit; nothing published.
+- Observed in an existing full-reveal tooltip: Demon Progenitor's Demon Rebirth says "regenerate 0% HP".
+  This pass changes presentation only; investigate the authored effect / CardInfo token separately.
+
 - UI POLISH COMPLETE (2026-10-27): mini card names / rarity now have separate rows over a bottom vignette;
   left HUD buttons have distinct saturated colors and larger labels. Quick-roll popups sit in a two-card
   2D tray on the right. EQUIP AS AVATAR also shows a double-sided flex card behind the shoulder, with
@@ -61,6 +72,28 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-27 · Codex · this commit · Implemented the user's Gemini-inspired visual direction with
+  project-native helpers. Added client/Showcase: 3.8 x 5.4 x 0.12 card at (3.2, 2.6, 2.8), -15 yaw /
+  6 roll; both faces LightInfluence 0 / Brightness 2. Core / wisps / themed particles at 18 / 35 / 25,
+  brightness-3 range-14 shadowless light. Billboard 220 x 75 at +3.8 with tier / name / odds, range 90;
+  Rainbow / Secret animated tag. Avatar update prioritizes local / nearest three visible full auras,
+  20% elsewhere, offscreen pause, LOW at 25% and no showcase light; old body light doesn't double up.
+  Shared VectorStyle loop now culls / animates world GUI gradients too; no per-label render connection.
+  Added RollCard for quick / full / reward reveals and showcase faces: art only between top name /
+  element and bottom rarity vignette. Removed DUPE / COPY / tier pills and full-roll border ribbon;
+  NEW! only for server Outcome New or NewBorder true (the Index tracks borders). Rewards reserve
+  gutters for NEW and first-clear footer. SQUAD / profile / inspector CardView / CardTile unchanged.
+  Checks: type 0 errors (existing warnings), props 5,468 / 0, headless ALL CHECKS PASSED. Studio:
+  showcase size / both-face brightness / three rates / label animation checked; LOW total 19.5/s,
+  light off, unequip cleanup passed. Copy / new card / first border flags asserted; copy Gold full
+  reveal visibly clean; 12-card two-row reward preview had exactly two NEW badges, no DUPE / role
+  text and separate first-clear footer. Reward preview stubbed client state writes only during its
+  synchronous setup, restored immediately; no roll / save remote invoked. Temporary previews removed
+  by stopping Play. Initial art-load delay resolved; final runtime has only the existing sound warning.
+  Rojo socket disconnected mid-pass; final modified reveal modules synced directly for the last Play.
+  No publish, map, card identities, stats, server rules or save changes. Phone / multiplayer crowd /
+  night / movement / respawn remain for user review. Unrelated .codex and five root art PNGs untouched.
 
 - 2026-10-27 · Codex · this commit · Completed the four requested visual fixes. CardTile bottom 38%
   vignette, centered name ending at 82%, gold / cyan rarity at 96%, small-label minimum 6 px prevent

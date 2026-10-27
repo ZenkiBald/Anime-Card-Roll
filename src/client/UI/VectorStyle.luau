@@ -56,6 +56,14 @@ local function visible(target)
 			if not node.Enabled then return false end
 			local size = node.AbsoluteSize
 			return high.X > math.max(0, low.X) and high.Y > math.max(0, low.Y) and low.X < size.X and low.Y < size.Y
+		elseif node:IsA("BillboardGui") or node:IsA("SurfaceGui") then
+			if not node.Enabled then return false end
+			local adornee = node.Adornee or node.Parent
+			local camera = workspace.CurrentCamera
+			if not camera or not adornee or not adornee:IsA("BasePart") then return false end
+			local distance = (camera.CFrame.Position - adornee.Position).Magnitude
+			local _, onScreen = camera:WorldToViewportPoint(adornee.Position)
+			return onScreen and (node.MaxDistance <= 0 or distance <= node.MaxDistance)
 		end
 		node = node.Parent
 	end

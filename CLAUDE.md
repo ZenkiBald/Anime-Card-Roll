@@ -76,7 +76,13 @@ Each server request validates / charges at most `Traits.AutoMax` rolls; Stop fin
 shows cumulative rolls and spending for the run. A miss keeps the old trait. Every action is rate-limited. The Index lists
 every card by best border with completion rewards per border. A card can be worn as your avatar (element aura; Rainbow
 fire footsteps, Secret celestial motes). That same equip choice adds a double-sided Showcase Flex Card
-at HumanoidRootPart-local (2.2, 1.6, 3.0), behind the shoulder, with low-rate 3D sparkles.
+measuring 3.8 x 5.4 x 0.12 studs at HumanoidRootPart-local (3.2, 2.6, 2.8), tilted -15 degrees in yaw /
+6 degrees in roll, behind / beside the shoulder. Both art faces have LightInfluence 0 / Brightness 2.
+`client/Showcase` supplies three element / border-colored 3D layers (core glow 18/s, rising wisps 35/s,
+theme particles 25/s) and a shadowless light (brightness 3, range 14). Only the local player / nearest
+three visible showcases get full rates and lights; others get 20% rates, offscreen ones pause. LOW
+effects uses 25% of those rates and no showcase light. A 220 x 75 billboard above the card shows border /
+name / "1 in" rarity, visible to 90 studs; Rainbow / Secret tags animate via the shared gradient loop.
 It uses the existing server-owned AvatarCard / AvatarBorder attributes; no new save field. Client visuals
 are culled at 120 studs and cleaned on unequip / respawn / leaving range.
 
@@ -190,7 +196,12 @@ band. The server list starts folded (tap to expand). RECENT PULLS shows up to th
 Surge still charges spirit blue, shivers void purple for the last four rolls, and seals gold (UNLEASH SURGE!).
 AUTO / QUICK light their bezel when active. Short screens keep the earlier scaling / compact layout, with Next Goal
 over the roll console. Quick-roll cards use a bounded two-card 2D tray on the right, clear of the avatar's torso
-and bottom controls. Automatic roll reveals stay muted while panels or fights are open; away rewards use one compact toast.
+and bottom controls. `UI/RollCard` gives quick / full / reward reveals an art-first face: FredokaOne name
+top-left, element top-right, plain rarity at the bottom over a short vignette. No type line, rarity pill,
+DUPE / COPY badge or border ribbon covers the art. Only a new card or newly discovered Index border
+(server Outcome / NewBorder flags) gets a gold NEW! badge above it. Rewards reserve label gutters;
+first-clear bonuses retain their own footer ribbon. Collection / inspector layouts stay separate.
+Automatic roll reveals stay muted while panels or fights are open; away rewards use one compact toast.
 
 Panels (`Modal`) use navy gradients, glossy purple headers and rounded selected tabs.
 On phones, `Modal.FitScale` lays out the panel at desktop size and scales it down (~0.6 sideways); turn
@@ -204,7 +215,8 @@ draw labels above their background gradient so they remain visible.
 
 `UITheme.BorderTiers` still identifies border tiers. Gold, Rainbow and Secret receive white 2.5 px strokes
 with rotating multi-stop gradients. One shared RenderStepped loop rotates visible borders, skips hidden /
-clipped cards and disconnects when its last gradient is destroyed. Decorations live in a Folder to keep
+clipped cards, culls world-space SurfaceGui / BillboardGui gradients by distance / camera view, and
+disconnects when its last gradient is destroyed. Decorations live in a Folder to keep
 them out of grid / list layouts. TextButton labels are mirrored above their fill so gradients cannot tint
 or cover white text; existing text changes / selection strokes continue to work.
 Tiles show art, a plain ATTACK / SUPPORT label, element, name, xN, FUSE! at 100 copies and the

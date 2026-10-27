@@ -11,19 +11,11 @@ local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Effects = require(script.Parent.Effects)
 local CardView = require(script.Parent.CardView)
+local RollCard = require(script.Parent.RollCard)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
 
 local RewardReveal = {}
-
-local function badgeText(result): string
-	if result.Outcome == "New" then
-		return "NEW"
-	elseif result.Outcome == "Star" then
-		return `★{result.Stars}`
-	end
-	return "DUPE"
-end
 
 -- Cards keep a 0.72 shape by default; the grid cell already has that shape, so dropping the
 -- constraint lets the flip squash the card sideways instead of shrinking it.
@@ -34,33 +26,17 @@ function RewardReveal.Unlock(card: Frame)
 	end
 end
 
--- NEW / ★ / Shards badge under a flipped card, and a ribbon on the first-clear bonus card.
+-- Only Index discoveries get a NEW! badge; first-clear rewards keep a separate footer ribbon.
 function RewardReveal.Badges(slot, result)
-	local badge = Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 1),
-		Size = UDim2.fromScale(0.78, 0.15),
-		BackgroundColor3 = if result.Outcome == "New" then Theme.Color.Gold else Theme.Color.PanelLight,
-		ZIndex = 20,
-		Parent = slot.Slot,
-	}, { Kit.corner(UDim.new(0.5, 0)) })
-	Kit.label({
-		Text = badgeText(result),
-		Font = Theme.Font.Heavy,
-		TextColor3 = if result.Outcome == "New" then Color3.fromRGB(40, 24, 0) else Theme.Color.Text,
-		Size = UDim2.fromScale(0.9, 0.8),
-		Position = UDim2.fromScale(0.05, 0.1),
-		ZIndex = 21,
-		Parent = badge,
-	}, 16)
+	if RollCard.IsNew(result) then RollCard.NewBadge(slot.Holder) end
 	if result.Bonus then
 		local ribbon = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0),
+			Position = UDim2.fromScale(0.5, 1.06),
 			Size = UDim2.fromScale(1.05, 0.14),
 			BackgroundColor3 = Theme.Color.Roll,
 			ZIndex = 20,
-			Parent = slot.Slot,
+			Parent = slot.Holder,
 		}, { Kit.corner(UDim.new(0.5, 0)) })
 		Kit.label({
 			Text = "FIRST CLEAR",
@@ -114,9 +90,10 @@ function RewardReveal.Play(parent: Frame, rewards, onDone: (() -> ())?)
 		local gap = 8
 		local cellW = math.floor((w - gap * (columns - 1)) / math.max(1, columns))
 		local cellH = math.floor((h - gap * (rows - 1)) / math.max(1, rows))
-		cellW = math.min(cellW, math.floor(cellH * 0.72), 130)
+		-- Reserve space above / below the art for NEW and first-clear labels, even in two rows.
+		cellW = math.min(cellW, math.floor(cellH * 0.72 * 0.78), 130)
 		grid.CellPadding = UDim2.fromOffset(gap, gap)
-		grid.CellSize = UDim2.fromOffset(cellW, math.floor(cellW / 0.72))
+		grid.CellSize = UDim2.fromOffset(cellW, math.floor(cellW / 0.72 / 0.78))
 	end
 	area:GetPropertyChangedSignal("AbsoluteSize"):Connect(size)
 	task.defer(size)
@@ -134,7 +111,7 @@ function RewardReveal.Play(parent: Frame, rewards, onDone: (() -> ())?)
 			Name = "Holder",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(1, 1),
+			Size = UDim2.fromScale(1, 0.78),
 			BackgroundTransparency = 1,
 			Parent = slot,
 		})
@@ -174,11 +151,11 @@ function RewardReveal.Play(parent: Frame, rewards, onDone: (() -> ())?)
 			local idx = tier.Index
 			if skipped then
 				slot.Back:Destroy()
-				local front = CardView.new(result.CardId, { Owned = true, Stars = result.Stars, Compact = true, Border = result.Border })
+				local front = RollCard.new(result.CardId, result.Border)
 				RewardReveal.Unlock(front)
 				front.Parent = slot.Holder
 				slot.Scale.Scale = 1
-				slot.Holder.Size = UDim2.fromScale(1, 1)
+				slot.Holder.Size = UDim2.fromScale(1, 0.78)
 				RewardReveal.Badges(slot, result)
 				continue
 			end
@@ -191,12 +168,12 @@ function RewardReveal.Play(parent: Frame, rewards, onDone: (() -> ())?)
 				Effects.Pulse(slot.Scale, 1, 0.3 + (idx - 4) * 0.08, 0.12)
 			end
 			-- Flip: squash to nothing, swap faces, spring back.
-			Kit.tween(slot.Holder, 0.12, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Wait()
+			Kit.tween(slot.Holder, 0.12, { Size = UDim2.fromScale(0, 0.78) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Wait()
 			slot.Back:Destroy()
-			local front = CardView.new(result.CardId, { Owned = true, Stars = result.Stars, Compact = true, Border = result.Border })
+			local front = RollCard.new(result.CardId, result.Border)
 			RewardReveal.Unlock(front)
 			front.Parent = slot.Holder
-			Kit.tween(slot.Holder, 0.2, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
+			Kit.tween(slot.Holder, 0.2, { Size = UDim2.fromScale(1, 0.78) }, Enum.EasingStyle.Back)
 			Sfx.Play("Flip", 0.9 + idx * 0.06)
 			Sfx.Sting(tier.Sting, true)
 			if result.Border and result.Border ~= "Normal" then

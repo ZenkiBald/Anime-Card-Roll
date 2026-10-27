@@ -20,6 +20,7 @@ local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Effects = require(script.Parent.Effects)
 local CardView = require(script.Parent.CardView)
+local RollCard = require(script.Parent.RollCard)
 local Abilities = require(script.Parent.Abilities)
 local Sfx = require(script.Parent.Sfx)
 
@@ -46,7 +47,7 @@ local function outcomeText(result): string
 	elseif result.Outcome == "Star" then
 		text = `Copy bonus increased: +{result.Stars * 5}% stats`
 	else
-		text = "Duplicate"
+		text = ""
 	end
 	-- A foil found for the first time, and an Awakening node this pull opened.
 	if result.NewFoil and result.Foil and result.Foil ~= "standard" then
@@ -246,46 +247,6 @@ local function unlock(card: Frame)
 	end
 end
 
--- The slanted red ribbon that slams onto the card's corner for a special border: "NEW RAINBOW!".
-local function borderRibbon(holder: Instance, borderId: string, isNew: boolean)
-	local border = Borders.Get(borderId)
-	local ribbon = Kit.new("Frame", {
-		Name = "BorderRibbon",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.78, 0.04),
-		Size = UDim2.fromScale(0.95, 0.13),
-		Rotation = 11,
-		BackgroundColor3 = Color3.fromRGB(232, 36, 56),
-		ZIndex = 40,
-		Parent = holder,
-	}, {
-		Kit.corner(UDim.new(0.25, 0)),
-		Kit.stroke(Color3.fromRGB(40, 6, 16), 4, 0),
-	})
-	-- A strip of the border's own colours along the ribbon's bottom edge.
-	Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 0.96),
-		Size = UDim2.fromScale(0.92, 0.16),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		ZIndex = 41,
-		Parent = ribbon,
-	}, { Kit.corner(UDim.new(1, 0)), Kit.gradient(border.Gradient, 0) })
-	local label = Kit.label({
-		Text = if isNew then `NEW {string.upper(border.Name)}!` else `{string.upper(border.Name)}!`,
-		Font = Theme.Font.Display,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.44),
-		Size = UDim2.fromScale(0.92, 0.72),
-		ZIndex = 42,
-		Parent = ribbon,
-	}, 60)
-	Kit.textStroke(Color3.fromRGB(40, 6, 16), 3, 0).Parent = label
-	local scale = Kit.new("UIScale", { Scale = 2.4, Parent = ribbon })
-	Kit.tween(scale, 0.28, { Scale = 1 }, Enum.EasingStyle.Back)
-	return ribbon
-end
-
 -- Border sting on top of the rarity's: brighter and bigger for rarer borders.
 local function borderSting(borderId: string)
 	if borderId == "Gold" then
@@ -457,14 +418,7 @@ local function playFull(result)
 		closeBars()
 	end
 	back:Destroy()
-	local front = CardView.new(card.Id, {
-		Owned = true,
-		Stars = result.Stars,
-		Animate = true,
-		Border = borderId,
-		Trait = result.CardTrait,
-		Foil = Foils.Best(result.Foils),
-	})
+	local front = RollCard.new(card.Id, borderId, RollCard.IsNew(result))
 	unlock(front)
 	front.Parent = flip
 	Kit.tween(flip, 0.16, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
@@ -474,7 +428,6 @@ local function playFull(result)
 		borderSting(borderId)
 		task.delay(0.22, function()
 			if holder.Parent then
-				borderRibbon(holder, borderId, result.NewBorder ~= false)
 				Effects.Sparks(stage, Borders.Get(borderId).Color, if borderId == "Gold" then 16 else 28, 0.9)
 			end
 		end)
@@ -699,37 +652,10 @@ function Reveal.Quick(result)
 		Parent = toastArea,
 	}, { Kit.aspect(0.72, Enum.DominantAxis.Height) })
 	local scale = Kit.new("UIScale", { Scale = 0, Parent = slot })
-	local view = CardView.new(card.Id, { Owned = true, Stars = result.Stars, Compact = true, Border = borderId })
+	local view = RollCard.new(card.Id, borderId, RollCard.IsNew(result))
 	view.Parent = slot
 
-	local badgeText = if borderId ~= "Normal"
-		then `{string.upper(borderId)}!`
-		elseif result.Outcome == "New" then "NEW"
-		elseif result.Outcome == "Star" then `COPY +{result.Stars * 5}%`
-		else "DUPE"
-	local badge = Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0),
-		Size = UDim2.fromScale(0.7, 0.16),
-		BackgroundColor3 = if borderId ~= "Normal"
-			then Borders.Get(borderId).Color
-			elseif result.Outcome == "New" then Theme.Color.Gold
-			else Theme.Color.PanelLight,
-		ZIndex = 20,
-		Parent = slot,
-	}, { Kit.corner(UDim.new(0.5, 0)) })
-	if borderId ~= "Normal" then
-		borderSting(borderId)
-	end
-	Kit.label({
-		Text = badgeText,
-		Font = Theme.Font.Heavy,
-		TextColor3 = if result.Outcome == "New" or borderId ~= "Normal" then Color3.fromRGB(40, 24, 0) else Theme.Color.Text,
-		Size = UDim2.fromScale(0.9, 0.8),
-		Position = UDim2.fromScale(0.05, 0.1),
-		ZIndex = 21,
-		Parent = badge,
-	}, 18)
+	if borderId ~= "Normal" then borderSting(borderId) end
 
 	Kit.tween(scale, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
 	Sfx.Play("Flip", 1.1 + math.random() * 0.2)

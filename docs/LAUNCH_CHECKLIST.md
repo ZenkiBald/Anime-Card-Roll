@@ -46,6 +46,16 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Showcase / roll polish (2026-10-27): enlarged tilted card clears the back better; both faces glow,
+  three emitters run at 18 / 35 / 25 with a brightness-3 light, tier / name / odds billboard displays,
+  animated gradient rotates. LOW total rate is 19.5/s with no showcase light; unequip removes the part.
+  Copy / New / first-border badge flags checked; clean quick / full Gold roll and 12-card reward preview
+  render with no role line / rarity pill / DUPE, two discovery badges and a first-clear footer.
+- [ ] Review showcase aura on a real phone / crowded server, night lighting, large accessories, turning
+  and respawn. Nearest-three light / rate budget is implemented but not multiplayer stress-tested.
+  Reconnect Rojo: its socket disconnected during the pass; final changed reveal sources were synced
+  directly to the open Studio place for verification. Studio left Edit; nothing published.
+
 - [x] UI polish (2026-10-27): 17 BAG illustrations loaded visibly in the normal grid / detail;
   colored HUD menu checked. SQUAD text rows separated; MY PROFILE's 14 mini tiles have no name / rarity
   rectangle overlap. Quick rolls appear on the right; flex card is at root-local (2.2, 1.6, 3.0), with
