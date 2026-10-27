@@ -803,9 +803,7 @@ local function makeTile(unit, order: number)
 	local strokeGradient = Kit.gradient(tier.Gradient, 45)
 	strokeGradient.Parent = stroke
 	stroke.Parent = button
-	if borderId == "Secret" then
-		Effects.Spin(strokeGradient, 90)
-	end
+	if borderId ~= "Normal" then Kit.rareBorder(button, borderId, tier.Gradient, tier.Color) end
 	local scale = Kit.new("UIScale", { Scale = 1, Parent = button })
 
 	local portrait = Kit.new("Frame", {

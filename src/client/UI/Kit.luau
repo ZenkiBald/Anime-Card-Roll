@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.Theme)
 local Skin = require(script.Parent.Skin)
 local Sfx = require(script.Parent.Sfx)
+local VectorStyle = require(script.Parent.VectorStyle)
 
 local Kit = {}
 
@@ -27,18 +28,18 @@ function Kit.new(className: string, props: { [string]: any }?, children: { Insta
 			child.Parent = inst
 		end
 	end
+	VectorStyle.Auto(inst)
 	if parent then
 		inst.Parent = parent
 	end
 	return inst
 end
 
--- Sharp 5 px corners everywhere (Theme.Corner), or a smaller offset when one is asked for. A full-round
+-- Rounded 8–14 px surfaces. A full-round
 -- radius (scale 1) stays round only on square-ish things (dots, badges, round icons); on a long bar or
 -- pill it turns sharp too.
 function Kit.corner(radius: UDim?): UICorner
-	local small = radius ~= nil and radius.Scale == 0 and radius.Offset <= 6 -- a sharper corner asked for
-	local corner = Kit.new("UICorner", { CornerRadius = if small then radius else Theme.Corner })
+	local corner = Kit.new("UICorner", { CornerRadius = if radius ~= nil and radius.Scale == 0 then UDim.new(0, math.clamp(radius.Offset, 8, 14)) else Theme.Corner })
 	if radius ~= nil and radius.Scale >= 1 then
 		local sizeConnection: RBXScriptConnection? = nil
 		local function fit()
@@ -64,13 +65,12 @@ function Kit.corner(radius: UDim?): UICorner
 	return corner
 end
 
--- Thin edges: anything up to 2 px draws at Theme.Stroke (1.2); heavier (an active or rare highlight)
--- at 2. The colour is the caller's: slate for plain frames, neon for rare / active ones.
+-- Preserve requested thickness: glossy outlines and animated rare rims use real 2.5 px strokes.
 function Kit.stroke(color: Color3, thickness: number?, transparency: number?): UIStroke
 	local asked = thickness or 2
 	return Kit.new("UIStroke", {
 		Color = color,
-		Thickness = if asked <= 2 then Theme.Stroke else 2,
+		Thickness = asked,
 		Transparency = transparency or 0,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
@@ -79,10 +79,10 @@ end
 -- Outline around the letters of a TextLabel (not a box around it). It fades with the text, so a
 -- hint tweened to TextTransparency 1 doesn't leave its outline behind as ghost letters.
 function Kit.textStroke(color: Color3, thickness: number?, transparency: number?): UIStroke
-	local base = math.max(transparency or 0, 0.55)
+	local base = 0
 	local stroke = Kit.new("UIStroke", {
-		Color = color,
-		Thickness = math.min(thickness or 1.5, 1),
+		Color = Color3.fromRGB(15, 15, 20),
+		Thickness = 2.5,
 		Transparency = base,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 	})
@@ -94,6 +94,9 @@ function Kit.textStroke(color: Color3, thickness: number?, transparency: number?
 		end
 		local label = stroke.Parent
 		if label and (label:IsA("TextLabel") or label:IsA("TextButton") or label:IsA("TextBox")) then
+			for _, other in label:GetChildren() do
+				if other ~= stroke and other:IsA("UIStroke") and other.ApplyStrokeMode == Enum.ApplyStrokeMode.Contextual then other:Destroy() end
+			end
 			local function follow()
 				stroke.Transparency = base + (1 - base) * label.TextTransparency
 			end
@@ -111,6 +114,9 @@ end
 function Kit.twoTone(top: Color3, bottom: Color3): ColorSequence
 	return ColorSequence.new(top, bottom)
 end
+
+Kit.surface = VectorStyle.Surface
+Kit.rareBorder = VectorStyle.Border
 
 function Kit.padding(px: number): UIPadding
 	local u = UDim.new(0, px)
@@ -226,11 +232,7 @@ function Kit.pressable(button: GuiButton)
 	button.MouseLeave:Connect(release)
 end
 
--- Standard panel button with a label: dark metallic body (a bevel: lighter top edge, darker base) with
--- neon trim and a glowing base line in `color`. `deep` tints the body.
-local METAL_TOP = Color3.fromRGB(34, 40, 58)
-local METAL_BOTTOM = Color3.fromRGB(12, 15, 23)
-
+-- Shared glossy action button; `color` and `deep` define its vertical fill.
 function Kit.button(text: string, color: Color3, deep: Color3, props: { [string]: any }?): TextButton
 	local base = {
 		AutoButtonColor = false,
@@ -242,36 +244,8 @@ function Kit.button(text: string, color: Color3, deep: Color3, props: { [string]
 			base[key] = value
 		end
 	end
-	local button = Kit.new("TextButton", base, {
-		Kit.corner(),
-		Kit.gradient(Kit.twoTone(METAL_TOP:Lerp(deep, 0.35), METAL_BOTTOM:Lerp(deep, 0.12)), 90),
-		Kit.stroke(color, 1.2, 0.05),
-	})
-	-- Bevel: a faint light line along the top edge, and the neon glow line along the base.
-	Kit.new("Frame", {
-		Name = "Gloss",
-		Position = UDim2.new(0, 3, 0, 1),
-		Size = UDim2.new(1, -6, 0, 1),
-		BorderSizePixel = 0,
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.82,
-		Parent = button,
-	})
-	Kit.new("Frame", {
-		Name = "Trim",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -1),
-		Size = UDim2.new(1, -10, 0, 2),
-		BorderSizePixel = 0,
-		BackgroundColor3 = color,
-		BackgroundTransparency = 0.15,
-		Parent = button,
-	}, {
-		Kit.new("UIGradient", {
-			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.8), NumberSequenceKeypoint.new(0.5, 0), NumberSequenceKeypoint.new(1, 0.8) }),
-		}),
-	})
-	Skin.Apply(button, Skin.ButtonFor(color)) -- uploaded button art, when there is some
+	local button = Kit.new("TextButton", base, { Kit.corner() })
+	VectorStyle.Surface(button, color, deep)
 	local label = Kit.label({
 		Name = "Label",
 		Text = string.upper(text),
@@ -283,6 +257,7 @@ function Kit.button(text: string, color: Color3, deep: Color3, props: { [string]
 		Parent = button,
 	}, 20)
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.5).Parent = label
+	VectorStyle.Surface(button, color, deep)
 	Kit.pressable(button)
 	return button
 end
@@ -296,9 +271,7 @@ function Kit.dim(button: GuiObject, dimmed: boolean)
 	end
 end
 
--- Tile for inside panels (gift boxes, result stats, rows): slate glass a step above the panel, a thin
--- edge (pass a neon `edge` for rare / active ones) and a hairline of light along the top. `edge` recolours the outline; `className` "TextButton" makes the
--- whole tile tappable (with the usual press bounce).
+-- Glossy tile for gifts, results and rows. TextButton tiles retain press feedback.
 function Kit.tile(props: { [string]: any }, edge: Color3?, className: string?): any
 	local base = { BackgroundColor3 = Color3.new(1, 1, 1) }
 	if className == "TextButton" then
@@ -311,30 +284,12 @@ function Kit.tile(props: { [string]: any }, edge: Color3?, className: string?): 
 	if base.BackgroundTransparency == nil then
 		base.BackgroundTransparency = Theme.Glass.Frame
 	end
-	local frame = Kit.new(className or "Frame", base, {
-		Kit.corner(),
-		Kit.gradient(ColorSequence.new(Theme.Color.TileTop, Theme.Color.TileBottom), 90),
-		Kit.stroke(edge or Theme.Color.TileEdge, 1.2, 0.1),
-	})
-	local gloss = Kit.new("Frame", {
-		Name = "Gloss",
-		Position = UDim2.new(0, 4, 0, 1),
-		Size = UDim2.new(1, -8, 0, 1),
-		BorderSizePixel = 0,
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.88,
-		Parent = frame,
-	})
-	-- A list or grid layout would pull the gloss line in as its first item (a stray line under the top
-	-- edge, e.g. the quest rows), so it goes when one is added.
-	frame.ChildAdded:Connect(function(child)
-		if child:IsA("UIGridStyleLayout") and gloss.Parent then
-			gloss:Destroy()
-		end
-	end)
+	-- Screens such as Wheel recolour this direct stroke for selection feedback.
+	local frame = Kit.new(className or "Frame", base, { Kit.corner(), Kit.stroke(edge or Theme.Color.TileEdge, 2.5, 0) })
 	if className == "TextButton" then
 		Kit.pressable(frame)
 	end
+	VectorStyle.Surface(frame, edge or Theme.Color.TileTop, Theme.Color.TileBottom)
 	return frame
 end
 

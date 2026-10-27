@@ -170,10 +170,13 @@ tags, three town leaderboards.
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches
 odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`). Ids are 0 (placeholders) until launch.
 
-**Look.** Character artwork leads the UI. Clean dark panels, plain text navigation, restrained borders and
-simple element / currency markers replace the ornate image kit. `UIArt.Enabled = false` disables the old panel,
+**Look.** Character artwork sits in glossy simulator-style vector controls. `UI/VectorStyle` supplies
+8–14 px rounded surfaces, saturated vertical gradients, black 2.5 px outer edges and inset white
+1.5 px bevels at 0.55 transparency. Headers / buttons have a white top-45% gloss at 0.88 transparency.
+FredokaOne labels and LuckiestGuy titles use white text with black 2.5 px outlines; body copy stays Gotham.
+`UIArt.Enabled = false` disables the old panel,
 summon-button and icon atlases without deleting them; `Skin` keeps the existing code-native controls and frames.
-`src/configs/UITheme.luau` still feeds Theme, with Gotham text and element / border colours where meaningful.
+`src/configs/UITheme.luau` feeds Theme with navy / lilac surfaces and element / border colours where meaningful.
 The earlier image kit remains archived under `art/ui/occult/` for reference.
 
 The HUD has one vertical text menu, an opaque currency group, a quiet Kenji tracker / claim seal,
@@ -183,8 +186,8 @@ Surge still charges spirit blue, shivers void purple for the last four rolls, an
 AUTO / QUICK light their bezel when active. Short screens keep the earlier scaling / compact layout, with Next Goal
 over the roll console. Automatic roll reveals stay muted while panels or fights are open; away rewards use one compact toast.
 
-Panels (`Modal`) use clean dark fills, plain headings with a fine rule and vermilion active-tab
-underlines. On phones, `Modal.FitScale` lays out the panel at desktop size and scales it down (~0.6 sideways); turn
+Panels (`Modal`) use navy gradients, glossy purple headers and rounded selected tabs.
+On phones, `Modal.FitScale` lays out the panel at desktop size and scales it down (~0.6 sideways); turn
 measured sizes back into offsets with `Kit.logicalSize`. The HUD, server list and quick pops hide behind panels.
 Search / dropdowns and formation trays are quiet sunken wells. SQUAD has separate ATTACK / SUPPORT tabs above CARD VAULT, without an All-type tab. Clicking a formation slot
 selects its matching vault tab. Background rolling updates cached tiles in place; sorting / inserting tiles waits
@@ -193,8 +196,12 @@ automatic reveals. The deck screen retains spirit-blue Slot Links
 (gold for bonds), its Cost Challenge meter and synergy / bond tags, with a vermilion AUTO-BUILD. Border-filter chips
 draw labels above their background gradient so they remain visible.
 
-`UITheme.BorderTiers` still frames cards: bronze 1 px, gold leaf 2 px, prismatic 2.5 px, void 3 px; the border is
-the tier. Tiles show art, a plain ATTACK / SUPPORT label, element, name, xN, FUSE! at 100 copies and the
+`UITheme.BorderTiers` still identifies border tiers. Gold, Rainbow and Secret receive white 2.5 px strokes
+with rotating multi-stop gradients. One shared RenderStepped loop rotates visible borders, skips hidden /
+clipped cards and disconnects when its last gradient is destroyed. Decorations live in a Folder to keep
+them out of grid / list layouts. TextButton labels are mirrored above their fill so gradients cannot tint
+or cover white text; existing text changes / selection strokes continue to work.
+Tiles show art, a plain ATTACK / SUPPORT label, element, name, xN, FUSE! at 100 copies and the
 rarity number, with no combat stats. Names wrap / scale 8-14; stats live in the inspector / tooltip. Vault tiles are
 larger; the phone inspector collapses until selection; deck thumbnails omit duplicate tiny name / rarity labels.
 DECK explains the two card types and numbered pairs. Attack slots show damage / HP; Support slots show their actual

@@ -88,56 +88,11 @@ local function rollButtonFace(button: TextButton, title: string, sub: string, co
 	button.AutoButtonColor = false
 	button.BackgroundColor3 = Color3.new(1, 1, 1)
 	button.Text = ""
-	Kit.corner(UDim.new(0, 4)).Parent = button
-	if seal then
-		-- A vermilion wax seal: warm wax face, a 2 px hot rim.
-		Kit.gradient(ColorSequence.new(UITheme.Colors.VermilionHover, UITheme.Colors.VermilionWax:Lerp(UITheme.Colors.VermilionDeep, 0.45)), 90).Parent = button
-		local rim = Instance.new("UIStroke")
-		rim.Name = "Steel"
-		rim.Thickness = 2
-		rim.Color = UITheme.Colors.VermilionHover
-		rim.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		rim.Parent = button
-	else
-		-- Recessed Urushi with a Tamahagane bezel; the button's colour only lights the bezel when it's on.
-		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiInset, UITheme.Colors.UrushiBase), 90).Parent = button
-		Kit.stroke(UITheme.Colors.TamahaganeSlate, 1.5, 0).Parent = button
-	end
-	Kit.new("Frame", {
-		Name = "Rim",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -6, 1, -6),
-		BackgroundTransparency = 1,
-		Parent = button,
-	}, { Kit.corner(UDim.new(0, 3)), Kit.stroke(if seal then UITheme.Colors.VermilionDeep else UITheme.Colors.TamahaganeRust, 1, 0.3) })
-	Kit.new("Frame", {
-		Name = "Gloss",
-		Position = UDim2.new(0, 4, 0, 1),
-		Size = UDim2.new(1, -8, 0, 1),
-		BorderSizePixel = 0,
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.75,
-		Parent = button,
-	})
-	Kit.new("Frame", {
-		Name = "Glow",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -2),
-		Size = UDim2.new(0.84, 0, 0, 3),
-		BorderSizePixel = 0,
-		BackgroundColor3 = color,
-		Parent = button,
-	}, {
-		Kit.new("UIGradient", {
-			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0), NumberSequenceKeypoint.new(1, 1) }),
-		}),
-	})
-	Skin.Apply(button, skin) -- uploaded button art replaces the gradient, outline and gloss
+	Kit.surface(button, color, deep)
 	local titleLabel = Kit.label({
 		Name = "Title",
 		Text = title,
-		Font = if seal then Enum.Font.Garamond else Theme.Font.Heavy,
+		Font = if seal then Theme.Font.Display else Theme.Font.Heavy,
 		TextColor3 = if seal then UITheme.Colors.WashiParchment else color:Lerp(UITheme.Colors.WashiParchment, 0.55),
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.14),

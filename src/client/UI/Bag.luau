@@ -228,6 +228,14 @@ local function tile(entry, order: number)
 	if frame and frame.Sweep then
 		Kit.gradient(ColorSequence.new(frame.Color, frame.Sweep), 45).Parent = stroke
 	end
+	Kit.surface(button, edge:Lerp(Color3.new(1,1,1), .15), edge:Lerp(Color3.fromRGB(25,24,62), .7))
+	if entry.Rarity == "Legendary" then
+		local border = require(Shared.Borders).Get("Gold")
+		Kit.rareBorder(button, "Gold", border.Gradient, border.Color)
+	elseif entry.Rarity == "Mythic" or entry.Rarity == "Secret" then
+		local border = require(Shared.Borders).Get("Secret")
+		Kit.rareBorder(button, "Secret", border.Gradient, border.Color)
+	end
 	local crest = IconBadge.new({
 		Name = "Icon",
 		IconAsset = crestOf(entry),

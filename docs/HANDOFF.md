@@ -9,6 +9,11 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- GLOSSY UI (2026-10-27): shared vector builders now use navy / purple glossy surfaces, double borders,
+  saturated action fills and chunky white outlined type. Gold / Rainbow / Secret rims rotate via one
+  visible-only RenderStepped loop. Studio HUD, SQUAD / vault, BAG and rare animation checked; user review
+  on phone / STORE / reveals / live fights remains. No card, combat, map or save data changed.
+
 - NEW (2026-10-27): converted all 11 character Supports to Attack cards, keeping original names / ids /
   portraits. Added 11 separate relic / technique Supports with the previous passive math. The pool is 37 cards
   (33 before boss unlocks). Idempotent migration preserves characters and grants replacement Supports with
@@ -47,6 +52,20 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-27 · Codex · this commit · Replaced shared flat UI styling with glossy vector surfaces:
+  8–14 px corners, black 2.5 px edges, inset white 1.5 px bevels / 0.55 transparency, vertical gradients,
+  45% / 0.88 gloss, FredokaOne / LuckiestGuy white text with black 2.5 px outlines. VectorStyle owns the
+  shared builder and visible-only rare border animation, including Gold; destroyed gradients unregister.
+  Updated Kit, Modal, HUD actions, card tiles / full views, battle pods and Bag rarity slots. Preserved
+  direct selection strokes for existing callbacks, moved TextButton text above fills, compensated surface
+  decoration for UIPadding. Fixed Wheel / HUD startup compatibility found during Studio testing.
+  Checks: type 0 errors (existing warnings), props 5,479 / 0, full headless ALL CHECKS PASSED.
+  Studio: startup, HUD with blue AUTO / red ROLL / green QUICK, SQUAD, separate vault tabs, BAG checked;
+  rare stroke metrics verified, visible rotation and hidden pause confirmed. No new runtime errors in
+  final Play; existing sound asset 203785492 warning remains. Stopped Play / removed temporary helpers;
+  source synced via Rojo, nothing published. Phone, STORE, reveals and live fights remain for review.
+  Names / stats / mechanics / saves / map untouched; unrelated .codex and five root art PNGs untouched.
 
 Each entry: date · who · commit · what changed · what's left or unsure.
 

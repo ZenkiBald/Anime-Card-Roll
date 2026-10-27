@@ -1,6 +1,5 @@
 --!nonstrict
--- A centred panel over a blurred game world: dark obsidian glass with a thin edge, a sharp title tab
--- with a neon underline, and a close button. Tap outside or press close to close.
+-- Rounded glossy panels over a blurred world, with purple title tabs and a red close button.
 -- Modal.Tabbed is one panel with a tab strip: each tab holds pages that screens build into exactly
 -- as if they were their own Modal (page.Body / page.Header / page:Open() / page.IsOpen / OnOpen), and a
 -- tab can hold two pages side by side (Region "Left" / "Right").
@@ -10,7 +9,6 @@ local Lighting = game:GetService("Lighting")
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local UITheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Configs"):WaitForChild("UITheme"))
-local Skin = require(script.Parent.Skin)
 
 local Modal = {}
 Modal.__index = Modal
@@ -52,8 +50,7 @@ local function setBlur(on: boolean)
 	Kit.tween(effect, 0.25, { Size = goal })
 end
 
--- Title tab used by every panel (and the deck screen): an Urushi plate with a steel edge, a vermilion
--- seal slash on its left and a vermilion underline, the title in parchment caps.
+-- Shared title tab with a bright purple gradient and a top-half plastic highlight.
 function Modal.Banner(parent: Instance, title: string, textSize: number?): any -- children read by name
 	local banner = Kit.new("Frame", {
 		Name = "Banner",
@@ -65,35 +62,11 @@ function Modal.Banner(parent: Instance, title: string, textSize: number?): any -
 		Parent = parent,
 	}, {
 		Kit.corner(),
-		Kit.gradient(ColorSequence.new(BANNER_LEFT, BANNER_RIGHT), 0),
+		Kit.gradient(ColorSequence.new(BANNER_LEFT, BANNER_RIGHT), 90),
 		Kit.stroke(Theme.Color.Line, 1.2, 0),
 		Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 30), PaddingRight = UDim.new(0, 22) }),
 	})
-	local sparkle = Kit.new("Frame", {
-		Name = "Sparkle",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, -15, 0.5, 0),
-		Size = UDim2.new(0, 5, 0.62, 0),
-		Rotation = 14,
-		BorderSizePixel = 0,
-		BackgroundColor3 = C.VermilionWax,
-		ZIndex = 7,
-		Parent = banner,
-	})
-	Kit.new("Frame", {
-		Name = "Underline",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, -30, 1, 0),
-		Size = UDim2.new(1, 52, 0, 2),
-		BorderSizePixel = 0,
-		BackgroundColor3 = C.VermilionWax,
-		ZIndex = 7,
-		Parent = banner,
-	}, {
-		Kit.new("UIGradient", {
-			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.7, 0.3), NumberSequenceKeypoint.new(1, 1) }),
-		}),
-	})
+	Kit.surface(banner, Color3.fromRGB(159, 117, 255), Color3.fromRGB(86, 45, 200), "Header")
 	local label = Kit.new("TextLabel", {
 		Name = "Title",
 		Text = string.upper(title),
@@ -107,17 +80,11 @@ function Modal.Banner(parent: Instance, title: string, textSize: number?): any -
 		Parent = banner,
 	})
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.4).Parent = label
-	-- The panel supplies the artwork; keep its heading quiet and readable over a plain surface.
-	banner.BackgroundTransparency = 1
-	banner:FindFirstChildOfClass("UIGradient").Enabled = false
-	banner:FindFirstChildOfClass("UIStroke").Enabled = false
-	sparkle.BackgroundColor3 = Theme.Color.Gold
-	banner.Underline.BackgroundColor3 = Theme.Color.Gold
 	return banner
 end
 
 -- Close: a 32 px dark obsidian square, 4 px corners, a grey ✕ that glows red on hover.
-local CLOSE_GREY = Color3.fromRGB(150, 158, 178)
+local CLOSE_GREY = Color3.new(1, 1, 1)
 local CLOSE_RED = Color3.fromRGB(255, 90, 105)
 
 function Modal.CloseButton(parent: Instance): TextButton
@@ -155,6 +122,7 @@ function Modal.CloseButton(parent: Instance): TextButton
 	close.MouseLeave:Connect(function()
 		hover(false)
 	end)
+	Kit.surface(close, Color3.fromRGB(255, 111, 128), Color3.fromRGB(182, 34, 77))
 	Kit.pressable(close)
 	return close
 end
@@ -207,7 +175,7 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		Kit.new("UISizeConstraint", { Name = "Limit", MaxSize = maxSize, MinSize = Vector2.new(280, 220) }),
 	})
 	self.Scale = Kit.new("UIScale", { Scale = 1, Parent = self.Panel })
-	Skin.Apply(self.Panel, "Panel")
+	Kit.surface(self.Panel, Color3.fromRGB(78, 76, 137), Color3.fromRGB(27, 26, 59), "Window")
 	-- Phones: the panel is laid out at desktop size and scaled down to the screen (Modal.FitScale), so a
 	-- short landscape screen shows the same layout smaller instead of squashing rows to nothing. It
 	-- also takes almost the whole screen there.
@@ -312,10 +280,11 @@ end
 local Page = {}
 Page.__index = Page
 
--- Active: a raised Urushi plate with a vermilion edge along its bottom; inactive: bare ghost text.
+-- Keep tab selection visibly brighter than the surrounding controls.
 local function styleTab(button: TextButton, on: boolean)
-	button.TextColor3 = if on then C.WashiParchment else C.WashiGhost
-	button.BackgroundTransparency = if on then 0 else 1
+	button.TextColor3 = Color3.new(1,1,1)
+	button.BackgroundTransparency = 0
+	Kit.surface(button, if on then Color3.fromRGB(158, 111, 255) else Color3.fromRGB(91, 103, 178), if on then Color3.fromRGB(83, 40, 181) else Color3.fromRGB(43, 45, 91))
 	local stroke = button:FindFirstChildOfClass("UIStroke")
 	if stroke then
 		stroke.Color = C.TamahaganeSlate

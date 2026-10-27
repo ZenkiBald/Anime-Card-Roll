@@ -21,7 +21,6 @@ local Foils = require(Shared.Foils)
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Skin = require(script.Parent.Skin)
-local Effects = require(script.Parent.Effects)
 local BorderFx = require(script.Parent.BorderFx)
 local ElementUi = require(script.Parent.ElementUi)
 
@@ -327,22 +326,11 @@ end
 -- A sharp bevelled metal edge in the border tier's colour: light on the top-left, dark on the
 -- bottom-right. `border` is a Borders.luau id ("Normal" = Base).
 function CardView.Bevel(target: GuiObject, border: string?, thickness: number?)
-	local color = Borders.Get(border).Color
-	local stroke = Kit.stroke(Color3.new(1, 1, 1), thickness or 2.5, 0)
-	stroke.Name = "Bevel"
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	Kit.new("UIGradient", {
-		Rotation = 45,
-		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, color:Lerp(Color3.new(1, 1, 1), 0.7)),
-			ColorSequenceKeypoint.new(0.45, color),
-			ColorSequenceKeypoint.new(0.55, color:Lerp(Color3.new(0, 0, 0), 0.45)),
-			ColorSequenceKeypoint.new(1, color:Lerp(Color3.new(1, 1, 1), 0.25)),
-		}),
-		Parent = stroke,
-	})
-	stroke.Parent = target
-	return stroke
+	local tier = Borders.Get(border)
+	Kit.surface(target, Theme.Color.TileTop, Theme.Color.TileBottom)
+	if border and border ~= "Normal" then return Kit.rareBorder(target, border, tier.Gradient, tier.Color) end
+	local decor = target:FindFirstChild("VectorDecor")
+	return decor and decor:FindFirstChild("OuterEdge")
 end
 
 -- "130.01K" / "1.25M" for the stat footer.
@@ -463,17 +451,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 		),
 	})
 
-	-- The border frame: its gradient (prismatic for Secret); a thin element-tinted edge on Base.
-	local stroke = Kit.stroke(Color3.new(1, 1, 1), if border == "Normal" then 1.2 else (if compact then 2.5 else 4), 0)
-	stroke.Name = "RarityStroke"
-	local strokeGradient = Kit.gradient(if border == "Normal" then ColorSequence.new(glowColor:Lerp(Theme.Color.Line, 0.4)) else Borders.Get(border).Gradient, 45)
-	strokeGradient.Name = "RarityGradient"
-	strokeGradient.Parent = stroke
-	stroke.Parent = frame
-	if border == "Secret" and options.Animate then
-		Effects.Spin(strokeGradient, 120)
-	end
-
+	Kit.surface(frame, card.Accent, tier.Dark)
 	-- The art fills the card: sunburst and halo in the rarity colour, the character over them.
 	local portrait = Kit.new("Frame", {
 		Name = "Portrait",

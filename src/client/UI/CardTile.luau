@@ -17,7 +17,6 @@ local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Skin = require(script.Parent.Skin)
-local Effects = require(script.Parent.Effects)
 local CardView = require(script.Parent.CardView)
 local BorderFx = require(script.Parent.BorderFx)
 local ElementUi = require(script.Parent.ElementUi)
@@ -68,34 +67,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Kit.corner(UDim.new(0, 6)),
 		Kit.gradient(ColorSequence.new(C.UrushiRaised, if owned then C.UrushiBase:Lerp(glow, 0.12) else C.UrushiInset), 90),
 	})
-	-- The tier frame (bezel on the border): its colour and thickness; Rainbow prismatic, Secret void.
-	local stroke = Kit.stroke(Color3.new(1, 1, 1), frame.Thickness, 0)
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	local strokeGradient = Kit.gradient(
-		if frame.Prismatic then tier.Gradient
-			elseif frame.Core then ColorSequence.new({
-				ColorSequenceKeypoint.new(0, frame.Color),
-				ColorSequenceKeypoint.new(0.5, frame.Core),
-				ColorSequenceKeypoint.new(1, frame.Color),
-			})
-			else ColorSequence.new(frame.Color),
-		45
-	)
-	strokeGradient.Parent = stroke
-	stroke.Parent = button
-	if borderId == "Secret" and options.Spin then
-		Effects.Spin(strokeGradient, 100)
-	end
-	-- An inner steel bezel just inside the tier frame.
-	Kit.new("Frame", {
-		Name = "Bezel",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -2 * frame.Thickness - 2, 1, -2 * frame.Thickness - 2),
-		BackgroundTransparency = 1,
-		ZIndex = 4,
-		Parent = button,
-	}, { Kit.corner(UDim.new(0, 5)), Kit.stroke(C.TamahaganeSlate, 1, 0.2) })
+	Kit.surface(button, C.UrushiRaised, C.UrushiBase)
 	-- Element aura rising behind the art.
 	Kit.new("Frame", {
 		Name = "ElementGlow",

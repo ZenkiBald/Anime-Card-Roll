@@ -46,6 +46,11 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Glossy vector UI (2026-10-27): Studio startup, HUD, SQUAD / card vault and BAG checked visually;
+  tab labels remain readable above glossy fills. Visible rare borders rotate and hidden ones pause.
+- [ ] Review the glossy windows / buttons / card borders on phone, STORE, reveals and live battles;
+  confirm selected / disabled buttons remain clear and tooltips stay readable. No gameplay tuning changed.
+
 - [x] Approved Support art (2026-10-27): all 11 actual CardTile illustrations visibly rendered and reported
   IsLoaded; all 11 full CardView portrait crops checked. Normal SQUAD Support tab and saved Support slots show
   the relic art. Sources / prompts / hashes / asset ids are in `art/cards/support-20261027/`. Code checks pass.

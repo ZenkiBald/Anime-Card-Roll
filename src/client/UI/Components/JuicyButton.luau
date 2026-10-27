@@ -189,6 +189,7 @@ function JuicyButton.new(props: { [string]: any }): TextButton
 		Parent = content,
 	}, props.TextSize or 22)
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.4).Parent = label
+	Kit.surface(button, accent, accent:Lerp(Color3.fromRGB(24, 22, 65), .6))
 	JuicyButton.Apply(button, { SheenColor = accent:Lerp(Color3.new(1, 1, 1), 0.5) })
 	if props.Parent then
 		button.Parent = props.Parent

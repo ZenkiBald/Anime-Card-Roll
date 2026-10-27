@@ -1,8 +1,5 @@
 --!strict
--- Design tokens for the Dark Feudal Occult look: Urushi black lacquer panels, Tamahagane steel frames,
--- Washi parchment text, Vermilion seals for calls to action, and colour only where spirit glows (element
--- auras, border tiers, the Surge meter). UI/Theme reads its panel, edge, text and header tokens from here,
--- so every screen follows it.
+-- Glossy vector design tokens. Historical colour keys stay stable for existing screens.
 -- Element glows come from Elements.luau (one source, keyed by the game's element ids); border glows are
 -- keyed by Borders.luau ids ("Normal" is the Base border).
 
@@ -18,12 +15,12 @@ end
 local UITheme = {
 	Colors = {
 		-- Surfaces: Urushi lacquer, three depths.
-		UrushiBase = Color3.fromRGB(11, 11, 14), -- #0B0B0E base panel background
-		UrushiRaised = Color3.fromRGB(20, 20, 26), -- #14141A tiles and slots, one step up
-		UrushiInset = Color3.fromRGB(7, 7, 9), -- #070709 sunken tracks and recessed buttons
+		UrushiBase = Color3.fromRGB(29, 28, 63),
+		UrushiRaised = Color3.fromRGB(72, 77, 133),
+		UrushiInset = Color3.fromRGB(22, 23, 49),
 		-- Text: Washi parchment.
-		WashiParchment = Color3.fromRGB(236, 229, 216), -- #ECE5D8 primary labels and text
-		WashiGhost = Color3.fromRGB(140, 133, 123), -- #8C857B secondary labels, stats, counts
+		WashiParchment = Color3.new(1, 1, 1),
+		WashiGhost = Color3.fromRGB(200, 210, 240),
 		-- Frames: Tamahagane folded steel.
 		TamahaganeSlate = Color3.fromRGB(67, 59, 45), -- quiet antique-brass bezels
 		TamahaganeEdge = Color3.fromRGB(86, 92, 104), -- #565C68 highlights, notches
@@ -38,11 +35,11 @@ local UITheme = {
 		SurgeGold = Color3.fromRGB(220, 183, 107), -- warm gold leaf, sealed surge
 		SpiritSheen = Color3.fromRGB(236, 229, 216), -- the flowing sheen on JuicyButton rims (parchment, not cyan)
 		-- Older names, the same values, so every screen built on them follows the new tokens.
-		UrushiBlack = Color3.fromRGB(11, 11, 14), -- = UrushiBase
+		UrushiBlack = Color3.fromRGB(29, 28, 63), -- legacy token name, same vector panel base
 		Tamahagane = Color3.fromRGB(67, 59, 45), -- = TamahaganeSlate
 		TamahaganeLight = Color3.fromRGB(86, 92, 104), -- = TamahaganeEdge
 		VermilionSeal = Color3.fromRGB(201, 59, 43), -- = VermilionWax
-		TextMuted = Color3.fromRGB(140, 133, 123), -- = WashiGhost
+		TextMuted = Color3.fromRGB(200, 210, 240),
 
 		-- Element glow tints, by Elements.luau id (Flame, Frost, Storm, Light, Void, Cosmic).
 		Elements = elementColors,
@@ -60,9 +57,9 @@ local UITheme = {
 	-- Rainbow uses Borders.luau's prismatic gradient; Secret pairs the void purple with a singularity core.
 	BorderTiers = {
 		Normal = { Color = Color3.fromRGB(122, 106, 88), Thickness = 1 },
-		Gold = { Color = Color3.fromRGB(255, 215, 0), Thickness = 2, Glow = true },
+		Gold = { Color = Color3.fromRGB(255, 215, 0), Thickness = 2.5, Glow = true },
 		Rainbow = { Color = Color3.fromRGB(255, 105, 180), Thickness = 2.5, Glow = true, Prismatic = true },
-		Secret = { Color = Color3.fromRGB(170, 0, 255), Core = Color3.fromRGB(11, 0, 20), Thickness = 3, Glow = true },
+		Secret = { Color = Color3.fromRGB(170, 0, 255), Core = Color3.fromRGB(11, 0, 20), Thickness = 2.5, Glow = true },
 	} :: { [string]: { Color: Color3, Thickness: number, Glow: boolean?, Prismatic: boolean?, Core: Color3? } },
 
 	-- Battle roles (Cards.luau `Role`): badge glyph and glow.
@@ -74,9 +71,9 @@ local UITheme = {
 	} :: { [string]: { Icon: string, Color: Color3 } },
 
 	Fonts = {
-		Header = Enum.Font.GothamBold, -- clear, restrained headings; art supplies the ornament
+		Header = Enum.Font.LuckiestGuy,
 		Body = Enum.Font.GothamMedium,
-		Stats = Enum.Font.GothamBold,
+		Stats = Enum.Font.FredokaOne,
 	},
 }
 
