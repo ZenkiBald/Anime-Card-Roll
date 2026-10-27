@@ -26,11 +26,17 @@ Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over
 its boss. Town NPCs: Kenji (guide), Hoshi (fusion + pack alchemy), Kenshin (traits), Madame Fortuna (Lucky Wheel), the
 tower gate and leaderboards. The spawn plaza has a thin stone fountain border, short service approaches and two
 wooden benches with flower planters. Stalls / services sit around the edge; an explicit Tower marker puts the
-jade-and-slate spire northwest of the fountain. `tools/studio/town-polish.luau` applies these place-only edits once
+jade-roofed three-tier pagoda northwest of the fountain. `tools/studio/town-polish.luau` applies the plaza's place-only edits once
 and keeps a reversible backup in ServerStorage. The local saved place is under `studio-local/` (ignored by Git).
-Town services only work beside their NPC (server `NpcRange`, 24 studs); every world sign and NPC plate shows
-within 140 studs for destinations and 90 for NPC plates; larger plates stay opaque through 80% of their range.
-They fade at the edge (HubFx), never draw over the world, and hide with player name tags while a panel,
+The service figures / workbenches / wheel canopy / pagoda are runtime parts built by `World`, `TownModels` and
+`TownServices`, so those changes travel through Git / Rojo. Four original Roblox figures have distinct outfits
+and tools; Hoshi has a card workbench, Kenshin scrolls / crystals, and Kenji a lectern. Boss models are unchanged.
+Town services only work beside their NPC (server `NpcRange`, 24 studs). `WorldSigns` puts physical double-sided
+plaques on town gates, world portals, the wheel and tower (145 studs); the map's old floating titles are disabled
+only in the running copy. Compact NPC plates show within 76 studs, with the name / role inside 38 and a short
+service label farther out. Closest visible NPC plates take priority when their screen rectangles overlap;
+plates stay below the top HUD. All labels stay opaque through 80% of their range, fade at the edge (HubFx),
+never draw over the world, and hide with player name tags while a panel,
 fight or reveal is up (`Modal.Changed`, `HubFx.SetWorldLabelsHidden`). TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
 double jump. Lighting: a bright town afternoon (`LightingSetup`); each world has its own theme (`ZoneFx` moods: Ember golden sunset, Frostfang snowy morning, Neon Abyss violet night, Stormspire grey storm with lightning) and zone music.
 
@@ -237,6 +243,10 @@ Hover cards are dark, scrollable and bounded to the viewport; pointer movement i
 sheet shows techniques first; COLLECTION & MASTERY expands odds, fusion, traits, battle mastery and other collection data. Advanced traits / mastery
 remain in the details. Battle skill popups scroll within the viewport. HUD refresh waits for initialization so an
 early StoreState update cannot access missing currency chips.
+The three opaque HUD currency chips and seven colored menu buttons use individual transparent illustrations
+through `UI/HudArt`; sources, exact built-in ImageGen prompts, hashes, ids and 384 px uploads are in
+`art/ui/hud-20261027/`. Battle results reuse this currency art and BAG pack art, with a larger pack picture,
+short save / luck hint and a separate three-line new-card announcement. Reward actions and payouts are unchanged.
 BAG uses 17 individual transparent AI illustrations for the requested packs, potions, relics and Pagoda crown
 in both tiles and details, with separate names / counts / status lines. `UI/BagArt` maps item keys to uploaded
 images; infused Mega Packs reuse Mega art. Sources, exact built-in imagegen prompts, hashes, uploaded ids
@@ -245,7 +255,7 @@ Relic-rarity frames remain (bronze / purple / gold / crimson); packs keep their 
 counter / synergy / bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
 controls, enemy target panels and result frames. The current triggered ability kits are described above.
 
-`JuicyButton` still supplies sheen, spring and sounds; `IconBadge` carries element / role / currency crests.
+`JuicyButton` still supplies sheen, spring and sounds; `IconBadge` carries element / role crests.
 All 26 character Attack portraits use a cohesive AI illustration set in `art/cards/cohesive-20261026/`, generated with the
 built-in image tool from the three approved previews. Each source PNG is 1254 x 1254; the existing card frames
 crop it to their shape. `manifest.json` records card ids, inspirations, dimensions, hashes, Roblox image ids and
@@ -267,7 +277,8 @@ The character artwork pass did not change identities. The later character-to-Att
   packs, alchemy, rewards, dev tools), `BattleService` + `BattleEngine`, `DeckService`, `FusionService`, `TraitService`,
   `MetaService` (progression actions, luck / cooldown), `RaidService`, `Momentum`, `MonetizationService`, `AvatarService`,
   `NameTagService`, `LeaderboardService`, `ProfileService`, `TravelService`, `MountService`, `TutorialService`,
-  `CodeService` + `Codes`, `GlobalAnnounce` (Secret pulls to every server), `NpcRange`, `World` (NPCs, signs, markers, arena spots), `RateLimit`, `ProfileStore` (vendored).
+  `CodeService` + `Codes`, `GlobalAnnounce` (Secret pulls to every server), `NpcRange`, `World` (markers / arena spots),
+  `WorldSigns` (NPC plates / gate plaques), `TownModels` (four service figures), `TownServices` (stations / pagoda), `RateLimit`, `ProfileStore` (vendored).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient`, `LightingSetup`, `ZoneFx`, `HubFx`,
   `Followers`, `Avatars`, `Dash`, and `UI/*` (Kit helpers incl. `Kit.glyph` / `Kit.statsText` / `Kit.short`, Theme,
   Components/JuicyButton + IconBadge, Modal (+ `Modal.Tabbed`), Controls, Hud, Reveal, CardView, CardTile, CardTooltip,

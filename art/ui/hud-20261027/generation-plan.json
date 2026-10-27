@@ -1,0 +1,46 @@
+{
+  "tool": "built-in image_gen",
+  "transparent_background": true,
+  "items": [
+    {
+      "id": "shards",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: a single large faceted amethyst-purple diamond gemstone with a bright lavender inner glow. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "trait_shards",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: three cyan-and-violet crystalline shards wrapped around a simple luminous double helix. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "rolls",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: a single chunky gold-and-ivory six-sided die tilted in three-quarter view, with crisp dark circular pips. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "battle",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: two crossed polished silver swords with crimson-red grips. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "squad",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: three collectible cards fanned together, blue frames with simple luminous star emblems. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "bag",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: a chunky violet adventurer backpack with golden buckles and a small cyan crystal charm. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "quests",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: a rolled cream parchment quest scroll with an emerald-green wax seal and a large golden checkmark. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "travel",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: a chunky turquoise compass with a golden rim and a clear red-and-white direction needle. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "store",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: a glossy golden shopping bag with a star emblem and a ruby-red handle. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    },
+    {
+      "id": "dev",
+      "prompt": "Use case: stylized-concept. Asset type: one isolated small HUD icon for a glossy Roblox simulator game, matching a premium cel-shaded inventory icon set. Subject: a chunky orange-and-silver adjustable wrench crossed over a small silver gear. Chunky toy-like proportions, clean bold dark outlines, rich saturated colors, broad smooth cel shading, bright glossy highlights. Centered on a square canvas; fill 76% of the canvas with safe margins. Must be recognizable at 32 pixels. Transparent background with real alpha. No UI frame, no badge, no diamond container, no labels, letters, numbers, watermarks, logos, faces, characters, floor or background scene. Keep the silhouette compact and the details simple."
+    }
+  ]
+}

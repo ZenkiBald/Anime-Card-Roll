@@ -25,6 +25,8 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local HudArt = require(script.Parent.HudArt)
+local BagArt = require(script.Parent.BagArt)
 local Skin = require(script.Parent.Skin)
 local Modal = require(script.Parent.Modal)
 local Effects = require(script.Parent.Effects)
@@ -2201,7 +2203,7 @@ local function showResults(summary)
 				}),
 			})
 		end
-		local icon = iconKey and Skin.Icons[iconKey]
+		local icon = if iconKey == "Pack" then BagArt.Get("Pack:10") elseif iconKey == "Shard" then HudArt.Get("Shards") else iconKey and (HudArt.Get(iconKey) or Skin.Icons[iconKey])
 		local hasIcon = icon ~= nil and icon ~= ""
 		local chip = Kit.tile({ LayoutOrder = #stats:GetChildren(), Parent = stats }, edge)
 		Kit.label({
@@ -2315,8 +2317,9 @@ local function showResults(summary)
 		-- A first Normal clear adds the boss's own card to the roll pool.
 		local unlocked = summary.CardUnlocked and Cards.Get(summary.CardUnlocked)
 		if unlocked then
-			line(`🔓 {string.upper(unlocked.Name)} UNLOCKED IN THE CARD VAULT!`, Color3.fromRGB(255, 214, 90), 24, Theme.Font.Display)
-			line("Its card can now drop from your rolls.", Theme.Color.Muted, 16, Theme.Font.Bold)
+			line("NEW CARD UNLOCKED", Color3.fromRGB(255, 214, 90), 19, Theme.Font.Bold)
+			line(string.upper(unlocked.Name), Theme.Color.Text, 30, Theme.Font.Display)
+			line("Now available from rolls · see SQUAD", Theme.Color.Muted, 17, Theme.Font.Bold)
 			Effects.Sparks(panel, Color3.fromRGB(255, 214, 90), 24, 0.8)
 		end
 		stat("TIME", timeText, Theme.Color.Auto)
@@ -2326,7 +2329,7 @@ local function showResults(summary)
 		if hasRewards then
 			local packCount = Packs.Count(rewards.NewPacks)
 			if packCount > 0 then
-				stat("ROLL PACKS", `+{packCount}`, Theme.Color.Gold, nil, "saved to BAG")
+				stat("ROLL PACKS", `+{packCount}`, Theme.Color.Gold, "Pack", "saved to BAG")
 			end
 			local bundle = rewards.Bundle
 			if bundle and bundle.Shards and bundle.Shards > 0 then
@@ -2336,7 +2339,7 @@ local function showResults(summary)
 				line(`Loot: {Meta.Describe(bundle)}`, Theme.Color.Gold, 20)
 			end
 			if bundle and (bundle.TraitShards or 0) > 0 then
-				stat("TRAIT SHARDS", `+{bundle.TraitShards}`, Color3.fromRGB(80, 230, 200), nil, if summary.CostChallenge then "Cost Challenge x2" else "for the Trait Master")
+				stat("TRAIT SHARDS", `+{bundle.TraitShards}`, Color3.fromRGB(80, 230, 200), "TraitShards", if summary.CostChallenge then "Cost Challenge x2" else "for the Trait Master")
 			end
 			-- A relic drop (Infinite Tower, 0.1%) or the Pagoda's artifact gets its own loud line.
 			if bundle and bundle.TowerArtifacts then
@@ -2516,17 +2519,29 @@ local function showResults(summary)
 				progressTo += 1
 			end
 		end
+		local packNames={}
+		for _,pack in Packs.List do
+			local amount=rewards.NewPacks and rewards.NewPacks[pack.Id] or 0
+			if amount>0 then table.insert(packNames,tostring(amount) .. " × " .. string.upper(pack.Name)) end
+		end
+		if biggest then
+			Kit.new("ImageLabel", {
+				Name="PackArtwork", Image=BagArt.Get("Pack:" .. biggest.Id) or "", BackgroundTransparency=1,
+				Position=UDim2.fromScale(.04,.13), Size=UDim2.fromScale(.35,.7),
+				ScaleType=Enum.ScaleType.Fit, ZIndex=4, Parent=ticket,
+			})
+		end
 		local count = Kit.label({
-			Text = if biggest then Packs.Describe(rewards.NewPacks)
+			Text = if biggest then table.concat(packNames,"\n")
 				elseif progressTo then `PACK PROGRESS · FLOOR {tower.Floor} / {progressTo}`
 				else "SHARDS BANKED",
 			Font = Theme.Font.Display,
 			TextColor3 = Theme.Color.Gold,
 			TextWrapped = true,
-			Position = UDim2.fromScale(0.05, 0.06),
-			Size = UDim2.fromScale(0.9, if biggest then 0.4 else 0.22),
+			Position = UDim2.fromScale(if biggest then 0.42 else 0.05, 0.1),
+			Size = UDim2.fromScale(if biggest then 0.53 else 0.9, if biggest then 0.33 else 0.22),
 			Parent = ticket,
-		}, if biggest then 34 else 26)
+		}, if biggest then 28 else 26)
 		Kit.textStroke(Color3.fromRGB(70, 40, 0), 2, 0).Parent = count
 		if progressTo and progressFrom then
 			local ratio = math.clamp((tower.Floor - progressFrom) / math.max(1, progressTo - progressFrom), 0.04, 1)
@@ -2580,12 +2595,12 @@ local function showResults(summary)
 			nextText = `Next pack: floor {nextFloor} ({Packs.Describe(Packs.ForFloor(nextFloor))}).  `
 		end
 		Kit.label({
-			Text = nextText .. "Packs wait in BAG › PACKS and roll at your luck when opened: save them for a luck potion or LUCKY STORM!",
+			Text = nextText .. (if biggest then "Saved to BAG. Open with a luck boost for better odds." else "Packs open at your luck. Save them for a luck boost!"),
 			Font = Theme.Font.Bold,
 			TextColor3 = Theme.Color.Muted,
 			TextWrapped = true,
-			Position = UDim2.fromScale(0.05, if biggest then 0.52 else 0.58),
-			Size = UDim2.fromScale(0.9, if biggest then 0.42 else 0.36),
+			Position = UDim2.fromScale(if biggest then 0.42 else 0.05, if biggest then 0.52 else 0.58),
+			Size = UDim2.fromScale(if biggest then 0.53 else 0.9, if biggest then 0.32 else 0.36),
 			Parent = ticket,
 		}, 16)
 		if biggest then

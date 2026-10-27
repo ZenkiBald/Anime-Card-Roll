@@ -9,6 +9,16 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- TOWN / HUD / REWARDS POLISH COMPLETE (2026-10-27): original Roblox service figures / tools,
+  Hoshi / Kenshin workbenches and Kenji lectern; wheel canopy and three-tier jade-roof pagoda.
+  WorldSigns replaces huge floating town titles with physical gate plaques and compact nearby NPC
+  plates. Ten new illustrated currency / navigation icons; opaque chips; result packs reuse BAG art
+  with a shorter hint and separate card-unlock lines. These additions are runtime World builders,
+  travel through Git / Rojo and appear after restarting Play; saved map / terrain are unchanged.
+  Desktop Studio checks and all code checks passed; first-clear unlock / multi-pack variants, all
+  portal approaches, real-phone / crowded streaming review remain in checklist section 5.
+  Studio left Edit, source synced through Rojo, temporary upload server stopped; nothing published.
+
 - SHOWCASE / ROLL CLEANUP COMPLETE (2026-10-27): large 3.8 x 5.4 tilted shoulder showcase, bright art,
   three-layer 3D aura / light, stacked border / name / odds billboard. Full rates for local / nearest
   three visible showcases, reduced elsewhere / LOW; shared UI loop also animates world gradients.
@@ -72,6 +82,34 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-27 · Codex · this commit · Completed the approved current-town polish. Added WorldSigns,
+  TownModels and TownServices; existing names / prompt actions / ranges / marker positions preserved.
+  Kenji has a book / lectern, Hoshi an apron / hammer / card workbench, Kenshin a staff / scroll bench,
+  Fortuna purple robes / hand cards. Replaced runtime block spire with a three-tier cream / timber /
+  jade pagoda, steps / lanterns / cyan door; Tower prompt and BoardSpot contract preserved. Wheel
+  retains spinning prize slices under a roof / plaque. Saved map buildings / terrain are untouched.
+  Town's four old map BillboardGuis disabled only at runtime; physical double-sided town / world /
+  tower / wheel plaques range 145. NPC plates 178 x 48, range 76, name / role within 38 then short
+  service label; closest-first screen collision suppression and top-HUD clearance, final-20% fade,
+  existing panel / battle / reveal hiding retained. Adjusted roof clearance from actual Studio views.
+  Ten transparent built-in ImageGen illustrations uploaded / wired through HudArt, original 1254 px
+  sources / exact prompts / hashes / ids / 384 px upload copies in art/ui/hud-20261027. HUD currency
+  chips now opaque; sidebar gets seven matching icons. Battle results reuse BAG pack art and HUD
+  currency art, shorten the pack hint, split unlocked-card announcement into three readable lines.
+  No combat / ownership / save / payout changes. Corrected three stale guide tips about Support turns,
+  duplicate stats and fusion. Checks: type 0 errors (four existing warnings), props 5,397 / 0 problems,
+  bundled headless ALL CHECKS PASSED; story fixtures 100% wins / median 61.4-79.2 s, tower / raids pass.
+  Studio: all four service figures / props, tower / wheel / gate roofs and title placement checked;
+  all ten HUD images visible, Normal win showed pack art and currency art. Prompt metadata retained;
+  real Script context NpcRange rejects far / accepts nearby fusion / traits / fortune. LocalScript
+  smoke check found zero enabled FadeSign GUIs during hide. MCP direct require has an isolated module
+  cache: use real Scripts / LocalScripts for stateful checks. One temporary self-destroying range-test
+  Script produced a parent-change warning, unrelated to game code; stopping Play removed helpers.
+  Existing bad-type sound 203785492 remains. Final source synced through Rojo, Studio left Edit,
+  temporary upload HTTP server stopped. Nothing published. Unsure: first-clear unlock / multi-pack /
+  no-pack results not visually repeated; real-phone / crowded streaming and all gate backs need user
+  review. Unrelated .codex and the five root card PNGs left untouched.
 
 - 2026-10-27 · Codex · this commit · Implemented the user's Gemini-inspired visual direction with
   project-native helpers. Added client/Showcase: 3.8 x 5.4 x 0.12 card at (3.2, 2.6, 2.8), -15 yaw /

@@ -17,6 +17,10 @@ local BossModels = require(ReplicatedStorage.Shared.BossModels)
 local Meta = require(ReplicatedStorage.Shared.Meta)
 local NpcRange = require(script.Parent.NpcRange)
 
+local Signs = require(script.Parent.WorldSigns)
+local TownModels = require(script.Parent.TownModels)
+local TownServices = require(script.Parent.TownServices)
+
 local World = {}
 
 local function part(props: { [string]: any }): Part
@@ -46,99 +50,38 @@ local THEMES = {
 	Rain = { Floor = Color3.fromRGB(44, 48, 66), Stone = Color3.fromRGB(56, 60, 82), Glow = Color3.fromRGB(255, 226, 90) },
 }
 
--- World signs: GothamBold with a subtle 1 px drop shadow (no heavy outlines). Every sign (NPC plates,
--- booths, portals, gates) only shows within SIGN_RANGE studs and fades in as you walk up (HubFx), and none
--- draws over the world (AlwaysOnTop off), so the hub never piles plates on top of each other or the HUD.
--- Plates are 35% smaller than the old 260 x 70 (playtest 2026-10-26: 160-stud plates stacked into a soup).
-local SIGN_RANGE = 140
-local SIGN_SIZE = UDim2.fromOffset(224, 60)
-
-local function shadowed(label: TextLabel)
-	label.TextStrokeTransparency = 1
-	for _, child in label:GetChildren() do
-		if child:IsA("UIStroke") then
-			child:Destroy()
-		end
-	end
-	label.ZIndex = 2
-	if label:FindFirstChild("Shadow") == nil then
-		local shadow = label:Clone()
-		for _, child in shadow:GetChildren() do
-			child:Destroy()
-		end
-		shadow.Name = "Shadow"
-		shadow.Position = UDim2.fromOffset(1, 1)
-		shadow.Size = UDim2.fromScale(1, 1)
-		shadow.AnchorPoint = Vector2.zero
-		shadow.TextColor3 = Color3.new(0, 0, 0)
-		shadow.TextTransparency = 0.45
-		shadow.ZIndex = 1
-		shadow.Parent = label -- HubFx keeps its text in step with the label's
-	end
-end
-
-local function styleSign(gui: BillboardGui, fade: boolean, range: number?)
-	gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-	gui.LightInfluence = 0
-	gui.AlwaysOnTop = false
-	if fade then
-		local model = gui:FindFirstAncestorOfClass("Model")
-		gui.MaxDistance = range or (if model and model:GetAttribute("Bob") == true then 90 else SIGN_RANGE)
-		-- The size-by-distance limits aren't in every API version (and may not be scriptable): try them.
-		pcall(function()
-			(gui :: any).DistanceLowerLimit = 10;
-			(gui :: any).DistanceUpperLimit = gui.MaxDistance
-		end)
-		CollectionService:AddTag(gui, "FadeSign")
-	end
-	for _, label in gui:GetChildren() do
-		if label:IsA("TextLabel") then
-			-- The top line is the title, the rest is the subtitle.
-			label.Font = if label.Position.Y.Scale < 0.3 then Enum.Font.GothamBold else Enum.Font.GothamMedium
-			shadowed(label)
-		end
-	end
-end
-
+-- Nearby NPC names stay compact; gate directions are attached to the actual architecture.
 local function sign(parent: BasePart, offset: number, title: string, sub: string, color: Color3, _fade: boolean?)
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "Sign"
-	gui.Size = SIGN_SIZE
-	gui.StudsOffset = Vector3.new(0, offset, 0)
-	gui.MaxDistance = SIGN_RANGE
-	gui.Parent = parent
-	local top = Instance.new("TextLabel")
-	top.Name = "Title"
-	top.BackgroundTransparency = 1
-	top.Size = UDim2.fromScale(1, 0.58)
-	top.TextScaled = true
-	top.TextColor3 = Color3.new(1, 1, 1)
-	top.Text = title
-	top.Parent = gui
-	local bottom = Instance.new("TextLabel")
-	bottom.Name = "Sub"
-	bottom.BackgroundTransparency = 1
-	bottom.Position = UDim2.fromScale(0, 0.6)
-	bottom.Size = UDim2.fromScale(1, 0.4)
-	bottom.TextScaled = true
-	bottom.TextColor3 = color
-	bottom.Text = sub
-	bottom.Parent = gui
-	styleSign(gui, true) -- every sign fades in within SIGN_RANGE
+	return Signs.Npc(parent, offset, title, sub, color)
 end
 
--- The gate signs saved in the place (tools/studio/map.luau) get the same look and fade.
-local function styleMapSigns(map: Instance)
+local function styleMapSigns(map: Instance, hub: Instance)
+	local boards = Instance.new("Model")
+	boards.Name = "TownDirections"
+	boards.Parent = hub
 	for _, inst in map:GetDescendants() do
 		if inst:IsA("BillboardGui") then
-			styleSign(inst, true)
+			inst.Enabled = false
+			CollectionService:RemoveTag(inst, "FadeSign")
+			local anchor = inst.Parent
+			local model = inst:FindFirstAncestorOfClass("Model")
+			if anchor and anchor:IsA("BasePart") and model then
+				local labels = {}
+				for _, child in inst:GetChildren() do if child:IsA("TextLabel") then table.insert(labels,child) end end
+				table.sort(labels,function(a,b) return a.Position.Y.Scale < b.Position.Y.Scale end)
+				local title = if labels[1] then labels[1].Text else model.Name
+				local color = if labels[2] then labels[2].TextColor3 else Color3.fromRGB(120,218,184)
+				local world = string.match(if labels[2] then labels[2].Text else "", "World (%d+)")
+				local cf = CFrame.new(anchor.Position - Vector3.new(0,5.5,0)) * model:GetPivot().Rotation * CFrame.new(0,0,-4.5)
+				Signs.Plaque(boards, "GateDirection", cf, Vector3.new(14.5,2.9,.45), title, if world then "WORLD " .. world .. " · PORTAL" else "PORTAL", color)
+			end
 		end
 	end
 end
 
 -- An NPC figure with a prompt. Clients animate figures marked with the Bob attribute.
 local function npc(id: string, pivot: CFrame, parent: Instance, action: string, objectText: string): Model
-	local model = BossModels.Build(id)
+	local model = if TownModels.Has(id) then TownModels.Build(id) else BossModels.Build(id)
 	model:PivotTo(pivot)
 	model:SetAttribute("Bob", true)
 	model:SetAttribute("BaseCFrame", pivot)
@@ -313,77 +256,36 @@ local function sageAt(hub: Instance, pivot: CFrame)
 	if sagePrompt then
 		sagePrompt:SetAttribute("Npc", "sage")
 	end
-	sign(sage.PrimaryPart :: BasePart, 5, "KENJI", "Card Sage", Color3.fromRGB(255, 214, 120))
+	sign(sage.PrimaryPart :: BasePart, 4.3, "KENJI", "Guide · getting started", Color3.fromRGB(255, 214, 120))
+	TownServices.Guide(hub,pivot * CFrame.new(0,-TownModels.Height("sage")/2,0))
 end
 
--- Hoshi the Fusion Master behind a small fusion altar: a stone dais, a glowing ring and two
--- spinning shards (HubFx spins parts marked Spin). `ground` stands on the floor, facing -Z.
+-- Hoshi works behind a card bench with two small spinning crystals. `ground` faces -Z.
 local FUSE_ORANGE = Color3.fromRGB(255, 138, 61)
-local FUSE_PURPLE = Color3.fromRGB(190, 120, 255)
 
 local function fuserAt(hub: Instance, ground: CFrame)
-	local station = Instance.new("Model") -- one piece for streaming
-	station.Name = "FusionStation"
-	station.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-	station.Parent = hub
-	local altar = ground * CFrame.new(0, 0, -4.5)
-	part({
-		Name = "Dais",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(1.2, 7, 7),
-		CFrame = altar * CFrame.new(0, 0.6, 0) * FLAT,
-		Color = Color3.fromRGB(58, 48, 74),
-		Material = Enum.Material.Slate,
-		Parent = station,
-	})
-	part({
-		Name = "Ring",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.2, 7.4, 7.4),
-		CFrame = altar * CFrame.new(0, 1.15, 0) * FLAT,
-		Color = FUSE_ORANGE,
-		Material = Enum.Material.Neon,
-		CanCollide = false,
-		Parent = station,
-	})
-	for i, color in { FUSE_ORANGE, FUSE_PURPLE } do
-		local shard = part({
-			Name = `Shard{i}`,
-			Size = Vector3.new(1.1, 1.1, 1.1),
-			CFrame = altar * CFrame.new(if i == 1 then -1.2 else 1.2, 3.4 + i * 0.6, 0),
-			Color = color,
-			Material = Enum.Material.Neon,
-			CanCollide = false,
-			Parent = station,
-		})
-		shard:SetAttribute("Spin", true)
-	end
-	local light = Instance.new("PointLight")
-	light.Color = FUSE_ORANGE
-	light.Range = 14
-	light.Brightness = 1.5
-	light.Parent = station:FindFirstChild("Ring")
-
-	local height = BossModels.Height("fuser")
+	TownServices.Fusion(hub,ground)
+	local height = TownModels.Height("fuser")
 	local fuser = npc("fuser", ground * CFrame.new(0, height / 2, 0), hub, "Fuse cards", "Hoshi, Fusion Master")
 	local prompt = (fuser.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")
 	if prompt then
 		prompt:SetAttribute("Npc", "fuser")
 	end
-	sign(fuser.PrimaryPart :: BasePart, 6, "HOSHI", "Fusion Master", FUSE_ORANGE)
+	sign(fuser.PrimaryPart :: BasePart, 4.3, "HOSHI", "Fusion Master", FUSE_ORANGE)
 end
 
 -- Kenshin the Trait Master beside Hoshi: his prompt opens the TRAITS panel (Trait Shards buy traits).
 local TRAIT_TEAL = Color3.fromRGB(80, 230, 200)
 
 local function traitMasterAt(hub: Instance, ground: CFrame)
-	local height = BossModels.Height("traitmaster")
+	local height = TownModels.Height("traitmaster")
 	local master = npc("traitmaster", ground * CFrame.new(0, height / 2, 0), hub, "Roll traits", "Kenshin, Trait Master")
 	local prompt = (master.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")
 	if prompt then
 		prompt:SetAttribute("Npc", "traitmaster")
 	end
-	sign(master.PrimaryPart :: BasePart, 6, "KENSHIN", "Trait Master", TRAIT_TEAL)
+	sign(master.PrimaryPart :: BasePart, 4.3, "KENSHIN", "Trait Master", TRAIT_TEAL)
+	TownServices.Traits(hub,ground)
 end
 
 -- Madame Fortuna's booth: a big Lucky Wheel on a stand (its spokes in the prize colours, turned slowly
@@ -401,7 +303,7 @@ local function fortuneAt(hub: Instance, ground: CFrame)
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(1, 14, 14),
 		CFrame = ground * CFrame.new(0, 0.5, 1) * FLAT,
-		Color = Color3.fromRGB(70, 30, 80),
+		Color = Color3.fromRGB(46,42,65),
 		Material = Enum.Material.Slate,
 		Parent = booth,
 	})
@@ -411,7 +313,7 @@ local function fortuneAt(hub: Instance, ground: CFrame)
 		Size = Vector3.new(0.3, 14.4, 14.4),
 		CFrame = ground * CFrame.new(0, 0.8, 1) * FLAT,
 		Color = WHEEL_GOLD,
-		Material = Enum.Material.Neon,
+		Material = Enum.Material.Metal,
 		CanCollide = false,
 		Parent = booth,
 	})
@@ -432,7 +334,7 @@ local function fortuneAt(hub: Instance, ground: CFrame)
 	pointer.Size = Vector3.new(0.4, 1.4, 1.2)
 	pointer.CFrame = center * CFrame.new(0, 5.6, -0.6) * CFrame.Angles(math.rad(180), 0, 0) * CFrame.Angles(0, math.rad(90), 0)
 	pointer.Color = WHEEL_GOLD
-	pointer.Material = Enum.Material.Neon
+	pointer.Material = Enum.Material.Metal
 	pointer.Parent = booth
 
 	local wheel = Instance.new("Model")
@@ -444,7 +346,7 @@ local function fortuneAt(hub: Instance, ground: CFrame)
 		Size = Vector3.new(1.3, 1.6, 1.6),
 		CFrame = face,
 		Color = WHEEL_GOLD,
-		Material = Enum.Material.Neon,
+		Material = Enum.Material.Metal,
 		CanCollide = false,
 		Parent = wheel,
 	})
@@ -464,7 +366,7 @@ local function fortuneAt(hub: Instance, ground: CFrame)
 		Size = Vector3.new(0.3, 10.8, 10.8),
 		CFrame = face * CFrame.new(-0.05, 0, 0),
 		Color = WHEEL_GOLD,
-		Material = Enum.Material.Neon,
+		Material = Enum.Material.Metal,
 		CanCollide = false,
 		Parent = wheel,
 	})
@@ -496,131 +398,24 @@ local function fortuneAt(hub: Instance, ground: CFrame)
 	local light = Instance.new("PointLight")
 	light.Color = WHEEL_GOLD
 	light.Range = 16
-	light.Brightness = 1.2
+	light.Brightness = 0.5
 	light.Parent = hubPart
-	local signAnchor = part({
-		Name = "SignAnchor",
-		Size = Vector3.new(1, 1, 1),
-		CFrame = center * CFrame.new(0, 6.5, 0),
-		Transparency = 1,
-		CanCollide = false,
-		Parent = booth,
-	})
-	sign(signAnchor, 2.5, "LUCKY WHEEL", `A free spin every {Meta.Wheel.SpinEvery // 60} min`, WHEEL_GOLD)
+	TownServices.WheelCanopy(booth,ground)
 
-	local height = BossModels.Height("fortune")
+	local height = TownModels.Height("fortune")
 	local fortune = npc("fortune", ground * CFrame.new(-4, 1 + height / 2, -1), hub, "Spin the wheel", "Madame Fortuna")
 	local prompt = (fortune.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")
 	if prompt then
 		prompt:SetAttribute("Npc", "wheel")
 	end
+	sign(fortune.PrimaryPart :: BasePart,4.3,"MADAME FORTUNA","Wheel keeper",WHEEL_GOLD)
 end
 
--- The Infinite Tower's gate: a slim stone spire of four tiers that turn a little each step, neon bands
--- between them, a crystal spinning at the top (HubFx spins parts marked Spin) and a glowing doorway
--- whose prompt opens the tower screen. LeaderboardService hangs the highest-floor board on the
--- BoardSpot beside it. `ground` stands on the floor, facing -Z (towards the players).
-local TOWER_TEAL = Color3.fromRGB(122, 180, 151)
-local TOWER_STONE = Color3.fromRGB(79, 88, 82)
-
+-- A compact pagoda at the existing Tower marker; prompt and leaderboard contracts stay the same.
 local function towerAt(hub: Instance, ground: CFrame)
-	local gate = Instance.new("Model")
-	gate.Name = "TowerGate"
-	gate.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-	gate.Parent = hub
-	part({
-		Name = "Base",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(1, 15, 15),
-		CFrame = ground * CFrame.new(0, 0.5, 3) * FLAT,
-		Color = Color3.fromRGB(109, 115, 104),
-		Material = Enum.Material.Slate,
-		Parent = gate,
-	})
-	part({
-		Name = "BaseRing",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.3, 15.4, 15.4),
-		CFrame = ground * CFrame.new(0, 0.8, 3) * FLAT,
-		Color = TOWER_TEAL,
-		Material = Enum.Material.SmoothPlastic,
-		CanCollide = false,
-		Parent = gate,
-	})
-	local y = 1
-	local tiers = { { 10, 9 }, { 8.4, 8 }, { 6.8, 7 }, { 5.2, 6 } } -- width, height
-	for i, tier in tiers do
-		local width, height = tier[1], tier[2]
-		local turn = CFrame.Angles(0, math.rad((i - 1) * 12), 0) -- the bottom tier sits square behind the door
-		part({
-			Name = `Tier{i}`,
-			Size = Vector3.new(width, height, width),
-			CFrame = ground * CFrame.new(0, y + height / 2, 3) * turn,
-			Color = TOWER_STONE,
-			Material = Enum.Material.Slate,
-			Parent = gate,
-		})
-		y += height
-		part({
-			Name = `Band{i}`,
-			Size = Vector3.new(width + 0.6, 0.5, width + 0.6),
-			CFrame = ground * CFrame.new(0, y - 0.25, 3) * turn,
-			Color = TOWER_TEAL,
-			Material = Enum.Material.SmoothPlastic,
-			CanCollide = false,
-			Parent = gate,
-		})
-	end
-	local crystal = part({
-		Name = "Crystal",
-		Size = Vector3.new(2.6, 2.6, 2.6),
-		CFrame = ground * CFrame.new(0, y + 3, 3) * CFrame.Angles(math.rad(45), 0, math.rad(45)),
-		Color = TOWER_TEAL,
-		Material = Enum.Material.Neon,
-		CanCollide = false,
-		Parent = gate,
-	})
-	crystal:SetAttribute("Spin", true)
-	local door = part({
-		Name = "Door",
-		Size = Vector3.new(4.4, 6.5, 0.3),
-		CFrame = ground * CFrame.new(0, 1 + 3.25, 3 - 5.05),
-		Color = TOWER_TEAL,
-		Material = Enum.Material.Neon,
-		Transparency = 0.25,
-		CanCollide = false,
-		Parent = gate,
-	})
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Climb the tower"
-	prompt.ObjectText = "Infinite Tower"
-	prompt.KeyboardKeyCode = Enum.KeyCode.F
-	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 16
-	prompt.RequiresLineOfSight = false
-	prompt:SetAttribute("Npc", "tower")
-	prompt.Parent = door
-	local signAnchor = part({
-		Name = "SignAnchor",
-		Size = Vector3.new(1, 1, 1),
-		CFrame = ground * CFrame.new(0, y + 6, 3),
-		Transparency = 1,
-		CanCollide = false,
-		Parent = gate,
-	})
-	sign(signAnchor, 2, "INFINITE TOWER", "Endless floors · rare artifacts", TOWER_TEAL, true)
-	part({
-		Name = "BoardSpot",
-		Size = Vector3.new(1, 1, 1),
-		CFrame = ground * CFrame.new(14, 0, 2) * CFrame.Angles(0, math.rad(-20), 0),
-		Transparency = 1,
-		CanCollide = false,
-		CanQuery = false,
-		Parent = gate,
-	})
+	return TownServices.Tower(hub,ground)
 end
 
--- Rising sparks and embers from `source` (its whole volume): small, bright, slow, few.
 local function embers(source: BasePart, color: Color3, rate: number): ParticleEmitter
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Name = "Embers"
@@ -724,18 +519,10 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 	swirl.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
 	swirl.Parent = portal
 	embers(portal, theme.Glow, 5)
-	-- HubFx finds the sign on the part named GateGlow. A SignLift attribute on the marker raises it
-	-- (for gates with a tall lintel over the opening).
-	local lift = portalMarker:GetAttribute("SignLift")
-	local glow = part({
-		Name = "GateGlow",
-		Size = Vector3.new(1, 1, 1),
-		CFrame = portalMarker.CFrame * CFrame.new(0, portalMarker.Size.Y / 2 + 2 + (if type(lift) == "number" then lift else 0), 0),
-		Transparency = 1,
-		CanCollide = false,
-		Parent = area,
-	})
-	sign(glow, 5, `WORLD {boss.World} · {string.upper(boss.WorldName)}`, `{boss.Name}, {boss.Title}`, boss.Accent, true)
+	-- Progress text remains on GateGlow, now a physical plaque just under the lintel.
+	Signs.Plaque(area,"GateGlow",portalMarker.CFrame * CFrame.new(0,portalMarker.Size.Y/2-.6,-.9),
+		Vector3.new(math.clamp(portalMarker.Size.X*1.15,12,18),2.8,.4),
+		string.upper(boss.WorldName), "WORLD " .. tostring(boss.World) .. " · " .. boss.Name, boss.Accent)
 
 	local height = BossModels.Height(boss.Id)
 	local stand = bossMarker.CFrame
@@ -760,9 +547,9 @@ local function buildFromMap(map: Instance, markers: Instance)
 	if town then
 		townLights(town)
 	end
-	styleMapSigns(map)
 	local hub = Instance.new("Folder")
 	hub.Name = "Hub"
+	styleMapSigns(map, hub)
 	for _, boss in Bosses.List do
 		local portalMarker = markers:FindFirstChild(`Portal_{boss.Id}`)
 		local bossMarker = markers:FindFirstChild(`Boss_{boss.Id}`)
@@ -774,7 +561,7 @@ local function buildFromMap(map: Instance, markers: Instance)
 	end
 	local sage = markers:FindFirstChild("Sage")
 	if sage and sage:IsA("BasePart") then
-		local sageHeight = BossModels.Height("sage")
+		local sageHeight = TownModels.Height("sage")
 		sageAt(hub, sage.CFrame * CFrame.new(0, sageHeight / 2, 0))
 	end
 	local fusion = markers:FindFirstChild("Fusion")
@@ -902,7 +689,7 @@ function World.Build()
 	end
 
 	-- The Card Sage: a friendly NPC on the altar who gives tips.
-	local sageHeight = BossModels.Height("sage")
+	local sageHeight = TownModels.Height("sage")
 	sageAt(hub, CFrame.lookAt(Vector3.new(11, 1.2 + sageHeight / 2, 8), Vector3.new(0, 1.2 + sageHeight / 2, 0)))
 	fuserAt(hub, CFrame.lookAt(Vector3.new(-14, 1.2, 8), Vector3.new(0, 1.2, 0)))
 	traitMasterAt(hub, CFrame.lookAt(Vector3.new(-22, 1.2, 14), Vector3.new(0, 1.2, 0)))

@@ -46,6 +46,19 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Town services / HUD art (2026-10-27): desktop Play checked Kenji / Hoshi / Kenshin / Fortuna,
+  workbenches / lectern, wheel canopy, pagoda / steps / doorway and physical town / Ember portal plaques.
+  Titles clear roofs; compact nameplates use nearby detail and collision suppression. All tagged signs
+  disabled during the panel-hide smoke check. F prompts retain service ids / 16-stud range; actual
+  server NpcRange accepts nearby and rejects far positions for fusion / traits / fortune. Ten new HUD
+  images load; opaque currency chips hide world text behind them. A live Normal win displays BAG pack
+  artwork / short hint / new currency icons; existing buttons remain. Type 0 errors, props 5,397 / 0,
+  headless ALL CHECKS PASSED. Runtime changes synced via Rojo; Studio left Edit; nothing published.
+- [ ] User review at normal walking distance: service plates, all four gate approaches / portal backs,
+  tower entry, wheel prompt, first-clear three-line card unlock and multi-pack / no-pack result variants.
+  Real-phone and crowded streaming checks remain parked. Town additions rebuild at Play from source;
+  the underlying saved town / terrain / original plaza polish still live in the place file.
+
 - [x] Showcase / roll polish (2026-10-27): enlarged tilted card clears the back better; both faces glow,
   three emitters run at 18 / 35 / 25 with a brightness-3 light, tier / name / odds billboard displays,
   animated gradient rotates. LOW total rate is 19.5/s with no showcase light; unequip removes the part.

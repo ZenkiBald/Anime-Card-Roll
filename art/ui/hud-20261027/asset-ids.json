@@ -1,0 +1,42 @@
+{
+  "shards": {
+    "key": "Shards",
+    "asset": "rbxassetid://104477532061320"
+  },
+  "trait_shards": {
+    "key": "TraitShards",
+    "asset": "rbxassetid://80305379140804"
+  },
+  "rolls": {
+    "key": "Rolls",
+    "asset": "rbxassetid://92265987310575"
+  },
+  "battle": {
+    "key": "BATTLE",
+    "asset": "rbxassetid://114549229091042"
+  },
+  "squad": {
+    "key": "SQUAD",
+    "asset": "rbxassetid://121303037435507"
+  },
+  "bag": {
+    "key": "BAG",
+    "asset": "rbxassetid://111424587919185"
+  },
+  "quests": {
+    "key": "QUESTS",
+    "asset": "rbxassetid://77899831063484"
+  },
+  "travel": {
+    "key": "TRAVEL",
+    "asset": "rbxassetid://107396879277204"
+  },
+  "store": {
+    "key": "STORE",
+    "asset": "rbxassetid://98574282654920"
+  },
+  "dev": {
+    "key": "DEV",
+    "asset": "rbxassetid://130478163417782"
+  }
+}

@@ -20,7 +20,7 @@ local HubFx = {}
 local TIPS = {
 	"Attack cards deal the damage and take every boss hit. Keep them alive!",
 	"Support cards can't be hit. They heal, shield and buff from the back row.",
-	"Every Support card casts its Basic the moment a fight starts.",
+	"Each Support helps the Attack card in its matching numbered slot; it does not attack.",
 	"A card glowing gold has a full Ultimate. Tap it, or switch on AUTO ULT.",
 	"Red marker over your cards? A big boss move lands in a moment.",
 	"Beat a boss to fire a burst of reward rolls with boosted luck.",
@@ -28,8 +28,8 @@ local TIPS = {
 	"Clear Normal to open Hard, and Hard to open Nightmare.",
 	"Galactic Emperor's Crystal Spear freezes a card: it skips its next action.",
 	"Mirror Flower Overlord's Hollow Veil shrugs off Basic hits. Break it with Skills and Ultimates.",
-	"Duplicates add stars: +5% stats each, up to 5 stars.",
-	"After 5 stars every copy counts: bring 100 to Hoshi and he fuses the card into the next rarity!",
+	"Duplicates give fusion copies, never bonus DMG or HP.",
+	"Bring 100 copies of one border to Hoshi to fuse a copy of the next border.",
 	"Find every card of a rarity in the INDEX for permanent luck and a prize.",
 	"Luck Potions stack time, not power: the strongest running potion counts.",
 	"Come back every day: the daily streak in QUESTS gets better until day 7.",
@@ -67,35 +67,37 @@ local function track(inst: Instance)
 	end
 end
 
-local function refreshSigns(hub: Instance)
-	local cleared = State.Progress.Cleared or {}
-	for _, boss in Bosses.List do
-		local area = hub:FindFirstChild(`World{boss.World}`)
-		local glow = area and area:FindFirstChild("GateGlow")
-		local sign = glow and glow:FindFirstChild("Sign")
-		local sub = sign and sign:FindFirstChild("Sub")
-		if sub and sub:IsA("TextLabel") then
-			if Bosses.IsUnlocked(cleared, boss.Id, "Normal") then
-				local done = 0
-				for _, difficulty in Bosses.DifficultyOrder do
-					if cleared[Bosses.FightKey(boss.Id, difficulty)] then
-						done += 1
-					end
-				end
-				sub.Text = `{boss.Name} · {done}/{#Bosses.DifficultyOrder} cleared`
-				sub.TextColor3 = boss.Accent
-			else
-				sub.Text = `LOCKED · {Bosses.UnlockHint(boss.Id, "Normal")}`
-				sub.TextColor3 = Color3.fromRGB(170, 166, 190)
+local function setSub(anchor, value, color)
+	if not anchor then return end
+	for _,gui in anchor:GetChildren() do
+		if gui:IsA("SurfaceGui") or gui:IsA("BillboardGui") then
+			local sub=gui:FindFirstChild("Sub",true)
+			if sub and sub:IsA("TextLabel") then
+				sub.Text=value
+				if color then sub.TextColor3=color end
 			end
 		end
 	end
-	local gate = hub:FindFirstChild("TowerGate")
-	local anchor = gate and gate:FindFirstChild("SignAnchor")
-	local sign = anchor and anchor:FindFirstChild("Sign")
-	local sub = sign and sign:FindFirstChild("Sub")
-	if sub and sub:IsA("TextLabel") and State.Tower.Best > 0 then
-		sub.Text = `Best run: floor {State.Tower.Best} · this run: floor {State.Tower.Run + 1}`
+end
+
+local function refreshSigns(hub: Instance)
+	local cleared = State.Progress.Cleared or {}
+	for _,boss in Bosses.List do
+		local area=hub:FindFirstChild("World" .. tostring(boss.World))
+		local anchor=area and area:FindFirstChild("GateGlow")
+		if Bosses.IsUnlocked(cleared,boss.Id,"Normal") then
+			local done=0
+			for _,difficulty in Bosses.DifficultyOrder do
+				if cleared[Bosses.FightKey(boss.Id,difficulty)] then done+=1 end
+			end
+			setSub(anchor,boss.Name .. " · " .. tostring(done) .. "/" .. tostring(#Bosses.DifficultyOrder) .. " cleared",boss.Accent)
+		else
+			setSub(anchor,"LOCKED · " .. Bosses.UnlockHint(boss.Id,"Normal"),Color3.fromRGB(180,181,192))
+		end
+	end
+	local gate=hub:FindFirstChild("TowerGate")
+	if gate and State.Tower.Best > 0 then
+		setSub(gate:FindFirstChild("SignAnchor"),"Best: " .. tostring(State.Tower.Best) .. " · Next: floor " .. tostring(State.Tower.Run+1))
 	end
 end
 
@@ -164,8 +166,7 @@ function HubFx.CameraBehind(character: Model)
 	Workspace.CurrentCamera.CFrame = CFrame.lookAt(focus - look * 12 + Vector3.new(0, 3.5, 0), focus)
 end
 
--- Every world sign (tagged FadeSign by World) fades in as you walk up: solid within FADE_NEAR studs,
--- gone at the BillboardGui's MaxDistance. Each label's 1 px shadow keeps its text in step.
+-- Physical plaques and compact NPC plates fade over the final 20% of their visibility range.
 
 -- While a panel, a fight or a reveal is up, world signs and players' name tags hide, so no plate reads
 -- through a panel or bleeds into the top HUD. `reason` keys stack (Modal / Battle / Reveal).
@@ -191,40 +192,56 @@ function HubFx.SetWorldLabelsHidden(reason: string, on: boolean)
 end
 
 local function fadeSigns()
-	local camera = Workspace.CurrentCamera
-	if camera == nil then
-		return
+	local camera=Workspace.CurrentCamera
+	if not camera then return end
+	local hide=worldHidden()
+	local signs=CollectionService:GetTagged("FadeSign")
+	local occupied={}
+	local function distanceTo(gui)
+		local anchor=gui.Adornee or gui.Parent
+		return if anchor and anchor:IsA("BasePart") then (anchor.Position-camera.CFrame.Position).Magnitude else math.huge
 	end
-	local eye = camera.CFrame.Position
-	local hide = worldHidden()
-	for _, gui in CollectionService:GetTagged("FadeSign") do
-		if not gui:IsA("BillboardGui") then
-			continue
+	table.sort(signs,function(a,b) return distanceTo(a)<distanceTo(b) end)
+	for _,gui in signs do
+		if not (gui:IsA("BillboardGui") or gui:IsA("SurfaceGui")) then continue end
+		gui.Enabled=not hide
+		if hide then continue end
+		local anchor=gui.Adornee or gui.Parent
+		local position=if anchor and anchor:IsA("BasePart") then anchor.Position elseif anchor and anchor:IsA("Attachment") then anchor.WorldPosition else nil
+		if not position then continue end
+		local distance=(position-camera.CFrame.Position).Magnitude
+		local far=math.max(gui.MaxDistance,2)
+		local fade=math.clamp((distance-far*.8)/(far*.2),0,1)
+		if gui:IsA("BillboardGui") and gui:GetAttribute("NearTitle") then
+			local pos,onScreen=camera:WorldToViewportPoint(position+gui.StudsOffset)
+			local scale=math.clamp(camera.ViewportSize.Y/520,.72,1)
+			gui.Size=UDim2.fromOffset(178*scale,48*scale)
+			local box={ X=pos.X-89*scale, Y=pos.Y-24*scale, W=178*scale, H=48*scale }
+			local blocked=not onScreen or distance>far or box.Y<math.min(114,camera.ViewportSize.Y*.23)
+			for _,other in occupied do
+				if box.X<other.X+other.W+5 and box.X+box.W+5>other.X and box.Y<other.Y+other.H+5 and box.Y+box.H+5>other.Y then blocked=true; break end
+			end
+			if blocked then gui.Enabled=false; continue end
+			table.insert(occupied,box)
 		end
-		gui.Enabled = not hide
-		if hide then
-			continue
-		end
-		local anchor = gui.Adornee or gui.Parent
-		local position = if anchor and anchor:IsA("BasePart")
-			then anchor.Position
-			elseif anchor and anchor:IsA("Attachment") then anchor.WorldPosition
-			else nil
-		if position == nil then
-			continue
-		end
-		-- A sign fades over the last 40% of its range (or from FADE_NEAR, whichever is nearer).
-		local far = math.max(gui.MaxDistance, 2)
-		local near = far * 0.8
-		local fade = math.clamp(((position - eye).Magnitude - near) / (far - near), 0, 1)
-		for _, label in gui:GetChildren() do
-			if label:IsA("TextLabel") then
-				label.TextTransparency = fade
-				local shadow = label:FindFirstChild("Shadow")
-				if shadow and shadow:IsA("TextLabel") then
-					shadow.Text = label.Text
-					shadow.TextTransparency = 0.45 + 0.55 * fade
+		local plate=gui:FindFirstChild("Plate")
+		if plate and plate:IsA("CanvasGroup") then
+			plate.GroupTransparency=fade
+			local nearTitle=gui:GetAttribute("NearTitle")
+			if type(nearTitle)=="string" then
+				local near=distance <= (gui:GetAttribute("DetailRange") or 38)
+				local title=plate:FindFirstChild("Title")
+				local sub=plate:FindFirstChild("Sub")
+				if title then
+					title.Text=if near then nearTitle else gui:GetAttribute("ShortTitle") or nearTitle
+					title.Position=UDim2.fromScale(.04,if near then .03 else .14)
+					title.Size=UDim2.fromScale(.92,if near then .51 else .7)
 				end
+				if sub then sub.Visible=near end
+			end
+		else
+			for _,label in gui:GetDescendants() do
+				if label:IsA("TextLabel") then label.TextTransparency=fade end
 			end
 		end
 	end

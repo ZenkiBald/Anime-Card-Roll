@@ -22,11 +22,11 @@ local Goals = require(Shared.Goals)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local HudArt = require(script.Parent.HudArt)
 local Skin = require(script.Parent.Skin)
 local Effects = require(script.Parent.Effects)
 local State = require(script.Parent.Parent.State)
 local JuicyButton = require(script.Parent.Components.JuicyButton)
-local IconBadge = require(script.Parent.Components.IconBadge)
 local UIArt = require(script.Parent.UIArt)
 local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
@@ -168,24 +168,19 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 	Skin.Apply(button, "MenuButton")
 	local palette = MENU_COLORS[string.upper(text)]
 	if palette then Kit.surface(button, palette[1], palette[2]) end
-	local iconLabel = Kit.label({
-		Name = "Icon",
-		Text = icon,
-		Font = Theme.Font.Heavy,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.065, 0.5),
-		Size = UDim2.fromScale(0.23, 0.76),
-		Parent = button,
-	}, 40)
-	iconLabel.Visible = false -- navigation reads as a plain label beside the character artwork
+	Kit.new("ImageLabel", {
+		Name="Icon", Image=HudArt.Get(string.upper(text)) or "", BackgroundTransparency=1,
+		AnchorPoint=Vector2.new(0,.5), Position=UDim2.new(0,8,.5,0), Size=UDim2.fromOffset(34,34),
+		ScaleType=Enum.ScaleType.Fit, ZIndex=3, Parent=button,
+	})
 	local label = Kit.label({
 		Name = "Label",
 		Text = text,
 		Font = Theme.Font.Heavy,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.08, 0.5),
-		Size = UDim2.fromScale(0.82, 0.6),
+		Position = UDim2.new(0, 48, 0.5, 0),
+		Size = UDim2.new(1, -57, 0.6, 0),
 		Parent = button,
 	}, 20)
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.4).Parent = label
@@ -257,19 +252,11 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 		BackgroundTransparency = 0.8,
 		Parent = chip,
 	})
-	-- The icon in an occult badge (diamond plate, steel bezel, glow in the chip's colour), hanging off
-	-- the chip's left edge.
-	IconBadge.new({
-		Name = "Icon",
-		ArtKey = key,
-		IconAsset = if iconKey and Skin.Icons[iconKey] then Skin.Icons[iconKey] else emoji,
-		GlowColor = edge,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, 18, 0.5, 0),
-		Size = UDim2.new(1, 0, 1, 0),
-		DominantAxis = Enum.DominantAxis.Height,
-		ZIndex = 3,
-		Parent = chip,
+	-- Plain transparent artwork leaves the currency value clear of a surrounding badge.
+	Kit.new("ImageLabel", {
+		Name="Icon", Image=HudArt.Get(key) or "", BackgroundTransparency=1,
+		AnchorPoint=Vector2.new(.5,.5), Position=UDim2.new(0,20,.5,0), Size=UDim2.fromOffset(34,34),
+		ScaleType=Enum.ScaleType.Fit, ZIndex=3, Parent=chip,
 	})
 	local value = Kit.label({
 		Name = "Value",
@@ -283,8 +270,8 @@ local function currencyChip(key: string, order: number, iconKey: string?, emoji:
 	}, 30)
 	Kit.textStroke(Color3.fromRGB(10, 12, 19), 2.5, 0).Parent = value
 	Kit.new("UIScale", { Name = "Pop", Scale = 1, Parent = chip })
-	chip.BackgroundTransparency = 1
-	chip.UIStroke.Transparency = 1
+	chip.BackgroundTransparency = 0
+	chip.UIStroke.Transparency = 0
 	chip.Gloss.Visible = false
 	chip.Tint.Visible = false
 	currency[key] = chip
