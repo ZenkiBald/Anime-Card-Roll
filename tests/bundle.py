@@ -18,6 +18,7 @@ modules = [
     ("Bosses", root / "src" / "shared"),
     ("Rewards", root / "src" / "shared"),
     ("Packs", root / "src" / "shared"),
+    ("PackBatch", root / "src" / "shared"),
     ("Items", root / "src" / "shared"),
     ("Traits", root / "src" / "shared"),
     ("Meta", root / "src" / "shared"),
@@ -29,7 +30,7 @@ modules = [
     ("BattleEngine", root / "src" / "server"),
     ("SaveMigration", root / "src" / "server"),
 ]
-test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau", "phase2_test.luau", "support_test.luau", "ftue_test.luau", "save_test.luau"]
+test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau", "phase2_test.luau", "support_test.luau", "ftue_test.luau", "save_test.luau", "pack_batch_test.luau"]
 
 out = [(tests / "stubs.luau").read_text(encoding="utf-8"), (tests / "harness.luau").read_text(encoding="utf-8"), "MODULES = {}"]
 for name, folder in modules:

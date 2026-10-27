@@ -32,7 +32,7 @@ end
 function TownModels.Has(id) return LOOKS[id] ~= nil end
 function TownModels.Height(_id) return 6.4 end
 
-function TownModels.Build(id)
+local function costume(id)
 	local look = assert(LOOKS[id])
 	local model = Instance.new("Model")
 	model.Name = id
@@ -92,6 +92,62 @@ function TownModels.Build(id)
 		for i=1,3 do p("FortuneCard",Vector3.new(.5,.72,.08),CFrame.new(1.65+(i-2)*.19,2.6,-.8)*CFrame.Angles(0,0,(i-2)*.3),Color3.fromRGB(219,198,130)) end
 	end
 	return model
+end
+
+function TownModels.Build(id)
+	local look=assert(LOOKS[id])
+	local desc=Instance.new("HumanoidDescription")
+	desc.HeadColor=SKIN; desc.LeftArmColor=look.Coat; desc.RightArmColor=look.Coat
+	desc.TorsoColor=look.Coat; desc.LeftLegColor=look.Coat:Lerp(DARK,.35); desc.RightLegColor=desc.LeftLegColor
+	desc.BodyTypeScale=0; desc.ProportionScale=0
+	local ok,rig=pcall(function()
+		return game:GetService("Players"):CreateHumanoidModelFromDescriptionAsync(desc,Enum.HumanoidRigType.R15)
+	end)
+	desc:Destroy()
+	if not ok then
+		-- A temporary avatar-service outage must not remove the town's service prompts.
+		warn("[TownModels] Avatar rig unavailable; using service fallback: " .. tostring(rig))
+		return costume(id)
+	end
+	rig.Name=id; rig.ModelStreamingMode=Enum.ModelStreamingMode.Atomic
+	local root=rig:FindFirstChild("HumanoidRootPart")
+	rig.PrimaryPart=root
+	local humanoid=rig:FindFirstChildOfClass("Humanoid")
+	humanoid.DisplayDistanceType=Enum.HumanoidDisplayDistanceType.None
+	humanoid.WalkSpeed=0; humanoid.AutoRotate=false
+	if not humanoid:FindFirstChildOfClass("Animator") then Instance.new("Animator",humanoid) end
+	rig:SetAttribute("TownRig",true)
+	rig:SetAttribute("IdleAnimation","rbxassetid://507766666")
+	for _,inst in rig:GetDescendants() do
+		if inst:IsA("BaseScript") then inst:Destroy()
+		elseif inst:IsA("BasePart") then
+			inst.Anchored=inst==root; inst.CanCollide=false; inst.CanTouch=false; inst.CanQuery=false; inst.Massless=true
+			if inst.Name:find("Hand") then inst.Color=SKIN elseif inst.Name:find("Foot") then inst.Color=DARK end
+		end
+	end
+	-- Reuse original themed tools / clothes as welded accessories on the real articulated body.
+	local props=costume(id)
+	local keep={HatBrim=true,HatCrown=true,GuideBook=true,BookPages=true,Apron=true,Pocket=true,
+		GoggleStrap=true,Goggle=true,HammerHandle=true,HammerHead=true,Scarf=true,ScarfTail=true,
+		FocusStaff=true,FocusCrystal=true,HeadWrap=true,HeadJewel=true,Earring=true,FortuneCard=true,Belt=true,Buckle=true}
+	local head=rig:FindFirstChild("Head")
+	local torso=rig:FindFirstChild("UpperTorso")
+	for _,piece in props:GetChildren() do
+		if piece:IsA("BasePart") and keep[piece.Name] then
+			local target=if piece.Position.Y>=4.7 then head else torso
+			piece.CFrame=root.CFrame*CFrame.new(0,-3.2,0)*piece.CFrame
+			piece.Anchored=false; piece.Massless=true; piece.Parent=rig
+			local weld=Instance.new("WeldConstraint"); weld.Part0=target; weld.Part1=piece; weld.Parent=piece
+		end
+	end
+	props:Destroy()
+	-- Rounded hair silhouette, rather than a rectangular brick over the head.
+	for i=1,3 do
+		local hair=piece(rig,"HairLock",Vector3.new(.75,.7,.85),head.CFrame*CFrame.new((i-2)*.42,.55,.08),look.Hair,nil,Enum.PartType.Ball)
+		hair.Anchored=false; hair.Massless=true
+		local weld=Instance.new("WeldConstraint"); weld.Part0=head; weld.Part1=hair; weld.Parent=hair
+	end
+	return rig
 end
 
 return TownModels

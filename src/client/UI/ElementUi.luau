@@ -12,33 +12,33 @@ local IconBadge = require(script.Parent.Components.IconBadge)
 local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 
 local ElementUi = {}
+local Kit = require(script.Parent.Kit)
 
 function ElementUi.Color(id: string?): Color3
 	local element = Elements.Get(id)
 	return if element then element.Color else Theme.Color.Muted
 end
 
--- The element's occult badge (Components/IconBadge: diamond Urushi plate, steel bezel, a glow in the
--- element's colour, the icon upright). Place it with `props` (Position, Size, AnchorPoint, ZIndex,
--- Parent, Name); it keeps itself square off its width.
+-- Transparent illustrated element art, kept square without a text tag or surrounding diamond.
 function ElementUi.Badge(id: string?, props: { [string]: any }): Frame?
 	local element = Elements.Get(id)
 	if element == nil then
 		return nil
 	end
-	return IconBadge.new({
+	local visual = Elements.Visuals[element.Id]
+	local root = Kit.new("Frame", {
 		Name = props.Name or "Element",
-		IconAsset = element.Icon,
-		ArtKey = `Element:{element.Id}`,
-		ElementColor = element.Color,
+		BackgroundTransparency = 1,
 		Size = props.Size,
 		Position = props.Position,
 		AnchorPoint = props.AnchorPoint,
 		ZIndex = props.ZIndex or 6,
 		LayoutOrder = props.LayoutOrder,
-		DominantAxis = props.DominantAxis,
 		Parent = props.Parent,
-	})
+	}, { Kit.aspect(1, props.DominantAxis or Enum.DominantAxis.Width) })
+	Kit.new("ImageLabel", { Name="Icon", Image=visual.Image, BackgroundTransparency=1,
+		Size=UDim2.fromScale(1,1), ScaleType=Enum.ScaleType.Fit, ZIndex=props.ZIndex or 6, Parent=root })
+	return root
 end
 
 -- A role's badge (Cards.luau `Role`: Striker / Hexer / Mender / Warder), same plate as the element's.

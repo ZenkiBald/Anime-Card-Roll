@@ -102,9 +102,25 @@ function Services.Tower(parent,ground)
 		local step=p("Step",Vector3.new(8.5,.28*i,1.4),0,.14*i,-7.7+i*1.35,STONE,Enum.Material.Slate)
 		step.CanCollide=true; step.CanQuery=true
 	end
-	local levels={{10,8,1,6.4},{7.8,6.6,9.2,4.4},{5.7,5.2,15.4,3.7}}
+	gate:SetAttribute("VisualHeight",1600)
+	local skyline=Instance.new("Folder"); skyline.Name="EndlessTower"; skyline.Parent=parent
+	local levels={}
+	for i=1,80 do
+		local taper=.94^math.floor((i-1)/10)
+		table.insert(levels,{10*taper,8*taper,1+(i-1)*20,if i==1 then 10 else 15})
+	end
+	local tierModel=gate
 	for i,l in levels do
+		-- Keep streaming bounds local: the 1,600-stud skyline must not make the entrance one giant atomic model.
+		if i>1 and (i==2 or (i-2)%5==0) then
+			tierModel=model(skyline,"Stories_" .. i)
+			-- Keep the visible skyline continuous through the cloud bank, independent of player streaming focus.
+			if i<=17 then tierModel.ModelStreamingMode=Enum.ModelStreamingMode.Persistent end
+		end
 		local w,d,base,h=l[1],l[2],l[3],l[4]
+		local function p(name,size,x,y,z,color,material,class)
+			return part(tierModel,name,size,ground*CFrame.new(x,y,z),color,material,class)
+		end
 		p("BackWall",Vector3.new(w,h,.3),0,base+h/2,3+d/2,Color3.fromRGB(212,203,171))
 		for _,x in {-1,1} do
 			p("SideWall",Vector3.new(.3,h,d),x*w/2,base+h/2,3,Color3.fromRGB(212,203,171))
@@ -120,15 +136,50 @@ function Services.Tower(parent,ground)
 			end
 		end
 		p("TimberBeam",Vector3.new(w+.3,.45,d+.3),0,base+h-.12,3,WOOD,Enum.Material.Wood)
-		roof(gate,ground*CFrame.new(0,base+h+.1,3),w+3.4,d+3)
+		roof(tierModel,ground*CFrame.new(0,base+h+.1,3),w+3.4,d+3)
+		if i%5==0 then task.wait() end
 	end
-	p("FinialStem",Vector3.new(.24,2.4,.24),0,22,3,GOLD,Enum.Material.Metal)
-	p("FinialGem",Vector3.new(.7,1,.7),0,23.3,3,Color3.fromRGB(99,206,180),Enum.Material.Glass)
+	-- No cap or finial: the repeating tower disappears into a local cloud bank.
+	local clouds=model(skyline,"TowerCloudBank")
+	clouds.ModelStreamingMode=Enum.ModelStreamingMode.Persistent
+	for layer=1,3 do
+		local y=280+(layer-1)*55
+		local core=part(clouds,"CloudCore",Vector3.new(150,45,150),ground*CFrame.new(0,y,3),Color3.fromRGB(231,241,247))
+		core.Shape=Enum.PartType.Ball; core.Transparency=.03; core.CastShadow=false
+		for i=1,7 do
+			local angle=i*math.pi*2/7
+			local cloud=part(clouds,"Cloud",Vector3.new(125,40,105),ground*CFrame.new(math.cos(angle)*40,y,3+math.sin(angle)*40),Color3.fromRGB(231,241,247))
+			cloud.Shape=Enum.PartType.Ball; cloud.Transparency=.18; cloud.CastShadow=false
+		end
+	end
+	local mist=part(clouds,"CloudMist",Vector3.new(130,20,130),ground*CFrame.new(0,320,3),Color3.new(1,1,1))
+	mist.Transparency=1
+	local vapor=Instance.new("ParticleEmitter")
+	vapor.Texture="rbxasset://textures/particles/smoke_main.dds"; vapor.Rate=2
+	vapor.Lifetime=NumberRange.new(12,18); vapor.Speed=NumberRange.new(.5,1.5)
+	vapor.Size=NumberSequence.new(75,110); vapor.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(.25,.55),NumberSequenceKeypoint.new(1,1)})
+	vapor.Color=ColorSequence.new(Color3.fromRGB(232,242,250)); vapor.SpreadAngle=Vector2.new(180,180)
+	vapor.RotSpeed=NumberRange.new(-5,5); vapor:SetAttribute("TownFxRange",600); vapor.Parent=mist
 	for _,x in {-5.8,5.8} do lantern(gate,ground*CFrame.new(x,0,-4.3)) end
 	for _,x in {-2.35,2.35} do p("DoorFrame",Vector3.new(.28,6.1,.4),x,4,-1.2,JADE,Enum.Material.Wood) end
 	p("DoorLintel",Vector3.new(4.9,.3,.5),0,7,-1.2,JADE,Enum.Material.Wood)
 	local door=p("Door",Vector3.new(4.3,5.7,.12),0,3.95,-1.16,Color3.fromRGB(59,164,156),Enum.Material.Neon)
 	door.Transparency=.35
+	local vortex=Instance.new("ParticleEmitter")
+	vortex.Name="PortalVortex"; vortex.Texture="rbxasset://textures/particles/sparkles_main.dds"
+	vortex.Color=ColorSequence.new(Color3.fromRGB(104,255,240),Color3.fromRGB(43,133,220))
+	vortex.LightEmission=1; vortex.Rate=12; vortex.Lifetime=NumberRange.new(1,2)
+	vortex.Speed=NumberRange.new(1,3); vortex.Acceleration=Vector3.new(0,2,0)
+	vortex.RotSpeed=NumberRange.new(90,180); vortex.SpreadAngle=Vector2.new(35,35)
+	vortex.Size=NumberSequence.new(.25,0); vortex:SetAttribute("TownFxRange",110); vortex.Parent=door
+	for _,radius in {3.2,4.4} do
+		for i=1,12 do
+			local angle=i*math.pi/6
+			p("RunicFloor",Vector3.new(.6,.08,.22),math.cos(angle)*radius,1.06,-2+math.sin(angle)*radius,Color3.fromRGB(76,222,204),Enum.Material.Neon)
+		end
+	end
+	for _,x in {-4.5,4.5} do p("ToriiPost",Vector3.new(.4,8,.4),x,4,-5,WOOD,Enum.Material.Wood) end
+	p("ToriiLintel",Vector3.new(10,.45,.6),0,8,-5,JADE,Enum.Material.Slate)
 	local prompt=Instance.new("ProximityPrompt")
 	prompt.ActionText="Climb the tower"; prompt.ObjectText="Infinite Tower"
 	prompt.KeyboardKeyCode=Enum.KeyCode.F; prompt.HoldDuration=0; prompt.MaxActivationDistance=16

@@ -18,6 +18,16 @@
 
 local Elements = {}
 
+-- Presentation only: combat relationships and existing element ids stay unchanged.
+Elements.Visuals = {
+	Flame = { Image="rbxassetid://139602123848918", Primary=Color3.fromRGB(255,69,0), Accent=Color3.fromRGB(255,215,0) },
+	Frost = { Image="rbxassetid://136102736692618", Primary=Color3.fromRGB(0,229,255), Accent=Color3.new(1,1,1) },
+	Storm = { Image="rbxassetid://139675629895286", Primary=Color3.fromRGB(168,85,247), Accent=Color3.fromRGB(56,189,248) },
+	Void = { Image="rbxassetid://111735655444239", Primary=Color3.fromRGB(107,33,168), Accent=Color3.fromRGB(244,63,94) },
+	Cosmic = { Image="rbxassetid://76042351164484", Primary=Color3.fromRGB(245,158,11), Accent=Color3.fromRGB(236,72,153) },
+	Light = { Image="rbxassetid://133052455221735", Primary=Color3.fromRGB(250,204,21), Accent=Color3.new(1,1,1) },
+}
+
 export type Element = {
 	Id: string,
 	Name: string,

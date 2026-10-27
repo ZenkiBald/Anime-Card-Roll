@@ -67,8 +67,8 @@ function Packs.InfusedId(element: string): string?
 	return if Packs.ById[id] then id else nil
 end
 
--- The reveal flips this many of a pack's pulls (the rarest) and sums up the rest.
-Packs.ShowCards = 10
+-- The whole opening shares these highlights, followed by grouped quantities for every pull.
+Packs.ShowCards = 5
 
 -- A boss win: one Roll Pack per 10 of the old reward rolls (3 + 2D, rounded up), +1 on a first clear.
 function Packs.ForBoss(d: number, firstClear: boolean): { [string]: number }

@@ -186,10 +186,10 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.4).Parent = label
 	local badge = Kit.new("Frame", {
 		Name = "Badge",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.96, 0.14),
-		Size = UDim2.fromOffset(18, 18),
-		BackgroundColor3 = Theme.Color.Danger,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -2, 0, 2),
+		Size = UDim2.fromOffset(26, 26),
+		BackgroundColor3 = Color3.fromRGB(235, 50, 65),
 		Visible = false,
 		ZIndex = 4,
 		Parent = button,
@@ -198,7 +198,12 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 		Kit.aspect(1, Enum.DominantAxis.Width),
 		Kit.stroke(Color3.new(1, 1, 1), 1.5, 0),
 	})
-	Kit.label({
+	local badgeDecor = badge:FindFirstChild("VectorDecor")
+	if badgeDecor then badgeDecor:Destroy() end
+	local badgeGradient = badge:FindFirstChildOfClass("UIGradient")
+	if badgeGradient then badgeGradient:Destroy() end
+	badge.BackgroundColor3 = Color3.fromRGB(235, 50, 65)
+	local countLabel = Kit.label({
 		Name = "Count",
 		Text = "!",
 		Font = Theme.Font.Heavy,
@@ -207,7 +212,9 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 		Size = UDim2.fromScale(0.8, 0.8),
 		ZIndex = 5,
 		Parent = badge,
-	}, 14)
+	}, 17)
+	local countStroke = countLabel:FindFirstChildOfClass("UIStroke")
+	if countStroke then countStroke.Thickness = 1.2 end
 	Kit.pressable(button)
 	button.Activated:Connect(onClick)
 	menuButtons[text] = button

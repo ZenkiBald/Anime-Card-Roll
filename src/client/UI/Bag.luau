@@ -397,8 +397,10 @@ local function openPack(pack, count: (number | string)?)
 	if busy then
 		return
 	end
+	busy = true -- cover the yielding request as well as its reveal
 	local result, message = PackOpen.Open(pack.Id, count)
 	if result == nil then
+		busy = false
 		hint(message or "Couldn't open it")
 		return
 	end
@@ -519,7 +521,7 @@ local function showDetail(entry)
 		local row2 = actionRow(7)
 		row2.Size = UDim2.new(1, 0, 0, 38)
 		opener(row2, "OPEN 10", 10, 1)
-		opener(row2, `OPEN ALL ({Kit.commas(entry.Count)})`, "all", 2)
+		opener(row2, `OPEN ALL ({Kit.commas(math.min(entry.Count, 10000 // item.Rolls))})`, "all", 2)
 		-- Condensing and infusing are done in town, at Hoshi's PACK ALCHEMY.
 		if Packs.Condense[item.Id] or item.Id == "1000" then
 			detailText(8, "⚗️ Condense 10 into a bigger pack, or infuse a Mega Pack with an element: visit Hoshi the Fusion Master in town.", Theme.Color.Muted, 14, Theme.Font.Heavy)

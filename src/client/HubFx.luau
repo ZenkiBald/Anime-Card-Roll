@@ -14,6 +14,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Bosses = require(Shared.Bosses)
 
 local State = require(script.Parent.State)
+local Theme = require(script.Parent.UI.Theme)
 
 local HubFx = {}
 
@@ -50,11 +51,28 @@ local TIPS = {
 local animated = {} -- [Model] = { Base, Phase }
 local spinners = {} -- [BasePart] = { Base, Phase }
 local turners = {} -- [Model] = { Base, Speed }: Madame Fortuna's wheel, turning about its face
+local townFx = {} -- the two new tower emitters; bounded independently of the skyline parts
 local tipIndex = 0
 local bubble: any = nil -- Kenji's speech bubble (children read by name)
 local bubbleToken = 0
 
 local function track(inst: Instance)
+	if inst:IsA("ParticleEmitter") and inst:GetAttribute("TownFxRange") then
+		townFx[inst]={Rate=inst.Rate,Range=inst:GetAttribute("TownFxRange")}
+	end
+	if inst:IsA("Model") and inst:GetAttribute("TownRig") and not animated[inst] then
+		local humanoid=inst:FindFirstChildOfClass("Humanoid")
+		local animator=humanoid and humanoid:FindFirstChildOfClass("Animator")
+		if animator then
+			local idle=Instance.new("Animation")
+			idle.AnimationId=inst:GetAttribute("IdleAnimation")
+			pcall(function()
+				local track=animator:LoadAnimation(idle)
+				track.Looped=true; track.Priority=Enum.AnimationPriority.Idle; track:Play()
+			end)
+			idle:Destroy()
+		end
+	end
 	if inst:IsA("Model") and inst:GetAttribute("Bob") then
 		local base = inst:GetAttribute("BaseCFrame")
 		if typeof(base) == "CFrame" then
@@ -195,6 +213,12 @@ local function fadeSigns()
 	local camera=Workspace.CurrentCamera
 	if not camera then return end
 	local hide=worldHidden()
+	for emitter,info in townFx do
+		if not emitter.Parent then townFx[emitter]=nil; continue end
+		local anchor=emitter.Parent
+		emitter.Enabled=not hide and anchor:IsA("BasePart") and (anchor.Position-camera.CFrame.Position).Magnitude<info.Range
+		emitter.Rate=info.Rate*(if Theme.FxLow then .25 else 1)
+	end
 	local signs=CollectionService:GetTagged("FadeSign")
 	local occupied={}
 	local function distanceTo(gui)

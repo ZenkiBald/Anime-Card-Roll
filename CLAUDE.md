@@ -26,14 +26,23 @@ Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over
 its boss. Town NPCs: Kenji (guide), Hoshi (fusion + pack alchemy), Kenshin (traits), Madame Fortuna (Lucky Wheel), the
 tower gate and leaderboards. The spawn plaza has a thin stone fountain border, short service approaches and two
 wooden benches with flower planters. Stalls / services sit around the edge; an explicit Tower marker puts the
-jade-roofed three-tier pagoda northwest of the fountain. `tools/studio/town-polish.luau` applies the plaza's place-only edits once
+an endless jade-roofed pagoda northwest of the fountain. `tools/studio/town-polish.luau` applies the plaza's place-only edits once
 and keeps a reversible backup in ServerStorage. The local saved place is under `studio-local/` (ignored by Git).
 The service figures / workbenches / wheel canopy / pagoda are runtime parts built by `World`, `TownModels` and
-`TownServices`, so those changes travel through Git / Rojo. Four original Roblox figures have distinct outfits
-and tools; Hoshi has a card workbench, Kenshin scrolls / crystals, and Kenji a lectern. Boss models are unchanged.
-Town services only work beside their NPC (server `NpcRange`, 24 studs). `WorldSigns` puts physical double-sided
-plaques on town gates, world portals, the wheel and tower (145 studs); the map's old floating titles are disabled
-only in the running copy. Compact NPC plates show within 76 studs, with the name / role inside 38 and a short
+`TownServices`, so those changes travel through Git / Rojo. The tower's visual contract is an unseeable top:
+80 repeating pagoda stories, about 1,600 studs high, tapering every ten stories, cream walls / dark timber /
+teal roofs / golden windows. A local cloud bank / mist surrounds it around Y=320; no cap or finial. Its upper
+stories stream in five-story groups; the lower skyline through the clouds and the cloud bank stay Persistent
+so player streaming focus cannot expose a cut-off top. The entrance keeps the Tower prompt / BoardSpot,
+with Torii posts, cyan floor runes and a rising portal vortex. HubFx distance-culls the two tower emitters,
+pauses them behind panels and reduces their rates to 25% on LOW. No extra tower floors are saved or awarded.
+Four original R15 service rigs have colored outfits / welded themed tools and Roblox idle animation 507766666
+(played locally by HubFx); only their root is anchored. Hoshi has a card workbench, Kenshin scrolls / crystals,
+and Kenji a lectern. Avatar-service failure retains the old procedural figure so prompts still exist. Boss models
+are unchanged. Town services only work beside their NPC (server `NpcRange`, 24 studs). `WorldSigns` restores
+floating town / world-door titles in white outlined FredokaOne, with a smaller colored subtitle and 600-stud
+visibility; the saved map's old labels are disabled only in the running copy. Wheel / tower plaques remain
+physical and double-sided (145 studs). Compact NPC plates show within 76 studs, with the name / role inside 38 and a short
 service label farther out. Closest visible NPC plates take priority when their screen rectangles overlap;
 plates stay below the top HUD. All labels stay opaque through 80% of their range, fade at the edge (HubFx),
 never draw over the world, and hide with player name tags while a panel,
@@ -170,7 +179,14 @@ Hundred-Floor Pagoda: 100 kept floors (16.5k x 1.053^(floor-1), floor 100 is a f
 milestones at 25 / 50 / 75 (packs, Trait Shards) and 100 (the Pagoda's artifact, the Crown of the Hundred Floors, and
 the worn "Pagoda Master" title). Server raids every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared).
 Roll Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy condenses or
-infuses them.
+infuses them. One OpenPack request consumes the selected packs and rolls count × pack size in one non-yielding
+server transaction (10,000-roll limit, excess packs remain). Luck / infused options are sampled once; XP and
+the best-pull announcement happen once. `Shared/PackBatch` ranks by actual card rarity and returns five compact
+highlights plus grouped quantities for every card / border, border counts and final ownership snapshots.
+`PackOpen.Open` applies those final snapshots once. The reveal animates the five best pulls from rarest to
+commonest, then shows ALL N CARDS in scrollable quantity stacks, explicitly including the highlights. It never
+reapplies old per-roll copy counts. BAG blocks repeated clicks during the request and the reveal. OPEN ALL's
+label reflects the capped pack count; no hundreds-of-commons click-through. Reopening consumes only a new request.
 
 **Progression and retention.** Levels 1-100 with stat points; Shard Shop upgrades; potions; gear in two sets
 (`Items.luau`): **relics** (the 10 wearable items, `Items.Artifacts` / `Gear.Artifacts` in code, wear 3, Infinite Tower
@@ -196,6 +212,7 @@ The earlier image kit remains archived under `art/ui/occult/` for reference.
 
 The HUD has a vertical menu with 20 px FredokaOne labels and distinct saturated gradients: crimson BATTLE,
 royal-blue SQUAD, violet BAG, emerald QUESTS, cyan TRAVEL, gold STORE and orange DEV.
+Sidebar notification badges are plain crimson 26 px circles with a 1.2 px text outline and no inner bevel.
 It has an opaque currency group, a quiet Kenji tracker / claim seal,
 XP and Next Goal at bottom-left on desktop, and AUTO / ROLL / QUICK at bottom-centre with Momentum and Surge in one
 band. The server list starts folded (tap to expand). RECENT PULLS shows up to three rows, two on short screens.
@@ -247,6 +264,11 @@ The three opaque HUD currency chips and seven colored menu buttons use individua
 through `UI/HudArt`; sources, exact built-in ImageGen prompts, hashes, ids and 384 px uploads are in
 `art/ui/hud-20261027/`. Battle results reuse this currency art and BAG pack art, with a larger pack picture,
 short save / luck hint and a separate three-line new-card announcement. Reward actions and payouts are unchanged.
+`Elements.Visuals` centrally maps Flame / Frost / Storm / Void / Cosmic / Light to six transparent illustrated
+assets and primary / accent colors. `ElementUi.Badge` renders the icon itself in card / formation / inspector /
+battle / reveal badges, without the old two-letter diamond tag. Element ids, combat colors / matchups / synergies
+stay unchanged. Exact built-in ImageGen prompts, originals, hashes, ids and 384 px upload copies are in
+`art/ui/elements-20261027/`.
 BAG uses 17 individual transparent AI illustrations for the requested packs, potions, relics and Pagoda crown
 in both tiles and details, with separate names / counts / status lines. `UI/BagArt` maps item keys to uploaded
 images; infused Mega Packs reuse Mega art. Sources, exact built-in imagegen prompts, hashes, uploaded ids
@@ -269,7 +291,7 @@ The character artwork pass did not change identities. The later character-to-Att
 - `src/shared` -> ReplicatedStorage.Shared (both sides; pure data + formulas, tested headless): `Config` (tuning,
   `TestMode`, dev access lists, deck and battle rules), `Cards` (card data + `Pool`, `PullChances`, `Stat`, `Power`,
   `Cost`), `Borders` (the tiers: odds, multipliers, cost, colours), `Odds`, `Rarity` (relic / trait tiers only),
-  `CardInfo` (readable effect facts), `Elements`, `Foils`, `Awaken`, `RollBoost` (Momentum + Surge), `Deck`, `Bosses`, `Rewards`, `Tower`, `Raid`, `Packs`, `Goals`,
+  `CardInfo` (readable effect facts), `Elements`, `Foils`, `Awaken`, `RollBoost` (Momentum + Surge), `Deck`, `Bosses`, `Rewards`, `Tower`, `Raid`, `Packs`, `PackBatch` (bulk receipt / sort / limits), `Goals`,
   `Items` (relics + artifacts), `Traits`, `Meta` (potions, upgrades, Index rewards, daily, gifts, milestones, quests, levels,
   stats, events, wheel, luck / cooldown formulas), `Tutorial`, `Mounts`, `BossModels`, `MonetizationConfig`.
 - `src/server` -> ServerScriptService.Server: `Main.server`, `DataService` (ProfileStore saves), `SaveMigration` (old

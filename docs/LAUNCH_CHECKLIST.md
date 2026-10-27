@@ -46,6 +46,21 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Endless tower / elements / bulk packs (2026-10-27): 80-story ~1,600-stud skyline with local cloud
+  bank / mist, Torii / cyan runes / doorway vortex; five-story streaming sections, lower skyline Persistent.
+  Combined saved map + runtime parts about 12.2k. Four real R15 service rigs build and all four have one
+  looping idle track. Restored floating Neon Abyss title visibly readable across town, 600-stud destinations;
+  26 px crimson sidebar badges show crisp 9+. Six actual ElementUi icons visibly loaded / IsLoaded=true.
+  Isolated real server OpenPacks call: 100 ten-card packs → 1,000 pulls, 40 stacks summing to 1,000,
+  five sorted highlights, all test packs consumed; original profile untouched. Same receipt checked in
+  normal BAG cover: readable scrollable stacks / DONE visible / rendered quantities sum to 1,000.
+  Checks: type 0 errors, props 5,465 / 0, headless ALL CHECKS PASSED including new pack regressions.
+- [ ] User review: tower from normal walking / zoomed-out views and other worlds; real-phone / crowded
+  streaming cost, service outfits / idles, all doorway titles at distance, real owned-pack OPEN 1 / ALL /
+  DONE / another batch, Rainbow / Secret first reveals and capped Mega-pack leftovers. Visual BAG preview
+  used an isolated receipt without spending real packs. Temporary previews / upload server removed, Studio
+  left Edit, final sources synced via Rojo, nothing published. Cards / bosses / combat / save format unchanged.
+
 - [x] Town services / HUD art (2026-10-27): desktop Play checked Kenji / Hoshi / Kenshin / Fortuna,
   workbenches / lectern, wheel canopy, pagoda / steps / doorway and physical town / Ember portal plaques.
   Titles clear roofs; compact nameplates use nearby detail and collision suppression. All tagged signs

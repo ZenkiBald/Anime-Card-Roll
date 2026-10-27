@@ -16,6 +16,7 @@ local Rewards = require(Shared.Rewards)
 local Bosses = require(Shared.Bosses)
 local Tower = require(Shared.Tower)
 local Packs = require(Shared.Packs)
+local PackBatch = require(Shared.PackBatch)
 
 local Remotes = ReplicatedStorage.Remotes
 local GlobalAnnounce = require(script.Parent.GlobalAnnounce)
@@ -55,7 +56,6 @@ local bigOpenLimiter = RateLimit.new(0.25, 1)
 local stateLimiter = RateLimit.new(0.5, 3) -- GetState builds the whole save's state
 local autoGeneration = {} -- [Player] = number; bumping it stops the running Auto Roll loop
 local autoActive = {} -- [Player] = true while Auto Roll is running
-local MAX_OPEN_ROLLS = 10000 -- the most cards one OpenPack call rolls (packs opened at once)
 
 local COOLDOWN_TOLERANCE = 0.1 -- forgive small network timing differences
 
@@ -310,56 +310,34 @@ local function payWin(player: Player, profile, packs: { [string]: number }?, sha
 	}
 end
 
-local function rarer(a, b): boolean
-	local ba, bb = Borders.Index(a.Border), Borders.Index(b.Border)
-	if ba ~= bb then
-		return ba > bb
-	end
-	return (Cards.Get(a.CardId) :: any).Weight < (Cards.Get(b.CardId) :: any).Weight -- the less likely card
-end
-
--- Opens one Roll Pack: its rolls at the player's luck right now. Returns the rarest ShowCards pulls in
--- full (for the flip reveal), how many of each border came out, how many were new, and the touched
--- cards' new state; XP is paid once and only the best pull is announced.
-local function openPack(player: Player, profile, pack: Packs.Pack)
+-- One non-yielding transaction for the entire selection. Luck is sampled once, XP paid once,
+-- and only bounded receipts / grouped counts leave the server.
+local function openPack(player: Player, profile, pack: Packs.Pack, count: number)
 	local data = profile.Data
-	local batch = { XP = 0 }
+	local xp = { XP = 0 }
 	local luck = luckFor(player, data)
-	-- An infused pack leans toward its element, and doubles border odds under a luck boost.
 	local opts = nil
 	if pack.Element then
 		local event = MetaService.Event()
 		local boosted = (event ~= nil and event.Luck ~= nil) or MetaService.ServerLuck() > 1
 		opts = { Element = pack.Element, BorderMult = if boosted then Packs.InfuseBorderMult else nil }
 	end
-	local shown, counts, cards = {}, {}, {}
-	local newCards = 0
-	for _ = 1, pack.Rolls do
-		local result = doRoll(player, profile, luck, batch, opts)
-		counts[result.Border] = (counts[result.Border] or 0) + 1
-		if result.Outcome == "New" then
-			newCards += 1
-		end
-		cards[result.CardId] = true
-		-- Keep the rarest few for the reveal.
-		if #shown < Packs.ShowCards then
-			table.insert(shown, result)
-			table.sort(shown, rarer)
-		elseif rarer(result, shown[#shown]) then
-			shown[#shown] = result
-			table.sort(shown, rarer)
-		end
+	local batch = PackBatch.New()
+	local touched = {}
+	for _ = 1, count * pack.Rolls do
+		local result = doRoll(player, profile, luck, xp, opts)
+		PackBatch.Add(batch, result)
+		touched[result.CardId] = true
 	end
-	MetaService.AddXP(player, data, batch.XP)
-	local best = shown[1]
+	MetaService.AddXP(player, data, xp.XP)
+	PackBatch.Finish(batch)
+	local best = batch.Results[1]
 	if best and Borders.Index(best.Border) >= Borders.Index(Config.AnnounceFrom) then
 		GlobalAnnounce.Pull(player, best.CardId, best.Border)
 	end
-	local state = {}
-	for id in cards do
-		state[id] = DataService.CardState(data.Cards[id])
-	end
-	return shown, counts, newCards, state, luck
+	local cards = {}
+	for id in touched do cards[id] = DataService.CardState(data.Cards[id]) end
+	return batch, cards, luck
 end
 
 function RollService.RewardRolls(player: Player, d: number, firstClear: boolean, costChallenge: boolean?)
@@ -470,6 +448,59 @@ local function startAuto(player: Player)
 	end)
 end
 
+function RollService.OpenPacks(player: Player, packId: unknown, count: unknown)
+	local pack = if type(packId) == "string" then Packs.ById[packId] else nil
+	if pack == nil then
+		return { Ok = false, Reason = "BadRequest" }
+	end
+	if count ~= nil and count ~= "all" and (type(count) ~= "number" or count ~= count or math.abs(count) == math.huge or count < 1) then
+		return { Ok = false, Reason = "BadRequest" }
+	end
+	local profile = DataService.Get(player)
+	if profile == nil then
+		return { Ok = false, Reason = "Loading" }
+	end
+	if BattleService.InBattle(player) then
+		return { Ok = false, Reason = "InBattle" }
+	end
+	local limiter = if MonetizationService.Perk(player, "TripleRoll") then fastOpenLimiter else openLimiter
+	if not limiter:Allow(player) then
+		return { Ok = false, Reason = "TooFast" }
+	end
+	local held = profile.Data.Packs
+	local have = held[pack.Id] or 0
+	if have <= 0 then
+		return { Ok = false, Reason = "NoPacks" }
+	end
+	local n = PackBatch.OpenCount(pack.Id, count, have)
+	if n == nil or n < 1 then return { Ok = false, Reason = "BadRequest" } end
+	if n * pack.Rolls > BIG_OPEN and not bigOpenLimiter:Allow(player) then
+		return { Ok = false, Reason = "TooFast" }
+	end
+	held[pack.Id] = have - n
+	if held[pack.Id] <= 0 then
+		held[pack.Id] = nil
+	end
+	local batch, cards, luck = openPack(player, profile, pack, n)
+	return {
+		Ok = true,
+		PackId = pack.Id,
+		Opened = n,
+		Results = batch.Results,
+		Groups = batch.Groups,
+		Counts = batch.Counts,
+		New = batch.New,
+		Remaining = held[pack.Id] or 0,
+		Rolls = pack.Rolls * n,
+		Luck = luck,
+		Cards = cards,
+		Packs = held,
+		Summary = summary(player, profile.Data),
+		Quests = MetaService.QuestState(player, profile.Data),
+		Meta = MetaService.State(player, profile.Data),
+	}
+end
+
 function RollService.Start()
 	Remotes.GetState.OnServerInvoke = function(player: Player)
 		if not stateLimiter:Allow(player) then
@@ -484,77 +515,9 @@ function RollService.Start()
 
 	-- OpenPack(packId, count?): opens `count` of the player's Roll Packs of that kind (1 by default; a number,
 	-- or "all"). Works while Auto Roll runs: a pack opens in one go, with no yield an Auto Roll pull could
-	-- land in. One call rolls at most MAX_OPEN_ROLLS cards (at least one pack), so "all" on a pile of Mega
+	-- land in. One call rolls at most PackBatch.MaxRolls cards, so "all" on a pile of Mega
 	-- Packs stays fast; the rest stay in the bag.
-	Remotes.OpenPack.OnServerInvoke = function(player: Player, packId: unknown, count: unknown)
-		local pack = if type(packId) == "string" then Packs.ById[packId] else nil
-		if pack == nil then
-			return { Ok = false, Reason = "BadRequest" }
-		end
-		local wanted = if count == "all" then math.huge elseif type(count) == "number" and count == count then math.floor(count) else 1
-		if wanted < 1 then
-			return { Ok = false, Reason = "BadRequest" }
-		end
-		local profile = DataService.Get(player)
-		if profile == nil then
-			return { Ok = false, Reason = "Loading" }
-		end
-		if BattleService.InBattle(player) then
-			return { Ok = false, Reason = "InBattle" }
-		end
-		local limiter = if MonetizationService.Perk(player, "TripleRoll") then fastOpenLimiter else openLimiter
-		if not limiter:Allow(player) then
-			return { Ok = false, Reason = "TooFast" }
-		end
-		local held = profile.Data.Packs
-		local have = held[pack.Id] or 0
-		if have <= 0 then
-			return { Ok = false, Reason = "NoPacks" }
-		end
-		local n = math.min(wanted, have, math.max(1, math.floor(MAX_OPEN_ROLLS / pack.Rolls)))
-		if n * pack.Rolls > BIG_OPEN and not bigOpenLimiter:Allow(player) then
-			return { Ok = false, Reason = "TooFast" }
-		end
-		held[pack.Id] = have - n
-		if held[pack.Id] <= 0 then
-			held[pack.Id] = nil
-		end
-		-- Open them one by one and merge: the rarest pulls of all of them, summed counts, every card touched.
-		local shown, counts, newCards, cards, luck = {}, {}, 0, {}, 1
-		for _ = 1, n do
-			local s1, c1, new1, cards1, luck1 = openPack(player, profile, pack)
-			for _, result in s1 do
-				table.insert(shown, result)
-			end
-			for id, k in c1 do
-				counts[id] = (counts[id] or 0) + k
-			end
-			newCards += new1
-			for id, state in cards1 do
-				cards[id] = state
-			end
-			luck = luck1
-		end
-		table.sort(shown, rarer)
-		while #shown > Packs.ShowCards do
-			table.remove(shown)
-		end
-		return {
-			Ok = true,
-			PackId = pack.Id,
-			Opened = n,
-			Results = shown,
-			Counts = counts,
-			New = newCards,
-			Rolls = pack.Rolls * n,
-			Luck = luck,
-			Cards = cards,
-			Packs = held,
-			Summary = summary(player, profile.Data),
-			Quests = MetaService.QuestState(player, profile.Data),
-			Meta = MetaService.State(player, profile.Data),
-		}
-	end
+	Remotes.OpenPack.OnServerInvoke = RollService.OpenPacks
 
 	Remotes.Roll.OnServerInvoke = function(player: Player, mode: unknown, early: unknown)
 		if mode ~= "Full" and mode ~= "Quick" then

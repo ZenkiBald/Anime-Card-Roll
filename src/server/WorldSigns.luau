@@ -20,6 +20,19 @@ local function text(parent, name, value, y, height, cap, color)
 	return label
 end
 
+-- Destination titles retain their original floating presentation, readable across the town.
+function Signs.Destination(parent, offset, title, sub, color)
+	local gui = make("BillboardGui", { Name="Sign", Size=UDim2.fromOffset(340,86),
+		StudsOffset=Vector3.new(0,offset,0), MaxDistance=600, LightInfluence=0,
+		AlwaysOnTop=false, ZIndexBehavior=Enum.ZIndexBehavior.Sibling }, parent)
+	gui:SetAttribute("Destination",true)
+	local plate=make("CanvasGroup",{Name="Plate",Size=UDim2.fromScale(1,1),BackgroundTransparency=1},gui)
+	text(plate,"Title",title,0,.6,32,Color3.new(1,1,1))
+	text(plate,"Sub",sub,.64,.3,18,color:Lerp(Color3.new(1,1,1),.2))
+	CollectionService:AddTag(gui,"FadeSign")
+	return gui
+end
+
 function Signs.Npc(parent, offset, title, sub, color)
 	local gui = make("BillboardGui", { Name = "Sign", Size = UDim2.fromOffset(178,48),
 		StudsOffset = Vector3.new(0,math.min(offset,4.3),0), MaxDistance = 76,

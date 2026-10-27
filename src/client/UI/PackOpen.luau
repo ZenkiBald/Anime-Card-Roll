@@ -8,12 +8,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Packs = require(Shared.Packs)
 local Borders = require(Shared.Borders)
+local Cards = require(Shared.Cards)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local RewardReveal = require(script.Parent.RewardReveal)
 local State = require(script.Parent.Parent.State)
+local CardView = require(script.Parent.CardView)
 
 local PackOpen = {}
 
@@ -43,6 +45,7 @@ function PackOpen.Open(packId: string, count: (number | string)?): (any, string?
 	if result.Meta then
 		State.ApplyMeta(result.Meta)
 	end
+	if result.Summary then State.ApplyRoll({ Summary = result.Summary }) end
 	return result, nil
 end
 
@@ -63,12 +66,53 @@ function PackOpen.SummaryText(result): string
 	return table.concat(parts, "  ·  ")
 end
 
--- Plays an opened pack inside `area`: the summary line on top and the rarest pulls flipping below.
+-- Grouped receipts include the highlighted cards: every tile count belongs to this opening only.
+function PackOpen.ShowSummary(parent: Frame, result)
+	local groups = result.Groups or {}
+	local heading = Kit.label({ Name = "BatchTitle", Text = `ALL {Kit.commas(result.Rolls)} CARDS · {#groups} STACKS`,
+		Font = Theme.Font.Heavy, Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, 0, 0, 25), Parent = parent }, 21)
+	heading.TextColor3 = Theme.Color.Gold
+	Kit.label({ Text = "Rarest first · includes your highlighted pulls", TextColor3 = Theme.Color.Muted,
+		Position = UDim2.fromOffset(0, 27), Size = UDim2.new(1, 0, 0, 20), Parent = parent }, 15)
+	local gridArea = Kit.new("ScrollingFrame", { Name = "BatchStacks", BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(0, 53), Size = UDim2.new(1, 0, 1, -53), BorderSizePixel = 0,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 5, Parent = parent })
+	local grid = Kit.new("UIGridLayout", { SortOrder = Enum.SortOrder.LayoutOrder,
+		CellPadding = UDim2.fromOffset(8, 8), Parent = gridArea })
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 6), Parent = gridArea })
+	local function resize()
+		local size = Kit.logicalSize(gridArea)
+		local columns = if size.X >= 640 then 4 elseif size.X >= 420 then 3 else 2
+		grid.CellSize = UDim2.fromOffset(math.max(100, math.floor((size.X - 16 - (columns - 1) * 8) / columns)), 105)
+	end
+	gridArea:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)
+	task.defer(resize)
+	for i, group in groups do
+		local card = Cards.Get(group.CardId)
+		if not card then continue end
+		local border = Borders.Get(group.Border)
+		local tile = Kit.tile({ Name = "Stack_" .. group.CardId .. "_" .. group.Border, LayoutOrder = i, Parent = gridArea }, border.Color)
+		tile:SetAttribute("BatchCount", group.Count)
+		local picture = CardView.Art(group.CardId, true) or CardView.Portrait(group.CardId, true, false)
+		picture.Position = UDim2.new(0, 5, 0, 8)
+		picture.Size = UDim2.new(0, 58, 1, -16)
+		picture.Parent = tile
+		Kit.label({ Text = card.Name, Font = Theme.Font.Heavy, TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.new(0, 70, 0, 6), Size = UDim2.new(1, -76, 0, 38), Parent = tile }, 16)
+		Kit.label({ Text = border.Name .. " · " .. Kit.commas(group.Rarity), TextColor3 = border.Color,
+			TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.new(0, 70, 0, 46), Size = UDim2.new(1, -76, 0, 18), Parent = tile }, 12)
+		Kit.label({ Text = "×" .. Kit.commas(group.Count), Font = Theme.Font.Display, TextColor3 = Theme.Color.Gold,
+			TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.new(0, 70, 0, 66), Size = UDim2.new(1, -76, 0, 31), Parent = tile }, 28)
+	end
+	return gridArea
+end
+
+-- One batch screen: five best pulls first, then all quantities. Animation never reapplies ownership.
 function PackOpen.Play(area: Frame, result, onDone: (() -> ())?)
 	local pack = Packs.ById[result.PackId]
 	Kit.label({
 		Name = "PackSummary",
-		Text = `{if pack then pack.Icon .. " " .. string.upper(pack.Name) .. "  ·  " else ""}{PackOpen.SummaryText(result)}`,
+		Text = `{if pack then string.upper(pack.Name) .. "  ·  " else ""}{PackOpen.SummaryText(result)}`,
 		RichText = true,
 		Font = Theme.Font.Heavy,
 		TextWrapped = true,
@@ -82,7 +126,12 @@ function PackOpen.Play(area: Frame, result, onDone: (() -> ())?)
 		BackgroundTransparency = 1,
 		Parent = area,
 	})
-	RewardReveal.Play(fan, { Results = result.Results, Summary = result.Summary }, onDone)
+	RewardReveal.Play(fan, { Results = result.Results, AlreadyApplied = true }, function()
+		if not fan.Parent then return end
+		for _, child in fan:GetChildren() do child:Destroy() end
+		PackOpen.ShowSummary(fan, result)
+		if onDone then onDone() end
+	end)
 end
 
 return PackOpen

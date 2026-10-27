@@ -55,26 +55,20 @@ local function sign(parent: BasePart, offset: number, title: string, sub: string
 	return Signs.Npc(parent, offset, title, sub, color)
 end
 
-local function styleMapSigns(map: Instance, hub: Instance)
-	local boards = Instance.new("Model")
-	boards.Name = "TownDirections"
-	boards.Parent = hub
+local function styleMapSigns(map: Instance, _hub: Instance)
 	for _, inst in map:GetDescendants() do
 		if inst:IsA("BillboardGui") then
-			inst.Enabled = false
-			CollectionService:RemoveTag(inst, "FadeSign")
-			local anchor = inst.Parent
-			local model = inst:FindFirstAncestorOfClass("Model")
-			if anchor and anchor:IsA("BasePart") and model then
-				local labels = {}
-				for _, child in inst:GetChildren() do if child:IsA("TextLabel") then table.insert(labels,child) end end
-				table.sort(labels,function(a,b) return a.Position.Y.Scale < b.Position.Y.Scale end)
-				local title = if labels[1] then labels[1].Text else model.Name
-				local color = if labels[2] then labels[2].TextColor3 else Color3.fromRGB(120,218,184)
-				local world = string.match(if labels[2] then labels[2].Text else "", "World (%d+)")
-				local cf = CFrame.new(anchor.Position - Vector3.new(0,5.5,0)) * model:GetPivot().Rotation * CFrame.new(0,0,-4.5)
-				Signs.Plaque(boards, "GateDirection", cf, Vector3.new(14.5,2.9,.45), title, if world then "WORLD " .. world .. " · PORTAL" else "PORTAL", color)
-			end
+			local anchor=inst.Parent
+			if not anchor or not anchor:IsA("BasePart") then continue end
+			local labels={}
+			for _,child in inst:GetChildren() do if child:IsA("TextLabel") then table.insert(labels,child) end end
+			table.sort(labels,function(a,b) return a.Position.Y.Scale<b.Position.Y.Scale end)
+			local title=if labels[1] then labels[1].Text else ""
+			local sub=if labels[2] then labels[2].Text else ""
+			local color=if labels[2] then labels[2].TextColor3 else Color3.fromRGB(120,218,184)
+			inst.Enabled=false
+			CollectionService:RemoveTag(inst,"FadeSign")
+			Signs.Destination(anchor,0,title,sub,color)
 		end
 	end
 end
@@ -519,10 +513,9 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 	swirl.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
 	swirl.Parent = portal
 	embers(portal, theme.Glow, 5)
-	-- Progress text remains on GateGlow, now a physical plaque just under the lintel.
-	Signs.Plaque(area,"GateGlow",portalMarker.CFrame * CFrame.new(0,portalMarker.Size.Y/2-.6,-.9),
-		Vector3.new(math.clamp(portalMarker.Size.X*1.15,12,18),2.8,.4),
-		string.upper(boss.WorldName), "WORLD " .. tostring(boss.World) .. " · " .. boss.Name, boss.Accent)
+	local anchor=part({Name="GateGlow",Size=Vector3.one,Transparency=1,CanCollide=false,
+		CFrame=portalMarker.CFrame*CFrame.new(0,portalMarker.Size.Y/2+3,0),Parent=area})
+	Signs.Destination(anchor,0,string.upper(boss.WorldName),"WORLD " .. tostring(boss.World) .. " · " .. boss.Name,boss.Accent)
 
 	local height = BossModels.Height(boss.Id)
 	local stand = bossMarker.CFrame

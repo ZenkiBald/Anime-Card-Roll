@@ -1,11 +1,12 @@
 --!nonstrict
 -- Boss reward reveal: the reward cards fan out face down and flip one by one, sorted so the
--- rarest flips last. Each flip applies the result to the client's state.
+-- rarest flips first. Each flip applies the result to the client's state.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Borders = require(Shared.Borders)
+local PackBatch = require(Shared.PackBatch)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -52,20 +53,12 @@ end
 -- Plays the reveal inside `parent`. Calls onDone when every card has flipped.
 function RewardReveal.Play(parent: Frame, rewards, onDone: (() -> ())?)
 	local results = table.clone(rewards.Results or {})
-	table.sort(results, function(a, b)
-		local ra, rb = Borders.Index(a.Border), Borders.Index(b.Border)
-		if ra ~= rb then
-			return ra < rb
-		end
-		return (a.Bonus and 1 or 0) < (b.Bonus and 1 or 0)
-	end)
+	table.sort(results, PackBatch.Rarer)
 	local count = #results
 	-- The cards are already the player's: record them now, so leaving early loses nothing.
-	for _, result in rewards.Results or {} do
-		State.ApplyRoll(result)
-	end
-	if rewards.Summary then
-		State.ApplyRoll({ Summary = rewards.Summary })
+	if not rewards.AlreadyApplied then
+		for _, result in rewards.Results or {} do State.ApplyRoll(result) end
+		if rewards.Summary then State.ApplyRoll({ Summary = rewards.Summary }) end
 	end
 	local columns = if count <= 7 then count else math.ceil(count / 2)
 	local rows = math.ceil(count / math.max(1, columns))
