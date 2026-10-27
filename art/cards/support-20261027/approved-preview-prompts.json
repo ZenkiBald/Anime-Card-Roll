@@ -1,0 +1,21 @@
+{
+  "tool": "built-in imagegen",
+  "status": "User approved all three previews and the style on 2026-10-27",
+  "previews": [
+    {
+      "name": "diamond-mitotic-seal",
+      "prompt": "Use case: stylized-concept. Create a premium 2D anime trading-card SUPPORT artwork, one single square full-bleed illustration. Same visual family as our existing shonen character portraits: precise ink contours, detailed cel shading, painterly atmospheric background, cinematic rim light, rich controlled colors, polished anime key visual. Support artwork depicts an iconic technique or relic, NO full human character, NO face. Center the main subject in the middle 60% so a tall portrait card crop preserves it. Large clear silhouette readable as a small tile, dark quieter top/bottom edges. No card frame, typography, letters, numbers, logos, watermark, UI, stars, collage. Subject: Diamond Mitotic Seal, a floating violet diamond-shaped chakra crest, faceted and vivid with thin branching ink-like purple seal markings spreading in a circular pattern. A soft emerald healing aura and a few luminous pink-white lotus petals spiral around it. Ancient stone medical shrine, deep forest shadows, amethyst and emerald light, restrained glowing particles. The seal itself is the hero, absolutely no forehead, body or person. Give it detailed mystical energy rather than a flat app icon.",
+      "source": "C:\\Users\\Zenki\\.codex\\generated_images\\01a1766e-d5bf-79b1-ad63-cbd6fc428dc6\\exec-a0929dd9-3f8d-4c5e-ac74-21ed5d95fcd8.png"
+    },
+    {
+      "name": "gourd-of-living-sand",
+      "prompt": "Use case: stylized-concept. Create a premium 2D anime trading-card SUPPORT artwork, one single square full-bleed illustration. Same visual family as our existing shonen character portraits: precise ink contours, detailed cel shading, painterly atmospheric background, cinematic rim light, rich controlled colors, polished anime key visual. Support artwork depicts an iconic technique or relic, NO full human character, NO face. Center the main subject in the middle 60% so a tall portrait card crop preserves it. Large clear silhouette readable as a small tile, dark quieter top/bottom edges. No card frame, typography, letters, numbers, logos, watermark, UI, stars, collage. Subject: Gourd of Living Sand, a large tan double-bulbed calabash sand vessel with weathered ceramic surface, red sealing cloth sash, dark carved abstract geometric seal marks (not writing). Suspended above broken sandstone with golden desert sand pouring from its neck, swirling around it into a protective crescent shield. Warm gold rim light against dark teal desert ruins at dusk. Dynamic and tangible, only one vessel; no human figure.",
+      "source": "C:\\Users\\Zenki\\.codex\\generated_images\\01a1766e-d5bf-79b1-ad63-cbd6fc428dc6\\exec-3e357c48-fa6c-4c43-bd2d-fa36e2f1948b.png"
+    },
+    {
+      "name": "cursed-ocular-seal",
+      "prompt": "Use case: stylized-concept. Create a premium 2D anime trading-card SUPPORT artwork, one single square full-bleed illustration. Same visual family as our existing shonen character portraits: precise ink contours, detailed cel shading, painterly atmospheric background, cinematic rim light, rich controlled colors, polished anime key visual. Support artwork depicts an iconic technique or relic, NO full human character, NO face. Center the main subject in the middle 60% so a tall portrait card crop preserves it. Large clear silhouette readable as a small tile, dark quieter top/bottom edges. No card frame, typography, letters, numbers, logos, watermark, UI, stars, collage. Subject: Cursed Ocular Seal, a disembodied mystical red iris sigil formed from glowing crimson chakra, three curved ink-black blades circling the pupil, embedded in a circular obsidian ritual seal. No realistic eyeball, no face or eyelids. Black crow feathers spiral around it, small curling black flames edged in red at the bottom, midnight shrine pillars behind. Strong crimson focal glow against blue-black shadows; dramatic detailed anime technique art.",
+      "source": "C:\\Users\\Zenki\\.codex\\generated_images\\01a1766e-d5bf-79b1-ad63-cbd6fc428dc6\\exec-521b8dd3-f0bd-4416-892b-ffc89c394c55.png"
+    }
+  ]
+}

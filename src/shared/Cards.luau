@@ -889,7 +889,7 @@ local list: { Card } = {
 			}),
 		},
 	},
-	-- Relic / technique Supports; artwork awaits user approval.
+	-- Relic / technique Supports; approved artwork is connected below.
 	{
 		Id = "mitotic_seal",
 		Name = "Diamond Mitotic Seal",
@@ -1205,6 +1205,17 @@ local ART: { [string]: number } = {
 	rimeveil_card = 118650829623596,
 	vex_card = 70379491763382,
 	tenrai_card = 119774333087010,
+	mitotic_seal = 109963288696039,
+	blood_vow = 80529506660478,
+	thunderclap_form = 105042242960526,
+	heavenly_pact = 70572075204033,
+	ocular_seal = 109720350798126,
+	sand_gourd = 87515231132943,
+	wisteria_vial = 124957439527565,
+	blink_kunai = 74928513865622,
+	beast_seal = 83363078344873,
+	puppet_threads = 135852201310260,
+	storm_mantle = 79376284879292,
 }
 
 local Cards = {}

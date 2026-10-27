@@ -14,13 +14,13 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
   (33 before boss unlocks). Idempotent migration preserves characters and grants replacement Supports with
   independent copies of their old collection / traits / Mastery; every preset Support position maps to the relic.
   See `docs/CARD_CONVERSION.md`. Rejoin / restart Play after syncing so the migration runs.
-- ART APPROVAL PENDING: three built-in imagegen examples are LOCAL ONLY in `studio-local/support-previews/`:
-  Diamond Mitotic Seal, Gourd of Living Sand and Cursed Ocular Seal. Exact prompts / original source paths are
-  in `studio-local/support-preview-prompts.json`. User must approve before generating the remaining eight /
-  uploading, wiring or pushing any Support artwork. No Support image ids exist yet; monograms are temporary.
-  Follow the approved inspirations, not Gemini's conflicting HxH / One Piece / Date A Live character guesses.
-- Studio reported "Place is not open" during this pass. All code checks passed, but conversion UI / live
-  fights / real-profile migration remain unchecked in Studio; checklist section 5 has the exact review items.
+- SUPPORT ART COMPLETE (2026-10-27): user approved the three examples; all 11 are now uploaded / wired.
+  Sources, asset ids, hashes and exact production / preview prompts are in `art/cards/support-20261027/`.
+  All 11 actual tiles / full cards loaded visibly in Studio; normal SQUAD Support art and saved slots checked.
+  Review reveals / battle pods in ordinary play. Studio left Edit, source synced via Rojo, nothing published.
+- The previous conversion pass had no Studio place open. This art pass checked the separate vault and saved
+  Support presentation, but did not repeat live combat or exhaustively audit real-profile migration fields.
+  Headless migration / combat checks pass; remaining ordinary-play checks are in checklist section 5.
 
 - User review of the completed mastery / exploration pass: SQUAD has separate ATTACK / SUPPORT tabs above
   CARD VAULT. Copy stat bonuses and copy Awakening are gone; duplicates are for border fusion. Win different
@@ -49,6 +49,20 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 ## Log (newest first)
 
 Each entry: date · who · commit · what changed · what's left or unsure.
+
+- 2026-10-27 · Codex · this commit · Finished the approved Support artwork batch. Kept the exact three
+  approved previews and generated eight matching illustrations with built-in imagegen; no extra character
+  series. Relics / seals / techniques / close-up hands, no complete characters or faces. Cleaned stray borrowed
+  symbols from Binding Blood Vow and a tiny signature-like mark from Eight Trigrams Seal via imagegen edits.
+  Saved 11 distinct 1254 x 1254 PNGs, hashes, uploaded ids, approved preview / production / cleanup prompts under
+  art/cards/support-20261027. All uploaded to the game's owner and connected only through Cards.ART; character
+  art / names, combat, odds and saves unchanged. Checks: type 0 errors (existing warnings), props 5,565 / 0,
+  headless ALL CHECKS PASSED. Studio: all 11 actual CardTile images visibly loaded and reported IsLoaded;
+  all 11 full CardView portrait crops checked in two galleries, then normal SQUAD Support tab / saved Support
+  slots displayed the new art. No new product runtime errors; existing sound asset warning persists, and a
+  temporary self-destroying preview helper produced a parent-cleanup warning. Gallery / helper removed with
+  Play stop; Studio left Edit. Both temporary localhost upload servers stopped. Source synced through Rojo,
+  not published. User review of normal reveals / battle pods remains; unrelated .codex / five root PNGs untouched.
 
 - 2026-10-27 · Codex · this commit · Converted the 11 former character Supports into independent Attack cards
   with real stats, Basic / Skill / triggered Passive / Ultimate. Preserved every existing card / boss name,

@@ -42,11 +42,11 @@ Character bonds still require the actual characters. A corresponding relic does 
 Chase fixtures now correctly apply their requested earned Mastery; the old helper silently ignored it for
 non-story cases. Story fixtures continue using preceding distinct boss clears. No boss tuning was changed.
 
-## Artwork review gate
+## Completed Support artwork
 
-Three square, portrait-crop-safe preview sources were generated with the built-in image tool:
-Diamond Mitotic Seal, Gourd of Living Sand and Cursed Ocular Seal. They are review-only local files in
-`studio-local/support-previews/`, with exact prompts / source paths in `studio-local/support-preview-prompts.json`.
-They are deliberately excluded from this commit and have no Roblox asset ids. Do not upload, wire or push
-Support artwork until the user approves the examples. The remaining eight images have not been generated.
-New relics temporarily use a plain monogram, without a misleading character portrait.
+The user approved all three examples and the style on 2026-10-27. All 11 Supports are now illustrated,
+uploaded and connected in Cards.ART. Sources, asset ids, hashes and prompts are in
+`art/cards/support-20261027/`. The three approved previews are unchanged. Eight new relic / technique
+illustrations complete the set, with two small cleanup edits; no character portraits were replaced.
+All sources are 1254 x 1254 with a central subject for the existing portrait crops. Actual CardTile,
+full CardView and normal SQUAD Support screens were visually checked in Studio. Nothing was published.

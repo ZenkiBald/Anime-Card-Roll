@@ -46,13 +46,20 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Approved Support art (2026-10-27): all 11 actual CardTile illustrations visibly rendered and reported
+  IsLoaded; all 11 full CardView portrait crops checked. Normal SQUAD Support tab and saved Support slots show
+  the relic art. Sources / prompts / hashes / asset ids are in `art/cards/support-20261027/`. Code checks pass.
+- [ ] User review: new Support art in ordinary reveals / battle pods and on a real phone. Studio left in
+  Edit, temporary art galleries / upload servers removed, source synced via Rojo; nothing published.
+
 - [ ] Character / relic conversion (2026-10-27): restart Play so the save migration runs. Confirm all 11
   former Support characters are in ATTACK with HP / speed / Basic / Skill / Passive / Ultimate and original
   portraits; their relic replacements are in SUPPORT with no HP / action bar. Existing borders, copies,
   traits, Mastery and Support positions in every preset should survive. Try character bonds, AUTO-BUILD,
   reading skills during Auto Roll, and a real battle. Studio reported no place open, so these visual / live
-  checks could not run. Three Support art previews await user approval; no Support images are uploaded,
-  wired or committed. Plain relic monograms are temporary. See `docs/CARD_CONVERSION.md`.
+  checks could not run during the conversion pass. The approved art pass subsequently checked SQUAD's
+  separate Support tab / saved slots and all artwork; exhaustive real-profile and live combat checks remain.
+  All 11 Support illustrations are now uploaded / wired. See `docs/CARD_CONVERSION.md`.
 
 - [x] Mastery / exploration / UI pass (2026-10-26): separate ATTACK and SUPPORT vault tabs; Support-only
   contents checked. Hover tooltip remained open through multiple Auto Rolls and closed with SQUAD. Clean

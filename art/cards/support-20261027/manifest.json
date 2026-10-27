@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-27",
+  "tool": "built-in imagegen",
+  "status": "complete; uploaded and connected; all 11 visibly rendered in Studio CardTile / CardView and normal SQUAD Support tab",
+  "creatorId": 4661882681,
+  "placeId": 82125530113782,
+  "files": [
+    {
+      "id": "mitotic_seal",
+      "name": "Diamond Mitotic Seal",
+      "file": "mitotic_seal.png",
+      "assetId": "109963288696039",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "cff166ff72decc123265bb38686b54520df9fa7a198799757c6db459ab226659",
+      "approvedPreview": true
+    },
+    {
+      "id": "blood_vow",
+      "name": "Binding Blood Vow",
+      "file": "blood_vow-v2.png",
+      "assetId": "80529506660478",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "ba351ffa4ec710261cd22a2350dd3324ad97227096700b6250ae466c49ca9feb",
+      "approvedPreview": false
+    },
+    {
+      "id": "thunderclap_form",
+      "name": "First Form: Thunderclap",
+      "file": "thunderclap_form.png",
+      "assetId": "105042242960526",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "7b75832ce52d80b85d70356ac90dad1219a0f4d18a99ef205346563518ab196e",
+      "approvedPreview": false
+    },
+    {
+      "id": "heavenly_pact",
+      "name": "Heavenly Restriction",
+      "file": "heavenly_pact.png",
+      "assetId": "70572075204033",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "06ab4c9e4fc941dc1342c716fa7d5d56a686af233af731823d7ce08594a22a16",
+      "approvedPreview": false
+    },
+    {
+      "id": "ocular_seal",
+      "name": "Cursed Ocular Seal",
+      "file": "ocular_seal.png",
+      "assetId": "109720350798126",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "406ba6830910f7f79caf9590937dda962a470423f4437043f8ffd9e79a29cb38",
+      "approvedPreview": true
+    },
+    {
+      "id": "sand_gourd",
+      "name": "Gourd of Living Sand",
+      "file": "sand_gourd.png",
+      "assetId": "87515231132943",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "8ade1992ca86b3d446d5060e7556b3d211b47e6b502b27f778710985c5441cbf",
+      "approvedPreview": true
+    },
+    {
+      "id": "wisteria_vial",
+      "name": "Wisteria Antidote Vial",
+      "file": "wisteria_vial.png",
+      "assetId": "124957439527565",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "9eb3d188e659822085b82ad87e3dcf086d6c320f690eb9a5e032d5fd199f33bf",
+      "approvedPreview": false
+    },
+    {
+      "id": "blink_kunai",
+      "name": "Blink Kunai Seal",
+      "file": "blink_kunai.png",
+      "assetId": "74928513865622",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "b7cd4a0ca0f64f1dcc52ae192a5da76e118577d95943d4fc118744892f62f399",
+      "approvedPreview": false
+    },
+    {
+      "id": "beast_seal",
+      "name": "Eight Trigrams Seal",
+      "file": "beast_seal-v2.png",
+      "assetId": "83363078344873",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "002af368be63db110f0d7d3bcb0795d4139b2bed6803393bef93ef7ba1abf335",
+      "approvedPreview": false
+    },
+    {
+      "id": "puppet_threads",
+      "name": "Chakra Puppet Threads",
+      "file": "puppet_threads.png",
+      "assetId": "135852201310260",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "192e1c32439bf9e8f42d14663d03dab4213ec52b06846a4867b230e2f216f74c",
+      "approvedPreview": false
+    },
+    {
+      "id": "storm_mantle",
+      "name": "Stormheart Mantle",
+      "file": "storm_mantle.png",
+      "assetId": "79376284879292",
+      "previousAssetId": "0",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "c98e20c6a98949cc035f7d00743116a3f879a17663a586be42d0c7bec66ef621",
+      "approvedPreview": false
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "tool": "built-in imagegen",
+  "edits": [
+    {
+      "id": "blood_vow",
+      "file": "blood_vow-v2.png",
+      "source": "C:\\Users\\Zenki\\.codex\\generated_images\\01a1766e-d5bf-79b1-ad63-cbd6fc428dc6\\exec-f92a1765-2ec0-4671-bdc9-5dba4cd56f7d.png",
+      "prompt": "Precise cleanup edit of this Binding Blood Vow card illustration. Keep the two clasped hands, red-black glowing chain circle, crimson cursed energy and dark ruined shrine composition. Remove ALL unrelated motifs: remove every crow/bird, all eye symbols including the large eye on the hands, all pinwheel emblems, the little tan sand gourd on the left wrist, and the purple diamond charm on the right wrist. Replace charms with plain frayed wrist wraps and small ordinary dark chain links. The hands should have only abstract black cursed-energy streaks, not recognizable eye shapes. The upper circular chain seal should contain abstract crimson energy only, no bird or eye. Background pillars are plain weathered stone with no symbols. No Naruto imagery or other cards' relics; this is solely a binding cursed pact. Preserve square dimensions, anatomy, focal hand pose, lighting, colors and approved premium ink/cel-shaded anime rendering. No text, watermark or signature."
+    },
+    {
+      "id": "beast_seal",
+      "file": "beast_seal-v2.png",
+      "source": "C:\\Users\\Zenki\\.codex\\generated_images\\01a1766e-d5bf-79b1-ad63-cbd6fc428dc6\\exec-895ee415-d584-4af3-85ec-4b27ea10d18a.png",
+      "prompt": "Edit only the tiny white signature / watermark-like scribble at the extreme bottom-right corner: remove it seamlessly, continuing the dark wet stone and water texture behind it. Preserve EVERYTHING else pixel-faithfully: the entire iron gate, golden talisman, abstract spiral design, nine fiery chakra tails, lighting, square dimensions and composition. Do not add any text, signature, watermark or new object."
+    }
+  ]
+}
