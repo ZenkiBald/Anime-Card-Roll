@@ -2,14 +2,44 @@
 local Cards, Info, Engine, Config = MODULES.Cards, MODULES.CardInfo, MODULES.BattleEngine, MODULES.Config
 local F = FIXTURES
 
+-- All characters fight; relics keep the old passive's separate identity and have no character art.
 do
-	local owned = F.own({"mirai", "hana"})
-	local units = F.units(F.deck({"mirai"},{"hana"}), owned)
+	local attacks, supports = 0, 0
+	for _, card in Cards.List do
+		if card.Type == "Attack" then attacks += 1 else supports += 1 end
+	end
+	check(attacks == 26 and supports == 11, "the pool has 26 character Attack cards and 11 independent Support relics")
+	for characterId, relicId in Cards.LegacySupports do
+		local card, relic = Cards.Get(characterId), Cards.Get(relicId)
+		check(card.Type == "Attack" and card.Image ~= nil and card.Support == nil and relic.Type == "Support" and relic.Image ~= card.Image, characterId .. " keeps its portrait as an attacker; the relic never borrows that portrait")
+		local b = Engine.new({ Units = {{ Id = "A1", CardId = characterId, Stars = 0, Border = "Normal" }}, BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5), Guards = {} })
+		b.Boss.HP = 1e8; b.Boss.MaxHP = 1e8
+		local a = b.ById.A1
+		local casts = true
+		for _, slot in { "Basic", "Skill", "Ultimate" } do
+			local ability = Cards.Ability(card, slot)
+			local before = a.Dealt
+			if ability then b:RunAbility(a, ability, slot) end
+			casts = casts and ability ~= nil and a.Dealt > before
+		end
+		check(casts and a.HasHP and a.SPD > 0, characterId .. " has real HP, speed and damaging Basic / Skill / Ultimate without Support")
+	end
+	local converted = { "hana", "suzu", "ibuki", "tetsu" }
+	local rate, times = F.campaign("kurogane", "Normal", F.deck(converted, {}), F.own(converted), 20)
+	print(string.format("   converted all-Base Attack-only team: %d%% wins, %.1fs median", rate * 100, F.percentile(times, .5)))
+	check(rate >= .9 and F.percentile(times, .5) <= 100, "converted characters can win a starter fight together without relic healing")
+	local invalid = MODULES.Deck.Empty(); invalid.Support[1] = "hana"
+	check(MODULES.Deck.Clean(invalid, F.allOwned(0)).Support[1] == "", "stale client Support slots cannot keep a converted Attack card")
+end
+
+do
+	local owned = F.own({"mirai", "mitotic_seal"})
+	local units = F.units(F.deck({"mirai"},{"mitotic_seal"}), owned)
 	units[2].Trait = {{Stat="SPD",Amount=0.05},{Stat="StartEnergy",Amount=0.25}}
 	local battle = MODULES.BattleEngine.new({Units=units,BossId="kurogane",Difficulty="Normal",Rng=Random.new(5)})
 	check(battle.ById.A1.Buffs["SupportTrait:S1:1"] ~= nil, "Support speed trait reaches its matching attacker")
 	check(battle.ById.A1.Energy >= 25 and battle.ById.S1.HP == 0, "Support starting-charge trait charges the attacker without giving Support HP")
-	check(MODULES.Cards.SupportValue(MODULES.Cards.Get("hana"),0,"Normal",0) == MODULES.Cards.SupportValue(MODULES.Cards.Get("hana"),5,"Normal",4), "duplicate counts never strengthen a passive")
+	check(MODULES.Cards.SupportValue(MODULES.Cards.Get("mitotic_seal"),0,"Normal",0) == MODULES.Cards.SupportValue(MODULES.Cards.Get("mitotic_seal"),5,"Normal",4), "duplicate counts never strengthen a passive")
 end
 local function setup(id, border, stars)
 	local owned = F.own({ "rook", "tomo", id }, stars or 0, { [id] = border or "Normal" })
@@ -17,6 +47,20 @@ local function setup(id, border, stars)
 end
 local function attacker(id)
 	return Engine.new({ Units = F.units(F.deck({ id }, {}), F.allOwned(0)), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(17) })
+end
+do
+	local blink = attacker("orin")
+	check(blink.ById.A1.Energy == 25 and blink:Buff(blink.ById.A1, "Guard") == -.1, "Time Weaver's entry charge and vulnerability are both real")
+	local cloak = attacker("aurelia"); local a = cloak.ById.A1
+	a.HP = math.floor(a.MaxHP * .4)
+	cloak:DamageAlly(a, 1, "Hit", "Boss")
+	local after = a.HP
+	cloak:RunEffect(a, { Kind = "Heal", Pct = 1, Target = "Self" })
+	check(a.HP == after and a.HealingLock == math.huge and cloak:Buff(a, "ATK") == .2, "Nine-Tails Sovereign's own cloak heals once, grants DMG and blocks further healing")
+	local b = attacker("goro"); b.Rng = { NextNumber = function() return 0 end }
+	b.Boss.HP = 1e8; b.Boss.MaxHP = 1e8
+	for _ = 1, 8 do b:Trigger(b.ById.A1, "OnAct") end
+	check(b.ById.A1.Triggered[1].Used == 4 and b.ById.A1.Dealt > 0, "Fist of Severance's follow-up actually strikes and stops at four activations")
 end
 local banned = { "Fights and takes enemy hits", "Paired attacker only:", "matching Attack slot only", "Automatic on its action", "triggers per battle", "once per cast", "next hit can defeat", "Give this card", "turn(s)", "base damage" }
 for _, card in Cards.List do
@@ -58,7 +102,7 @@ for _, card in Cards.List do
 	end
 end
 for _, border in { "Normal", "Gold", "Rainbow", "Secret" } do
-	local b = setup("hana", border)
+	local b = setup("mitotic_seal", border)
 	local a, mod = b.ById.A1, b.ById.S1.Modifier
 	a.HP = math.floor(a.MaxHP * 0.5)
 	a.Frozen = true
@@ -71,13 +115,13 @@ for _, border in { "Normal", "Gold", "Rainbow", "Secret" } do
 	a.HP = 1
 	b:DamageAlly(a, a.MaxHP * 2, "Hit", "Boss")
 	check(not a.Alive and mod.Used == 1, border .. " renewal is limited and cannot revive")
-	local swift = setup("suzu", border)
+	local swift = setup("thunderclap_form", border)
 	local base = attacker("rook")
-	check(near(swift:Buff(swift.ById.A1, "SPD") - base:Buff(base.ById.A1, "SPD"), Cards.SupportValue(Cards.Get("suzu"), 0, border)) and near(swift.ById.A1.Buffs["Cost:S1"].Amount, -.1), border .. " thunder speed has its real DMG trade-off")
-	check(Cards.SupportValue(Cards.Get("suzu"), 5, border, 3) * 100 % 5 < 1e-8, border .. " copies and Awakening keep actual passive strength in steps of 5%")
+	check(near(swift:Buff(swift.ById.A1, "SPD") - base:Buff(base.ById.A1, "SPD"), Cards.SupportValue(Cards.Get("thunderclap_form"), 0, border)) and near(swift.ById.A1.Buffs["Cost:S1"].Amount, -.1), border .. " thunder speed has its real DMG trade-off")
+	check(Cards.SupportValue(Cards.Get("thunderclap_form"), 5, border, 3) * 100 % 5 < 1e-8, border .. " copies and Awakening keep actual passive strength in steps of 5%")
 end
 do
-	local b = setup("aurelia")
+	local b = setup("beast_seal")
 	local a, support = b.ById.A1, b.ById.S1
 	b:DamageAlly(a, a.MaxHP * 2, "Hit", "Boss")
 	check(a.Alive and a.HP == math.floor(a.MaxHP * .85 + .5) and a.Invuln == 0 and near(a.Buffs["Cost:S1"].Amount, -.25), "Crimson Chakra Cloak returns at 85% HP and costs 25% DMG")
@@ -88,7 +132,7 @@ do
 	check(report.Used == 1 and report.Uses == 1, "results and limit badge share the consumed activation limit")
 end
 do
-	local b = setup("amane")
+	local b = setup("puppet_threads")
 	local a, enemy = b.ById.A1, b.Boss
 	for i = 1, 3 do
 		a.Frozen = true; a.Burns = { { Damage = 1, Ticks = 2, Timer = 2 } }; enemy.Frozen = false; enemy.Burns = {}
@@ -97,28 +141,28 @@ do
 	end
 end
 do
-	local b = setup("amaya", "Secret", 5)
+	local b = setup("storm_mantle", "Secret", 5)
 	b.Rng = { NextNumber = function() return 0 end }
 	local a, enemy = b.ById.A1, b.Boss
 	local cap = math.floor(a.MaxHP * .25 + .5)
 	for _ = 1, 100 do a.HP = 1; enemy.HP, enemy.MaxHP = 1e9, 1e9; b:HitEnemy(a, enemy, 10, true) end
 	check(b.ById.S1.Modifier.Healed == cap, "Stormheart Siphon cannot exceed its 25% HP effect cap")
-	local c = setup("amaya"); c.Rng = { NextNumber = function() return .99 end }; c.ById.A1.HP = 1
+	local c = setup("storm_mantle"); c.Rng = { NextNumber = function() return .99 end }; c.ById.A1.HP = 1
 	c:HitEnemy(c.ById.A1, c.Boss, 1)
 	check(c.ById.A1.HP == 1 and c.ById.S1.Modifier.Healed == 0, "the siphon does nothing when its chance fails")
 end
 do
-	local b = setup("yume"); b.Rng = { NextNumber = function() return 0 end }
+	local b = setup("ocular_seal"); b.Rng = { NextNumber = function() return 0 end }
 	local a = b.ById.A1
 	local ability = { Name = "multi hit", Effects = { { Kind = "Damage", Pct = .01, Hits = 3 } } }
 	for _ = 1, 6 do b:RunAbility(a, ability, "Skill") end
 	check(b.ById.S1.Modifier.Used == 4 and #b.ById.G3.Burns == 4, "Crows use one charge per cast and combine Weaken with four Black Flames Burns")
-	local c = setup("yume"); c.Rng = { NextNumber = function() return .99 end }
+	local c = setup("ocular_seal"); c.Rng = { NextNumber = function() return .99 end }
 	c:RunAbility(c.ById.A1, ability, "Skill")
 	check(c.ById.S1.Modifier.Used == 0 and #c.ById.G3.Burns == 0, "failed Crows rolls do not apply either bundled effect")
 end
 do
-	local b = setup("ibuki"); b.Rng = { NextNumber = function() return 0 end }
+	local b = setup("heavenly_pact"); b.Rng = { NextNumber = function() return 0 end }
 	local a = b.ById.A1
 	for _ = 1, 10 do a.HP = a.MaxHP; b:HitAlly(b.Boss, a, { Pct = .01 }) end
 	check(b.ById.S1.Modifier.Used == 4 and b:EnemyDebuff(b.Boss, "ATK") >= .1, "Cloud-Step evades four hits and applies Weaken")
@@ -126,13 +170,13 @@ do
 	check(snap.U.S1.H == nil and snap.U.S1.G == 0 and snap.U.S1.NextIn == nil and snap.U.A1.NextIn ~= nil, "snapshots still distinguish passive equipment from attackers")
 end
 do
-	local b = setup("goro"); b.Rng = { NextNumber = function() return 0 end }
+	local b = setup("blood_vow"); b.Rng = { NextNumber = function() return 0 end }
 	local before = b.Boss.HP
 	for _ = 1, 10 do b.ById.A1.HP = b.ById.A1.MaxHP; b:DamageAlly(b.ById.A1, 100, "Hit", "Boss") end
 	check(b.ById.S1.Modifier.Used == 4 and b.Boss.HP == before - 60 and b.ById.S1.Dealt == 0 and b.ById.A1.Dealt == 60, "counter damage belongs to the supported card and respects four activations")
 end
 do
-	local b = setup("luna"); local a = b.ById.A1; a.HP = 1
+	local b = setup("wisteria_vial"); local a = b.ById.A1; a.HP = 1
 	b:DamageEnemy(b.ById.G1, a, b.ById.G1.MaxHP, false, "Hit")
 	check(a.HP > 1 and near(a.Buffs["Cost:S1"].Amount, -.1) and b.ById.S1.Modifier.Used == 1, "Wisteria Antidote triggers on a real defeat and pays its DMG cost")
 end
@@ -148,7 +192,7 @@ do
 	check(not a.Frozen and a.HP > a.MaxHP*.5 and a.HealingLock == math.huge, "Demon Rebirth cleanses and regenerates before permanently locking healing")
 end
 check(Info.Highlight("Deal 125% DMG for 3 turns. Burn enemy 2."):find('<b>3 turns</b>', 1, true) and not Info.Highlight("enemy 2"):find('<font', 1, true), "only percentages, turn counts and statuses are highlighted")
-check(Info.Badges(Cards.Get("aurelia"), Cards.Get("aurelia").Abilities[1])[1] == "Activation Limit: 1", "activation limits are structured badge data, not paragraphs")
+check(Info.Badges(Cards.Get("beast_seal"), Cards.Get("beast_seal").Abilities[1])[1] == "Activation Limit: 1", "activation limits are structured badge data, not paragraphs")
 for _, index in { 1, 3, 7 } do
 	local fx = F.FIGHTS[index]; local deck, owned = F.fixtureDeck(fx); deck.Support = { "", "", "", "" }
 	local rate, times = F.campaign(fx.Boss, fx.Difficulty, deck, owned, 20)
@@ -163,13 +207,13 @@ do
 end
 -- Posthumous damage may win a fight, but it must not heal a defeated card.
 do
-	local b = setup("luna"); local a = b.ById.A1; a.HP = 0; a.Alive = false
+	local b = setup("wisteria_vial"); local a = b.ById.A1; a.HP = 0; a.Alive = false
 	b:DamageEnemy(b.ById.G1, a, b.ById.G1.MaxHP, false, "Burn")
 	check(a.HP == 0 and b.ById.S1.Modifier.Used == 0, "a defeated supported card cannot consume a kill-heal activation")
 end
 -- Freeze reflection costs the enemy its next action, not merely a tooltip label.
 do
-	local b = setup("amane"); local enemy = b.Boss
+	local b = setup("puppet_threads"); local enemy = b.Boss
 	b.ById.A1.Frozen = true; b:SupportCleanse(b.ById.A1, enemy)
 	enemy.Gauge = 2
 	local count = enemy.Actions
@@ -179,7 +223,7 @@ end
 
 -- A cleanse triggered by the first burn tick also cancels the other due burns that frame.
 do
-	local b = setup("hana"); local a = b.ById.A1
+	local b = setup("mitotic_seal"); local a = b.ById.A1
 	a.HP = math.floor(a.MaxHP*.5)
 	local before = a.HP
 	for _ = 1, 3 do table.insert(a.Burns, { Damage = 10, Ticks = 1, Timer = 0, Source = "Boss" }) end

@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Borders = require(Shared.Borders)
 local Tower = require(Shared.Tower)
+local Cards = require(Shared.Cards)
 
 local SaveMigration = {}
 
@@ -104,6 +105,38 @@ function SaveMigration.Migrate(data: any): { string }
 	end
 	if cards > 0 then
 		table.insert(done, `border copies: {cards} cards`)
+	end
+	-- Keep the owned character; compensate its former passive as an independent relic once.
+	-- Run after border normalization so old saves also retain each exact per-border pile.
+	if data.SupportRelicsVersion ~= 1 then
+		local function copy(value: any): any
+			if type(value) ~= "table" then return value end
+			local result = {}
+			for key, item in value do result[key] = copy(item) end
+			return result
+		end
+		local owned = if type(data.Cards) == "table" then data.Cards else {}
+		for characterId, supportId in Cards.LegacySupports do
+			local entry = owned[characterId]
+			if type(entry) == "table" and owned[supportId] == nil then
+				owned[supportId] = copy(entry)
+			end
+		end
+		local function remap(deck: any)
+			if type(deck) ~= "table" or type(deck.Support) ~= "table" then return end
+			for slot, id in deck.Support do
+				if type(id) == "string" and Cards.LegacySupports[id] then
+					local supportId = Cards.LegacySupports[id]
+					deck.Support[slot] = if owned[supportId] then supportId else ""
+				end
+			end
+		end
+		if type(data.Decks) == "table" and type(data.Decks.Presets) == "table" then
+			for _, preset in data.Decks.Presets do remap(preset) end
+		end
+		remap(data.Deck) -- older single-deck profiles
+		data.SupportRelicsVersion = 1
+		table.insert(done, "character attackers and independent Support relics")
 	end
 	-- A card's picked border (`Play`, Deck.PlayBorder) must be a border it has copies at; anything else
 	-- (junk, or a pile fused away) goes back to fighting at its best border.

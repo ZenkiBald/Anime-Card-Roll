@@ -10,20 +10,20 @@ local Engine = MODULES.BattleEngine
 local F = FIXTURES
 
 -- 1. Deck rules ---------------------------------------------------------------------
-local starterIds = { "rook", "kaede", "tomo", "noa", "hana", "luna", "suzu", "ibuki" }
+local starterIds = { "rook", "kaede", "tomo", "noa", "mitotic_seal", "wisteria_vial", "thunderclap_form", "heavenly_pact" }
 local starterOwned = F.own(starterIds)
 local starter = Deck.AutoBuild(starterOwned)
 local starterPower = Deck.Power(starter, starterOwned)
 print(`   starter deck: {table.concat(starter.Attack, ",")} / {table.concat(starter.Support, ",")} = {starterPower} power`)
 check(math.abs(starterPower - 25400) <= 600, `the first all-Base deck is about 25.4k power ({starterPower})`)
 check(Deck.Count(starter, "Attack") == 4 and Deck.Count(starter, "Support") == 4, "auto-build fills 4 Attack + 4 Support")
-check(starter.Attack[1] == "rook" and starter.Support[1] == "ibuki", "auto-build puts the strongest card on the left")
+check(starter.Attack[1] == "rook" and starter.Support[1] == "heavenly_pact", "auto-build puts the strongest card on the left")
 
 local ok = Deck.Validate({ Attack = { "rook", "", "", "" }, Support = { "", "", "", "" } }, starterOwned)
 check(ok ~= nil, "a deck with empty slots is valid")
 local _, why = Deck.Validate({ Attack = { "rook", "rook", "", "" }, Support = { "", "", "", "" } }, starterOwned)
 check(why == "Duplicate", "the same card twice is refused")
-_, why = Deck.Validate({ Attack = { "hana", "", "", "" }, Support = { "", "", "", "" } }, starterOwned)
+_, why = Deck.Validate({ Attack = { "mitotic_seal", "", "", "" }, Support = { "", "", "", "" } }, starterOwned)
 check(why == "WrongType", "a Support card in an Attack slot is refused")
 _, why = Deck.Validate({ Attack = { "sora", "", "", "" }, Support = { "", "", "", "" } }, starterOwned)
 check(why == "NotOwned", "a card the player doesn't own is refused")
@@ -329,8 +329,8 @@ do
 	check(lowest < 0.7, `a Nightmare fight hurts without repeated Support healing; limited healing ({healed}) and a card drops below 70% HP ({math.floor(lowest * 100)}%)`)
 
 	-- A deck ten times the fight's power still feels the hits (Config.Battle.MinHit).
-	local strong = F.own({ "tomo", "noa", "rook", "kaede", "hana", "luna" }, 5, { tomo = "Rainbow", noa = "Rainbow", rook = "Rainbow", kaede = "Rainbow" })
-	local b = Engine.new({ Units = F.units(F.deck({ "tomo", "noa", "rook", "kaede" }, { "hana", "luna" }), strong), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
+	local strong = F.own({ "tomo", "noa", "rook", "kaede", "mitotic_seal", "wisteria_vial" }, 5, { tomo = "Rainbow", noa = "Rainbow", rook = "Rainbow", kaede = "Rainbow" })
+	local b = Engine.new({ Units = F.units(F.deck({ "tomo", "noa", "rook", "kaede" }, { "mitotic_seal", "wisteria_vial" }), strong), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
 	local taken = 0
 	for _ = 1, 60 do
 		b:Step(MODULES.Config.Battle.Tick)

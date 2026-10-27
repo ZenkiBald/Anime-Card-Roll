@@ -90,7 +90,7 @@ end
 do
 	-- Rook + Tomo: one Dual Ultimate a fight, as the leader drops to half (or at BondAt).
 	local owned = F.allOwned(0)
-	local _, events = F.fight("kurogane", "Normal", F.deck({ "rook", "tomo", "mirai", "kaede" }, { "suzu", "ibuki", "hana", "goro" }), owned, 9)
+	local _, events = F.fight("kurogane", "Normal", F.deck({ "rook", "tomo", "mirai", "suzu" }, { "thunderclap_form", "heavenly_pact", "mitotic_seal", "blood_vow" }), owned, 9)
 	local fired, once = 0, true
 	local seenBond = {}
 	for _, e in events do
@@ -100,8 +100,8 @@ do
 			seenBond[e.N] = true
 		end
 	end
-	-- Rook + Tomo, Kaede + Ibuki and Mirai + Suzu are all in this deck (a bond whose card fell is skipped).
-	check(once and fired >= 2 and fired <= 3, `each bond in the deck fires at most once ({fired} of 3 fired)`)
+	-- Only character partners count: Rook + Tomo and Mirai + Suzu; relics are not their former owners.
+	check(once and fired == 2, `each character bond in the deck fires once ({fired} of 2 fired)`)
 end
 
 do

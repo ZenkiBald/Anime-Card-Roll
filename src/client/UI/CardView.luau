@@ -300,7 +300,13 @@ function CardView.Portrait(cardId: string, owned: boolean, background: boolean?)
 		})
 	end
 	local art = CardView.Art(cardId, owned)
-	local inner = art or bust(card, owned)
+	local inner = art
+	if inner == nil and card.Type == "Support" then
+		-- Unapproved relic art must not masquerade as a character portrait.
+		inner = Kit.new("Frame", { Name = "RelicPlaceholder", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 })
+		Kit.label({ Name = "RelicMark", Text = card.Glyph, Position = UDim2.fromScale(0.15, 0.3), Size = UDim2.fromScale(0.7, 0.3), TextColor3 = card.Accent, ZIndex = 3, Parent = inner }, 32)
+	end
+	inner = inner or bust(card, owned)
 	inner.Parent = frame
 	if not owned then
 		Kit.label({

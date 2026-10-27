@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-10-26). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-10-27). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -51,11 +51,11 @@ Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET B
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
 
-**Cards.** 22 cards + 4 boss cards (anime-style epithet names for the private prototype, see Rules). Attack cards sit on one stat line (ATK ~500 +-10%, HP = 2
+**Cards.** 26 character Attack cards (including 4 boss cards) + 11 relic / technique Support cards (anime-style epithet names for the private prototype, see Rules). Attack cards sit on one stat line (ATK ~500 +-10%, HP = 2
 x ATK), scaled by rarity (`Cards.Scale`: a Weight 10 card 1x, Weight 1 about 1.41x, boss cards
 up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
-`Cards.luau`; Attack cards at Weight 6 and rarer have an Ultimate, boss cards a passive too; Support cards have one passive definition
+`Cards.luau`; All 11 former character Supports now have a damaging Basic / Skill / Ultimate and a triggered Passive, keeping their ids, names and character art. The other Attack kits retain their previous abilities. Support relics have one passive definition
 and its subtitle (`Title`) and colour (`Accent`) fit its name and element. Duplicate pulls grant **no combat
 bonus**: Stars remain a legacy save field, always zero on normal rolls, and copy-based Awakening is retired.
 Copies pile up per border (`BorderCopies`); each owned border has its own tile, and the deck fights at the chosen
@@ -68,7 +68,7 @@ with another card. Repeated clears, losses, raids and towers grant no marks. Mar
 `Mastery` map keyed by `Bosses.FightKey`. At 1 / 3 / 6 / 10 challenges: +5% attack speed, +10% Skill / Ultimate
 damage, a 350% bond combo instead of 300%, then trait slot 2. Mastery never multiplies base ATK / HP or passive
 percentages. Existing second-slot access survives migration (`Trait2Unlocked`); old copies grant no free mastery.
-Cards, borders, copies, traits and presets are preserved by the idempotent SaveMigration step.
+Cards, borders, copies, traits and presets are preserved by the idempotent SaveMigration steps.
 
 Traits are bought at Kenshin with Trait Shards (battle-only: SPD / crit / guard / energy, never ATK /
 HP); AUTO continues until a ticked trait lands, Stop, closing the panel, insufficient shards or leaving Kenshin.
@@ -79,11 +79,11 @@ fire footsteps, Secret celestial motes).
 
 **Deck and battle.** 4 Attack + 4 Support, 3 presets (+2 VIP), AUTO-BUILD / COUNTER-BUILD. Each Support modifies the
 Attack card with the matching slot number. Supports have no damage, HP, action bar, Skill or Ultimate; counters,
-reflected statuses and Black Flames belong to the supported Attack card. Ownership, ids and presets are unchanged.
+reflected statuses and Black Flames belong to the supported Attack card. Original character ownership, ids, names and portraits remain. On first load, `SupportRelicsVersion = 1` grants each owned former Support's replacement relic an independent copy of its saved collection (copies / borders / traits / foil / Mastery / selected border), without overwriting an already-owned relic. All preset Support positions and the older single deck map to the replacement; Attack lineups stay as chosen. Compensation runs once, before deck cleanup; further rolls award only the card rolled.
 `Cards.Support` owns the trigger, effect, cost, chance, limits and authored text. `Cards.SupportValue` applies border
 strength (Base 1 / Gold 1.25 / Rainbow 1.5 / Secret 1.75x), then rounds the **actual server
 value** to the nearest 5 percentage points (positive minimum 5%, maximum 50%). Fixed effects use their authored value;
-Crimson Chakra Cloak always returns at 85% HP. Trigger counts, chances, penalties, secondary Burns and healing caps
+Eight Trigrams Seal's Crimson Chakra Cloak always returns at 85% HP. Trigger counts, chances, penalties, secondary Burns and healing caps
 are fixed. Passive cards add no Attack rating; AUTO-BUILD ranks them separately by border / rarity. Support traits, foils and mastery affect the supported Attack
 card; they no longer sit unused on a passive unit.
 
@@ -91,17 +91,17 @@ Support kits (base strengths; inspect the card for its rounded value at another 
 
 | Card | Passive |
 | --- | --- |
-| Lotus Blossom | Below 50% HP, cleanse Burn / Freeze and heal 20% max HP; healing blocked for 2 turns; 1 activation. |
-| Fist of Severance | After an enemy hit, 25% chance to return 15% of DMG taken as an Attack-card counter; 4 activations. |
-| Thunder Flash | On entry, +20% attack speed but -10% DMG for 3 turns; 1 activation. |
-| Phantom Blade | 10% evade chance; successful evades Weaken the attacker by 10% for 1 turn; 4 activations. |
-| Dream Reaper | Skills / Ultimates roll once per cast: 25% chance to Weaken by 15% for 2 turns and Burn for 10% DMG each turn for 3 turns; 4 activations. |
-| Iron Bastion | On entry, 25% max HP shield; -10% attack speed for 2 turns; 1 activation. |
-| Celestial Strategist | On defeating an opponent, heal 20% max HP but deal 10% less DMG for 2 turns; 3 activations. |
-| Time Weaver | On entry, 25% Ultimate charge in exchange for -10% attack speed for 2 turns; 1 activation, requires an Ultimate. |
-| Nine-Tails Sovereign | Upon a fatal blow, return at 85% HP; permanently -25% DMG and no further healing; 1 activation. |
-| Shadow Puppeteer | Cleanse and reflect Burn / Freeze; reflected Burn is 15% DMG for 3 turns; 2 applications. |
-| Storm Oracle | Direct hits have a 25% chance to drain 10% of actual DMG as HP; capped at 25% max HP per fight; overkill excluded. |
+| Diamond Mitotic Seal | Below 50% HP, cleanse Burn / Freeze and heal 20% max HP; healing blocked for 2 turns; 1 activation. |
+| Binding Blood Vow | After an enemy hit, 25% chance to return 15% of DMG taken as an Attack-card counter; 4 activations. |
+| First Form: Thunderclap | On entry, +20% attack speed but -10% DMG for 3 turns; 1 activation. |
+| Heavenly Restriction | 10% evade chance; successful evades Weaken the attacker by 10% for 1 turn; 4 activations. |
+| Cursed Ocular Seal | Skills / Ultimates roll once per cast: 25% chance to Weaken by 15% for 2 turns and Burn for 10% DMG each turn for 3 turns; 4 activations. |
+| Gourd of Living Sand | On entry, 25% max HP shield; -10% attack speed for 2 turns; 1 activation. |
+| Wisteria Antidote Vial | On defeating an opponent, heal 20% max HP but deal 10% less DMG for 2 turns; 3 activations. |
+| Blink Kunai Seal | On entry, 25% Ultimate charge in exchange for -10% attack speed for 2 turns; 1 activation, requires an Ultimate. |
+| Eight Trigrams Seal | Upon a fatal blow, return at 85% HP; permanently -25% DMG and no further healing; 1 activation. |
+| Chakra Puppet Threads | Cleanse and reflect Burn / Freeze; reflected Burn is 15% DMG for 3 turns; 2 applications. |
+| Stormheart Mantle | Direct hits have a 25% chance to drain 10% of actual DMG as HP; capped at 25% max HP per fight; overkill excluded. |
 
 Attack passives, Auras and Signatures are generic triggered bundles (`Ability.Trigger`, `Chance`, `Limit`, optional
 `Every`). `BattleEngine:Trigger` handles OnEntry / OnHit / OnCrit / OnKill / OnAct / BelowHalf, tracks activations and
@@ -198,7 +198,7 @@ the tier. Tiles show art, a plain ATTACK / SUPPORT label, element, name, xN, FUS
 rarity number, with no combat stats. Names wrap / scale 8-14; stats live in the inspector / tooltip. Vault tiles are
 larger; the phone inspector collapses until selection; deck thumbnails omit duplicate tiny name / rarity labels.
 DECK explains the two card types and numbered pairs. Attack slots show damage / HP; Support slots show their actual
-passive strength instead of generic power. Only attackers contribute to ATTACK RATING. Tapping a
+passive strength instead of generic power. The 26 characters belong to ATTACK; the 11 relics belong to SUPPORT. Only attackers contribute to ATTACK RATING. Tapping a
 vault card only selects it; EQUIP / REMOVE is explicit. The inspector prioritizes the authored passive effect or Attack Basic and action / Skill timing
 and fusion copy counts. VIEW SKILLS / MASTERY opens the scrollable Index detail sheet at the selected border, with a visible
 BACK TO CARDS button. `Shared/CardInfo` resolves authored ability templates from the same server data (`{pN}`, `{aN}`, `{tN}` read effect
@@ -216,12 +216,12 @@ counter / synergy / bond information. Battle intros use smaller straight lacquer
 controls, enemy target panels and result frames. The current triggered ability kits are described above.
 
 `JuicyButton` still supplies sheen, spring and sounds; `IconBadge` carries element / role / currency crests.
-All 26 card portraits use a cohesive AI illustration set in `art/cards/cohesive-20261026/`, generated with the
+All 26 character Attack portraits use a cohesive AI illustration set in `art/cards/cohesive-20261026/`, generated with the
 built-in image tool from the three approved previews. Each source PNG is 1254 x 1254; the existing card frames
 crop it to their shape. `manifest.json` records card ids, inspirations, dimensions, hashes, Roblox image ids and
 the five previous image ids. `generation-plan.json` stores the production prompts. The older five portrait PNGs
 in `art/cards/` remain untouched. `Cards.ART` connects the uploaded images; the procedural bust remains a fallback.
-Card / boss names, abilities, stats and saves are unchanged by the artwork pass.
+The character artwork pass did not change identities. The later character-to-Attack conversion keeps those same portraits and adds 11 separately named Supports; see `docs/CARD_CONVERSION.md`. Support artwork is awaiting user approval: three built-in imagegen examples and their exact prompts are local under `studio-local/support-previews/` and `studio-local/support-preview-prompts.json`. No Support image has been uploaded or wired; unillustrated Supports show a plain relic monogram rather than a character bust. Full art generation / upload is pending that review.
 
 ## Layout (Rojo project, `default.project.json`)
 

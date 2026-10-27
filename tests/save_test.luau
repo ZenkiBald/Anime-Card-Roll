@@ -110,6 +110,31 @@ local again = deepCopy(data)
 SaveMigration.Migrate(again)
 check(same(again, data), "migrating twice changes nothing")
 
+-- Character conversion preserves every collection investment and all saved Support positions.
+do
+	local old = {
+		Cards = { hana = { Copies = 9, Stars = 0, BorderCopies = { Normal = 6, Gold = 3 }, Borders = { Normal = true, Gold = true }, Play = "Gold", Trait = "swift", Trait2 = "keen", Trait2Unlocked = true, Mastery = { ["kurogane:Normal"] = true }, Foil = "Aura" } },
+		Decks = { Active = 2, Presets = {
+			{ Attack = { "rook", "", "", "" }, Support = { "hana", "", "", "" } },
+			{ Attack = { "tomo", "", "", "" }, Support = { "", "hana", "", "" } },
+		} },
+		Deck = { Support = { "", "", "hana", "" } },
+	}
+	SaveMigration.Migrate(old)
+	check(old.Cards.hana ~= nil and same(old.Cards.hana, old.Cards.mitotic_seal), "converted character stays owned and its relic receives the same copies, borders, traits, foil and mastery")
+	check(old.Cards.hana ~= old.Cards.mitotic_seal and old.Cards.hana.BorderCopies ~= old.Cards.mitotic_seal.BorderCopies and old.Cards.hana.Mastery ~= old.Cards.mitotic_seal.Mastery, "character and compensated relic have independent saved tables")
+	check(old.Decks.Active == 2 and old.Decks.Presets[1].Support[1] == "mitotic_seal" and old.Decks.Presets[2].Support[2] == "mitotic_seal" and old.Deck.Support[3] == "mitotic_seal", "all presets and the legacy deck retain their Support slot through conversion")
+	check(old.Decks.Presets[1].Attack[1] == "rook" and old.Decks.Presets[2].Attack[1] == "tomo", "conversion does not rearrange the Attack lineup")
+	local second = deepCopy(old)
+	SaveMigration.Migrate(old)
+	check(same(old, second), "rejoining never grants a second relic compensation or resets progress")
+	old.Cards.mitotic_seal.BorderCopies.Gold = 2
+	check(old.Cards.hana.BorderCopies.Gold == 3, "fusing or spending relic copies cannot consume the character's collection")
+	local existing = { Cards = { hana = { Copies = 3 }, mitotic_seal = { Copies = 7 } } }
+	SaveMigration.Migrate(existing)
+	check(existing.Cards.mitotic_seal.Copies == 7, "an already-owned relic is never overwritten by conversion")
+end
+
 -- Junk values don't crash it.
 local kept = { Cards = { x = { Copies = "lots", Fusion = "two" } }, Settings = { AutoStop = "Gold" } }
 local ok = pcall(SaveMigration.Migrate, kept)

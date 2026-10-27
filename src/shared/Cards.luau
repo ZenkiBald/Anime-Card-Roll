@@ -1,5 +1,5 @@
 --!strict
--- The 18 starter cards from the concept doc, plus the World 4 (Stormspire Isle) cards.
+-- 26 character Attack cards and 11 relic / technique Support cards.
 -- Adding a card = adding one entry here (plus art later). No other code changes.
 --
 -- Attack cards (front row) have ATK and HP: they deal the damage and take the enemies' hits.
@@ -355,239 +355,284 @@ local list: { Card } = {
 		},
 	},
 
-	-- SUPPORT ------------------------------------------------------------
+	-- CONVERTED CHARACTER ATTACKS -----------------------------------------
 	{
 		Id = "hana",
 		Name = "Lotus Blossom",
 		Title = "Hundred-Healing Medic",
-		Type = "Support",
+		Type = "Attack",
 		Role = "Mender",
 		Weight = 10,
 		Element = "Light",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 485,
+		HP = 970,
+		SPD = 105,
 		Glyph = "HN",
 		Accent = Color3.fromRGB(120, 200, 110),
-		Support = {
-			Name = "Hundred-Petal Renewal",
-			Kind = "LowHeal",
-			Trigger = "BelowHalf",
-			Amount = 0.2,
-			Threshold = 0.5,
-			Uses = 1,
-			Turns = 2,
-			Text = "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP. It cannot be healed for {turns} turns.",
-		},
 		Abilities = {
-			ability("Passive", "Hundred-Petal Renewal", "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP. It cannot be healed for {turns} turns.", {  }),
+			ability("Basic", "Chakra Fist", "Drive a Chakra-charged punch into an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Cherry Blossom Clash", "Shatter the ground for {p1} DMG and mend the lowest-HP ally for {p2} DMG.", {
+				{ Kind = "Damage", Pct = 1.8 },
+				{ Kind = "Heal", Pct = 0.4, Target = "Lowest" },
+			}, 3),
+			ability("Passive", "Mitotic Regeneration", "When below 50% HP, release stored Chakra to cleanse Burn and Freeze and recover {p2} HP. Exhaustion costs {a3} attack speed for {t3} turns.", {
+				{ Kind = "Cleanse", Amount = 2, Target = "Self" },
+				{ Kind = "Heal", Pct = 0.25, MaxHP = true, Target = "Self" },
+				{ Kind = "Buff", Stat = "SPD", Amount = -0.1, Turns = 2 },
+			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
+			ability("Ultimate", "Hundred-Seal Release", "Strike for {p1} DMG and restore {p2} DMG as HP to every ally.", {
+				{ Kind = "Damage", Pct = 2.5 },
+				{ Kind = "Heal", Pct = 0.6, Target = "Attack" },
+			}),
 		},
 	},
 	{
 		Id = "goro",
 		Name = "Fist of Severance",
 		Title = "Blood-Pact Brawler",
-		Type = "Support",
-		Role = "Warder",
+		Type = "Attack",
+		Role = "Striker",
 		Weight = 4,
 		Element = "Light",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 525,
+		HP = 1050,
+		SPD = 110,
 		Glyph = "GR",
 		Accent = Color3.fromRGB(200, 170, 110),
-		Support = {
-			Name = "Severing Counter",
-			Kind = "Counter",
-			Trigger = "OnDamaged",
-			Amount = 0.15,
-			Chance = 0.25,
-			Uses = 4,
-			Text = "After an enemy attack, the supported card has a {chance} chance to return {amount} of the DMG taken as a counterstrike.",
-		},
 		Abilities = {
-			ability("Passive", "Severing Counter", "After an enemy attack, the supported card has a {chance} chance to return {amount} of the DMG taken as a counterstrike.", {  }),
+			ability("Basic", "Divergent Impact", "Land a fist and its delayed cursed echo for {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 0.5, Hits = 2 },
+			}),
+			ability("Skill", "Cursed Rush", "Deliver two crushing punches for {p1} DMG each, then inflict Weaken for {a2} less enemy DMG over {t2} turns.", {
+				{ Kind = "Damage", Pct = 1.1, Hits = 2 },
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 2 },
+			}, 3),
+			ability("Passive", "Zone Counter", "After attacking, a {chance} chance to land a cursed follow-up for {p1} DMG and gain {a2} critical chance for {t2} turns.", {
+				{ Kind = "Damage", Pct = 0.5 },
+				{ Kind = "Buff", Stat = "Crit", Amount = 0.15, Turns = 2 },
+			}, nil, { Trigger = "OnAct", Chance = 0.25, Limit = 4 }),
+			ability("Ultimate", "Crimson Flash Barrage", "Unleash four cursed impacts for {p1} DMG each and gain {a2} critical chance for {t2} turns.", {
+				{ Kind = "Damage", Pct = 1.1, Hits = 4 },
+				{ Kind = "Buff", Stat = "Crit", Amount = 0.2, Turns = 2 },
+			}),
 		},
 	},
 	{
 		Id = "suzu",
 		Name = "Thunder Flash",
 		Title = "Sleeping Lightning",
-		Type = "Support",
+		Type = "Attack",
 		Role = "Striker",
 		Weight = 10,
 		Element = "Storm",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 485,
+		HP = 970,
+		SPD = 130,
 		Glyph = "SZ",
 		Accent = Color3.fromRGB(255, 210, 70),
-		Support = {
-			Name = "Thunder Breathing",
-			Kind = "Haste",
-			Trigger = "OnEntry",
-			Amount = 0.2,
-			Penalty = 0.1,
-			Turns = 3,
-			Uses = 1,
-			Text = "On entry, the supported card gains {amount} attack speed for {turns} turns. Lightning-fast cuts deal {penalty} less DMG during that time.",
-		},
 		Abilities = {
-			ability("Passive", "Thunder Breathing", "On entry, the supported card gains {amount} attack speed for {turns} turns. Lightning-fast cuts deal {penalty} less DMG during that time.", {  }),
+			ability("Basic", "Lightning Draw", "Draw and slash for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Thunderclap Dash", "Flash through an enemy for {p1} DMG and accelerate by {a2} for {t2} turns.", {
+				{ Kind = "Damage", Pct = 2.1 },
+				{ Kind = "Buff", Stat = "SPD", Amount = 0.15, Turns = 2 },
+			}, 3),
+			ability("Passive", "Trance Reflex", "When below 50% HP, enter a lightning trance: evade the next hit and gain {a2} attack speed, but take {a3} more DMG for {t3} turns.", {
+				{ Kind = "Evade", Hits = 1, Target = "Self" },
+				{ Kind = "Buff", Stat = "SPD", Amount = 0.25 },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 3 },
+			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
+			ability("Ultimate", "Sixfold Lightning", "Cross the battlefield with six lightning slashes for {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 0.65, Hits = 6, Target = "RandomEnemy" },
+			}),
 		},
 	},
 	{
 		Id = "ibuki",
 		Name = "Phantom Blade",
 		Title = "Cloud-Step Assassin",
-		Type = "Support",
-		Role = "Warder",
+		Type = "Attack",
+		Role = "Striker",
 		Weight = 8,
 		Element = "Frost",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 540,
+		HP = 1080,
+		SPD = 120,
 		Glyph = "IB",
 		Accent = Color3.fromRGB(150, 170, 200),
-		Support = {
-			Name = "Cloud-Step Feint",
-			Kind = "Dodge",
-			Trigger = "OnAttacked",
-			Amount = 0.1,
-			Penalty = 0.1,
-			Turns = 1,
-			Uses = 4,
-			Text = "When attacked, the supported card has a {amount} chance to evade. Each successful feint inflicts Weaken, reducing the attacker's DMG by {penalty} for {turns} turn.",
-		},
 		Abilities = {
-			ability("Passive", "Cloud-Step Feint", "When attacked, the supported card has a {amount} chance to evade. Each successful feint inflicts Weaken, reducing the attacker's DMG by {penalty} for {turns} turn.", {  }),
+			ability("Basic", "Assassin's Cut", "Cut an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Inverted Spear", "Pierce protection and defense for {p1} DMG, then expose the enemy to {a2} more DMG for {t2} turns.", {
+				{ Kind = "Damage", Pct = 2, IgnoreDef = true },
+				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.1, Turns = 2 },
+			}, 3),
+			ability("Passive", "Heavenly Physique", "On entry, trust physical instinct to evade the next two hits. Reckless pursuit makes this card take {a2} more DMG for {t2} turns.", {
+				{ Kind = "Evade", Hits = 2, Target = "Self" },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 3 },
+			}, nil, { Trigger = "OnEntry", Limit = 1 }),
+			ability("Ultimate", "Soul-Splitting Ambush", "Three ruthless cuts ignore defense and protection for {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 1.35, Hits = 3, IgnoreDef = true },
+			}),
 		},
 	},
 	{
 		Id = "yume",
 		Name = "Dream Reaper",
 		Title = "Mirror of Hypnosis",
-		Type = "Support",
-		Role = "Mender",
+		Type = "Attack",
+		Role = "Hexer",
 		Weight = 1.5,
 		Element = "Frost",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 490,
+		HP = 980,
+		SPD = 110,
 		Glyph = "YA",
 		Accent = Color3.fromRGB(150, 200, 255),
-		Support = {
-			Name = "Illusion of Crows",
-			Kind = "Weaken",
-			Trigger = "OnSkillHit",
-			Amount = 0.15,
-			Chance = 0.25,
-			Burn = 0.1,
-			Turns = 2,
-			Uses = 4,
-			Text = "The supported card's Skill or Ultimate has a {chance} chance to summon Crows. They inflict Weaken for {amount} less enemy DMG over {turns} turns, and Black Flames Burn for {burn} DMG each turn for 3 turns.",
-		},
 		Abilities = {
-			ability("Passive", "Illusion of Crows", "The supported card's Skill or Ultimate has a {chance} chance to summon Crows. They inflict Weaken for {amount} less enemy DMG over {turns} turns, and Black Flames Burn for {burn} DMG each turn for 3 turns.", {  }),
+			ability("Basic", "Crow Shuriken", "Send two crow-feather blades into an enemy for {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 0.5, Hits = 2 },
+			}),
+			ability("Skill", "Crimson Illusion", "Trap an enemy in an Illusion for {p1} DMG and Weaken it by {a2} for {t2} turns.", {
+				{ Kind = "Damage", Pct = 2.2 },
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.15, Turns = 2 },
+			}, 3),
+			ability("Passive", "Crow Clone Feint", "After attacking, a {chance} chance to dissolve into Crows, evade the next hit and leave Black Flames that Burn for {p2} DMG each turn for {t2} turns.", {
+				{ Kind = "Evade", Hits = 1, Target = "Self" },
+				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
+			}, nil, { Trigger = "OnAct", Chance = 0.25, Limit = 4 }),
+			ability("Ultimate", "Everlasting Black Flames", "Ignite every enemy for {p1} DMG and Burn for {p2} DMG each turn for {t2} turns.", {
+				{ Kind = "Damage", Pct = 1.7, Target = "Enemies" },
+				{ Kind = "Burn", Pct = 0.15, Turns = 3, Target = "Enemies" },
+			}),
 		},
 	},
 	{
 		Id = "tetsu",
 		Name = "Iron Bastion",
 		Title = "Living Sand Fortress",
-		Type = "Support",
+		Type = "Attack",
 		Role = "Warder",
 		Weight = 6,
 		Element = "Void",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 550,
+		HP = 1100,
+		SPD = 85,
 		Glyph = "TS",
 		Accent = Color3.fromRGB(140, 150, 165),
-		Support = {
-			Name = "Living Sand Armor",
-			Kind = "OpeningShield",
-			Trigger = "OnEntry",
-			Amount = 0.25,
-			Penalty = 0.1,
-			Turns = 2,
-			Uses = 1,
-			Text = "On entry, sand shields the supported card for {amount} of its max HP. The heavy armor reduces attack speed by {penalty} for {turns} turns.",
-		},
 		Abilities = {
-			ability("Passive", "Living Sand Armor", "On entry, sand shields the supported card for {amount} of its max HP. The heavy armor reduces attack speed by {penalty} for {turns} turns.", {  }),
+			ability("Basic", "Sand Spear", "Drive a sand spear into an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Sand Coffin", "Crush an enemy for {p1} DMG and draw attacks for {t2} turns.", {
+				{ Kind = "Damage", Pct = 2.1 },
+				{ Kind = "Taunt", Turns = 2 },
+			}, 3),
+			ability("Passive", "Automatic Sand Shield", "On entry, living sand shields this card for {p1} DMG and reduces incoming DMG by {a2}, but costs {a3} attack speed.", {
+				{ Kind = "Shield", Pct = 0.8, Target = "Self" },
+				{ Kind = "Buff", Stat = "Guard", Amount = 0.15 },
+				{ Kind = "Buff", Stat = "SPD", Amount = -0.1 },
+			}, nil, { Trigger = "OnEntry", Limit = 1 }),
+			ability("Ultimate", "Imperial Sand Mausoleum", "Bury every enemy for {p1} DMG and lower their defense by {a2} for {t2} turns.", {
+				{ Kind = "Damage", Pct = 1.8, Target = "Enemies" },
+				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3, Target = "Enemies" },
+			}),
 		},
 	},
 	{
 		Id = "luna",
 		Name = "Celestial Strategist",
 		Title = "Wisteria Tactician",
-		Type = "Support",
-		Role = "Mender",
+		Type = "Attack",
+		Role = "Hexer",
 		Weight = 10,
 		Element = "Light",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 460,
+		HP = 920,
+		SPD = 125,
 		Glyph = "LM",
 		Accent = Color3.fromRGB(110, 140, 255),
-		Support = {
-			Name = "Wisteria Antidote",
-			Kind = "KillMend",
-			Trigger = "OnKill",
-			Amount = 0.2,
-			Penalty = 0.1,
-			Turns = 2,
-			Uses = 3,
-			Text = "When the supported card defeats an opponent, recover {amount} of its max HP. The antidote dulls its next attacks, reducing DMG by {penalty} for {turns} turns.",
-		},
 		Abilities = {
-			ability("Passive", "Wisteria Antidote", "When the supported card defeats an opponent, recover {amount} of its max HP. The antidote dulls its next attacks, reducing DMG by {penalty} for {turns} turns.", {  }),
+			ability("Basic", "Butterfly Thrust", "Pierce an enemy with two swift thrusts for {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 0.5, Hits = 2 },
+			}),
+			ability("Skill", "Wisteria Sting", "Strike for {p1} DMG and open a toxin-laced wound that Bleeds for {p2} DMG each turn for {t2} turns.", {
+				{ Kind = "Damage", Pct = 1.7 },
+				{ Kind = "Bleed", Pct = 0.1, Turns = 3 },
+			}, 3),
+			ability("Passive", "Wisteria Dose", "Critical hits have a {chance} chance to inject another dose: inflict Bleed for {p1} DMG each turn for {t1} turns and Weaken by {a2} for {t2} turns.", {
+				{ Kind = "Bleed", Pct = 0.1, Turns = 2 },
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.1, Turns = 2 },
+			}, nil, { Trigger = "OnCrit", Chance = 0.5, Limit = 4 }),
+			ability("Ultimate", "Centipede Dance", "Zigzag through an enemy's defense and protection with five thrusts for {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 0.75, Hits = 5, IgnoreDef = true },
+			}),
 		},
 	},
 	{
 		Id = "orin",
 		Name = "Time Weaver",
 		Title = "Keeper of Hours",
-		Type = "Support",
-		Role = "Mender",
+		Type = "Attack",
+		Role = "Striker",
 		Weight = 2.5,
 		Element = "Void",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 500,
+		HP = 1000,
+		SPD = 135,
 		Glyph = "OR",
 		Accent = Color3.fromRGB(90, 220, 220),
-		Support = {
-			Name = "Borrowed Tomorrow",
-			Kind = "StartEnergy",
-			Trigger = "OnEntry",
-			Amount = 0.25,
-			Penalty = 0.1,
-			Turns = 2,
-			Uses = 1,
-			Text = "On entry, the supported card gains {amount} Ultimate charge, but borrowing time reduces its attack speed by {penalty} for {turns} turns.",
-		},
 		Abilities = {
-			ability("Passive", "Borrowed Tomorrow", "On entry, the supported card gains {amount} Ultimate charge, but borrowing time reduces its attack speed by {penalty} for {turns} turns.", {  }),
+			ability("Basic", "Marked Kunai", "Strike an enemy with a marked blade for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Space-Time Spiral", "Blink behind the enemy for {p1} DMG and evade its next hit.", {
+				{ Kind = "Damage", Pct = 2.2 },
+				{ Kind = "Evade", Hits = 1, Target = "Self" },
+			}, 3),
+			ability("Passive", "Yellow Flash", "On entry, blink into position with 25% Ultimate charge. Overextending makes this card take {a2} more DMG for {t2} turns.", {
+				{ Kind = "Energy", Amount = 25, Target = "Self" },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 2 },
+			}, nil, { Trigger = "OnEntry", Limit = 1 }),
+			ability("Ultimate", "Flying Seal Barrage", "Warp between enemies for five strikes at {p1} DMG each and gain {a2} attack speed for {t2} turns.", {
+				{ Kind = "Damage", Pct = 0.9, Hits = 5, Target = "RandomEnemy" },
+				{ Kind = "Buff", Stat = "SPD", Amount = 0.2, Turns = 2 },
+			}),
 		},
 	},
 	{
 		Id = "aurelia",
 		Name = "Nine-Tails Sovereign",
 		Title = "Vessel of the Nine Tails",
-		Type = "Support",
-		Role = "Mender",
+		Type = "Attack",
+		Role = "Striker",
 		Weight = 1,
 		Element = "Cosmic",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 530,
+		HP = 1060,
+		SPD = 115,
 		Glyph = "AU",
 		Accent = Color3.fromRGB(255, 214, 140),
-		Support = {
-			Name = "Crimson Chakra Cloak",
-			Kind = "LastStand",
-			Trigger = "OnFatal",
-			Amount = 0.85,
-			Penalty = 0.25,
-			Uses = 1,
-			Fixed = true,
-			Text = "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.",
-		},
 		Abilities = {
-			ability("Passive", "Crimson Chakra Cloak", "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.", {  }),
+			ability("Basic", "Chakra Palm", "Strike an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Planetary Chakra Spiral", "Drive three orbiting Chakra spheres into an enemy for {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 1.1, Hits = 3 },
+			}, 3),
+			ability("Passive", "Crimson Lifeline", "When below 50% HP, draw on the sealed beast: recover {p1} HP and gain {a2} DMG, but the cloak prevents further healing.", {
+				{ Kind = "Heal", Pct = 0.35, MaxHP = true, Target = "Self" },
+				{ Kind = "Buff", Stat = "ATK", Amount = 0.2 },
+				{ Kind = "HealingLock" },
+			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
+			ability("Ultimate", "Sovereign Beast Cataclysm", "Detonate a Beast Bomb for {p1} DMG on every enemy, then land a {p2} DMG Chakra strike on the chosen target.", {
+				{ Kind = "Damage", Pct = 2, Target = "Enemies" },
+				{ Kind = "Damage", Pct = 3 },
+			}),
 		},
 	},
 
@@ -627,24 +672,31 @@ local list: { Card } = {
 		Id = "amane",
 		Name = "Shadow Puppeteer",
 		Title = "Mistress of Strings",
-		Type = "Support",
-		Role = "Mender",
+		Type = "Attack",
+		Role = "Hexer",
 		Weight = 6,
 		Element = "Storm",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 480,
+		HP = 960,
+		SPD = 110,
 		Glyph = "AM",
 		Accent = Color3.fromRGB(100, 160, 240),
-		Support = {
-			Name = "Puppet Reversal",
-			Kind = "Cleanse",
-			Trigger = "OnStatus",
-			Amount = 0.15,
-			Uses = 2,
-			Text = "When the supported card receives Burn or Freeze, sever the strings: cleanse those effects and reflect them onto the attacker. Reflected Burn deals {amount} DMG for 3 turns.",
-		},
 		Abilities = {
-			ability("Passive", "Puppet Reversal", "When the supported card receives Burn or Freeze, sever the strings: cleanse those effects and reflect them onto the attacker. Reflected Burn deals {amount} DMG for 3 turns.", {  }),
+			ability("Basic", "Puppet Needle", "Launch two puppet needles for {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 0.5, Hits = 2 },
+			}),
+			ability("Skill", "Scarlet Puppet Rush", "Slash an enemy for {p1} DMG and leave a needle wound that Bleeds for {p2} DMG each turn for {t2} turns.", {
+				{ Kind = "Damage", Pct = 1.8 },
+				{ Kind = "Bleed", Pct = 0.1, Turns = 3 },
+			}, 3),
+			ability("Passive", "Hidden Puppet Core", "When below 50% HP, shed the damaged shell: cleanse Burn and Freeze and evade two hits. Exposing the core makes this card take {a3} more DMG for {t3} turns.", {
+				{ Kind = "Cleanse", Amount = 2, Target = "Self" },
+				{ Kind = "Evade", Hits = 2, Target = "Self" },
+				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 2 },
+			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
+			ability("Ultimate", "Hundred-Puppet Cage", "Surround every enemy with puppet blades for three strikes at {p1} DMG each.", {
+				{ Kind = "Damage", Pct = 0.65, Hits = 3, Target = "Enemies" },
+			}),
 		},
 	},
 	{
@@ -680,25 +732,31 @@ local list: { Card } = {
 		Id = "amaya",
 		Name = "Storm Oracle",
 		Title = "Voice of the Storm",
-		Type = "Support",
-		Role = "Warder",
+		Type = "Attack",
+		Role = "Striker",
 		Weight = 4,
 		Element = "Storm",
-		Main = 0, -- passive: no damage stat
-		SPD = 0, -- passive: no action bar
+		Main = 540,
+		HP = 1080,
+		SPD = 120,
 		Glyph = "AY",
 		Accent = Color3.fromRGB(255, 220, 80),
-		Support = {
-			Name = "Stormheart Siphon",
-			Kind = "Lifesteal",
-			Trigger = "OnHit",
-			Amount = 0.1,
-			Chance = 0.25,
-			Threshold = 0.25,
-			Text = "When the supported card deals direct DMG, a {chance} chance to drain {amount} of that DMG as HP.",
-		},
 		Abilities = {
-			ability("Passive", "Stormheart Siphon", "When the supported card deals direct DMG, a {chance} chance to drain {amount} of that DMG as HP.", {  }),
+			ability("Basic", "Lightning Elbow", "Crash into an enemy for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 1 },
+			}),
+			ability("Skill", "Thunder Lariat", "Drive a lightning lariat through defense and protection for {p1} DMG.", {
+				{ Kind = "Damage", Pct = 2.4, IgnoreDef = true },
+			}, 3),
+			ability("Passive", "Lightning Chakra Armor", "On entry, charge the armor for {a1} attack speed and {a2} less incoming DMG. Maintaining it reduces this card's DMG by {a3} for {t3} turns.", {
+				{ Kind = "Buff", Stat = "SPD", Amount = 0.15 },
+				{ Kind = "Buff", Stat = "Guard", Amount = 0.1 },
+				{ Kind = "Buff", Stat = "ATK", Amount = -0.1, Turns = 3 },
+			}, nil, { Trigger = "OnEntry", Limit = 1 }),
+			ability("Ultimate", "Storm Guillotine", "Drop a lightning-charged heel for {p1} DMG and Weaken every enemy by {a2} for {t2} turns.", {
+				{ Kind = "Damage", Pct = 4.5 },
+				{ Kind = "Debuff", Stat = "ATK", Amount = 0.15, Turns = 2, Target = "Enemies" },
+			}),
 		},
 	},
 	-- BOSS CARDS: unlocked into the pool by each boss's first Normal clear -----------------------
@@ -831,6 +889,290 @@ local list: { Card } = {
 			}),
 		},
 	},
+	-- Relic / technique Supports; artwork awaits user approval.
+	{
+		Id = "mitotic_seal",
+		Name = "Diamond Mitotic Seal",
+		Title = "Forbidden Medical Crest",
+		Type = "Support",
+		Role = "Mender",
+		Weight = 10,
+		Element = "Light",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "DS",
+		Accent = Color3.fromRGB(120, 200, 110),
+		Support = {
+			Name = "Hundred-Petal Renewal",
+			Kind = "LowHeal",
+			Trigger = "BelowHalf",
+			Amount = 0.2,
+			Threshold = 0.5,
+			Uses = 1,
+			Turns = 2,
+			Text = "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP. It cannot be healed for {turns} turns.",
+		},
+		Abilities = {
+			ability("Passive", "Hundred-Petal Renewal", "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP. It cannot be healed for {turns} turns.", {  }),
+		},
+	},
+	{
+		Id = "blood_vow",
+		Name = "Binding Blood Vow",
+		Title = "Cursed Counter-Pact",
+		Type = "Support",
+		Role = "Warder",
+		Weight = 4,
+		Element = "Light",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "BV",
+		Accent = Color3.fromRGB(200, 170, 110),
+		Support = {
+			Name = "Severing Counter",
+			Kind = "Counter",
+			Trigger = "OnDamaged",
+			Amount = 0.15,
+			Chance = 0.25,
+			Uses = 4,
+			Text = "After an enemy attack, the supported card has a {chance} chance to return {amount} of the DMG taken as a counterstrike.",
+		},
+		Abilities = {
+			ability("Passive", "Severing Counter", "After an enemy attack, the supported card has a {chance} chance to return {amount} of the DMG taken as a counterstrike.", {  }),
+		},
+	},
+	{
+		Id = "thunderclap_form",
+		Name = "First Form: Thunderclap",
+		Title = "Lightning Draw Stance",
+		Type = "Support",
+		Role = "Striker",
+		Weight = 10,
+		Element = "Storm",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "TF",
+		Accent = Color3.fromRGB(255, 210, 70),
+		Support = {
+			Name = "Thunder Breathing",
+			Kind = "Haste",
+			Trigger = "OnEntry",
+			Amount = 0.2,
+			Penalty = 0.1,
+			Turns = 3,
+			Uses = 1,
+			Text = "On entry, the supported card gains {amount} attack speed for {turns} turns. Lightning-fast cuts deal {penalty} less DMG during that time.",
+		},
+		Abilities = {
+			ability("Passive", "Thunder Breathing", "On entry, the supported card gains {amount} attack speed for {turns} turns. Lightning-fast cuts deal {penalty} less DMG during that time.", {  }),
+		},
+	},
+	{
+		Id = "heavenly_pact",
+		Name = "Heavenly Restriction",
+		Title = "Assassin's Physical Pact",
+		Type = "Support",
+		Role = "Warder",
+		Weight = 8,
+		Element = "Frost",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "HR",
+		Accent = Color3.fromRGB(150, 170, 200),
+		Support = {
+			Name = "Cloud-Step Feint",
+			Kind = "Dodge",
+			Trigger = "OnAttacked",
+			Amount = 0.1,
+			Penalty = 0.1,
+			Turns = 1,
+			Uses = 4,
+			Text = "When attacked, the supported card has a {amount} chance to evade. Each successful feint inflicts Weaken, reducing the attacker's DMG by {penalty} for {turns} turn.",
+		},
+		Abilities = {
+			ability("Passive", "Cloud-Step Feint", "When attacked, the supported card has a {amount} chance to evade. Each successful feint inflicts Weaken, reducing the attacker's DMG by {penalty} for {turns} turn.", {  }),
+		},
+	},
+	{
+		Id = "ocular_seal",
+		Name = "Cursed Ocular Seal",
+		Title = "Hypnotic Crow Crest",
+		Type = "Support",
+		Role = "Mender",
+		Weight = 1.5,
+		Element = "Frost",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "OS",
+		Accent = Color3.fromRGB(150, 200, 255),
+		Support = {
+			Name = "Illusion of Crows",
+			Kind = "Weaken",
+			Trigger = "OnSkillHit",
+			Amount = 0.15,
+			Chance = 0.25,
+			Burn = 0.1,
+			Turns = 2,
+			Uses = 4,
+			Text = "The supported card's Skill or Ultimate has a {chance} chance to summon Crows. They inflict Weaken for {amount} less enemy DMG over {turns} turns, and Black Flames Burn for {burn} DMG each turn for 3 turns.",
+		},
+		Abilities = {
+			ability("Passive", "Illusion of Crows", "The supported card's Skill or Ultimate has a {chance} chance to summon Crows. They inflict Weaken for {amount} less enemy DMG over {turns} turns, and Black Flames Burn for {burn} DMG each turn for 3 turns.", {  }),
+		},
+	},
+	{
+		Id = "sand_gourd",
+		Name = "Gourd of Living Sand",
+		Title = "Desert Seal Vessel",
+		Type = "Support",
+		Role = "Warder",
+		Weight = 6,
+		Element = "Void",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "SG",
+		Accent = Color3.fromRGB(140, 150, 165),
+		Support = {
+			Name = "Living Sand Armor",
+			Kind = "OpeningShield",
+			Trigger = "OnEntry",
+			Amount = 0.25,
+			Penalty = 0.1,
+			Turns = 2,
+			Uses = 1,
+			Text = "On entry, sand shields the supported card for {amount} of its max HP. The heavy armor reduces attack speed by {penalty} for {turns} turns.",
+		},
+		Abilities = {
+			ability("Passive", "Living Sand Armor", "On entry, sand shields the supported card for {amount} of its max HP. The heavy armor reduces attack speed by {penalty} for {turns} turns.", {  }),
+		},
+	},
+	{
+		Id = "wisteria_vial",
+		Name = "Wisteria Antidote Vial",
+		Title = "Butterfly Medical Extract",
+		Type = "Support",
+		Role = "Mender",
+		Weight = 10,
+		Element = "Light",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "WV",
+		Accent = Color3.fromRGB(110, 140, 255),
+		Support = {
+			Name = "Wisteria Antidote",
+			Kind = "KillMend",
+			Trigger = "OnKill",
+			Amount = 0.2,
+			Penalty = 0.1,
+			Turns = 2,
+			Uses = 3,
+			Text = "When the supported card defeats an opponent, recover {amount} of its max HP. The antidote dulls its next attacks, reducing DMG by {penalty} for {turns} turns.",
+		},
+		Abilities = {
+			ability("Passive", "Wisteria Antidote", "When the supported card defeats an opponent, recover {amount} of its max HP. The antidote dulls its next attacks, reducing DMG by {penalty} for {turns} turns.", {  }),
+		},
+	},
+	{
+		Id = "blink_kunai",
+		Name = "Blink Kunai Seal",
+		Title = "Marked Space-Time Blade",
+		Type = "Support",
+		Role = "Mender",
+		Weight = 2.5,
+		Element = "Void",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "BK",
+		Accent = Color3.fromRGB(90, 220, 220),
+		Support = {
+			Name = "Blink Reserve",
+			Kind = "StartEnergy",
+			Trigger = "OnEntry",
+			Amount = 0.25,
+			Penalty = 0.1,
+			Turns = 2,
+			Uses = 1,
+			Text = "On entry, the supported card gains {amount} Ultimate charge, but stabilizing the seal reduces its attack speed by {penalty} for {turns} turns.",
+		},
+		Abilities = {
+			ability("Passive", "Blink Reserve", "On entry, the supported card gains {amount} Ultimate charge, but stabilizing the seal reduces its attack speed by {penalty} for {turns} turns.", {  }),
+		},
+	},
+	{
+		Id = "beast_seal",
+		Name = "Eight Trigrams Seal",
+		Title = "Caged Beast Talisman",
+		Type = "Support",
+		Role = "Mender",
+		Weight = 1,
+		Element = "Cosmic",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "BS",
+		Accent = Color3.fromRGB(255, 214, 140),
+		Support = {
+			Name = "Crimson Chakra Cloak",
+			Kind = "LastStand",
+			Trigger = "OnFatal",
+			Amount = 0.85,
+			Penalty = 0.25,
+			Uses = 1,
+			Fixed = true,
+			Text = "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.",
+		},
+		Abilities = {
+			ability("Passive", "Crimson Chakra Cloak", "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.", {  }),
+		},
+	},
+	{
+		Id = "puppet_threads",
+		Name = "Chakra Puppet Threads",
+		Title = "Reversal String Technique",
+		Type = "Support",
+		Role = "Mender",
+		Weight = 6,
+		Element = "Storm",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "PT",
+		Accent = Color3.fromRGB(100, 160, 240),
+		Support = {
+			Name = "Puppet Reversal",
+			Kind = "Cleanse",
+			Trigger = "OnStatus",
+			Amount = 0.15,
+			Uses = 2,
+			Text = "When the supported card receives Burn or Freeze, sever the strings: cleanse those effects and reflect them onto the attacker. Reflected Burn deals {amount} DMG for 3 turns.",
+		},
+		Abilities = {
+			ability("Passive", "Puppet Reversal", "When the supported card receives Burn or Freeze, sever the strings: cleanse those effects and reflect them onto the attacker. Reflected Burn deals {amount} DMG for 3 turns.", {  }),
+		},
+	},
+	{
+		Id = "storm_mantle",
+		Name = "Stormheart Mantle",
+		Title = "Siphoning Lightning Armor",
+		Type = "Support",
+		Role = "Warder",
+		Weight = 4,
+		Element = "Storm",
+		Main = 0, -- passive: no damage stat
+		SPD = 0, -- passive: no action bar
+		Glyph = "SM",
+		Accent = Color3.fromRGB(255, 220, 80),
+		Support = {
+			Name = "Stormheart Siphon",
+			Kind = "Lifesteal",
+			Trigger = "OnHit",
+			Amount = 0.1,
+			Chance = 0.25,
+			Threshold = 0.25,
+			Text = "When the supported card deals direct DMG, a {chance} chance to drain {amount} of that DMG as HP.",
+		},
+		Abilities = {
+			ability("Passive", "Stormheart Siphon", "When the supported card deals direct DMG, a {chance} chance to drain {amount} of that DMG as HP.", {  }),
+		},
+	},
 }
 
 -- Card illustrations: paste each card's Roblox image asset id here (0 = no art yet, the card shows its
@@ -868,6 +1210,21 @@ local ART: { [string]: number } = {
 local Cards = {}
 
 Cards.List = list
+-- Old character ids stay owned as Attack cards; saves retain their passive as a separate Support.
+Cards.LegacySupports = {
+	hana = "mitotic_seal",
+	goro = "blood_vow",
+	suzu = "thunderclap_form",
+	ibuki = "heavenly_pact",
+	yume = "ocular_seal",
+	tetsu = "sand_gourd",
+	luna = "wisteria_vial",
+	orin = "blink_kunai",
+	aurelia = "beast_seal",
+	amane = "puppet_threads",
+	amaya = "storm_mantle",
+} :: { [string]: string }
+
 Cards.ById = {} :: { [string]: Card }
 
 for _, card in list do

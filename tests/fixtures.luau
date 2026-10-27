@@ -119,30 +119,30 @@ end
 -- `Borders` maps card ids to their border (the rest are Base); `Awaken` is every card's Awakening node.
 Fixtures.FIGHTS = {
 	{ Boss = "kurogane", Difficulty = "Normal", Stars = 0,
-		Attack = { "tomo", "noa", "rook", "kaede" }, Support = { "ibuki", "hana", "luna" } },
+		Attack = { "tomo", "noa", "rook", "kaede" }, Support = { "heavenly_pact", "mitotic_seal", "wisteria_vial" } },
 	{ Boss = "kurogane", Difficulty = "Hard", Stars = 5,
-		Attack = { "tomo", "noa", "rook", "kaede" }, Support = { "suzu", "ibuki", "hana", "luna" } },
-	{ Boss = "kurogane", Difficulty = "Nightmare", Stars = 0, Borders = { sora = "Gold", amane = "Gold" },
-		Attack = { "sora", "hayate", "tomo", "noa" }, Support = { "amane", "suzu", "ibuki", "hana" } },
-	{ Boss = "rimeveil", Difficulty = "Normal", Stars = 0, Borders = { kaede = "Gold", sora = "Gold", tetsu = "Gold" },
-		Attack = { "kaede", "sora", "tomo", "noa" }, Support = { "tetsu", "yume", "suzu", "ibuki" } },
-	{ Boss = "rimeveil", Difficulty = "Hard", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
-		Attack = { "kaito", "akane", "sora", "noa" }, Support = { "luna", "tetsu", "yume", "hana" } },
-	{ Boss = "rimeveil", Difficulty = "Nightmare", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", tomo = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold", suzu = "Gold" },
-		Attack = { "kaito", "akane", "sora", "tomo" }, Support = { "luna", "tetsu", "yume", "suzu" } },
-	{ Boss = "vex", Difficulty = "Normal", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", tomo = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
-		Attack = { "kaito", "akane", "sora", "tomo" }, Support = { "luna", "tetsu", "yume", "suzu" } },
-	{ Boss = "vex", Difficulty = "Hard", Stars = 5, Borders = { mirai = "Gold", kaito = "Gold", akane = "Gold", sora = "Gold", orin = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
-		Attack = { "mirai", "kaito", "akane", "sora" }, Support = { "orin", "luna", "tetsu", "yume" } },
-	{ Boss = "vex", Difficulty = "Nightmare", Stars = 5, Awaken = 1, Borders = { raijen = "Gold", mirai = "Gold", kaito = "Gold", akane = "Gold", orin = "Gold", luna = "Gold", tetsu = "Gold", yume = "Gold" },
-		Attack = { "raijen", "mirai", "kaito", "akane" }, Support = { "orin", "luna", "tetsu", "yume" } },
+		Attack = { "tomo", "noa", "rook", "kaede" }, Support = { "thunderclap_form", "heavenly_pact", "mitotic_seal", "wisteria_vial" } },
+	{ Boss = "kurogane", Difficulty = "Nightmare", Stars = 0, Borders = { sora = "Gold", puppet_threads = "Gold" },
+		Attack = { "sora", "hayate", "tomo", "noa" }, Support = { "puppet_threads", "thunderclap_form", "heavenly_pact", "mitotic_seal" } },
+	{ Boss = "rimeveil", Difficulty = "Normal", Stars = 0, Borders = { kaede = "Gold", sora = "Gold", sand_gourd = "Gold" },
+		Attack = { "kaede", "sora", "tomo", "noa" }, Support = { "sand_gourd", "ocular_seal", "thunderclap_form", "heavenly_pact" } },
+	{ Boss = "rimeveil", Difficulty = "Hard", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", wisteria_vial = "Gold", sand_gourd = "Gold", ocular_seal = "Gold" },
+		Attack = { "kaito", "akane", "sora", "noa" }, Support = { "wisteria_vial", "sand_gourd", "ocular_seal", "mitotic_seal" } },
+	{ Boss = "rimeveil", Difficulty = "Nightmare", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", tomo = "Gold", wisteria_vial = "Gold", sand_gourd = "Gold", ocular_seal = "Gold", thunderclap_form = "Gold" },
+		Attack = { "kaito", "akane", "sora", "tomo" }, Support = { "wisteria_vial", "sand_gourd", "ocular_seal", "thunderclap_form" } },
+	{ Boss = "vex", Difficulty = "Normal", Stars = 0, Borders = { kaito = "Gold", akane = "Gold", sora = "Gold", tomo = "Gold", wisteria_vial = "Gold", sand_gourd = "Gold", ocular_seal = "Gold" },
+		Attack = { "kaito", "akane", "sora", "tomo" }, Support = { "wisteria_vial", "sand_gourd", "ocular_seal", "thunderclap_form" } },
+	{ Boss = "vex", Difficulty = "Hard", Stars = 5, Borders = { mirai = "Gold", kaito = "Gold", akane = "Gold", sora = "Gold", blink_kunai = "Gold", wisteria_vial = "Gold", sand_gourd = "Gold", ocular_seal = "Gold" },
+		Attack = { "mirai", "kaito", "akane", "sora" }, Support = { "blink_kunai", "wisteria_vial", "sand_gourd", "ocular_seal" } },
+	{ Boss = "vex", Difficulty = "Nightmare", Stars = 5, Awaken = 1, Borders = { raijen = "Gold", mirai = "Gold", kaito = "Gold", akane = "Gold", blink_kunai = "Gold", wisteria_vial = "Gold", sand_gourd = "Gold", ocular_seal = "Gold" },
+		Attack = { "raijen", "mirai", "kaito", "akane" }, Support = { "blink_kunai", "wisteria_vial", "sand_gourd", "ocular_seal" } },
 	-- World 4: Amane's cleanse answers Thunderclap; all Gold at 5 stars, Awakening climbs.
-	{ Boss = "tenrai", Difficulty = "Normal", Stars = 5, Awaken = 1, Borders = { raijen = "Gold", mirai = "Gold", tsubasa = "Gold", akane = "Gold", aurelia = "Gold", yume = "Gold", orin = "Gold", amane = "Gold" },
-		Attack = { "raijen", "mirai", "tsubasa", "akane" }, Support = { "aurelia", "yume", "orin", "amane" } },
-	{ Boss = "tenrai", Difficulty = "Hard", Stars = 5, Awaken = 2, Borders = { raijen = "Gold", mirai = "Gold", tsubasa = "Gold", akane = "Gold", aurelia = "Gold", yume = "Gold", orin = "Gold", amane = "Gold" },
-		Attack = { "raijen", "mirai", "tsubasa", "akane" }, Support = { "aurelia", "yume", "orin", "amane" } },
-	{ Boss = "tenrai", Difficulty = "Nightmare", Stars = 5, Awaken = 3, Borders = { raijen = "Gold", mirai = "Gold", tsubasa = "Gold", akane = "Gold", aurelia = "Gold", yume = "Gold", orin = "Gold", amane = "Gold" },
-		Attack = { "raijen", "mirai", "tsubasa", "akane" }, Support = { "aurelia", "yume", "orin", "amane" } },
+	{ Boss = "tenrai", Difficulty = "Normal", Stars = 5, Awaken = 1, Borders = { raijen = "Gold", mirai = "Gold", tsubasa = "Gold", akane = "Gold", beast_seal = "Gold", ocular_seal = "Gold", blink_kunai = "Gold", puppet_threads = "Gold" },
+		Attack = { "raijen", "mirai", "tsubasa", "akane" }, Support = { "beast_seal", "ocular_seal", "blink_kunai", "puppet_threads" } },
+	{ Boss = "tenrai", Difficulty = "Hard", Stars = 5, Awaken = 2, Borders = { raijen = "Gold", mirai = "Gold", tsubasa = "Gold", akane = "Gold", beast_seal = "Gold", ocular_seal = "Gold", blink_kunai = "Gold", puppet_threads = "Gold" },
+		Attack = { "raijen", "mirai", "tsubasa", "akane" }, Support = { "beast_seal", "ocular_seal", "blink_kunai", "puppet_threads" } },
+	{ Boss = "tenrai", Difficulty = "Nightmare", Stars = 5, Awaken = 3, Borders = { raijen = "Gold", mirai = "Gold", tsubasa = "Gold", akane = "Gold", beast_seal = "Gold", ocular_seal = "Gold", blink_kunai = "Gold", puppet_threads = "Gold" },
+		Attack = { "raijen", "mirai", "tsubasa", "akane" }, Support = { "beast_seal", "ocular_seal", "blink_kunai", "puppet_threads" } },
 }
 
 function Fixtures.fixtureDeck(fixture)
@@ -151,6 +151,8 @@ function Fixtures.fixtureDeck(fixture)
 		table.insert(ids, id)
 	end
 	local owned = Fixtures.own(ids, 0, fixture.Borders)
+	-- Non-story chase fixtures explicitly request earned mastery; story fixtures use prior clears.
+	if not fixture.Boss then return Fixtures.deck(fixture.Attack, fixture.Support), Fixtures.own(ids, 0, fixture.Borders, fixture.Awaken) end
 	local boss = MODULES.Bosses.Get(fixture.Boss)
 	local difficulty = if boss then boss.Difficulties[fixture.Difficulty].D else 1
 	for _, entry in owned do for i=1,difficulty-1 do entry.Mastery[`fixture:{i}`] = true end end

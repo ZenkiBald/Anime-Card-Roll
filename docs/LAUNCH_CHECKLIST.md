@@ -46,6 +46,14 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] Character / relic conversion (2026-10-27): restart Play so the save migration runs. Confirm all 11
+  former Support characters are in ATTACK with HP / speed / Basic / Skill / Passive / Ultimate and original
+  portraits; their relic replacements are in SUPPORT with no HP / action bar. Existing borders, copies,
+  traits, Mastery and Support positions in every preset should survive. Try character bonds, AUTO-BUILD,
+  reading skills during Auto Roll, and a real battle. Studio reported no place open, so these visual / live
+  checks could not run. Three Support art previews await user approval; no Support images are uploaded,
+  wired or committed. Plain relic monograms are temporary. See `docs/CARD_CONVERSION.md`.
+
 - [x] Mastery / exploration / UI pass (2026-10-26): separate ATTACK and SUPPORT vault tabs; Support-only
   contents checked. Hover tooltip remained open through multiple Auto Rolls and closed with SQUAD. Clean
   panels / text navigation replace the ornate atlases; original art files and all card / boss names remain.

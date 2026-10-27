@@ -70,7 +70,7 @@ check(Packs.Count({ ["1000:Void"] = 2, ["10"] = 1 }) == 3, "infused packs count 
 
 -- 5. Deck Cost and Trait Shards ------------------------------------------------------------------------
 check(Cards.Cost("Normal") == 2 and Cards.Cost("Gold") == 4 and Cards.Cost("Secret") == 8, "Deck Cost by border")
-local starterCost = Deck.Cost(F.deck({ "tomo", "mirai", "rook", "kaede" }, { "suzu", "ibuki", "hana", "goro" }))
+local starterCost = Deck.Cost(F.deck({ "tomo", "mirai", "rook", "kaede" }, { "thunderclap_form", "heavenly_pact", "mitotic_seal", "blood_vow" }))
 check(starterCost == 16, "an all-Base deck costs 16")
 local topDeck, topOwned = F.fixtureDeck(F.FIGHTS[12])
 local topCost = Deck.Cost(topDeck, topOwned)
@@ -136,7 +136,7 @@ do
 end
 
 do
-	local deck = F.deck({ "rook", "tomo" }, { "suzu", "" })
+	local deck = F.deck({ "rook", "tomo" }, { "thunderclap_form", "" })
 	local battle = Engine.new({ Units = F.units(deck, owned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
 	check(battle:Buff(battle.ById.A1, "SPD") >= 0.08 and #battle.Links == 1 and battle.Links[1].To == "A1", "Support slot 1's Slot Link reaches Attack slot 1")
 end

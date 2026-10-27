@@ -9,6 +9,19 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- NEW (2026-10-27): converted all 11 character Supports to Attack cards, keeping original names / ids /
+  portraits. Added 11 separate relic / technique Supports with the previous passive math. The pool is 37 cards
+  (33 before boss unlocks). Idempotent migration preserves characters and grants replacement Supports with
+  independent copies of their old collection / traits / Mastery; every preset Support position maps to the relic.
+  See `docs/CARD_CONVERSION.md`. Rejoin / restart Play after syncing so the migration runs.
+- ART APPROVAL PENDING: three built-in imagegen examples are LOCAL ONLY in `studio-local/support-previews/`:
+  Diamond Mitotic Seal, Gourd of Living Sand and Cursed Ocular Seal. Exact prompts / original source paths are
+  in `studio-local/support-preview-prompts.json`. User must approve before generating the remaining eight /
+  uploading, wiring or pushing any Support artwork. No Support image ids exist yet; monograms are temporary.
+  Follow the approved inspirations, not Gemini's conflicting HxH / One Piece / Date A Live character guesses.
+- Studio reported "Place is not open" during this pass. All code checks passed, but conversion UI / live
+  fights / real-profile migration remain unchecked in Studio; checklist section 5 has the exact review items.
+
 - User review of the completed mastery / exploration pass: SQUAD has separate ATTACK / SUPPORT tabs above
   CARD VAULT. Copy stat bonuses and copy Awakening are gone; duplicates are for border fusion. Win different
   story boss difficulties with each card to earn Mastery at 1 / 3 / 6 / 10 challenges. SEE VIEW SKILLS / MASTERY.
@@ -36,6 +49,28 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 ## Log (newest first)
 
 Each entry: date · who · commit · what changed · what's left or unsure.
+
+- 2026-10-27 · Codex · this commit · Converted the 11 former character Supports into independent Attack cards
+  with real stats, Basic / Skill / triggered Passive / Ultimate. Preserved every existing card / boss name,
+  character id / portrait / leaderboard list position; followed the approved 26-art inspirations where Gemini's
+  reference table conflicted (Toji, Minato, Sasori, Fourth Raikage). Appended 11 relic / technique Supports,
+  retaining old Support math / weights / elements; roll chances recalculate across 37 cards, border odds unchanged.
+  One-time SupportRelicsVersion migration deep-copies each owned former Support to its replacement, keeping the
+  character too; remaps all preset and legacy Support positions without changing Attack lineups / active preset.
+  Existing replacement entries are never overwritten. Deck.Clean now clears wrong-type stale slots. Supports
+  without approved art show monograms instead of character busts. New kits use existing server effect handlers,
+  clean 5-point percentages, bounded passives and truthful status descriptions. Character bonds require the
+  characters, not their new relics. Updated fixture Support ids and bond coverage; fixed chase fixture helper
+  ignoring its explicitly requested Mastery (story fixtures still use previous challenge clears). No boss tuning.
+  Added save independence / preserved collection / presets / repeat-load cases and live engine checks for all
+  11 Basic / Skill / Ultimate kits, 26 Attack / 11 Support pool, Attack-only viability, entry charge, cloak healing
+  lock and follow-up limits. Required checks: type 0 errors (existing warnings), props 5,565 / 0 problems,
+  headless ALL CHECKS PASSED; 12 story fixtures 100% wins, 61.4–81.4 s medians; towers / Pagoda / raids pass.
+  Studio MCP lists an instance but reports no place open: NO Studio visual / live verification ran; no place
+  modified or published. Generated three reviewed local Support art examples with built-in imagegen, matching
+  relic / seal composition without character faces; all 1254 x 1254. Images / exact prompts remain ignored in
+  studio-local pending USER APPROVAL, no upload / asset ids / art wiring / image commit. Remaining eight not
+  generated. Updated CLAUDE / conversion map / launch checks. Unrelated .codex and five root PNGs untouched.
 
 - 2026-10-26 · Codex · this commit · Completed the approved progression / team / UI / exploration plan plus
   separate ATTACK / SUPPORT vault tabs and Auto Trait investigation. Retired duplicate stat bonuses and copy

@@ -88,7 +88,8 @@ function Deck.Clean(deck: Deck, owned: Owned): Deck
 	for _, row in Deck.Rows do
 		local slots = (clean :: any)[row] :: { string }
 		for i, id in slots do
-			if id ~= "" and owned[id] == nil then
+			local card = Cards.Get(id)
+			if id ~= "" and (owned[id] == nil or card == nil or card.Type ~= row) then
 				slots[i] = ""
 			end
 		end
