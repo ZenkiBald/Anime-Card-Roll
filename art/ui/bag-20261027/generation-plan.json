@@ -1,0 +1,91 @@
+{
+  "tool": "built-in image_gen",
+  "transparent_background": true,
+  "items": [
+    {
+      "id": "roll_pack",
+      "name": "Roll Pack",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a single chunky cobalt-blue sealed trading-card foil packet with a large luminous cyan four-point star embossed in its center and folded silver crimped ends. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "big_roll_pack",
+      "name": "Big Roll Pack",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: three chunky violet sealed trading-card foil packets fanned together, with magenta star emblems and shiny silver crimped ends. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "mega_roll_pack",
+      "name": "Mega Roll Pack",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a thick golden treasure case bursting with a fan of rainbow trading-card foil packets, a large radiant golden star on its front. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "luck_potion",
+      "name": "Luck Potion",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a round emerald-green glass potion bottle containing glowing green liquid, an unmistakable four-leaf clover-shaped gold stopper. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "super_luck_potion",
+      "name": "Super Luck Potion",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a regal gold-framed emerald-green faceted potion bottle containing swirling lime liquid, a large four-leaf clover emblem and jewel stopper. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "mythic_elixir",
+      "name": "Mythic Elixir",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a curved crimson-and-violet glass elixir flask, ornate golden neck, glowing pink liquid and a bright pink crystal stopper. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "void_eye",
+      "name": "Void Eye",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a floating mysterious purple eye with a black slit pupil, embedded in a thick obsidian crescent with violet magical wisps. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "storm_crown",
+      "name": "Storm Crown",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a royal golden crown with pointed lightning-bolt prongs, large electric-blue gemstones and a tiny arc of blue lightning. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "ember_heart",
+      "name": "Ember Heart",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a heart-shaped molten orange gemstone encased in dark volcanic stone, a little sculptural flame rising from its upper edge. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "frost_sigil",
+      "name": "Frost Sigil",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a thick icy-blue six-point snowflake crystal medallion edged in silver, bright turquoise central gemstone. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "prism_shard",
+      "name": "Prism Shard",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a single large faceted angular crystal shard with clean rainbow-colored facets, pink cyan violet and gold refractions. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "moonstone",
+      "name": "Moonstone",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a polished deep midnight-blue crescent-moon gemstone set in bright silver, a small pearl and a soft lavender halo. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "four_leaf_relic",
+      "name": "Four-Leaf Relic",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a thick emerald-green four-leaf clover pendant in a chunky golden setting, a little gold loop at its top. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "quicksand_hourglass",
+      "name": "Quicksand Hourglass",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a squat elegant golden hourglass with curved glass chambers, luminous amber sand flowing through the center. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "merchants_coin",
+      "name": "Merchant's Coin",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: one thick large golden merchant coin viewed in three-quarter perspective with a raised treasure-pouch emblem and a ridged edge. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "sages_tome",
+      "name": "Sage's Tome",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a chunky closed royal-blue magic tome with golden corner guards, ivory page edges and a radiant turquoise crystal set in the cover. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    },
+    {
+      "id": "hundred_floors_crown",
+      "name": "Crown of the Hundred Floors",
+      "prompt": "Use case: stylized-concept. Asset type: individual inventory icon for a glossy Roblox simulator game. Create ONE isolated object: a majestic jade-and-gold crown with a stylized tiered pagoda silhouette rising from its center, red jewel accents. Cohesive premium 2D game icon illustration, chunky toy proportions, clean confident dark outline, bold smooth cel shading, glossy bright highlights, polished readable silhouette, slight three-quarter view. Object centered and fills 78% of a square canvas, all details safely inside margins. Rich saturated colors, crisp edges, broad readable shapes at 64 pixels. Transparent background with real alpha. No floor, no background scene, no UI frame, no letters, numbers, text, watermark, logo, character or face. Small self-contained magical accents only; no sprawling particles. A professional matching set of game inventory item illustrations."
+    }
+  ]
+}

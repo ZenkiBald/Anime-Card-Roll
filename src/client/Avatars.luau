@@ -1,8 +1,9 @@
 --!nonstrict
--- Avatar auras: a character whose player wears a card as their avatar (EQUIP AS AVATAR in the DECK
+-- Avatar showcases / auras: a character whose player wears a card as their avatar (EQUIP AS AVATAR in the DECK
 -- inspector) glows in that card's element colour (a soft light and a few slow sparks). While walking, a
 -- Rainbow-border avatar leaves fire footsteps and a Secret-border one sheds celestial motes. Drawn on each
--- client, only for characters near the camera: one light, one emitter and short-lived footstep parts each.
+-- client, only for characters near the camera. The double-sided card is welded behind the shoulder,
+-- with low-rate world-space sparkles; unequipping / leaving range destroys it with the aura.
 -- Where the look comes from, newest first: the local player's own prediction (Avatars.Predict, drawn the
 -- moment EQUIP is tapped), the server's AuraReplication event (AvatarService fires it to everyone on a
 -- change), then the character's AvatarElement / AvatarBorder attributes (for players already wearing one
@@ -21,6 +22,7 @@ local Cards = require(Shared.Cards)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Theme = require(script.Parent.UI.Theme)
+local CardTile = require(script.Parent.UI.CardTile)
 
 local Avatars = {}
 
@@ -38,11 +40,12 @@ local function clear(character)
 	local aura = auras[character]
 	if aura then
 		aura.Attachment:Destroy()
+		if aura.Showcase then aura.Showcase:Destroy() end
 		auras[character] = nil
 	end
 end
 
-local function build(character: Model, root: BasePart, element: string, border: string)
+local function build(character: Model, root: BasePart, element: string, border: string, cardId: string?)
 	clear(character)
 	local info = Elements.Get(element)
 	local color = if info then info.Color else Color3.new(1, 1, 1)
@@ -83,8 +86,52 @@ local function build(character: Model, root: BasePart, element: string, border: 
 		motes.Enabled = false
 		motes.Parent = attachment
 	end
+	-- A real world-space card sits behind the shoulder, never across the avatar's torso.
+	local showcase = nil
+	if cardId and Cards.Get(cardId) then
+		showcase = Instance.new("Part")
+		showcase.Name = "ShowcaseFlexCard"
+		showcase.Size = Vector3.new(1.65, 2.3, 0.08)
+		showcase.Color = color:Lerp(Color3.new(0,0,0), .65)
+		showcase.Material = Enum.Material.SmoothPlastic
+		showcase.CanCollide = false
+		showcase.CanTouch = false
+		showcase.CanQuery = false
+		showcase.CastShadow = false
+		showcase.Massless = true
+		showcase.CFrame = root.CFrame * CFrame.new(2.2, 1.6, 3.0)
+		showcase.Parent = folder
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = root
+		weld.Part1 = showcase
+		weld.Parent = showcase
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			local surface = Instance.new("SurfaceGui")
+			surface.Name = "ShowcaseArt"
+			surface.Face = face
+			surface.CanvasSize = Vector2.new(264, 368)
+			surface.LightInfluence = 0
+			surface.AlwaysOnTop = false
+			surface.MaxDistance = RANGE
+			surface.Parent = showcase
+			local tile = CardTile.new(cardId, { Owned = true, Border = border })
+			tile.Size = UDim2.fromScale(1,1)
+			tile.Active = false
+			tile.Parent = surface
+		end
+		local origin = Instance.new("Attachment")
+		origin.Name = "ShowcaseParticles"
+		origin.Parent = showcase
+		local shine = sparks:Clone()
+		shine.Name = "CardSparkles"
+		shine.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		shine.Rate = if Theme.FxLow then 2 else 5
+		shine.Speed = NumberRange.new(.3, .8)
+		shine.Parent = origin
+	end
 	auras[character] = {
-		Key = `{element}:{border}`,
+		Key = `{element}:{border}:{cardId or ""}`,
+		Showcase = showcase,
 		Attachment = attachment,
 		Light = light,
 		Sparks = sparks,
@@ -125,14 +172,15 @@ local function footstep(root: BasePart, humanoid: Humanoid, aura)
 end
 
 -- The aura a character should show: (element, border), element nil for none.
-local function look(character: Model): (string?, string)
+local function look(character: Model): (string?, string, string?)
 	local override = overrides[character]
 	if override then
-		return override.Element, override.Border
+		return override.Element, override.Border, override.CardId
 	end
 	local element = character:GetAttribute("AvatarElement")
 	local border = character:GetAttribute("AvatarBorder")
-	return if type(element) == "string" then element else nil, if type(border) == "string" then border else "Normal"
+	local cardId = character:GetAttribute("AvatarCard")
+	return if type(element) == "string" then element else nil, if type(border) == "string" then border else "Normal", if type(cardId) == "string" then cardId else nil
 end
 
 local function override(character: Model?, cardId: string, border: string)
@@ -140,11 +188,11 @@ local function override(character: Model?, cardId: string, border: string)
 		return
 	end
 	local card = Cards.Get(cardId)
-	overrides[character] = { Element = if card then card.Element else nil, Border = border }
+	overrides[character] = { Element = if card then card.Element else nil, Border = border, CardId = if card then card.Id else nil }
 	-- Redraw right away instead of on the next tick.
 	local root = character:FindFirstChild("HumanoidRootPart")
 	if card and root and root:IsA("BasePart") then
-		build(character, root, card.Element, border)
+		build(character, root, card.Element, border, card.Id)
 	else
 		clear(character)
 	end
@@ -175,7 +223,7 @@ local function update(now: number)
 		if root == nil or humanoid == nil then
 			continue
 		end
-		local element, border = look(character)
+		local element, border, cardId = look(character)
 		if element == nil then
 			continue
 		end
@@ -184,8 +232,8 @@ local function update(now: number)
 		end
 		seen[character] = true
 		local aura = auras[character]
-		if aura == nil or aura.Key ~= `{element}:{border}` or aura.Attachment.Parent ~= root then
-			build(character, root, element, border)
+		if aura == nil or aura.Key ~= `{element}:{border}:{cardId or ""}` or aura.Attachment.Parent ~= root then
+			build(character, root, element, border, cardId)
 			aura = auras[character]
 		end
 		local walking = humanoid.MoveDirection.Magnitude > 0.1 and humanoid.FloorMaterial ~= Enum.Material.Air and humanoid.Sit == false

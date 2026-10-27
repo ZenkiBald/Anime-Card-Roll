@@ -75,7 +75,10 @@ HP); AUTO continues until a ticked trait lands, Stop, closing the panel, insuffi
 Each server request validates / charges at most `Traits.AutoMax` rolls; Stop finishes the current batch. The UI
 shows cumulative rolls and spending for the run. A miss keeps the old trait. Every action is rate-limited. The Index lists
 every card by best border with completion rewards per border. A card can be worn as your avatar (element aura; Rainbow
-fire footsteps, Secret celestial motes).
+fire footsteps, Secret celestial motes). That same equip choice adds a double-sided Showcase Flex Card
+at HumanoidRootPart-local (2.2, 1.6, 3.0), behind the shoulder, with low-rate 3D sparkles.
+It uses the existing server-owned AvatarCard / AvatarBorder attributes; no new save field. Client visuals
+are culled at 120 studs and cleaned on unequip / respawn / leaving range.
 
 **Deck and battle.** 4 Attack + 4 Support, 3 presets (+2 VIP), AUTO-BUILD / COUNTER-BUILD. Each Support modifies the
 Attack card with the matching slot number. Supports have no damage, HP, action bar, Skill or Ultimate; counters,
@@ -179,12 +182,15 @@ summon-button and icon atlases without deleting them; `Skin` keeps the existing 
 `src/configs/UITheme.luau` feeds Theme with navy / lilac surfaces and element / border colours where meaningful.
 The earlier image kit remains archived under `art/ui/occult/` for reference.
 
-The HUD has one vertical text menu, an opaque currency group, a quiet Kenji tracker / claim seal,
+The HUD has a vertical menu with 20 px FredokaOne labels and distinct saturated gradients: crimson BATTLE,
+royal-blue SQUAD, violet BAG, emerald QUESTS, cyan TRAVEL, gold STORE and orange DEV.
+It has an opaque currency group, a quiet Kenji tracker / claim seal,
 XP and Next Goal at bottom-left on desktop, and AUTO / ROLL / QUICK at bottom-centre with Momentum and Surge in one
 band. The server list starts folded (tap to expand). RECENT PULLS shows up to three rows, two on short screens.
 Surge still charges spirit blue, shivers void purple for the last four rolls, and seals gold (UNLEASH SURGE!).
 AUTO / QUICK light their bezel when active. Short screens keep the earlier scaling / compact layout, with Next Goal
-over the roll console. Automatic roll reveals stay muted while panels or fights are open; away rewards use one compact toast.
+over the roll console. Quick-roll cards use a bounded two-card 2D tray on the right, clear of the avatar's torso
+and bottom controls. Automatic roll reveals stay muted while panels or fights are open; away rewards use one compact toast.
 
 Panels (`Modal`) use navy gradients, glossy purple headers and rounded selected tabs.
 On phones, `Modal.FitScale` lays out the panel at desktop size and scales it down (~0.6 sideways); turn
@@ -202,7 +208,9 @@ clipped cards and disconnects when its last gradient is destroyed. Decorations l
 them out of grid / list layouts. TextButton labels are mirrored above their fill so gradients cannot tint
 or cover white text; existing text changes / selection strokes continue to work.
 Tiles show art, a plain ATTACK / SUPPORT label, element, name, xN, FUSE! at 100 copies and the
-rarity number, with no combat stats. Names wrap / scale 8-14; stats live in the inspector / tooltip. Vault tiles are
+rarity number, with no combat stats. A black transparent-to-dark vignette covers the bottom 38%; centered
+names end at 82% height and gold / cyan rarity numbers end at 96%, in separate rows. Names scale 6–14
+to fit the smallest profile deck tiles; stats live in the inspector / tooltip. Vault tiles are
 larger; the phone inspector collapses until selection; deck thumbnails omit duplicate tiny name / rarity labels.
 DECK explains the two card types and numbered pairs. Attack slots show damage / HP; Support slots show their actual
 passive strength instead of generic power. The 26 characters belong to ATTACK; the 11 relics belong to SUPPORT. Only attackers contribute to ATTACK RATING. Tapping a
@@ -217,8 +225,11 @@ Hover cards are dark, scrollable and bounded to the viewport; pointer movement i
 sheet shows techniques first; COLLECTION & MASTERY expands odds, fusion, traits, battle mastery and other collection data. Advanced traits / mastery
 remain in the details. Battle skill popups scroll within the viewport. HUD refresh waits for initialization so an
 early StoreState update cannot access missing currency chips.
-BAG uses simple named relic / potion / pack markers with named plaques, separate status lines, and relic-rarity
-frames (bronze / purple / gold / crimson); packs keep their roll counts. BOSS SCOUT retains its unit trays and
+BAG uses 17 individual transparent AI illustrations for the requested packs, potions, relics and Pagoda crown
+in both tiles and details, with separate names / counts / status lines. `UI/BagArt` maps item keys to uploaded
+images; infused Mega Packs reuse Mega art. Sources, exact built-in imagegen prompts, hashes, uploaded ids
+and 512 px RGBA upload copies are in `art/ui/bag-20261027/`. Unmapped items retain the existing marker fallback.
+Relic-rarity frames remain (bronze / purple / gold / crimson); packs keep their roll counts. BOSS SCOUT retains its unit trays and
 counter / synergy / bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
 controls, enemy target panels and result frames. The current triggered ability kits are described above.
 

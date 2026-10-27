@@ -46,6 +46,14 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] UI polish (2026-10-27): 17 BAG illustrations loaded visibly in the normal grid / detail;
+  colored HUD menu checked. SQUAD text rows separated; MY PROFILE's 14 mini tiles have no name / rarity
+  rectangle overlap. Quick rolls appear on the right; flex card is at root-local (2.2, 1.6, 3.0), with
+  a real particle emitter; unequip cleanup verified. No new runtime errors.
+- [ ] Check this polish on a real phone: mini names / rarity, colored navigation, BAG tile / detail icons,
+  and running / turning / respawning while the showcase is equipped. No new artwork for Speed Potion;
+  it retains its previous marker (the requested list contained the other 17 items).
+
 - [x] Glossy vector UI (2026-10-27): Studio startup, HUD, SQUAD / card vault and BAG checked visually;
   tab labels remain readable above glossy fills. Visible rare borders rotate and hidden ones pause.
 - [ ] Review the glossy windows / buttons / card borders on phone, STORE, reveals and live battles;

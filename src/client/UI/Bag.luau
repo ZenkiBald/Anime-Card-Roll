@@ -18,6 +18,7 @@ local Rarity = require(Shared.Rarity)
 
 local Kit = require(script.Parent.Kit)
 local IconBadge = require(script.Parent.Components.IconBadge)
+local BagArt = require(script.Parent.BagArt)
 local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
@@ -205,6 +206,22 @@ local function crestOf(entry): string
 	return entry.Icon
 end
 
+local function itemIcon(entry, props)
+	local image = BagArt.Get(entry.Key)
+	if image then
+		local label = Kit.new("ImageLabel", {
+			Name = "Icon", BackgroundTransparency = 1, Image = image,
+			ScaleType = Enum.ScaleType.Fit,
+		})
+		for key, value in props do label[key] = value end
+		return label
+	end
+	props.IconAsset = crestOf(entry)
+	props.ArtKey = entry.Key
+	props.GlowColor = entry.Color
+	return IconBadge.new(props)
+end
+
 -- One square tile: an Urushi plaque framed in the item's colour (a relic's by rarity), its crest in a
 -- diamond IconBadge, the count top-right and a short tag along the bottom.
 local function tile(entry, order: number)
@@ -236,18 +253,16 @@ local function tile(entry, order: number)
 		local border = require(Shared.Borders).Get("Secret")
 		Kit.rareBorder(button, "Secret", border.Gradient, border.Color)
 	end
-	local crest = IconBadge.new({
+	local crest = itemIcon(entry, {
 		Name = "Icon",
-		IconAsset = crestOf(entry),
-		ArtKey = entry.Key,
-		GlowColor = edge,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.28),
-		Size = UDim2.fromScale(0.42, 0.42),
+		Position = UDim2.fromScale(0.5, 0.32),
+		Size = UDim2.fromScale(0.74, 0.58),
 		ZIndex = 2,
 		Parent = button,
 	})
 	if not held then
+		if crest:IsA("ImageLabel") then crest.ImageTransparency = 0.55 end
 		for _, d in crest:GetDescendants() do
 			if d:IsA("TextLabel") then
 				d.TextTransparency = 0.55
@@ -274,8 +289,8 @@ local function tile(entry, order: number)
 		Name = "ItemName",
 		Text = entry.Name,
 		Font = Theme.Font.Heavy,
-		Position = UDim2.fromScale(0.05, 0.48),
-		Size = UDim2.fromScale(0.9, 0.35),
+		Position = UDim2.fromScale(0.05, 0.61),
+		Size = UDim2.fromScale(0.9, 0.23),
 		ZIndex = 3,
 		Parent = button,
 	}, 11)
@@ -455,14 +470,10 @@ local function showDetail(entry)
 		Kit.gradient(ColorSequence.new(UITheme.Colors.UrushiRaised, UITheme.Colors.UrushiInset), 90),
 		Kit.stroke(entry.Color, 3, 0),
 	})
-	IconBadge.new({
-		IconAsset = crestOf(entry),
-		ArtKey = entry.Key,
-		GlowColor = entry.Color,
+	itemIcon(entry, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(0.9, 0.9),
-		DominantAxis = Enum.DominantAxis.Height,
 		Parent = big,
 	})
 	local name = detailText(2, string.upper(entry.Name), entry.Color, 24, Theme.Font.Display)

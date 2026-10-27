@@ -112,15 +112,16 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Name = "Shade",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.fromScale(1, 0.5),
-		BackgroundColor3 = C.UrushiInset,
+		Size = UDim2.fromScale(1, 0.38),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.25,
 		BorderSizePixel = 0,
 		ZIndex = 3,
 		Parent = button,
 	}, {
 		Kit.new("UIGradient", {
 			Rotation = 90,
-			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.45, 0.2), NumberSequenceKeypoint.new(1, 0.05) }),
+			Transparency = NumberSequence.new(1, 0),
 		}),
 	})
 
@@ -136,14 +137,15 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Text = if owned then string.upper(card.Name) else "???",
 		Font = Theme.Font.Display,
 		TextColor3 = if owned then C.WashiParchment else C.WashiGhost,
-		TextXAlignment = Enum.TextXAlignment.Left,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		TextYAlignment = Enum.TextYAlignment.Bottom,
-		Position = UDim2.fromScale(0.06, 0.54),
-		Size = UDim2.fromScale(0.88, 0.31),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, 0.82),
+		Size = UDim2.fromScale(0.88, 0.20),
 		ZIndex = 5,
 		Parent = button,
 	}, 14), 1.5)
-	nameLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 8
+	nameLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 6
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 2), PaddingRight = UDim.new(0, 2), Parent = nameLabel })
 	-- Copies at this border: top-left, under the stars.
 	if owned and options.Copies then
@@ -184,17 +186,20 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 
 	end
 	local rarity = if owned then Cards.Rarity(cardId, borderId) else 0
-	outlined(Kit.label({
+	local rarityLabel = outlined(Kit.label({
 		Name = "Rarity",
 		Text = if rarity > 0 then Kit.commas(rarity) else "",
 		Font = Theme.Font.Display,
 		TextColor3 = if borderId == "Normal" then C.WashiParchment else tier.Color:Lerp(Color3.new(1, 1, 1), 0.2),
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -4),
-		Size = UDim2.fromScale(0.92, 0.15),
+		Position = UDim2.fromScale(0.5, 0.96),
+		Size = UDim2.fromScale(0.90, 0.10),
 		ZIndex = 5,
 		Parent = button,
 	}, 18), 2)
+	-- Set after shared typography: rarity keeps its collectible tint.
+	rarityLabel.TextColor3 = if borderId == "Gold" or borderId == "Normal" then Color3.fromRGB(255, 221, 95) else Color3.fromRGB(125, 245, 255)
+	rarityLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 6
 
 	-- Say which row it belongs in; the border already communicates the tier.
 	Kit.label({

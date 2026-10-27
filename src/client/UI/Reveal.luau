@@ -631,8 +631,10 @@ end
 local function placeToasts()
 	local height = gui.AbsoluteSize.Y
 	local short = height > 0 and height < 500
-	toastArea.Position = UDim2.fromScale(0.5, if short then 0.64 else 0.7)
-	toastArea.Size = UDim2.fromScale(0.7, if short then 0.13 else 0.16)
+	-- A screen-space tray beside the avatar, clear of the central camera and bottom roll controls.
+	toastArea.AnchorPoint = Vector2.new(1, 1)
+	toastArea.Position = UDim2.fromScale(0.97, if short then 0.63 else 0.68)
+	toastArea.Size = UDim2.fromOffset(if short then 148 else 224, if short then 90 else 142)
 end
 
 function Reveal.Init(playerGui: Instance)
@@ -649,7 +651,7 @@ function Reveal.Init(playerGui: Instance)
 	}, {
 		Kit.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
 			VerticalAlignment = Enum.VerticalAlignment.Bottom,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			Padding = UDim.new(0, 8),
@@ -740,7 +742,7 @@ function Reveal.Quick(result)
 		Effects.Shimmer(view, 1)
 	end
 
-	-- Keep at most five on screen.
+	-- Keep the tray bounded: two cards fit without spreading back across the avatar.
 	local toasts = {}
 	for _, child in toastArea:GetChildren() do
 		if child:IsA("Frame") then
@@ -750,7 +752,7 @@ function Reveal.Quick(result)
 	table.sort(toasts, function(a, b)
 		return a.LayoutOrder < b.LayoutOrder
 	end)
-	for i = 1, #toasts - 5 do
+	for i = 1, #toasts - 2 do
 		toasts[i]:Destroy()
 	end
 

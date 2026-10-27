@@ -143,6 +143,15 @@ local function lockOverlay(button: TextButton, feature: string)
 end
 
 -- Square menu button: emoji icon, small caption, red badge for things to claim.
+local MENU_COLORS = {
+	BATTLE = { Color3.fromRGB(255, 78, 103), Color3.fromRGB(137, 18, 49) },
+	SQUAD = { Color3.fromRGB(80, 155, 255), Color3.fromRGB(32, 58, 176) },
+	BAG = { Color3.fromRGB(188, 100, 255), Color3.fromRGB(89, 35, 164) },
+	QUESTS = { Color3.fromRGB(66, 234, 143), Color3.fromRGB(13, 115, 79) },
+	TRAVEL = { Color3.fromRGB(63, 230, 255), Color3.fromRGB(12, 108, 162) },
+	STORE = { Color3.fromRGB(255, 220, 73), Color3.fromRGB(180, 99, 15) },
+	DEV = { Color3.fromRGB(255, 145, 72), Color3.fromRGB(159, 58, 25) },
+}
 local function menuButton(text: string, icon: string, order: number, color: Color3, onClick: () -> (), iconKey: string?, parent: Instance?)
 	local button = Kit.new("TextButton", {
 		Name = text,
@@ -157,6 +166,8 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 		Kit.stroke(color, 1.2, 0.25),
 	})
 	Skin.Apply(button, "MenuButton")
+	local palette = MENU_COLORS[string.upper(text)]
+	if palette then Kit.surface(button, palette[1], palette[2]) end
 	local iconLabel = Kit.label({
 		Name = "Icon",
 		Text = icon,
@@ -176,7 +187,7 @@ local function menuButton(text: string, icon: string, order: number, color: Colo
 		Position = UDim2.fromScale(0.08, 0.5),
 		Size = UDim2.fromScale(0.82, 0.6),
 		Parent = button,
-	}, 17)
+	}, 20)
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.4).Parent = label
 	local badge = Kit.new("Frame", {
 		Name = "Badge",

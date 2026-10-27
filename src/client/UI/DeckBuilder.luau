@@ -726,8 +726,7 @@ local function drawInspector()
 			hint("Follow the line to Hoshi in town to fuse")
 		end
 	end)
-	-- EQUIP AS AVATAR: your character wears this card's element aura (plus fire footsteps on Rainbow,
-	-- celestial motes on Secret) while walking. Tap again to take it off.
+	-- EQUIP AS AVATAR: a behind-shoulder showcase plus the existing element aura / tier effects.
 	local worn = State.Meta.Avatar == card.Id
 	local avatar = Kit.button(if worn then "✓ WORN AS AVATAR" else "EQUIP AS AVATAR", if element then element.Color else CYAN, Color3.fromRGB(20, 26, 40), {
 		LayoutOrder = 3,
@@ -748,7 +747,7 @@ local function drawInspector()
 		Sfx.Play("Upgrade", 1.2)
 		local result = MetaClient.Call("SetAvatar", want)
 		if result and result.Ok then
-			hint(if want ~= "" then `{card.Name} is now your avatar aura` else "Avatar aura off")
+			hint(if want ~= "" then `{card.Name} showcase and aura equipped` else "Showcase and aura off")
 			drawInspector()
 		else
 			Avatars.Revert()

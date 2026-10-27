@@ -9,6 +9,15 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- UI POLISH COMPLETE (2026-10-27): mini card names / rarity now have separate rows over a bottom vignette;
+  left HUD buttons have distinct saturated colors and larger labels. Quick-roll popups sit in a two-card
+  2D tray on the right. EQUIP AS AVATAR also shows a double-sided flex card behind the shoulder, with
+  real 3D sparkles. The 17 requested BAG items have individual uploaded AI icons; sources / prompts /
+  ids / 512 px alpha uploads are in `art/ui/bag-20261027/`, mapped by `UI/BagArt`.
+  Studio checked: normal BAG (17 grid icons + detail all loaded), SQUAD, MY PROFILE (14 mini tiles,
+  no text rectangles overlap), HUD, roll tray, flex offset / cleanup. Real-phone / moving showcase
+  review remains in checklist section 5. Speed Potion was outside the 17-item request and keeps its marker.
+
 - GLOSSY UI (2026-10-27): shared vector builders now use navy / purple glossy surfaces, double borders,
   saturated action fills and chunky white outlined type. Gold / Rainbow / Secret rims rotate via one
   visible-only RenderStepped loop. Studio HUD, SQUAD / vault, BAG and rare animation checked; user review
@@ -52,6 +61,24 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-27 · Codex · this commit · Completed the four requested visual fixes. CardTile bottom 38%
+  vignette, centered name ending at 82%, gold / cyan rarity at 96%, small-label minimum 6 px prevent
+  mini-grid overlap. HUD menu themes: crimson / royal blue / violet / emerald / cyan / gold / orange,
+  FredokaOne max 20 px with existing 2.5 px outline. Quick-roll cards already used 2D; moved them off
+  the torso to a right tray, maximum two. Existing Avatar equip now draws a massless non-colliding
+  double-sided world card at root-local (2.2, 1.6, 3.0), low-rate 3D sparkles; prediction / server
+  attributes / distance cleanup reused, aura keys now include card id. No new remote or save fields.
+  Generated 17 separate matching icons with built-in imagegen; genuine RGBA originals, exact prompts,
+  hashes, 512 px uploads and asset ids archived. Uploaded and wired both BAG grid and details, without
+  restoring old image atlases. Initial sandboxed localhost upload failed; retried successfully using
+  a verified temporary localhost server outside the sandbox, now stopped. Studio: all 18 displayed
+  BAG images loaded (17 grid + one detail); SQUAD rows separated; 14 MY PROFILE tile rectangles have
+  zero overlap; HUD themes / 2D rolls / behind-shoulder offset / real emitter / unequip cleanup checked.
+  Type 0 errors (existing warnings), props 5,485 / 0, full headless ALL CHECKS PASSED. Existing sound
+  asset 203785492 warning only; no new runtime errors. Play stopped, temporary preview helpers removed,
+  source synced through Rojo, nothing published. Phone / moving / respawn showcase review remains.
+  No names, stats, rewards, saves or map edits; unrelated .codex / five original root PNGs untouched.
 
 - 2026-10-27 · Codex · this commit · Replaced shared flat UI styling with glossy vector surfaces:
   8–14 px corners, black 2.5 px edges, inset white 1.5 px bevels / 0.55 transparency, vertical gradients,

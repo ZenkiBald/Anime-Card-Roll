@@ -1,0 +1,70 @@
+{
+  "roll_pack": {
+    "key": "Pack:10",
+    "asset": "rbxassetid://75063773323372"
+  },
+  "big_roll_pack": {
+    "key": "Pack:100",
+    "asset": "rbxassetid://116467113731774"
+  },
+  "mega_roll_pack": {
+    "key": "Pack:1000",
+    "asset": "rbxassetid://73224833848812"
+  },
+  "luck_potion": {
+    "key": "Potion:luck",
+    "asset": "rbxassetid://122750737102872"
+  },
+  "super_luck_potion": {
+    "key": "Potion:superluck",
+    "asset": "rbxassetid://117584023617913"
+  },
+  "mythic_elixir": {
+    "key": "Potion:mythic",
+    "asset": "rbxassetid://84666551247218"
+  },
+  "void_eye": {
+    "key": "Artifact:voideye",
+    "asset": "rbxassetid://124981086592443"
+  },
+  "storm_crown": {
+    "key": "Artifact:stormcrown",
+    "asset": "rbxassetid://119274663822471"
+  },
+  "ember_heart": {
+    "key": "Artifact:emberheart",
+    "asset": "rbxassetid://100117473885658"
+  },
+  "frost_sigil": {
+    "key": "Artifact:frostsigil",
+    "asset": "rbxassetid://123358194650116"
+  },
+  "prism_shard": {
+    "key": "Artifact:prism",
+    "asset": "rbxassetid://101576920018294"
+  },
+  "moonstone": {
+    "key": "Artifact:moonstone",
+    "asset": "rbxassetid://97349712802606"
+  },
+  "four_leaf_relic": {
+    "key": "Artifact:clover",
+    "asset": "rbxassetid://125609199905602"
+  },
+  "quicksand_hourglass": {
+    "key": "Artifact:hourglass",
+    "asset": "rbxassetid://76106395983375"
+  },
+  "merchants_coin": {
+    "key": "Artifact:coin",
+    "asset": "rbxassetid://103961861780304"
+  },
+  "sages_tome": {
+    "key": "Artifact:tome",
+    "asset": "rbxassetid://137900483147880"
+  },
+  "hundred_floors_crown": {
+    "key": "TowerArtifact:hundredcrown",
+    "asset": "rbxassetid://105171321525201"
+  }
+}
