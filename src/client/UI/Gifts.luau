@@ -26,6 +26,8 @@ local modal
 local list: ScrollingFrame
 local hintLabel: TextLabel
 local hintToken = 0
+local claimAllButton
+local claimingAll=false
 local built = false
 local dailyTiles = {}
 local giftTiles = {}
@@ -478,6 +480,15 @@ end
 -- `host`: the QUESTS panel (Modal.Tabbed); daily quests and gifts are its second tab.
 function Gifts.Init(playerGui: Instance, host: any?)
 	modal = if host then host:Page("DAILY & GIFTS") else Modal.new(playerGui, "GiftsGui", "GIFTS", Vector2.new(0.84, 0.86), Vector2.new(940, 700))
+	claimAllButton=Kit.button("CLAIM ALL",Theme.Color.Support,Theme.Color.SupportDeep,{Name="ClaimAll",Position=UDim2.fromOffset(0,0),Size=UDim2.fromOffset(180,36),Parent=modal.Body})
+	claimAllButton.Activated:Connect(function()
+		if claimingAll then return end
+		claimingAll=true;claimAllButton.Label.Text="CLAIMING..."
+		local result=MetaClient.Call("ClaimAll","Rewards")
+		claimingAll=false;claimAllButton.Label.Text="CLAIM ALL"
+		if result.Ok then hint(`Claimed {if result.Extra then result.Extra.Claimed else 0} rewards`);Sfx.Play("Reward") else hint(MetaClient.Message(result)) end
+		Gifts.Refresh()
+	end)
 	hintLabel = Kit.label({
 		Text = "",
 		Font = Theme.Font.Heavy,
@@ -490,7 +501,8 @@ function Gifts.Init(playerGui: Instance, host: any?)
 		Parent = modal.Header,
 	}, 16)
 	list = Kit.new("ScrollingFrame", {
-		Size = UDim2.fromScale(1, 1),
+		Position=UDim2.fromOffset(0,44),
+		Size = UDim2.new(1,0,1,-44),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 6,

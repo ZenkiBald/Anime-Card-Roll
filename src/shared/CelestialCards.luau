@@ -88,7 +88,7 @@ function M.Build(): {any}
 	local cards={}
 	for _,spec in specs do
 		table.insert(cards,{Id=spec.Id,Weather=spec.Weather,Name=spec.Name,Title=spec.Title,Type="Attack",Role="Striker",
-			Weight=1,SkyOneIn=spec.SkyOneIn,Element=spec.Element,Main=1250,HP=2500,SPD=spec.SPD,Glyph="CS",
+			Weight=1,SkyOneIn=spec.SkyOneIn,Element=spec.Element,Main=Weather.ById[spec.Weather].BaseATK,HP=2*Weather.ById[spec.Weather].BaseATK,SPD=spec.SPD,Glyph="CS",
 			Accent=Weather.ById[spec.Weather].Color,Image=Art[spec.Id],Abilities=moves(spec)})
 	end
 	return cards

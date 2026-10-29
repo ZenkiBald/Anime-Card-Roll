@@ -63,14 +63,12 @@ function Service.Handle(player,action,id)
 			if #extendedOrder>64 then extended[table.remove(extendedOrder,1)]=nil end
 			override=table.clone(state)
 			override.Ends+=120
-			if state.Summoned then cooldownEnds=override.Ends+300 end
+			cooldownEnds=0
 		else
-			if state.Id=="eclipse" then return {Ok=false,Reason="EclipseActive"} end
-			if now<cooldownEnds or state.Summoned then return {Ok=false,Reason="Cooldown"} end
 			local weather=if id=="orb" then Weather.Pick(rng:NextNumber()) else string.match(id,"^sigil:(.+)$")
 			if not weather or not Weather.SigilCost(weather) then return {Ok=false,Reason="BadRequest"} end
 			override={Id=weather,Key=`summon:{game.JobId}:{now}`,Starts=now,Ends=now+180,Summoned=true}
-			cooldownEnds=override.Ends+300
+			cooldownEnds=0
 			local announced=Service.State()
 			announced.Announcement=`{player.DisplayName} summoned {Weather.ById[weather].Name}!`
 			ReplicatedStorage.Remotes.WeatherState:FireAllClients(announced)

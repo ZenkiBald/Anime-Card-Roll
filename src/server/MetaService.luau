@@ -25,6 +25,8 @@ local Momentum = require(script.Parent.Momentum)
 local AvatarService = require(script.Parent.AvatarService)
 local WeatherService = require(script.Parent.WeatherService)
 local Weather = require(Shared.Weather)
+local RevealPolicy=require(Shared.RevealPolicy)
+local RewardBundle=require(Shared.RewardBundle)
 
 local MetaService = {}
 
@@ -281,6 +283,9 @@ function MetaService.State(player: Player, data)
 		Favorite = data.Settings.Favorite,
 		Avatar = data.Settings.Avatar, -- the card worn as an avatar aura ("" = none)
 		QuickRoll = data.Settings.QuickRoll == true, -- ROLL plays the short reveal
+		RevealMinimum=RevealPolicy.Read(data.Settings).RevealMinimum,
+		RevealStyle=RevealPolicy.Read(data.Settings).RevealStyle,
+		RevealDuplicates=RevealPolicy.Read(data.Settings).RevealDuplicates,
 		Packs = data.Packs, -- gifts, quests and milestones can grant Roll Packs
 	}
 end
@@ -295,6 +300,29 @@ local function validIndex(value: unknown, list): boolean
 end
 
 local function handle(player: Player, data, action: unknown, arg: unknown)
+	if action=="SetRevealMinimum" or action=="SetRevealStyle" or action=="SetRevealDuplicates" then
+		local key=string.sub(action,4)
+		if key~="RevealDuplicates" and type(arg)~="string" then return false,"BadRequest" end
+		if (key=="RevealMinimum" and not table.find(RevealPolicy.Minimums,arg)) or (key=="RevealStyle" and not table.find(RevealPolicy.Styles,arg)) or (key=="RevealDuplicates" and type(arg)~="boolean") then return false,"BadRequest" end
+		data.Settings[key]=arg
+		return true
+	end
+	if action=="ClaimAll" then
+		if arg~=nil and arg~="Rewards" and arg~="Index" then return false,"BadRequest" end
+		local bundle,count={},0
+		local function collect(name,id)
+			local ok,_,paid=handle(player,data,name,id)
+			if ok then count+=1;RewardBundle.Merge(bundle,paid) end
+		end
+		if arg~="Index" then
+			collect("ClaimDaily")
+			for i in Meta.Playtime do collect("ClaimGift",i) end
+			for i in Meta.Milestones do collect("ClaimMilestone",i) end
+			for _,id in Meta.QuestsFor(questDay(data),player.UserId) do collect("ClaimQuest",id) end
+		end
+		for _,id in Borders.Order do collect("ClaimIndex",id) end
+		return true,nil,bundle,{Claimed=count}
+	end
 	if action=="BuyPotion" or action=="BuyUpgrade" then return false,"Retired" end
 	if action == "UsePotion" then
 		local potion = type(arg) == "string" and Meta.PotionById[arg]
@@ -503,8 +531,7 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 	return false, "BadRequest"
 end
 
-function MetaService.Start()
-	Remotes.Meta.OnServerInvoke = function(player: Player, action: unknown, arg: unknown)
+function MetaService.Request(player: Player, action: unknown, arg: unknown)
 		local profile = DataService.Get(player)
 		if profile == nil then
 			return { Ok = false, Reason = "Loading" }
@@ -522,6 +549,8 @@ function MetaService.Start()
 		return { Ok = ok, Reason = reason, Granted = granted, Extra = extra, Meta = MetaService.State(player, profile.Data) }
 	end
 
+function MetaService.Start()
+	Remotes.Meta.OnServerInvoke=MetaService.Request
 	-- Once a second, for everyone in the game: running potions tick down, the Lucky Wheel fills toward
 	-- the next free spin, and every full minute pays XP.
 	task.spawn(function()

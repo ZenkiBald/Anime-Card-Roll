@@ -452,6 +452,14 @@ end
 function Index.Init(playerGui: Instance, openOdds: () -> (), host: any?)
 	onOdds = openOdds
 	modal = if host then host:Page("INDEX") else Modal.new(playerGui, "IndexGui", "Index", Vector2.new(0.94, 0.9), Vector2.new(1200, 760))
+	local claimAll=Kit.button("CLAIM ALL",Theme.Color.Support,Theme.Color.SupportDeep,{Name="ClaimAll",AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-285,0,-10),Size=UDim2.fromOffset(130,40),Parent=modal.Header})
+	local claiming=false
+	claimAll.Activated:Connect(function()
+		if claiming then return end
+		claiming=true
+		MetaClient.Call("ClaimAll","Index")
+		claiming=false;Index.Refresh()
+	end)
 
 	Controls.Search(modal.Header, {
 		AnchorPoint = Vector2.new(1, 0),

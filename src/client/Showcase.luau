@@ -115,7 +115,7 @@ function Showcase.new(root: BasePart, cardId: string, borderId: string, elementC
 	local tier = label(gui,"Tier",if borderId == "Secret" then "★ SECRET ★" else `{string.upper(border.Name)} · {border.Multiplier}x`,0,.28,19,border.Color)
 	if borderId == "Rainbow" or borderId == "Secret" then
 		tier.TextColor3 = Color3.new(1,1,1)
-		local gradient = Kit.gradient(Borders.Get("Rainbow").Gradient,0)
+		local gradient = Kit.gradient(border.Gradient,0)
 		gradient.Parent = tier
 		VectorStyle.Spin(gradient,tier,70)
 	end

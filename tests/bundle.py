@@ -18,6 +18,8 @@ modules = [
     ("CelestialCards", root / "src" / "shared"),
     ("Cards", root / "src" / "shared"),
     ("CelestialRolls", root / "src" / "shared"),
+    ("RevealPolicy", root / "src" / "shared"),
+    ("RewardBundle", root / "src" / "shared"),
     ("CardInfo", root / "src" / "shared"),
     ("Deck", root / "src" / "shared"),
     ("Bosses", root / "src" / "shared"),

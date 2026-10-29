@@ -59,6 +59,7 @@ local State = {
 		Favorite = nil :: any,
 		Avatar = nil :: any,
 		QuickRoll = false,
+		RevealMinimum="Rainbow",RevealStyle="Pack",RevealDuplicates=false,
 		Volume = nil :: any,
 	},
 	MetaAt = os.clock(), -- when Meta arrived; timers count down from here

@@ -64,7 +64,7 @@ bosses are beaten with Base + Gold, Rainbow and Secret are the tower chase). Luc
 chance x border chance) at 1x luck, snapped to a round number by `Odds.Round` like "7,500,000", never "1 in"; it is the
 big number on card tiles; `Odds.FormatRarity` for the ODDS panel). Every pull also rolls a foil (Aura / Golden Ki /
 Demon Seal, battle-only). ROLL (R), QUICK toggle (T: ROLL plays the short reveal, saved), AUTO (E; never stops by
-itself: a Rainbow+ pull or Demon Seal holds the next roll `Config.AutoBigRevealHold` s for its full reveal, then it
+itself: a pull eligible under saved reveal preferences holds the next roll `Config.AutoBigRevealHold` s, then it
 rolls on). Momentum chain: +1% speed / +0.01x luck per 10 rolls, max 500, breaks after 30 s idle. Overcharge Surge every
 25th roll (`TotalRolls % 25`): 5x border odds, or 3 cards at 6x on a perfect tap; HUD meter binds to `SurgeProgress`.
 Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET BORDER {Card}!" here and "[GLOBAL] ..."
@@ -85,13 +85,17 @@ Soulfall (Bleach), Cursed Night (Jujutsu Kaisen) and Blood Moon (Demon Slayer) l
 add +0.5 / +1 / +1 / +2 luck. Each has four separate Attack cards and cohesive clothed portrait art in
 `art/cards/celestial-clothed-20261029/` (prompts, source hashes and uploaded ids in its manifest).
 `CelestialArt` maps the assets; `Config.CelestialCardsReady=true`. These cards have named character kits,
-1250 ATK / 2500 HP at rarity 600, then the same `(SkyOneIn / 600)^0.13` stat curve across every sky,
+sky base ATK / twice that HP: Limitbreak 1250, Cursed Night 1350, Soulfall 1450, Blood Moon 1600.
+Within each sky, rarity moves from 1x to 1.1x using normalized log rarity between its minimum / maximum;
+the same curve applies to all four skies. Yhwach's Base ATK is 1595 versus Gojo's 1449 at equal 2500 rarity;
+Blood Moon starts at 1600 and reaches 1760. They retain
 borders, 100:1 fusion, traits, mastery and their own Codex section;
 they do not count toward normal completion rewards. No event Supports or same-weather column sync.
 
 Normal pulls keep their usual rates / quantities. While a sky is active, ROLL, AUTO, Triple Roll and
 consumable packs share one server-paced sky search per second per player. Searches never bank while idle;
-a bulk pack opening gives one search, not one per card / pack. It still delivers every normal pull.
+one pack chunk gives one search, not one per card / pack. USE ALL chunks share that same real-time
+clock. It still delivers every normal pull.
 `CelestialRolls.Pick` has disjoint per-card `1 / SkyOneIn` chances with a no-find remainder, unaffected by
 luck (luck still improves the find's border). Limitbreak: Broly 600 / Gogeta 750 / Vegeta 800 / Goku 1000;
 Soulfall: Ichigo 1200 / Aizen 1500 / Yamamoto 2000 / Yhwach 2500; Cursed Night: Toji 1500 / Yuta 2000 /
@@ -104,9 +108,10 @@ percentage and never provide free healing. BEST DECK accounts for the active sky
 
 `WeatherService` owns natural / local state and the rate-limited Weather remote. Celestial Orb summons a
 random sky locally for 3 minutes (45 / 25 / 25 / 5%). Sky Sigils summon their named sky and craft in BAG from
-10 Fragments (Blood Moon 25). Celestial Hourglass extends a sky once by 2 minutes. Summons cannot replace
-Blood Moon or another summon; cooldown is five minutes after a summoned sky ends. An extension moves that
-cooldown too. Expired overrides return to the shared schedule. A named banner announces summons.
+10 Fragments (Blood Moon 25). Celestial Hourglass extends a sky once by 2 minutes. Owned Sigils / Orbs
+can immediately replace or refresh any active sky, including Blood Moon; no gameplay summon cooldown.
+Each use consumes one item; remote rate limiting still applies. Expired overrides return to the shared
+schedule. A named banner announces summons.
 Fragments / supplies are earned through daily / streak / playtime / milestone / quest / wheel rewards,
 raids, new tower records and Corrupted Hard / Nightmare bosses (+20% leader HP during an active sky).
 The sky HUD is read-only: anime, green luck bonus, remaining time and four eligible slots, or a forecast.
@@ -246,13 +251,21 @@ milestones at 25 / 50 / 75 (packs, Trait Shards) and 100 (the Pagoda's artifact,
 the worn "Pagoda Master" title). Server raids every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared).
 Roll Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy
 condenses them. Element infusion is retired; old infused packs retain their rolls and their infusion spend is refunded as Trait Shards. One OpenPack request consumes the selected packs and rolls count × pack size in one non-yielding
-server transaction (10,000-roll limit, excess packs remain). Luck and active sky are sampled once; XP and
+server transaction (10,000 rolls per chunk). Luck and active sky are sampled once per chunk; XP and
 the best-pull announcement happen once. `Shared/PackBatch` ranks by actual card rarity and returns five compact
-highlights plus grouped quantities for every card / border, border counts and final ownership snapshots.
-`PackOpen.Open` applies those final snapshots once. The reveal animates the five best pulls from rarest to
-commonest, then shows ALL N CARDS in scrollable quantity stacks, explicitly including the highlights. It never
-reapplies old per-roll copy counts. BAG blocks repeated clicks during the request and the reveal. OPEN ALL's
-label reflects the capped pack count; no hundreds-of-commons click-through. Reopening consumes only a new request.
+highlights, one reveal candidate per card / border, grouped quantities, border counts and final ownership.
+`PackOpen.Open` applies snapshots once. USE ALL exists on each owned pack tile and its details, captures
+the pile on click and drains it through bounded requests, beyond 10,000 total rolls. Progress and Stop
+are shown; Stop / leaving BAG finishes the current transaction, preserves its cards and leaves unspent
+packs. Rate-limit replies wait / retry; a network failure stops rather than guessing whether to spend
+again. Receipts merge in bounded card / border groups. Newly earned packs are outside the captured pile.
+Saved SETTINGS: full reveal minimum All / Gold+ / Rainbow+ / Secret+ / Off; pack animation Pack Flip or
+the existing manual Cinematic; duplicates New Only or Include Copies. Defaults Rainbow+ / Pack / New Only.
+Pack reveals are unique per card / border, use discovery flags from the server and skip directly to
+the complete quantity summary when nothing qualifies. Repeated copies in later chunks preserve a real
+discovery's one reveal. Manual / AUTO obey the same threshold / duplicate choice; filtered pulls still
+get their cards / feed. AUTO holds only for eligible reveals. Preferences migrate / validate on the server.
+BAG blocks repeated clicks during requests / animation; reveals never reapply old per-roll ownership.
 
 **Progression and retention.** Levels 1-100 with stat points; earned potions; gear in two sets
 (`Items.luau`): **relics** (the 10 wearable items, `Items.Artifacts` / `Gear.Artifacts` in code, wear 3, Infinite Tower
@@ -277,6 +290,13 @@ permanent upgrade effect and compensates infused-pack spending. Authored legacy 
 converted by `Meta.RetireShards` before grant / display. A normal trait reroll costs 1 Trait Shard; locking costs 2.
 Luck Potion I / II / III add +0.5 / +1 / +2 luck for 5 / 10 / 15 minutes. Only the strongest active luck potion
 counts; same-kind uses add time up to an hour. Running old II / III timers are extended once on migration.
+
+CLAIM ALL on DAILY & GIFTS pays every ready daily streak, playtime gift, roll milestone, daily quest and
+Index reward using the same individual server eligibility / paid flags. Gifts are processed before
+quests so gift-related quests can finish in the same call. INDEX has a collection-only CLAIM ALL.
+KENJI'S PATH has CLAIM ALL READY, advancing only consecutive ready steps, bounded by the quest count.
+Claims remain rate-limited / idempotent; no unready rewards or repeat payments. Receipts merge paid
+bundles without reapplying reward multipliers.
 
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP) and Server Luck Totem. Shard bundle sales are hidden /
 rejected; receipts for old purchases still compensate the buyer. Weather items are earned only in v1. Every perk that touches
@@ -412,7 +432,7 @@ The character artwork pass did not change identities. The later character-to-Att
   the server, rate-limit it (`RateLimit`), and check ownership / NPC range where it applies.
 - Attack borders always win: Base 1x / Gold 4x / Rainbow 16x / Secret 64x; base stats within +-10% of one line (HP = 2 x ATK),
   then rarer cards scale up (`Cards.Scale`: (10 / Weight) ^ 0.15, boss cards up to about 1.5x; event Attacks
-  use 1250 ATK / 2500 HP times (SkyOneIn / 600)^0.13, independently of normal-pool weights);
+  use their sky's base ATK / twice HP and a 1-1.1x normalized log-rarity curve, independently of normal-pool weights);
   duplicates grant no stats; mastery never multiplies ATK / HP. A card on one border never reaches the next
   through mastery (odds_test checks). Traits stay
   small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border fusion only: 100 copies at one border -> 1 at the next.

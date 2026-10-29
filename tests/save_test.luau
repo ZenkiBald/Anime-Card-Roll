@@ -210,3 +210,16 @@ do
 	local again = SaveMigration.Migrate(data)
 	check(#again == 0 or not table.find(again, "border picks reset: 1 cards"), "the border pick step is safe to run twice")
 end
+
+-- Reveal preferences are repaired independently of cards / the QUICK toggle.
+do
+ local d={Cards={},Settings={QuickRoll=true}}
+ SaveMigration.Migrate(d)
+ check(d.RevealSettingsVersion==1 and d.Settings.RevealMinimum=="Rainbow" and d.Settings.RevealStyle=="Pack" and d.Settings.RevealDuplicates==false and d.Settings.QuickRoll==true,"old saves get safe reveal defaults without changing QUICK")
+ d.Settings.RevealMinimum="Secret";d.Settings.RevealStyle="Cinematic";d.Settings.RevealDuplicates=true
+ SaveMigration.Migrate(d)
+ check(d.Settings.RevealMinimum=="Secret" and d.Settings.RevealStyle=="Cinematic" and d.Settings.RevealDuplicates==true,"reveal migration preserves choices and is idempotent")
+ d.Settings.RevealMinimum={};d.Settings.RevealStyle="invalid";d.Settings.RevealDuplicates="yes"
+ SaveMigration.Migrate(d)
+ check(d.Settings.RevealMinimum=="Rainbow" and d.Settings.RevealStyle=="Pack" and d.Settings.RevealDuplicates==false,"malformed reveal preferences are repaired")
+end

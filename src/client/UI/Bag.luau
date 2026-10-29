@@ -56,6 +56,7 @@ local search = ""
 local selectedKey: string? = nil
 local tiles = {} -- [key] = { Button, Sub, Entry } so timers tick without a rebuild
 local busy = false -- a pack reveal is over the bag
+local openPack -- pack tiles and the detail panel share the same operation
 local hintToken = 0
 
 local function hint(text: string)
@@ -314,6 +315,11 @@ local function tile(entry, order: number)
 		Parent = button,
 	}, 14)
 	Kit.textStroke(Color3.new(0, 0, 0), 1.2, 0.1).Parent = sub
+	if entry.Kind=="Pack" and entry.Count>0 then
+		sub.Visible=false
+		local use=Kit.button("USE ALL",Theme.Color.Gold,GOLD_DEEP,{Name="UseAll",AnchorPoint=Vector2.new(.5,1),Position=UDim2.fromScale(.5,.99),Size=UDim2.fromScale(.92,.2),ZIndex=8,Parent=button})
+		use.Activated:Connect(function() openPack(entry.Item,"all") end)
+	end
 	Kit.pressable(button)
 	button.Activated:Connect(function()
 		selectedKey = entry.Key
@@ -418,19 +424,25 @@ local function cover(): (Frame, () -> ())
 	return frame, close
 end
 
-local function openPack(pack, count: (number | string)?)
+openPack=function(pack, count: (number | string)?)
 	if busy then
 		return
 	end
-	busy = true -- cover the yielding request as well as its reveal
-	local result, message = PackOpen.Open(pack.Id, count)
-	if result == nil then
-		busy = false
-		hint(message or "Couldn't open it")
-		return
-	end
-	Sfx.Play("Whoosh", 0.9)
-	local frame, close = cover()
+	local frame,close=cover()
+	local stopped=false
+	local progress=Kit.label({Name="OpeningProgress",Text="Opening packs...",Size=UDim2.new(1,-24,0,50),Position=UDim2.fromOffset(12,40),ZIndex=32,Parent=frame},24)
+	local stop=Kit.button("STOP AFTER THIS BATCH",Theme.Color.Danger,Theme.Color.AttackDeep,{Name="StopOpening",Position=UDim2.new(.25,0,.45,0),Size=UDim2.new(.5,0,0,44),ZIndex=33,Parent=frame})
+	stop.Activated:Connect(function() stopped=true;stop.Label.Text="STOPPING..." end)
+	local result,message
+	if count=="all" then
+		result,message=PackOpen.UseAll(pack.Id,function(done,total) progress.Text="Opened "..Kit.commas(done).." / "..Kit.commas(total).." packs" end,function() return stopped or not modal.IsOpen or not frame.Parent end)
+	else result,message=PackOpen.Open(pack.Id,count) end
+	if not result then close();hint(message or "Opening stopped");return end
+	if not modal.IsOpen then close();return end
+	progress:Destroy();stop:Destroy()
+	if message then hint(message) end
+	Sfx.Play("Whoosh",.9)
+
 	local area = Kit.new("Frame", {
 		Position = UDim2.new(0, 12, 0, 10),
 		Size = UDim2.new(1, -24, 1, -80),
@@ -524,8 +536,7 @@ local function showDetail(entry)
 				15
 			)
 		end
-		-- OPEN 1 / 5 / 10 / ALL (a choice you don't have enough for is dimmed; ALL opens up to 10,000 rolls
-		-- a go). Packs open while Auto Roll runs too.
+		-- USE ALL drains the captured pile in safe server chunks, with progress / Stop.
 		local function opener(row: Frame, label: string, count: number | string, order: number)
 			local enough = if count == "all" then entry.Count > 0 else entry.Count >= (count :: number)
 			action(row, label, UITheme.Colors.VermilionHover, UITheme.Colors.VermilionWax, order, enough, function()
@@ -546,7 +557,7 @@ local function showDetail(entry)
 		local row2 = actionRow(7)
 		row2.Size = UDim2.new(1, 0, 0, 38)
 		opener(row2, "OPEN 10", 10, 1)
-		opener(row2, `OPEN ALL ({Kit.commas(math.min(entry.Count, 10000 // item.Rolls))})`, "all", 2)
+		opener(row2, `USE ALL ({Kit.commas(entry.Count)})`, "all", 2)
 		-- Condensing and infusing are done in town, at Hoshi's PACK ALCHEMY.
 		if Packs.Condense[item.Id] or item.Id == "1000" then
 			detailText(8, "Condense 10 into a bigger pack: visit Hoshi the Fusion Master in town.", Theme.Color.Muted, 14, Theme.Font.Heavy)
@@ -569,9 +580,7 @@ local function showDetail(entry)
 		detailText(4,item.Text,Theme.Color.Text,16,Theme.Font.Heavy)
 		local stock=State.Meta.Celestial or {Fragments=0}
 		detailText(5,`Celestial Fragments: {Kit.commas(stock.Fragments or 0)}`,Theme.Color.Gold,16)
-		local sky=State.Weather
-		local cooldown=if sky then math.max(0,(sky.CooldownEnds or 0)-workspace:GetServerTimeNow()) else 0
-		detailText(6,if cooldown>0 then `Summon cooldown: {clock(cooldown)}` else "Summons last 3 minutes, then have a 5-minute server cooldown. Blood Moon blocks summons.",Theme.Color.Muted,14)
+		detailText(6,"Summons last 3 minutes. Another owned Sigil can replace or refresh the sky immediately.",Theme.Color.Muted,14)
 		local row=actionRow(7)
 		action(row,"USE",entry.Color,entry.Color:Lerp(Color3.new(0,0,0),.5),1,entry.Count>0,function()
 			if entry.Count>0 then skyCall("Use",item.Id) else hint("Earn sky items from quests, bosses, tower and raids") end
@@ -616,7 +625,7 @@ function Bag.Refresh()
 		return
 	end
 	summaryLabel.Text = string.format(
-		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   Fragments <b>%s</b>   ·   Trait Shards <b>%s</b>   ·   Packs <b>%s</b>   ·   Relics <b>%d/%d</b>',
+		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Roll cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   Fragments <b>%s</b>   ·   Trait Shards <b>%s</b>   ·   Packs <b>%s</b>   ·   Relics <b>%d/%d</b>',
 		State.Luck(),
 		State.Cooldown(),
 		Kit.commas((State.Meta.Celestial or {Fragments=0}).Fragments or 0),

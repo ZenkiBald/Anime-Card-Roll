@@ -54,3 +54,29 @@ test("highlights and grouped stacks order by actual rarity, not input sequence",
 	equal(batch.Results[1].Copies,nil)
 	equal(batch.Results[1].BorderCopies,nil)
 end)
+
+-- More than one request remains one bounded-memory receipt; copies never replay the same discovery.
+do
+ local B=MODULES.PackBatch
+ local aggregate=B.New()
+ for i=1,3 do
+  local r={PackId="10",Opened=1000,Rolls=10000,TotalCards=10000,New=if i==1 then 1 else 0,Counts={Normal=10000},Groups={{CardId="rook",Border="Normal",Count=10000,Rarity=25,Outcome=if i==1 then "New" else "Copy",NewBorder=false}}}
+  B.Accumulate(aggregate,r)
+ end
+ B.Finish(aggregate)
+ check(aggregate.Opened==3000 and aggregate.Rolls==30000 and aggregate.Groups[1].Count==30000,"USE ALL receipts combine beyond 10000 rolls without losing packs / counts")
+ check(#aggregate.Reveals==1 and aggregate.Reveals[1].Outcome=="New","a discovery survives later duplicate chunks and gets just one reveal candidate")
+end
+
+do
+ local P=MODULES.RevealPolicy
+ local fresh={CardId="rook",Border="Secret",Outcome="New"}
+ local duplicate={CardId="rook",Border="Secret",Outcome="Copy"}
+ local rainbow={CardId="noa",Border="Rainbow",Outcome="New"}
+ check(P.Eligible(fresh,{RevealMinimum="Secret"}) and not P.Eligible(rainbow,{RevealMinimum="Secret"}),"Secret+ reveals filter every lower border")
+ check(not P.Eligible(duplicate,{RevealMinimum="Secret"}) and P.Eligible(duplicate,{RevealMinimum="Secret",RevealDuplicates=true}),"duplicate reveals follow the saved new-only choice")
+ check(not P.Eligible(fresh,{RevealMinimum="Off"}),"reveal OFF skips even a Secret cinematic")
+ check(#P.Select({fresh,fresh,duplicate,rainbow},{RevealMinimum="Secret"})==1,"eligible pack cinematics are unique by card and border")
+ local sum=MODULES.RewardBundle.Merge({TraitShards=2,Packs={["10"]=1}},{TraitShards=3,Packs={["10"]=2},TowerArtifacts={hundredcrown=true}})
+ check(sum.TraitShards==5 and sum.Packs["10"]==3 and sum.TowerArtifacts.hundredcrown==true,"claim-all receipt combines paid quantities and permanent unlocks")
+end

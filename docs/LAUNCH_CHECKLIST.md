@@ -54,6 +54,24 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Sky tiers / bulk packs / reveal settings / claim-all (2026-10-30): live Base Yhwach1595 > Gojo1449,
+  with Blood Moon1600-1760; all same-rarity normal / boss comparisons and story / tower fixtures pass.
+  Actual Secret showcase label matches Borders.Secret gradient. SETTINGS minimum / Pack Flip vs Cinematic /
+  duplicate options inspected; controlled Secret+ / new-only pack preview played one eligible full manual
+  reveal, skipped the duplicate Secret / new Rainbow and reached grouped summary. Saved-pref migration /
+  malformed preference repair tested. BAG has USE ALL on owned pack tiles and details; claim-all visible
+  on DAILY & GIFTS. Real server copied-profile opening:1001 ten-card packs ->1000+1 bounded chunks /
+  10010 cards /54 unique receipt groups, original restored. Real client USE ALL loop with mock receipts
+  crosses10000 and Stop preserves remaining packs. Copied-profile ClaimAll pays all9 milestones once;
+  controlled Kenji readiness pays6 consecutive steps then zero. Sigil Eclipse->Rain->Eclipse succeeds
+  immediately, consumes the right items, cooldown0. Temporary profiles / functions restored; no test grants
+  saved. Required checks passed. Existing203785492 asset-type warning remains unrelated.
+- [ ] Ordinary-play review: USE ALL with a larger real pile, progress / Stop / leaving BAG / reconnect
+  during a chunk; real Secret+ and New Only / Include Copies choices across rejoin, manual / Auto / packs;
+  Pack Flip / Cinematic on phone; repeated sigil use / Hourglass; claim-all with real playtime gifts,
+  quest completion caused by those gifts and Index rewards. Final Secret violet / white appearance and
+  all four sky stat tiers need user preference review. No place was published.
+
 - [x] Semantic UI / sky rarity pass (2026-10-29): desktop SQUAD / TRAINING / CARD PACKS and Demon
   Progenitor's full sheet inspected. Dark slate windows, blue navigation, red Attack / DMG, green
   Support / HP / luck; red sword / green heart images visibly loaded, small pills / trait tags readable.

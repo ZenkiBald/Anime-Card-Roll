@@ -9,6 +9,21 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- SKY TIERS / PACKS / REVEALS / CLAIM-ALL COMPLETE (2026-10-30): sky base ATK now differs by tier:
+  Limitbreak1250, Cursed Night1350, Soulfall1450, Blood Moon1600; normalized rarity adds up to10% within
+  each sky. Yhwach1595 > Gojo1449 at equal2500 rarity; Blood Moon1600-1760 tops Soulfall. Existing same-
+  rarity normal / boss comparisons and border ladder still pass. Secret uses violet / white gradients,
+  including its showcase label (was incorrectly Rainbow). Owned Sigils / Orbs can immediately replace /
+  refresh any sky, including Blood Moon; no gameplay cooldown, item cost / remote limits retained.
+  USE ALL on owned pack tiles / details drains a captured pile beyond10000 via bounded transactions,
+  progress / Stop, merged grouped receipt; every normal pull preserved. SETTINGS saves full-reveal
+  minimum All / Gold+ / Rainbow+ / Secret+ / Off, pack animation Pack Flip / Cinematic, New Only /
+  Include Copies. Unique card / border highlights skip copies by default; manual / AUTO obey choices.
+  CLAIM ALL in Daily & Gifts / Index, CLAIM ALL READY for Kenji. Required checks and desktop runtime
+  checks passed; ordinary big-pile / reconnect / real gifts / phone / user feel remain in checklist5.
+  Studio Edit, no place edits / publishing; temporary profiles / functions restored. Reconnect Rojo /
+  restart Play for final source changes.
+
 - SEMANTIC UI / SKY RARITY COMPLETE (2026-10-30): dark neutral glossy windows, meaningful tab colors,
   Attack / DMG red, Support / HP / luck green; shared typography no longer forces everything white.
   New uploaded red sword / green heart art is used on card sheets / formation / inspector / hover.
@@ -152,6 +167,39 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-30 · Codex · this commit · Fixed user screenshot follow-up. Sky-specific1250/1350/1450/1600
+  base ATK and twice HP, a shared normalized logarithmic rarity curve giving1-1.1x within each sky,
+  independent of normal weights. Explicit regression: equal-rarity Almighty Yhwach1595 exceeds Gojo1449;
+  Blood Moon1600-1760 exceeds Soulfall's top. Existing ownership / kits / names / border multipliers stay.
+  Secret gradient now violet / white; Showcase uses its actual border gradient rather than Rainbow.
+  Sigils / Orbs consume one item and immediately replace / refresh any sky; removed5m cooldown / active
+  Eclipse / active-summon blocks, retained remote limits and one Hourglass extension per occurrence.
+  BAG clarifies its remaining cooldown is the roll cooldown.
+  USE ALL tile / detail buttons capture the owned pile, iterate bounded10000-roll server chunks with
+  progress / Stop, wait on rate limits, stop on network error / leaving BAG; no automatic uncertain retry.
+  Chunk receipts merge by card / border, preserve discoveries through later duplicate chunks and never
+  reapply ownership. All normal pulls paid; complete grouped counts after highlights. Server adds unique
+  reveal candidates / actual card totals. Saved reveal minimum / pack style / duplicate settings validated
+  through MetaService, initialized / repaired idempotently by RevealSettingsVersion1 migration + tests.
+  Pack Flip retained; optional full manual Cinematic for eligible unique pulls; duplicates skipped by
+  default, Secret+ excludes Rainbow, Off skips animations. Manual / AUTO share the policy; Auto only holds
+  for eligible reveals; surge / triple extras can reveal without interrupting menus / fights.
+  ClaimAll reuses individual claim checks for streak / ready gifts / milestones / quests / Index, merges
+  already-paid bundles without a second multiplier. Gift checks precede quest checks. Index-only action;
+  Kenji bounded consecutive-ready claim chain and three UI buttons. All claim boundaries stay rate-limited.
+  Tests: luau-lsp0 errors, props5815 /0 problems, full bundle ALL CHECKS PASSED incl new settings migration,
+  duplicate / threshold / group aggregation / power regressions; normal story and tower fixtures pass.
+  Studio: SETTINGS scrolling / choices, visible USE ALL / claim-all controls, controlled Secret+ cinematic
+  skips copy Secret / new Rainbow, shows eligible new Secret then complete summary; actual Secret label
+  gradient matches Borders.Secret. Non-yielding copied-profile server tests:1001 ten-card packs ->1000+1
+  chunks ->10010 cards /54 unique groups; all9 milestones paid once then0; controlled ready Kenji6 then0;
+  Eclipse->Rain->Eclipse uses succeed immediately with correct inventory / cooldown0; preference validation
+  succeeds / rejects junk. Real client UseAll loop with mock receipts crosses10000, Stop keeps leftovers.
+  Profiles / functions / client previews restored; no test grants saved. Existing203785492 asset-type
+  warning remains, no new runtime script errors. Unsure: ordinary owned-pack / network / rejoin behavior,
+  real gift-related quest chain / phone animations / long-run scarcity and user preference. Checklist5.
+  Studio Edit; nothing published; unrelated art / .codex files untouched.
 
 - 2026-10-30 · Codex · this commit · Applied requested color / icon / card-density / sky rarity pass.
   UITheme / Theme / Modal / Controls / VectorStyle use neutral slate surfaces and semantic accents;

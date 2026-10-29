@@ -6,10 +6,10 @@ Weather.ForecastSeconds = 150
 Weather.Seed = 731947
 Weather.List = {
 	{ Id="clear", Name="Quiet Skies", Luck=0, Seconds=0, Color=Color3.fromRGB(130,210,255) },
-	{ Id="rain", Name="Limitbreak Skies", Series="Dragon Ball", Luck=0.5, Seconds=300, Color=Color3.fromRGB(75,170,255) },
-	{ Id="blizzard", Name="Soulfall", Series="Bleach", Luck=1, Seconds=300, Color=Color3.fromRGB(160,235,255) },
-	{ Id="thunder", Name="Cursed Night", Series="Jujutsu Kaisen", Luck=1, Seconds=300, Color=Color3.fromRGB(175,120,255) },
-	{ Id="eclipse", Name="Blood Moon", Series="Demon Slayer", Luck=2, Seconds=180, Color=Color3.fromRGB(255,80,115) },
+	{ Id="rain", BaseATK=1250, MinRarity=600, MaxRarity=1000, Name="Limitbreak Skies", Series="Dragon Ball", Luck=0.5, Seconds=300, Color=Color3.fromRGB(75,170,255) },
+	{ Id="blizzard", BaseATK=1450, MinRarity=1200, MaxRarity=2500, Name="Soulfall", Series="Bleach", Luck=1, Seconds=300, Color=Color3.fromRGB(160,235,255) },
+	{ Id="thunder", BaseATK=1350, MinRarity=1500, MaxRarity=3000, Name="Cursed Night", Series="Jujutsu Kaisen", Luck=1, Seconds=300, Color=Color3.fromRGB(175,120,255) },
+	{ Id="eclipse", BaseATK=1600, MinRarity=4000, MaxRarity=8000, Name="Blood Moon", Series="Demon Slayer", Luck=2, Seconds=180, Color=Color3.fromRGB(255,80,115) },
 }
 Weather.ById = {} :: {[string]: any}
 for _, def in Weather.List do Weather.ById[def.Id]=def end

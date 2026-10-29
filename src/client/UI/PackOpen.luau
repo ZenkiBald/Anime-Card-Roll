@@ -9,11 +9,14 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Packs = require(Shared.Packs)
 local Borders = require(Shared.Borders)
 local Cards = require(Shared.Cards)
+local PackBatch=require(Shared.PackBatch)
+local RevealPolicy=require(Shared.RevealPolicy)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local RewardReveal = require(script.Parent.RewardReveal)
+local Reveal=require(script.Parent.Reveal)
 local State = require(script.Parent.Parent.State)
 local CardView = require(script.Parent.CardView)
 
@@ -28,12 +31,12 @@ local REASONS = {
 
 -- Opens `count` packs of `packId` (default 1; a number or "all"). Returns the server's result (Opened =
 -- how many it opened), or nil and a message.
-function PackOpen.Open(packId: string, count: (number | string)?): (any, string?)
+function PackOpen.Open(packId: string, count: (number | string)?): (any, string?, string?)
 	local ok, result = pcall(function()
 		return Remotes.OpenPack:InvokeServer(packId, count or 1)
 	end)
 	if not ok or result == nil or not result.Ok then
-		return nil, if ok and result then REASONS[result.Reason] or "Couldn't open it" else "Couldn't open it, try again"
+		return nil, if ok and result then REASONS[result.Reason] or "Couldn't open it" else "Couldn't open it, try again",if ok and result then result.Reason else "Network"
 	end
 	for id, entry in result.Cards or {} do
 		State.Cards[id] = entry
@@ -47,6 +50,28 @@ function PackOpen.Open(packId: string, count: (number | string)?): (any, string?
 	end
 	if result.Summary then State.ApplyRoll({ Summary = result.Summary }) end
 	return result, nil
+end
+
+-- The server keeps its per-request work bounded; USE ALL drains a captured pile over safe chunks.
+function PackOpen.UseAll(packId,onProgress,cancelled)
+	local remaining=State.Packs[packId] or 0
+	local wanted=remaining
+	local total=PackBatch.New()
+	local message=nil
+	while remaining>0 and not cancelled() do
+		local result,why,reason=PackOpen.Open(packId,remaining)
+		if result then
+			PackBatch.Accumulate(total,result)
+			remaining-=result.Opened
+			onProgress(wanted-remaining,wanted)
+			if remaining>0 then task.wait(.15) end
+		elseif reason=="TooFast" then task.wait(.5)
+		else message=why;break end
+	end
+	if total.Opened==nil then return nil,message or "Opening stopped" end
+	total.Stopped=remaining>0
+	PackBatch.Finish(total)
+	return total,message
 end
 
 -- "100 rolls at 2.40x luck · 3 NEW · Legendary 2 · Epic 9 · Rare 30 ..." (rarest first).
@@ -69,10 +94,10 @@ end
 -- Grouped receipts include the highlighted cards: every tile count belongs to this opening only.
 function PackOpen.ShowSummary(parent: Frame, result)
 	local groups = result.Groups or {}
-	local heading = Kit.label({ Name = "BatchTitle", Text = `ALL {Kit.commas(result.Rolls)} CARDS · {#groups} STACKS`,
+	local heading = Kit.label({ Name = "BatchTitle", Text = `ALL {Kit.commas(result.TotalCards or result.Rolls)} CARDS · {#groups} STACKS`,
 		Font = Theme.Font.Heavy, Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, 0, 0, 25), Parent = parent }, 21)
 	heading.TextColor3 = Theme.Color.Gold
-	Kit.label({ Text = "Rarest first · includes your highlighted pulls", TextColor3 = Theme.Color.Muted,
+	Kit.label({ Text = "Rarest first · every card is already saved", TextColor3 = Theme.Color.Muted,
 		Position = UDim2.fromOffset(0, 27), Size = UDim2.new(1, 0, 0, 20), Parent = parent }, 15)
 	local gridArea = Kit.new("ScrollingFrame", { Name = "BatchStacks", BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(0, 53), Size = UDim2.new(1, 0, 1, -53), BorderSizePixel = 0,
@@ -126,12 +151,26 @@ function PackOpen.Play(area: Frame, result, onDone: (() -> ())?)
 		BackgroundTransparency = 1,
 		Parent = area,
 	})
-	RewardReveal.Play(fan, { Results = result.Results, AlreadyApplied = true }, function()
+	local function finish()
 		if not fan.Parent then return end
 		for _, child in fan:GetChildren() do child:Destroy() end
 		PackOpen.ShowSummary(fan, result)
 		if onDone then onDone() end
-	end)
+	end
+	local settings=RevealPolicy.Read(State.Meta)
+	local chosen=RevealPolicy.Select(result.Reveals or result.Results or {},settings)
+	if #chosen==0 then finish()
+	elseif settings.RevealStyle=="Cinematic" then
+		task.spawn(function()
+			for _,card in chosen do
+				if not fan.Parent then return end
+				local done=false
+				Reveal.Full(card,function() done=true end)
+				while not done and fan.Parent do task.wait(.05) end
+			end
+			finish()
+		end)
+	else RewardReveal.Play(fan, { Results = chosen, AlreadyApplied = true }, finish) end
 end
 
 return PackOpen

@@ -83,7 +83,7 @@ check(infused.rook > pc.rook and infused.kaede < pc.kaede, "an infused pack lean
 local bandOk = true
 for _, card in Cards.List do
 	if card.Type == "Attack" then
-		bandOk = bandOk and card.Main >= 450 and card.Main <= (if card.Weather then 1250 else 600) and card.HP == 2 * card.Main
+		bandOk = bandOk and card.Main >= 450 and card.Main <= (if card.Weather then 1600 else 600) and card.HP == 2 * card.Main
 	else
 		bandOk = bandOk and card.HP == nil and card.Main == 0 and card.SPD == 0 and card.Support ~= nil
 	end

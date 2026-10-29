@@ -80,6 +80,7 @@ export type Card = {
 }
 
 local Config = require(script.Parent.Config)
+local Weather=require(script.Parent.Weather)
 local Borders = require(script.Parent.Borders)
 local Awaken = require(script.Parent.Awaken)
 local Odds = require(script.Parent.Odds)
@@ -1270,7 +1271,11 @@ end
 Cards.RarityScale = { CommonWeight = 10, Exponent = 0.15 }
 
 function Cards.Scale(card: Card): number
-	if card.SkyOneIn then return (card.SkyOneIn/600)^0.13 end
+	if card.SkyOneIn and card.Weather then
+		local sky=Weather.ById[card.Weather]
+		local progress=math.clamp(math.log(card.SkyOneIn/sky.MinRarity)/math.log(sky.MaxRarity/sky.MinRarity),0,1)
+		return 1+.1*progress
+	end
 	local s = Cards.RarityScale
 	return (s.CommonWeight / math.max(0.01, card.Weight)) ^ s.Exponent
 end

@@ -39,6 +39,7 @@ function BorderFx.Tag(parent: Instance, borderId: string, props: { [string]: any
 			tag[key] = value
 		end
 	end
+	tag.UIGradient.Color=border.Gradient
 	local label = Kit.label({
 		Text = string.upper(border.Name),
 		Font = Theme.Font.Display,

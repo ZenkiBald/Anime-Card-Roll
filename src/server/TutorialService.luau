@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Tutorial = require(Shared.Tutorial)
 local Deck = require(Shared.Deck)
+local RewardBundle=require(Shared.RewardBundle)
 
 local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
@@ -132,6 +133,17 @@ local function claim(player: Player)
 	}
 end
 
+function TutorialService.ClaimAll(player: Player)
+	local bundle,count,last={},0,nil
+	for _=1,#Tutorial.Steps do
+		local result=claim(player)
+		if not result.Ok then break end
+		count+=1;last=result;RewardBundle.Merge(bundle,result.Granted)
+	end
+	local profile=DataService.Get(player)
+	if not profile then return {Ok=false,Reason="Loading"} end
+	return {Ok=true,Claimed=count,Granted=bundle,Title=last and last.Title,State=TutorialService.State(profile.Data),Meta=MetaService.State(player,profile.Data)}
+end
 function TutorialService.Start()
 	Remotes.Tutorial.OnServerInvoke = function(player: Player, action: unknown)
 		if action == "State" then
@@ -143,11 +155,11 @@ function TutorialService.Start()
 			local state = TutorialService.State(profile.Data)
 			state.Ok = true
 			return state
-		elseif action == "Claim" then
+		elseif action == "Claim" or action=="ClaimAll" then
 			if not limiter:Allow(player) then
 				return { Ok = false, Reason = "TooFast" }
 			end
-			return claim(player)
+			return if action=="ClaimAll" then TutorialService.ClaimAll(player) else claim(player)
 		end
 		return { Ok = false, Reason = "BadRequest" }
 	end

@@ -12,6 +12,8 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
+local RevealPolicy=require(Shared.RevealPolicy)
+local State=require(script.Parent.Parent.State)
 local Borders = require(Shared.Borders)
 local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
@@ -624,7 +626,7 @@ function Reveal.Full(result, onDone: (() -> ())?)
 	pump()
 end
 
--- Fast pop near the buttons (Quick Roll and Auto Roll). Mythic and up always get the full show.
+-- Fast pop near the buttons; saved threshold / duplicate choices select the full show.
 function Reveal.Quick(result)
 	local card = Cards.Get(result.CardId)
 	if card == nil then
@@ -632,8 +634,8 @@ function Reveal.Quick(result)
 	end
 	local tier = Borders.RevealTier(result.Border)
 	local borderId = result.Border or "Normal"
-	if tier.Index >= 6 or Borders.Index(borderId) >= Borders.Index("Rainbow") then
-		Reveal.Full(result) -- any Rainbow / Secret border always gets the full show
+	if RevealPolicy.Eligible(result,State.Meta) then
+		Reveal.Full(result)
 		return
 	end
 	if running or (Reveal.Muted and Reveal.Muted()) then

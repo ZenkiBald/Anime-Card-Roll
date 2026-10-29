@@ -106,12 +106,12 @@ Borders.List = {
 		Cost = 8,
 		Color = Color3.fromRGB(200, 120, 255),
 		Gradient = seq({
-			Color3.fromRGB(10, 6, 20),
+			Color3.fromRGB(80, 30, 135),
 			Color3.fromRGB(240, 236, 255),
 			Color3.fromRGB(150, 60, 255),
-			Color3.fromRGB(10, 6, 20),
-			Color3.fromRGB(120, 255, 240),
-			Color3.fromRGB(10, 6, 20),
+			Color3.fromRGB(90, 35, 150),
+			Color3.fromRGB(195, 150, 255),
+			Color3.fromRGB(80, 30, 135),
 		}),
 	},
 } :: { Border }

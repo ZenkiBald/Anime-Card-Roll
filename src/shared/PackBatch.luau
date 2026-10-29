@@ -35,7 +35,7 @@ function Batch.Add(batch, result)
 	local key = result.CardId .. ":" .. border
 	local group = batch.Groups[key]
 	if not group then
-		group = { CardId = result.CardId, Border = border, Count = 0, Rarity = Cards.Rarity(result.CardId, border) }
+		group = { CardId = result.CardId, Border = border, Count = 0, Rarity = Cards.Rarity(result.CardId, border), Foil=result.Foil }
 		batch.Groups[key] = group
 	end
 	group.Count += 1
@@ -56,7 +56,28 @@ function Batch.Finish(batch)
 	for _, group in batch.Groups do table.insert(groups, group) end
 	table.sort(groups, Batch.Rarer)
 	batch.Groups = groups
+	batch.Reveals={}
+	for _,g in groups do table.insert(batch.Reveals,{CardId=g.CardId,Border=g.Border,Foil=g.Foil,Outcome=g.Outcome,NewBorder=g.NewBorder,Rarity=g.Rarity}) end
 	return batch
+end
+
+-- Merge completed server chunks without keeping individual pulls in memory.
+function Batch.Accumulate(target,result)
+	target.Rolls+=result.Rolls or 0
+	target.TotalCards=(target.TotalCards or 0)+(result.TotalCards or result.Rolls or 0)
+	target.Opened=(target.Opened or 0)+(result.Opened or 0)
+	target.New+=result.New or 0
+	target.PackId=result.PackId;target.Luck=result.Luck
+	for id,n in result.Counts or {} do target.Counts[id]=(target.Counts[id] or 0)+n end
+	for _,g in result.Groups or {} do
+		local key=g.CardId..":"..g.Border
+		local held=target.Groups[key]
+		if held then
+			held.Count+=g.Count
+			held.NewBorder=held.NewBorder or g.NewBorder
+			if g.Outcome=="New" then held.Outcome="New" end
+		else target.Groups[key]=table.clone(g) end
+	end
 end
 
 return Batch

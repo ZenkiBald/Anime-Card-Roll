@@ -89,13 +89,13 @@ local function apply(newState)
 	end
 end
 
-local function claim()
+local function claim(action: string?)
 	if busy or state == nil or not state.Ready then
 		return
 	end
 	busy = true
 	local ok, result = pcall(function()
-		return Remotes.Tutorial:InvokeServer("Claim")
+		return Remotes.Tutorial:InvokeServer(action or "Claim")
 	end)
 	busy = false
 	if not ok or result == nil or not result.Ok then
@@ -163,7 +163,7 @@ function drawList()
 					Size = UDim2.new(0, 200, 0, 42),
 					Parent = tile,
 				})
-				button.Activated:Connect(claim)
+				button.Activated:Connect(function() claim() end)
 			end
 		elseif not done then
 			RewardLine.new({ LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 24), Parent = tile }, `Reward: {rewardText(quest)}`, 14)
@@ -242,9 +242,11 @@ function TutorialUi.Init(
 	end)
 
 	modal = if host then host:Page("KENJI'S PATH") else Modal.new(playerGui, "KenjiGui", "KENJI'S PATH", Vector2.new(0.7, 0.84), Vector2.new(760, 640))
+	local claimAll=Kit.button("CLAIM ALL READY",Theme.Color.Support,Theme.Color.SupportDeep,{Name="ClaimAll",Size=UDim2.fromOffset(200,36),Parent=modal.Body})
+	claimAll.Activated:Connect(function() claim("ClaimAll") end)
 	list = Kit.new("ScrollingFrame", {
 		Name = "Quests",
-		Size = UDim2.fromScale(1, 1),
+		Position=UDim2.fromOffset(0,44),Size = UDim2.new(1,0,1,-44),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 5,

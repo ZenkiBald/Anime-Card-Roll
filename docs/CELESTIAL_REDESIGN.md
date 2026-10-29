@@ -29,14 +29,16 @@ Implementation completed on 2026-10-29. Ordinary-play / live-server review remai
 - [x] Sixteen separate Celestial Cards, four Attacks per active weather (one anime per sky), new AI art, Codex,
   borders, 100:1 fusion. Never eligible outside weather. Individual 600-8000 sky rarities share one
   server-paced search / second across ROLL / AUTO / packs, without banking idle attempts or multiplying
-  chances for a bulk opening. Every normal pull still arrives. Same rarity-to-stat curve across skies;
+  chances per card in a bulk opening. Every normal pull still arrives. Same normalized rarity curve,
+  with base ATK Limitbreak1250 / Cursed Night1350 / Soulfall1450 / Blood Moon1600 and up to +10% within each;
   stronger than normal / boss cards at matched rarity. Exact ranges / roster mapping are in CLAUDE.md.
   Weather +20% battle stats. No Celestial Supports or same-weather column sync.
   Read-only weather HUD with mystery slots until owned, base rarities / timer; all sky items/crafting in BAG. Bottom-right illustrated
   potion/worn-relic status icons have hover/tap details. Latest user authorized roster selection, no more approval questions.
 - [x] Items: Celestial Orb random summon (45/25/25/5%), weather Sigils crafted from 10 fragments (25
   Eclipse), Celestial Fragments, Celestial Hourglass extends once +2m. Local summons 3m, override global
-  then return; 5m cooldown after summon ends; no summons during Eclipse; named server banner.
+  then return; owned Sigils / Orbs can immediately replace / refresh any sky, including Eclipse,
+  without a gameplay cooldown (remote rate limiting / item consumption retained); named server banner.
   Sources quests/streak/wheel/bosses/tower/raids. Corrupted boss source needs visible eligibility.
 - [x] Three presets + weather-aware Best Deck; 2–3 closest progress bars (mastery/fusion/collection/weather).
 - [x] Single-anime collection / sky rosters; existing named bosses, faction guards and user-selected BossKit

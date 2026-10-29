@@ -24,6 +24,7 @@ local Collections = require(Shared.Collections)
 local Meta = require(Shared.Meta)
 local Packs = require(Shared.Packs)
 
+local RevealPolicy=require(Shared.RevealPolicy)
 local SaveMigration = {}
 
 SaveMigration.AccessoryRefund = 150 -- Shards per card accessory
@@ -238,6 +239,10 @@ function SaveMigration.Migrate(data: any): { string }
 		data.EconomyVersion=1
 		table.insert(done,"retired Shard balance and infused packs compensated; active luck potions extended")
 	end
+	data.Settings=if type(data.Settings)=="table" then data.Settings else {}
+	local reveal=RevealPolicy.Read(data.Settings)
+	if data.RevealSettingsVersion~=1 then table.insert(done,"reveal preferences initialized");data.RevealSettingsVersion=1 end
+	for key,value in reveal do data.Settings[key]=value end
 	return done
 end
 

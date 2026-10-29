@@ -103,3 +103,11 @@ do
 	local near=MODULES.Goals.Closest({Cards={rook={Copies=99,Stars=0,BorderCopies={Normal=99}}},Rolls=45,Shards=0,Weather={Id="clear",Next={Starts=120}},Now=0})
 	check(#near==3 and near[1].Kind=="Fusion" and near[1].Progress==.99,"HUD selects the nearest three distinct progress targets")
 end
+
+do
+ local C=MODULES.Cards
+ local gojo,yhwach=C.Get("celestial_thunder_gojo"),C.Get("celestial_blizzard_yhwach")
+ check(C.Rarity(gojo.Id)==C.Rarity(yhwach.Id) and C.Stat(yhwach,yhwach.Main,0,"Normal")>C.Stat(gojo,gojo.Main,0,"Normal"),"Soulfall Almighty outstats Cursed Night Gojo even at equal rarity")
+ local high=C.Get("celestial_eclipse_akaza")
+ check(C.Stat(high,high.Main,0,"Normal")>C.Stat(yhwach,yhwach.Main,0,"Normal"),"Blood Moon starts above Soulfall's strongest card")
+end

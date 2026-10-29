@@ -21,6 +21,7 @@ local Collections = require(Shared.Collections)
 local Weather = require(Shared.Weather)
 local WeatherService = require(script.Parent.WeatherService)
 local CelestialRolls=require(Shared.CelestialRolls)
+local RevealPolicy=require(Shared.RevealPolicy)
 
 
 local Remotes = ReplicatedStorage.Remotes
@@ -459,11 +460,10 @@ local function startAuto(player: Player)
 			-- Surges on Auto are plain, unless the Auto Roll pass hits them perfectly.
 			local result = rollClick(player, profile, MonetizationService.Perk(player, "AutoRoll", true), false)
 
-			-- Auto Roll never stops: a Rainbow / Secret border or a Demon Seal holds the next roll while its
-			-- full reveal plays (Config.AutoBigRevealHold), then rolling carries on.
+			-- Only pulls eligible under the saved reveal choice hold Auto; filtered copies keep rolling.
 			local big = false
 			for _, r in { result, table.unpack(result.Extra or {}) } do
-				big = big or Borders.Index(r.Border) >= Borders.Index("Rainbow") or r.Foil == "demon"
+				big = big or RevealPolicy.Eligible(r,profile.Data.Settings)
 			end
 			Remotes.AutoResult:FireClient(player, result)
 			if big then
@@ -515,6 +515,8 @@ function RollService.OpenPacks(player: Player, packId: unknown, count: unknown)
 		PackId = pack.Id,
 		Opened = n,
 		Results = batch.Results,
+		Reveals = batch.Reveals,
+		TotalCards = batch.Rolls,
 		Groups = batch.Groups,
 		Counts = batch.Counts,
 		New = batch.New,

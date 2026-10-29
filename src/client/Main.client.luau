@@ -27,6 +27,7 @@ local WeatherUi = require(UI.Weather)
 local Journey = require(UI.Journey)
 local Travel = require(UI.Travel)
 local Settings = require(UI.Settings)
+local RevealPolicy=require(Shared.RevealPolicy)
 local Fusion = require(UI.Fusion)
 local Title = require(UI.Title)
 local Pets = require(UI.Pets)
@@ -142,7 +143,7 @@ local function requestRoll(mode: string)
 	Hud.StartCooldown(State.Cooldown())
 	showExtras(result)
 
-	if mode == "Full" then
+	if mode == "Full" and RevealPolicy.Eligible(result,State.Meta) then
 		Reveal.Full(result, function()
 			busy = false
 		end)
@@ -159,6 +160,7 @@ end
 function showExtras(result)
 	for _, extra in result.Extra or {} do
 		Hud.FeedAdd(extra)
+		if not State.InBattle and not Modal.AnyOpen() and RevealPolicy.Eligible(extra,State.Meta) then Reveal.Full(extra) end
 	end
 	if result.Surge == "Perfect" then
 		Sfx.Sting("Epic", true)
