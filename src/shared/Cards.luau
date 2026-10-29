@@ -140,7 +140,7 @@ local list: { Card } = {
 			ability("Skill", "Soul Rejection", "Weave a shield worth {p1} DMG around every ally.", {
 				{ Kind = "Shield", Pct = 0.8, Target = "Attack" },
 			}, 3),
-			ability("Passive", "Thread of Renewal", "After attacking, a {chance} chance to mend this card for {p1} DMG and remove a Burn or Freeze.", {
+			ability("Passive", "Thread of Renewal", "After attacking, a {chance} chance to mend this card for {p1} of its DMG and remove a Burn or Freeze.", {
 				{ Kind = "Heal", Pct = 0.15, Target = "Self" },
 				{ Kind = "Cleanse", Amount = 1, Target = "Self" },
 			}, nil, { Trigger = "OnAct", Chance = 0.25, Limit = 5 }),
@@ -875,7 +875,7 @@ local list: { Card } = {
 			ability("Skill", "Thorned Blood", "Four blood thorns pierce random enemies for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.6, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
-			ability("Passive", "Demon Rebirth", "When below 50% HP, cleanse Burn and Freeze and regenerate {p1} HP. This card can no longer be healed.", {
+			ability("Passive", "Demon Rebirth", "When below 50% HP, cleanse Burn and Freeze and regenerate {p2} of max HP. This card can no longer be healed.", {
 				{ Kind = "Cleanse", Amount = 2, Target = "Self" },
 				{ Kind = "Heal", Pct = 0.25, MaxHP = true, Target = "Self" },
 				{ Kind = "HealingLock" },

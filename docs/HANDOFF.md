@@ -103,6 +103,14 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Log (newest first)
 
+- 2026-10-29 · Claude Code · this commit · Reviewed the Codex passes since 3fb35b6 and re-ran every check:
+  type 0 errors, props 0 problems, headless ALL CHECKS PASSED. Scanned both committed BossKit .rbxm files
+  chunk by chunk: no Script / LocalScript / ModuleScript / remotes / GUI / sounds and no require / loadstring
+  strings. Fixed two ability texts: Demon Rebirth read "regenerate 0% HP" (now its 25% of max HP) and Spirit
+  Weaver's mend now says "of its DMG". Added a blocking IP item to the launch checklist (character art, boss
+  models and series terms must all be replaced before any publish). The place file itself (where the fake
+  recovery overlay once showed) was not scanned from here: run `tools/studio/scan.luau` in Studio.
+
 - 2026-10-27 · Codex · this commit · Replaced four battle / world / portrait boss templates with
   the user's inserted models: Nine-Tails Fox (Kurama) -> kurogane, Golden Frieza -> rimeveil,
   Susanoo (Madara) -> vex, Muzan Kibutsuji -> tenrai. No names / ids / stats / rules / saves changed.

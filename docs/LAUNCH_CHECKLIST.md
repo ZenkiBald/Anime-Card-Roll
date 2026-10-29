@@ -9,6 +9,13 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   of its own and reached the 25x luck cap within a day or two of heavy rolling. Fusion Trait Shards and XP went too:
   a fusion's whole reward is the card at the next border (4x stats).
 
+- [ ] **IP before publishing (blocking).** The private prototype now uses real anime characters well beyond the
+  card names: card art drawn from named characters (`docs/CARD_CONVERSION.md`, `art/cards/*/manifest.json`), the
+  boss models in `assets/models/bosses-20261027/` (Kurama, Golden Frieza, Madara's Susanoo, Muzan), and series
+  terms in ability / Support names (Chakra, Tailed Beast, Breathing forms, Eight Trigrams, Heavenly Restriction...).
+  Before any public release, replace all three: original names, original art and original boss models. Roblox
+  removes infringing games and assets, and repeat strikes can cost the account.
+
 ## 2. Code switches
 
 - [ ] **code** `src/shared/Config.luau`: `Config.TestMode = false`. This one switch:
