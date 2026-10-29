@@ -115,10 +115,11 @@ do
  check(C.Rarity(sukuna.Id)==C.Rarity(yhwach.Id) and yhwach.Main==sukuna.Main and yhwach.Main==4300,"the two 1 in 8,000 sky cards (Yhwach, Sukuna) share 4,300 base ATK")
  for _,card in C.List do
  	if card.Weather and card.Weather~="rain" then
- 		local skill,ult=C.Ability(card,"Skill"),C.Ability(card,"Ultimate")
+ 		local ult=C.Ability(card,"Ultimate")
  		local total=0
  		for _,e in ult.Effects do if e.Kind=="Damage" then total+=(e.Pct or 0)*(e.Hits or 1) end end
- 		check(skill.Every==3 and total>=5-1e-9 and total<=6.5+1e-9,"sky Skills every 3 actions, Ultimates 500-650%: "..card.Name)
+ 		local band=MODULES.Config.Battle.Archetypes[card.Archetype].Ult
+ 		check(card.SkillCooldown~=nil and total>=band[1]-1e-9 and total<=band[2]+1e-9,"sky Skills run on a cooldown, Ultimates sit in their archetype's band: "..card.Name)
  	end
  end
  local high=C.Get("celestial_eclipse_akaza")

@@ -133,7 +133,7 @@ local function fullState(player: Player, data)
 		Progress = data.Progress,
 		Tower = { Best = data.Tower.Floor, Run = data.Tower.Run, Pagoda = data.Pagoda.Floor },
 		Packs = data.Packs,
-		Battle = { AutoUlt = data.Settings.AutoUlt, Speed = data.Settings.BattleSpeed },
+		Battle = { AutoUlt = data.Settings.AutoUlt ~= false, HoldUlt = data.Settings.HoldUlt ~= false, Speed = data.Settings.BattleSpeed },
 		Mount = data.Settings.Mount,
 		Meta = MetaService.State(player, data),
 		TestMode = Config.TestMode,

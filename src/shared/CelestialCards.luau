@@ -13,20 +13,20 @@ local function weaken(stat: string, amount: number, turns: number): any
 	return {Kind="Debuff",Stat=stat,Amount=amount,Turns=turns}
 end
 local passives: {[string]: any} = {
-	dodge={Trigger="OnEntry",Limit=1,Text="On entry, evade the next two hits, but lose {a2} attack speed for {t2} turns.",Effects={{Kind="Evade",Hits=2,Target="Self"},buff("SPD",-.1,2)}},
-	rage={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, gain {a1} DMG, but take {a2} more DMG for the rest of the battle.",Effects={buff("ATK",.35),buff("Guard",-.15)}},
-	crit={Trigger="OnEntry",Limit=1,Text="On entry, gain {a1} critical chance, but lose {a2} attack speed for {t1} turns.",Effects={buff("Crit",.25,3),buff("SPD",-.1,3)}},
-	resolve={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, gain {a1} attack speed for {t1} turns, but cannot be healed for {t2} turns.",Effects={buff("SPD",.25,3),{Kind="HealingLock",Turns=3,Target="Self"}}},
+	dodge={Trigger="OnEntry",Limit=1,Text="On entry, evade the next two hits.",Effects={{Kind="Evade",Hits=2,Target="Self"}}},
+	rage={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, gain {a1} DMG for the rest of the battle.",Effects={buff("ATK",.35)}},
+	crit={Trigger="OnEntry",Limit=1,Text="On entry, gain {a1} critical chance for {t1} turns.",Effects={buff("Crit",.25,3)}},
+	resolve={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, gain {a1} attack speed for {t1} turns.",Effects={buff("SPD",.25,3)}},
 	hypnosis={Trigger="OnAct",Chance=.25,Limit=3,Text="After attacking, a {chance} chance to evade the next hit and slow the target by {a2} for {t2} turns.",Effects={{Kind="Evade",Hits=1,Target="Self"},weaken("SPD",.2,2)}},
-	flames={Trigger="OnAct",Chance=.25,Limit=4,Text="After attacking, a {chance} chance to Burn the target for {p1} DMG each turn for {t1} turns, but take {a2} more DMG for {t2} turns.",Effects={{Kind="Burn",Pct=.15,Turns=2},buff("Guard",-.1,2)}},
-	future={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, evade the next two hits, but deal {a2} less DMG for {t2} turns.",Effects={{Kind="Evade",Hits=2,Target="Self"},buff("ATK",-.15,2)}},
-	vow={Trigger="OnEntry",Limit=1,Text="On entry, gain {a1} DMG, but cannot be healed for {t2} turns.",Effects={buff("ATK",.25),{Kind="HealingLock",Turns=3,Target="Self"}}},
+	flames={Trigger="OnAct",Chance=.25,Limit=4,Text="After attacking, a {chance} chance to Burn the target for {p1} DMG each turn for {t1} turns.",Effects={{Kind="Burn",Pct=.15,Turns=2}}},
+	future={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, evade the next two hits.",Effects={{Kind="Evade",Hits=2,Target="Self"}}},
+	vow={Trigger="OnEntry",Limit=1,Text="On entry, gain {a1} DMG for the rest of the battle.",Effects={buff("ATK",.25)}},
 	renewal={Trigger="OnCrit",Limit=3,Text="After a critical hit, heal for {p1} of this card's DMG and cleanse one Burn or Freeze.",Effects={{Kind="Heal",Pct=.2,Target="Self"},({Kind="Cleanse",Amount=1,Target="Self"} :: any)}},
-	restriction={Trigger="OnEntry",Limit=1,Text="On entry, gain {a1} attack speed, but take {a2} more DMG for the rest of the battle.",Effects={buff("SPD",.25),buff("Guard",-.15)}},
+	restriction={Trigger="OnEntry",Limit=1,Text="On entry, gain {a1} attack speed for the rest of the battle.",Effects={buff("SPD",.25)}},
 	moon={Trigger="OnEntry",Limit=1,Text="On entry, gain {a1} critical chance and reduce the target's defense by {a2} for {t2} turns.",Effects={buff("Crit",.2,3),weaken("DEF",.2,3)}},
 	compass={Trigger="OnAct",Chance=.25,Limit=4,Text="After attacking, a {chance} chance to evade the next hit and gain {a2} critical chance for {t2} turns.",Effects={{Kind="Evade",Hits=1,Target="Self"},buff("Crit",.15,2)}},
 	ice={Trigger="OnAct",Chance=.25,Limit=3,Text="After attacking, a {chance} chance to Weaken the target by {a1} for {t1} turns and shield this card for {p2} of its DMG.",Effects={weaken("ATK",.2,2),{Kind="Shield",Pct=.25,Target="Self"}}},
-	regeneration={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, heal for {p1} of this card's DMG, but deal {a2} less DMG for {t2} turns.",Effects={{Kind="Heal",Pct=.5,Target="Self"},buff("ATK",-.15,3)}},
+	regeneration={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, heal for {p1} of this card's DMG.",Effects={{Kind="Heal",Pct=.5,Target="Self"}}},
 }
 local specs: {any} = {
 	{Id="celestial_rain_goku",Weather="rain",SkyOneIn=3000,ATK=3250,Name="Ultra Instinct Goku",Title="Dragon Ball",Element="Light",SPD=110,Basic="Instinct Rush",Skill="Autonomous Counter",Ultimate="Supreme Kamehameha",Passive="A Body Beyond Thought",Kind="dodge"},

@@ -3,38 +3,42 @@
 -- action timers. A pure simulation with no Roblox services: BattleService steps it in real time and
 -- streams its events to the client, and tests/battle_test.luau runs whole fights headless.
 --
--- Rules (design doc, "Battle system", made 4v4 on 2026-10-23):
---   * Every Attack card and every enemy has an action bar that fills at its SPD; a SPD 100 bar fills once
---     per turn (Config.Battle.TurnSeconds). A full bar means it acts. Ties go to the leftmost card.
---   * A card's action is its Skill when the cooldown is ready, otherwise its Basic.
+-- Rules (design doc, "Battle system", made 4v4 on 2026-10-23, real-time archetypes 2026-10-30):
+--   * Attack cards act in real time by archetype (Cards.Archetype: Fast / Balanced / Heavy from SPD): a
+--     Basic every BasicInterval seconds, a Skill every SkillCooldown seconds, an Ultimate at UltimateCost
+--     energy (charged at Config.Battle.EnergyPerSecond, plus a little from enemy hits). The four slots open
+--     their first Basics on Config.Battle.SlotOffsets. SPD buffs / slows scale both timers.
+--   * Enemies keep action bars that fill at their SPD (a SPD 100 bar once per Config.Battle.TurnSeconds);
+--     at most one enemy acts per tick. Status durations count turns of TurnSeconds.
 --   * Attack cards (front row) have HP and take every enemy hit. Support cards (back row) have no HP:
 --     they can't be hit or KO'd and only modify their matching Attack slot.
 --   * The enemy side is the leader ("Boss": a world boss, or a tower echo) and three guards (G1-G3,
---     Bosses.GuardTypes): Strikers hit hard, Hexers burn / freeze / slow, Menders heal the squad and
---     rally it, Warders taunt and shield the leader (Protect). Guards can be KO'd; the leader can't be
---     helped once it falls.
+--     Bosses.GuardTypes), each linked to the leader by its role: Warders taunt, cut the leader's damage taken
+--     (Protect) and absorb part of the Shield bar's fill; Menders mend the leader every MendSeconds and
+--     cleanse it; Strikers / Hexers stack Expose / Weaken (Hexers also Burn) on your highest-ATK card.
 --   * Cards hit the player's focus target (SetFocus, tapped on screen) when it's alive, otherwise a
 --     taunting guard, otherwise the enemy with the least HP left. Abilities with Target "Enemies" hit
 --     every enemy, "RandomEnemy" picks again for each hit.
---   * Ultimates cost 100 energy (+20 per action, +10 per hit taken); fired by UseUltimate or AutoUlt (one
---     auto Ultimate per tick, never from a card that acted that tick).
---   * Rhythm: bars start part-filled (Config.Battle.StartGauge, by SPD and slot) and at most one unit acts per
---     tick (OneActionPerTick): a fight is a run of turns, not one burst.
+--   * Vanguard: Attack slot 1 draws Config.Battle.Vanguard of single-target enemy attacks (more as a Warder).
+--   * Ultimates: UseUltimate (a tap on the card) or AutoUlt, which fires one ready Ultimate at a time. With
+--     HoldForBreak, AutoUlt holds full Ultimates while the leader's Shield bar is past HoldAbove, then fires
+--     them one after another once the Shield breaks.
+--   * Boss Shield (the leader's Stagger bar): the leader takes ShieldTaken damage while it stands. Card hits
+--     fill it (Basics chip, Skills chunk, Heavy Skills most), a guard KO adds GuardKOShield. Full = Shield
+--     Break: StaggerSeconds stunned (its warned move cancelled) and BrokenTaken damage taken.
+--   * Boss Clash: a leader's warned move opens a ClashWindow when its warning runs out. Clash() in time sends
+--     the strongest card in (reflects ClashReflect x ATK, cuts the move's damage by ClashCut, fills the Shield
+--     ClashShield); ignored, the move lands as normal.
 --   * Threat: an enemy hit takes at least Config.Battle.MinHit of the target's max HP (before Guard); a
 --     leader's warned move pierces SkillPierce of shields.
---   * Big enemy moves show a warning first. At 50% HP the leader adds its phase-2 move; at 20% it enrages.
+--   * At 50% HP the leader adds its phase-2 move; at 20% it enrages.
 --   * Win when the leader falls. Lose when every Attack card is KO'd or the timer runs out.
 --   * Damage = ATK x Skill% x (1 + sum of buffs) x Crit x (1 - target DEF) x (1 - Protect on the leader)
---     x Element (Elements.luau: x1.3 when the hitter's element beats the target's, x0.85 the other way;
---     enemies hitting cards use the same rule).
---   * Synergies (2 / 4 cards of one element in the deck) are on from the start; bonds (two named cards)
---     fire a Dual Ultimate once, when the leader first drops to half HP or at Elements.BondAt seconds
---     (400% instead of 300% when either card has Awakening node 3).
---   * Supports: bounded passive effects (Cards.Support), no action bar, damage, HP or active skills.
---   * Stagger: card hits fill the leader's Stagger bar (Config.Battle, faster from counter elements); a
---     full bar Staggers it for a few seconds (no actions, its warned move cancelled, DEF 0, +50% from
---     Ultimates). Staggered as it reaches half HP, it loses its first phase-2 move.
---   * Unit effects (traits, foils, Awakening, tower mutators) arrive as UnitSpec.Trait: buffs for the
+--     x the leader's Shield multiplier x (1 - Weaken stacks). Elements are themes only (no multiplier).
+--   * Familiar bonds (ColumnBonds) fire one combo hit each, when the leader first drops to half HP or at
+--     Elements.BondAt seconds.
+--   * Supports: bounded passive effects (Cards.Support), no timers, damage, HP or active skills.
+--   * Unit effects (traits, foils, mastery, tower mutators) arrive as UnitSpec.Trait: buffs for the
 --     whole fight, StartEnergy, SkillDMG (Skill / Ultimate damage) and HPCost (HP lost per action).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -119,7 +123,15 @@ local function newUnit(spec: UnitSpec)
 		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Border, spec.Awaken),
 		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Border, spec.Awaken) else 0,
 		SPD = card.SPD,
-		Gauge = 0,
+		Gauge = 0, -- Basic progress, 0-1 (a full bar is the next Basic)
+		SkillGauge = 0, -- Skill cooldown progress, 0-1
+		Interval = card.BasicInterval or B.TurnSeconds,
+		Cooldown = card.SkillCooldown or 10,
+		UltCost = card.UltimateCost or 100,
+		Archetype = card.Archetype,
+		Weaken = 0, -- Hexer stacks: -HexStack DMG dealt each
+		Expose = 0, -- Striker stacks: +HexStack DMG taken each
+		HexLeft = 0,
 		Energy = 0,
 		Shield = 0,
 		ShieldLeft = 0,
@@ -141,13 +153,12 @@ local function newUnit(spec: UnitSpec)
 	unit.HP = unit.MaxHP
 	unit.BaseMain=unit.Main
 	unit.BaseMaxHP=unit.MaxHP
-	unit.SkillCooldown = if unit.Skill then (unit.Skill.Every or 3) - 1 else 0
 	-- The card's trait (Traits.luau): a head start on its Ultimate, or a buff that lasts the whole
 	-- fight (Left = huge, so it never runs out and bosses can't steal it).
 	for i, effect in (spec.Trait or {}) :: { { Amount: number, Stat: string } } do
 		if effect.Stat == "StartEnergy" then
 			if unit.Ultimate then
-				unit.Energy = math.min(B.UltimateCost, unit.Energy + effect.Amount * B.UltimateCost)
+				unit.Energy = math.min(unit.UltCost, unit.Energy + effect.Amount * unit.UltCost)
 			end
 		elseif effect.Stat == "HPCost" then
 			unit.HPCost += effect.Amount
@@ -188,10 +199,13 @@ local function newEnemy(id: string, order: number, props)
 		Buffs = {}, -- [source key] = { Stat, Amount, Left }: from a Mender's Rally
 		Burns = {},
 		Dealt = 0,
-		Stagger = 0, -- leader: the Stagger bar, 0-1
-		Staggered = 0, -- leader: seconds of Stagger left
+		Stagger = 0, -- leader: the Shield bar's fill, 0-1
+		Staggered = 0, -- leader: seconds of Shield Break left
 		Staggers = 0,
-		CounterStaggers = 0, -- Staggers finished by a hit from an element that beats it
+		CounterStaggers = 0, -- legacy summary field (elements no longer counter)
+		MendName = props.MendName,
+		MendLeft = B.MendSeconds,
+		Role = props.Role,
 	}
 	enemy.HP = enemy.MaxHP
 	return enemy
@@ -211,6 +225,8 @@ function Engine.new(setup: Setup)
 	self.Over = false
 	self.Result = nil
 	self.AutoUlt = false
+	self.HoldForBreak = true -- AUTO ULT holds full Ultimates for a Shield Break (BattleInput HoldUlt)
+	self.Holding = false
 	self.Focus = nil -- the enemy id the player tapped
 	self.Events = {}
 	self.Opened = false
@@ -263,6 +279,8 @@ function Engine.new(setup: Setup)
 			SPD = g.SPD,
 			Taunt = g.Taunt,
 			Protect = g.Protect,
+			MendName = g.MendName,
+			Role = g.Role,
 		})
 		table.insert(self.Enemies, enemy)
 		self.ById[enemy.Id] = enemy
@@ -304,7 +322,7 @@ function Engine.new(setup: Setup)
 			-- A passive card never acts. Its traits, foil and mastery therefore belong to its paired attacker.
 			for i, effect in unit.EquipEffects do
 				if effect.Stat == "StartEnergy" then
-					if front.Ultimate then front.Energy = math.min(B.UltimateCost, front.Energy + effect.Amount * B.UltimateCost) end
+					if front.Ultimate then front.Energy = math.min(front.UltCost, front.Energy + effect.Amount * front.UltCost) end
 				elseif effect.Stat == "HPCost" then front.HPCost += effect.Amount
 				else front.Buffs[`SupportTrait:{unit.Id}:{i}`] = { Stat=effect.Stat, Amount=effect.Amount, Left=math.huge } end
 			end
@@ -321,18 +339,15 @@ function Engine.new(setup: Setup)
 			table.insert(front.SupportMods, mod)
 			if link.Kind == "StartEnergy" then
 				if front.Ultimate then
-					front.Energy = math.min(B.UltimateCost, front.Energy + amount * B.UltimateCost)
+					front.Energy = math.min(front.UltCost, front.Energy + amount * front.UltCost)
 					mod.Used = 1
-					front.Buffs[`Cost:{unit.Id}`] = { Stat = "SPD", Amount = -(link.Penalty or 0), Left = turns(link.Turns) }
 				end
 			elseif link.Kind == "Haste" then
 				front.Buffs[`Link:{unit.Id}`] = { Stat = "SPD", Amount = amount, Left = turns(link.Turns) }
-				front.Buffs[`Cost:{unit.Id}`] = { Stat = "ATK", Amount = -(link.Penalty or 0), Left = turns(link.Turns) }
 				mod.Used = 1
 			elseif link.Kind == "OpeningShield" then
 				front.Shield = round(front.MaxHP * amount)
 				front.ShieldLeft = math.huge
-				front.Buffs[`Cost:{unit.Id}`] = { Stat = "SPD", Amount = -(link.Penalty or 0), Left = turns(link.Turns) }
 				unit.Healed = front.Shield
 				mod.Used = 1
 			end
@@ -382,17 +397,18 @@ function Engine.new(setup: Setup)
 		end
 	end
 	self.Events = {} -- start-of-battle effects are part of the initial state, not news
-	-- Staggered start: bars begin part-filled (by SPD and slot, the same every fight) so units act in turn.
+	-- The squad opens in a ripple: slot N's first Basic lands SlotOffsets[N] seconds in. Enemy bars begin
+	-- part-filled (by SPD and order, the same every fight) so they act in turn.
+	for _, unit in self.Allies do
+		if unit.HasHP then
+			local slot = tonumber(string.match(unit.Id, "^A(%d+)$")) or 1
+			unit.Gauge = 1 - (B.SlotOffsets[slot] or 0) / unit.Interval
+		end
+	end
 	local g = B.StartGauge
-	local function start(unit, order: number)
-		local spread = (order * 0.37 + (unit.SPD or 100) / 100) % 1
-		unit.Gauge = g.Min + (g.Max - g.Min) * spread
-	end
-	for i, unit in self.Allies do
-		if unit.HasHP then start(unit, i) end
-	end
 	for i, enemy in self.Enemies do
-		start(enemy, i + #self.Allies)
+		local spread = ((i + #self.Allies) * 0.37 + (enemy.SPD or 100) / 100) % 1
+		enemy.Gauge = g.Min + (g.Max - g.Min) * spread
 	end
 	return self
 end
@@ -459,9 +475,6 @@ function Engine:EnemyDebuff(enemy, stat: string): number
 end
 
 function Engine:EnemyDEF(enemy): number
-	if enemy.Staggered > 0 then
-		return 0
-	end
 	return math.clamp(enemy.DEF - self:EnemyDebuff(enemy, "DEF"), 0, B.MaxDEF)
 end
 
@@ -493,7 +506,30 @@ function Engine:Speed(unit): number
 	if unit.Type == "Enemy" then
 		return unit.SPD * math.max(0.2, 1 - self:EnemyDebuff(unit, "SPD"))
 	end
-	return unit.SPD * math.max(0.2, 1 + self:Buff(unit, "SPD"))
+	return unit.SPD * self:Haste(unit)
+end
+
+-- An Attack card's timer speed: 1 normally, more with SPD buffs, less when slowed (never under 0.2).
+function Engine:Haste(unit): number
+	return math.max(0.2, 1 + self:Buff(unit, "SPD"))
+end
+
+-- The leader's Shield multiplier on damage taken: ShieldTaken while it stands, BrokenTaken when broken.
+function Engine:ShieldFactor(enemy): number
+	if not enemy.Leader then
+		return 1
+	end
+	return if enemy.Staggered > 0 then B.BrokenTaken else B.ShieldTaken
+end
+
+-- Is a Warder standing beside the leader (it absorbs part of the Shield bar's fill)?
+function Engine:WarderUp(): boolean
+	for _, enemy in self.Enemies do
+		if enemy.Alive and enemy.Role == "Warder" then
+			return true
+		end
+	end
+	return false
 end
 
 function Engine:AttackAlive(): boolean
@@ -507,7 +543,7 @@ end
 
 function Engine:GainEnergy(unit, amount: number)
 	if unit.Alive and unit.Ultimate then
-		unit.Energy = math.min(B.UltimateCost, unit.Energy + amount)
+		unit.Energy = math.min(unit.UltCost or 100, unit.Energy + amount)
 	end
 end
 
@@ -658,7 +694,8 @@ function Engine:StealBuffs()
 	self:Emit({ K = "Steal", A = stolen, Stat = steal })
 end
 
-function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: string, el: number?)
+-- shield: the leader's Shield state the hit met (ShieldFactor): "Up" (muted number) or "Broken" (big gold).
+function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: string, el: number?, shield: string?)
 	if self.Over or not enemy.Alive then
 		return
 	end
@@ -673,7 +710,9 @@ function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: 
 		A = amount,
 		C = crit or nil,
 		Bl = if enemy.Barrier > 0 then true else nil,
-		El = el, -- 1 strong, -1 weak (Elements.luau)
+		El = el, -- legacy: elements are neutral, always nil
+		Sd = if shield == "Up" then true else nil,
+		Bk = if shield == "Broken" then true else nil,
 	})
 
 	if enemy.HP <= 0 then
@@ -690,6 +729,8 @@ function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: 
 		if self.Focus == enemy.Id then
 			self.Focus = nil
 		end
+		-- A fallen guard's link snaps: a chunk of the leader's Shield shatters with it.
+		self:FillStagger(self.Boss, B.GuardKOShield)
 		return
 	end
 	if not enemy.Leader then
@@ -729,14 +770,24 @@ function Engine:HitEnemy(unit, enemy, pct: number, ignoreDef: boolean?, kind: st
 	local element = Elements.Multiplier(unit.Element, enemy.Element)
 	local burst = self.Slot == "Skill" or self.Slot == "Ultimate"
 	local skill = if burst then 1 + self:Buff(unit, "SkillDMG") else 1
-	local stagger = if enemy.Staggered > 0 and self.Slot == "Ultimate" then 1 + B.StaggerUltBonus else 1
-	local amount = math.max(1, round(unit.Main * pct * (1 + buffs) * critMult * (1 - def) * (1 - protect) * element * skill * stagger))
+	local shield = self:ShieldFactor(enemy)
+	local weaken = 1 - math.min(0.8, unit.Weaken * B.HexStack)
+	local amount = math.max(1, round(unit.Main * pct * (1 + buffs) * critMult * (1 - def) * (1 - protect) * element * skill * shield * weaken))
 	amount = if ignoreDef then amount else self:ThroughBarrier(enemy, amount, burst)
-	if enemy.Leader and enemy.Staggered <= 0 and not self.Over then
-		self:FillStagger(enemy, unit.Element)
-	end
 	local dealt = math.max(0, math.min(enemy.HP, amount))
-	self:DamageEnemy(enemy, unit, amount, crit, kind or "Hit", elementFlag(element))
+	local state = if enemy.Leader then (if enemy.Staggered > 0 then "Broken" else "Up") else nil
+	self:DamageEnemy(enemy, unit, amount, crit, kind or "Hit", elementFlag(element), state)
+	-- Basics chip the Shield, Skills chunk it (a Heavy card's twice as hard), Ultimates crack it a little;
+	-- a Warder standing absorbs part of every hit's fill.
+	if enemy.Leader and enemy.Alive and enemy.Staggered <= 0 and not self.Over then
+		local rate = B.ShieldFill[self.Slot or ""] or 0
+		if self.Slot == "Skill" then
+			rate *= (B.Archetypes[unit.Archetype or ""] or {}).SkillShield or 1
+		end
+		if rate > 0 then
+			self:FillStagger(enemy, pct * rate * (if self:WarderUp() then 1 - B.WarderAbsorb else 1))
+		end
+	end
 	if crit and enemy.Alive then self:Trigger(unit, "OnCrit", enemy) end
 	if enemy.Alive then self:Trigger(unit, "OnHit", enemy) end
 	for _, mod in unit.SupportMods do
@@ -796,33 +847,27 @@ function Engine:OpponentDefeated(unit)
 		if mod.Def.Kind == "KillMend" and mod.Used < (mod.Def.Uses or 0) then
 			mod.Used += 1
 			self:SupportHeal(mod, unit, round(unit.MaxHP * mod.Amount))
-			unit.Buffs[`Cost:{mod.Source.Id}`] = { Stat = "ATK", Amount = -(mod.Def.Penalty or 0), Left = turns(mod.Def.Turns) }
 		end
 	end
 end
 
--- One card hit's worth of Stagger on the leader; a full bar Staggers it.
-function Engine:FillStagger(enemy, element: string?)
-	local mult = 1
-	local matchup = Elements.Matchup(element, enemy.Element)
-	if matchup == "Strong" then
-		mult = if element == "Cosmic" then B.StaggerCosmic else B.StaggerCounter
-	elseif matchup == "Weak" then
-		mult = B.StaggerWeak
+-- Fills the leader's Shield bar by `amount` (a share of the bar); a full bar is a Shield Break: the leader
+-- is stunned for StaggerSeconds, its warned move (or Clash window) is cancelled, and held Ultimates may go.
+function Engine:FillStagger(enemy, amount: number)
+	if not enemy.Leader or not enemy.Alive or enemy.Staggered > 0 or self.Over or amount <= 0 then
+		return
 	end
-	enemy.Stagger += B.StaggerPerHit * mult
+	enemy.Stagger += amount
 	if enemy.Stagger < 1 then
 		return
 	end
 	enemy.Stagger = 0
 	enemy.Staggered = B.StaggerSeconds
 	enemy.Staggers += 1
-	if matchup == "Strong" then
-		enemy.CounterStaggers += 1
-	end
 	local cancelled = enemy.Pending and enemy.Pending.Move.Name
 	enemy.Pending = nil
 	enemy.Gauge = 0
+	self.NextTeamUltimateAt = self.Time -- held Ultimates fire straight into the break
 	self:Emit({ K = "Stagger", T = enemy.Id, S = B.StaggerSeconds, N = cancelled })
 end
 
@@ -854,7 +899,6 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 				self:SupportHeal(mod, target, math.min(round(target.MaxHP * mod.Amount), target.MaxHP - target.HP))
 				table.clear(target.Burns)
 				target.Frozen = false
-				target.HealingLock = turns(mod.Def.Turns)
 			end
 		end
 		return
@@ -863,8 +907,6 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 		if mod.Def.Kind == "LastStand" and mod.Used < (mod.Def.Uses or 0) then
 			mod.Used += 1
 			target.HP = math.max(1, round(target.MaxHP * mod.Amount))
-			target.HealingLock = math.huge
-			target.Buffs[`Cost:{mod.Source.Id}`] = { Stat = "ATK", Amount = -(mod.Def.Penalty or 0), Left = math.huge }
 			self:Emit({ K = "SupportProc", U = mod.Source.Id, T = target.Id, N = mod.Def.Name })
 			return
 		end
@@ -891,7 +933,8 @@ function Engine:DamageAlly(target, amount: number, kind: string, sourceId: strin
 	end
 end
 
-function Engine:HitAlly(enemy, target, move)
+-- cut: share of the move's damage a successful Clash takes off (0 / nil = none).
+function Engine:HitAlly(enemy, target, move, cut: number?)
 	if not target.Alive then
 		return
 	end
@@ -913,7 +956,9 @@ function Engine:HitAlly(enemy, target, move)
 	-- Threat floor: every hit takes at least a share of the card's max HP (B.MinHit), before Guard.
 	local floorShare = if enemy.Leader then (if move.Warn then B.MinHit.LeaderSkill else B.MinHit.Leader) else B.MinHit.Guard
 	local raw = math.max(atk * move.Pct, (target.MaxHP or 0) * floorShare)
-	local amount = math.max(1, round(raw * (1 - math.min(0.8, self:Buff(target, "Guard")))))
+	local guard = 1 - math.min(0.8, math.max(0, self:Buff(target, "Guard")))
+	local exposed = 1 + (target.Expose or 0) * B.HexStack
+	local amount = math.max(1, round(raw * guard * exposed * (1 - (cut or 0))))
 	self:DamageAlly(target, amount, "Hit", enemy.Id, elementFlag(element), if enemy.Leader and move.Warn then B.SkillPierce else nil)
 	if not target.Alive then
 		return
@@ -1029,9 +1074,10 @@ function Engine:RunEffect(unit, effect, quiet: boolean?, abilityName: string?)
 	elseif kind == "Energy" then
 		local targets = self:Targets(unit, effect.Target or "All", kind)
 		for _, target in targets do
-			self:GainEnergy(target, effect.Amount)
+			-- Amount is a share (in %) of each target's own Ultimate cost, so "25% charge" holds for every archetype.
+			self:GainEnergy(target, effect.Amount / 100 * (target.UltCost or 100))
 			if effect.ResetSkill and target.Skill then
-				target.SkillCooldown = 0
+				target.SkillGauge = 1
 			end
 		end
 		if not quiet and effect.When == nil then
@@ -1110,19 +1156,12 @@ function Engine:SetWeather(id: string)
 	end
 end
 
-function Engine:CardAct(unit)
+-- One card action: its Basic, or its Skill when the Skill timer is full (Step decides).
+function Engine:CardAct(unit, slot: string?)
 	if not unit.HasHP then return end
 	unit.Actions += 1
-	local ability, slot = unit.Basic, "Basic"
-	if unit.Skill then
-		if unit.SkillCooldown <= 0 and self.Time >= (unit.NextSkillAt or B.SkillMinSeconds) then
-			ability, slot = unit.Skill, "Skill"
-			unit.NextSkillAt=self.Time+B.SkillMinSeconds
-			unit.SkillCooldown = (unit.Skill.Every or 3) - 1
-		else
-			unit.SkillCooldown -= 1
-		end
-	end
+	slot = slot or "Basic"
+	local ability = if slot == "Skill" then unit.Skill else unit.Basic
 	if ability then
 		local target = self:CardTarget()
 		self:Emit({ K = "Act", U = unit.Id, Ab = slot, N = ability.Name, T = if target then target.Id else nil })
@@ -1131,7 +1170,6 @@ function Engine:CardAct(unit)
 	if self.Over then
 		return
 	end
-	self:GainEnergy(unit, B.EnergyPerAction)
 	-- A Demon Seal pays for its ATK in HP (never below 1).
 	if unit.HPCost > 0 and unit.HasHP and unit.Alive and unit.HP > 1 then
 		local cost = math.min(unit.HP - 1, round(unit.MaxHP * unit.HPCost))
@@ -1146,7 +1184,7 @@ function Engine:CardAct(unit)
 	end
 	if unit.EclipseEvery and unit.Actions % unit.EclipseEvery == 0 and unit.Alive then
 		self:Emit({ K = "Signature", U = unit.Id, N = "Moving Without Thought" })
-		self:CardAct(unit)
+		self:CardAct(unit, "Basic")
 	end
 end
 
@@ -1192,8 +1230,9 @@ function Engine:ChooseMove(enemy)
 	return moves[#moves]
 end
 
--- Single-target pick on the player's side: the taunting card, else a random Attack card.
-function Engine:PickTarget()
+-- A pick on the player's side: the taunting card, else (single-target moves) the Vanguard in Attack slot 1
+-- for its share of attacks, else a random Attack card.
+function Engine:PickTarget(single: boolean?)
 	local front = self:Alive("Attack")
 	for _, unit in front do
 		if unit.Taunt > 0 then
@@ -1203,7 +1242,32 @@ function Engine:PickTarget()
 	if #front == 0 then
 		return nil
 	end
+	local vanguard = self.ById.A1
+	if single and vanguard and vanguard.Alive and vanguard.HasHP and #front > 1 then
+		local share = if vanguard.Card.Role == "Warder" then B.WarderVanguard else B.Vanguard
+		if self.Rng:NextNumber() < share then
+			return vanguard
+		end
+		local others = {}
+		for _, unit in front do
+			if unit ~= vanguard then
+				table.insert(others, unit)
+			end
+		end
+		return others[self.Rng:NextInteger(1, #others)]
+	end
 	return front[self.Rng:NextInteger(1, #front)]
+end
+
+-- The card Strikers and Hexers single out: the highest ATK still standing.
+function Engine:Strongest()
+	local best = nil
+	for _, unit in self:Alive("Attack") do
+		if best == nil or unit.Main > best.Main then
+			best = unit
+		end
+	end
+	return best
 end
 
 function Engine:EnemyAct(enemy)
@@ -1212,7 +1276,7 @@ function Engine:EnemyAct(enemy)
 		enemy.PhaseActions += 1
 	end
 	local move = self:ChooseMove(enemy)
-	local target = if move.Target == "Single" then self:PickTarget() else nil
+	local target = if move.Target == "Single" then self:PickTarget(true) else nil
 	if move.Warn then
 		enemy.Pending = { Move = move, Target = target, Left = self.WarnSeconds }
 		local marked = if target then { target.Id } elseif move.Target == "Self" or move.Target == "Ally" then {} else ids(self:Alive("Attack"))
@@ -1246,7 +1310,7 @@ function Engine:EnemySupport(enemy, move)
 	end
 end
 
-function Engine:EnemyStrike(enemy, move, target)
+function Engine:EnemyStrike(enemy, move, target, cut: number?)
 	if not enemy.Alive then
 		return
 	end
@@ -1272,14 +1336,14 @@ function Engine:EnemyStrike(enemy, move, target)
 		end
 	elseif move.Target == "Random" then
 		for _ = 1, move.Hits or 1 do
-			local unit = self:PickTarget()
+			local unit = self:PickTarget(false)
 			if unit then
 				table.insert(hitList, unit)
 			end
 		end
 	else
 		-- A taunt raised during the warning still pulls the hit; a KO'd target is replaced.
-		local pick = self:PickTarget()
+		local pick = self:PickTarget(true)
 		if pick and pick.Taunt > 0 then
 			target = pick
 		elseif target == nil or not target.Alive then
@@ -1295,7 +1359,10 @@ function Engine:EnemyStrike(enemy, move, target)
 		if self.Over then
 			return
 		end
-		self:HitAlly(enemy, unit, move)
+		self:HitAlly(enemy, unit, move, cut)
+	end
+	if not self.Over and (enemy.Role == "Striker" or enemy.Role == "Hexer") then
+		self:Hex(enemy)
 	end
 
 	if move.Slow and not self.Over then
@@ -1306,6 +1373,70 @@ function Engine:EnemyStrike(enemy, move, target)
 	end
 end
 
+-- A Striker stacks Expose (more DMG taken), a Hexer stacks Weaken (less DMG dealt) and Burns, on the
+-- squad's highest-ATK card; every new stack refreshes the stack timer.
+function Engine:Hex(enemy)
+	local target = self:Strongest()
+	if target == nil then
+		return
+	end
+	local stat = if enemy.Role == "Striker" then "Expose" else "Weaken"
+	target[stat] = math.min(B.HexStacks, (target[stat] or 0) + 1)
+	target.HexLeft = B.HexSeconds
+	if stat == "Weaken" then
+		table.insert(target.Burns, {
+			Damage = math.max(1, round(self:EnemyATK(enemy) * 0.25)),
+			Ticks = 2,
+			Timer = B.TurnSeconds,
+			Source = enemy.Id,
+		})
+	end
+	self:Emit({ K = "Hex", U = enemy.Id, T = target.Id, Stat = stat, A = target[stat] })
+end
+
+-- Boss Clash ------------------------------------------------------------------------------
+
+-- Can this warned move be Clashed? A leader's move that hits the squad.
+local function clashable(enemy, move): boolean
+	return enemy.Leader and move.Warn == true and move.Target ~= "Self" and move.Target ~= "Ally" and (move.Pct or 0) > 0
+end
+
+-- The player's Clash (tap / Space): only inside an open window. The strongest card dashes in: it reflects
+-- ClashReflect x its ATK into the leader, the Shield bar fills ClashShield, and the move lands for
+-- ClashCut less (if the Shield broke, it doesn't land at all).
+function Engine:Clash(): (boolean, string?)
+	local boss = self.Boss
+	local pending = boss.Pending
+	if self.Over or not boss.Alive or pending == nil or (pending.Window or 0) <= 0 then
+		return false, "NoClash"
+	end
+	local card = nil
+	for _, unit in self:Alive("Attack") do
+		if not unit.Frozen and (card == nil or unit.Main > card.Main) then
+			card = unit
+		end
+	end
+	card = card or self:Strongest()
+	if card == nil then
+		return false, "NoClash"
+	end
+	pending.Window = 0
+	self:Emit({ K = "Clash", U = card.Id, T = boss.Id, N = pending.Move.Name })
+	local previous = self.Slot
+	self.Slot = "Clash"
+	self:HitEnemy(card, boss, B.ClashReflect, false, "Hit")
+	self.Slot = previous
+	if self.Over then
+		return true, nil
+	end
+	self:FillStagger(boss, B.ClashShield)
+	if boss.Pending == pending then
+		boss.Pending = nil
+		self:EnemyStrike(boss, pending.Move, pending.Target, B.ClashCut)
+	end
+	return true, nil
+end
+
 -- Ultimates -------------------------------------------------------------------------------
 
 function Engine:CanUltimate(unit): boolean
@@ -1313,9 +1444,7 @@ function Engine:CanUltimate(unit): boolean
 		and unit.Type ~= "Enemy"
 		and unit.Alive
 		and unit.Ultimate ~= nil
-		and unit.Energy >= B.UltimateCost
-		and self.Time >= (unit.NextUltimateAt or B.UltimateMinSeconds)
-		and self.Time >= self.NextTeamUltimateAt
+		and unit.Energy >= (unit.UltCost or 100)
 		and not self.Over
 end
 
@@ -1325,8 +1454,7 @@ function Engine:UseUltimate(id: string): (boolean, string?)
 		return false, "NotReady"
 	end
 	unit.Energy = 0
-	unit.NextUltimateAt=self.Time+B.UltimateMinSeconds
-	self.NextTeamUltimateAt=self.Time+B.TeamUltimateGap
+	self.NextTeamUltimateAt = self.Time + (if self.Boss.Staggered > 0 then B.BreakChainGap else B.TeamUltimateGap)
 	local target = self:CardTarget()
 	self:Emit({ K = "Act", U = unit.Id, Ab = "Ultimate", N = unit.Ultimate.Name, T = if target then target.Id else nil })
 	self:RunAbility(unit, unit.Ultimate, "Ultimate")
@@ -1387,6 +1515,12 @@ function Engine:Step(dt: number)
 			unit.Taunt = math.max(0, unit.Taunt - dt)
 			unit.Invuln = math.max(0, unit.Invuln - dt)
 			unit.HealingLock = math.max(0, unit.HealingLock - dt)
+			if unit.HexLeft > 0 then
+				unit.HexLeft -= dt
+				if unit.HexLeft <= 0 then
+					unit.Weaken, unit.Expose = 0, 0
+				end
+			end
 			if unit.Shield > 0 then
 				unit.ShieldLeft -= dt
 				if unit.ShieldLeft <= 0 then
@@ -1409,7 +1543,7 @@ function Engine:Step(dt: number)
 			tickTimers(enemy.Debuffs, dt)
 			tickTimers(enemy.Buffs, dt)
 			tickBurns(enemy.Burns, dt, function(burn)
-				local amount = round(burn.Damage * (1 - self:Protection(enemy)))
+				local amount = round(burn.Damage * (1 - self:Protection(enemy)) * self:ShieldFactor(enemy))
 				self:DamageEnemy(enemy, burn.Source, self:ThroughBarrier(enemy, amount, false), false, burn.Kind or "Burn")
 			end)
 		end
@@ -1418,12 +1552,40 @@ function Engine:Step(dt: number)
 		return
 	end
 
-	-- A warned move lands when its warning runs out.
+	-- Menders mend the leader on a timer and wipe its debuffs and burns.
+	local boss = self.Boss
+	for _, enemy in self.Enemies do
+		if enemy.Alive and enemy.MendName and boss.Alive then
+			enemy.MendLeft -= dt
+			if enemy.MendLeft <= 0 then
+				enemy.MendLeft += B.MendSeconds
+				local healed = math.min(round(boss.MaxHP * B.MendHeal), boss.MaxHP - boss.HP)
+				boss.HP += healed
+				local cleansed = #boss.Burns
+				for key in boss.Debuffs do
+					cleansed += 1
+					boss.Debuffs[key] = nil
+				end
+				table.clear(boss.Burns)
+				self:Emit({ K = "EnemyHeal", U = enemy.Id, T = boss.Id, A = healed, N = enemy.MendName, C = if cleansed > 0 then cleansed else nil })
+			end
+		end
+	end
+
+	-- A warned move lands when its warning runs out; a leader's opens a Clash window first.
 	for _, enemy in self.Enemies do
 		local pending = enemy.Pending
 		if enemy.Alive and pending then
-			pending.Left -= dt
-			if pending.Left <= 0 then
+			if pending.Window then
+				pending.Window -= dt
+			else
+				pending.Left -= dt
+				if pending.Left <= 0 and clashable(enemy, pending.Move) then
+					pending.Window = B.ClashWindow
+					self:Emit({ K = "ClashOpen", U = enemy.Id, N = pending.Move.Name, S = B.ClashWindow })
+				end
+			end
+			if pending.Left <= 0 and (pending.Window or 0) <= 0 then
 				enemy.Pending = nil
 				self:EnemyStrike(enemy, pending.Move, pending.Target)
 				if self.Over then
@@ -1433,16 +1595,42 @@ function Engine:Step(dt: number)
 		end
 	end
 
-	-- Fill action bars, then let every full bar act (fullest first, ties to the left).
-	local ready = {}
+	-- Attack cards: real-time timers. A Skill whose cooldown is full goes first; else a due Basic. A frozen
+	-- card loses its next Basic thawing out (its Skill waits).
 	for _, unit in self.Allies do
+		if self.Over then
+			return
+		end
 		if unit.Alive and unit.HasHP then
-			unit.Gauge += self:Speed(unit) * dt / (100 * B.TurnSeconds)
-			if unit.Gauge >= 1 then
-				table.insert(ready, unit)
+			local haste = self:Haste(unit)
+			if unit.Ultimate then
+				self:GainEnergy(unit, B.EnergyPerSecond * dt)
+			end
+			if unit.Skill then
+				unit.SkillGauge = math.min(1, unit.SkillGauge + dt * haste / unit.Cooldown)
+			end
+			unit.Gauge = math.min(2, unit.Gauge + dt * haste / unit.Interval)
+			if unit.Frozen then
+				if unit.Gauge >= 1 then
+					unit.Gauge -= 1
+					unit.Frozen = false
+					self:Emit({ K = "Thaw", U = unit.Id })
+				end
+			elseif unit.Skill and unit.SkillGauge >= 1 then
+				unit.SkillGauge = 0
+				unit.Gauge = math.min(unit.Gauge, 1)
+				unit.ActedAt = self.Time
+				self:CardAct(unit, "Skill")
+			elseif unit.Gauge >= 1 then
+				unit.Gauge -= 1
+				unit.ActedAt = self.Time
+				self:CardAct(unit, "Basic")
 			end
 		end
 	end
+
+	-- Enemy action bars: fill, then the fullest acts (one per tick; ties to the left).
+	local ready = {}
 	for _, enemy in self.Enemies do
 		if enemy.Alive and enemy.Pending == nil and enemy.Staggered <= 0 then
 			enemy.Gauge += self:Speed(enemy) * dt / (100 * B.TurnSeconds)
@@ -1467,20 +1655,20 @@ function Engine:Step(dt: number)
 		end
 		if unit.Alive and unit.Gauge >= 1 then
 			acted += 1
-			unit.ActedAt = self.Time
 			unit.Gauge -= 1
 			if unit.Frozen then
 				unit.Frozen = false
 				self:Emit({ K = "Thaw", U = unit.Id })
-			elseif unit.Type == "Enemy" then
-				self:EnemyAct(unit)
 			else
-				self:CardAct(unit)
+				self:EnemyAct(unit)
 			end
 		end
 	end
 
-	if self.AutoUlt then
+	-- AUTO ULT: one ready Ultimate at a time. HOLD ULT FOR BREAK keeps them while the Shield is nearly
+	-- full, then chains them (BreakChainGap apart) once it breaks.
+	self.Holding = self.AutoUlt and self.HoldForBreak and boss.Alive and boss.Staggered <= 0 and boss.Stagger >= B.HoldAbove
+	if self.AutoUlt and not self.Holding and not self.Over and self.Time >= self.NextTeamUltimateAt then
 		for _, unit in self.Allies do
 			if unit.ActedAt ~= self.Time and self:CanUltimate(unit) then
 				self:UseUltimate(unit.Id)
@@ -1531,7 +1719,11 @@ function Engine:Info()
 			Main = if unit.HasHP then unit.Main else nil,
 			Bond = unit.Bond,
 			Ultimate = if unit.Ultimate then unit.Ultimate.Name else nil,
-			Skill = if unit.Skill then unit.Skill.Name else nil, -- its countdown rides in the snapshot (K)
+			Skill = if unit.Skill then unit.Skill.Name else nil, -- its countdown rides in the snapshot (K, seconds)
+			Archetype = unit.Archetype,
+			Interval = if unit.HasHP then unit.Interval else nil,
+			Cooldown = if unit.HasHP and unit.Skill then unit.Cooldown else nil,
+			UltCost = if unit.Ultimate then unit.UltCost else nil,
 		})
 	end
 	local enemies = {}
@@ -1548,6 +1740,7 @@ function Engine:Info()
 			ATK = round(enemy.ATK),
 			Taunt = enemy.Taunt or nil,
 			Protect = if enemy.Protect > 0 then enemy.Protect else nil,
+			Mend = enemy.MendName,
 		})
 	end
 	local synergies = {}
@@ -1569,7 +1762,9 @@ function Engine:Info()
 		Bonds = bonds,
 		Links = self.Links,
 		TimeLimit = self.TimeLimit,
-		UltimateCost = B.UltimateCost,
+		UltimateCost = 100, -- legacy; each card's own cost is Allies[i].UltCost
+		ClashWindow = B.ClashWindow,
+		Shield = { Taken = B.ShieldTaken, Broken = B.BrokenTaken, Hold = B.HoldAbove, BreakSeconds = B.StaggerSeconds },
 	}
 end
 
@@ -1578,9 +1773,12 @@ local function gauge(value: number): number
 end
 
 -- Live numbers for every unit. Card flags: B burning, Z frozen, T taunt, U buffed, S slowed,
--- G guarded, I invulnerable. Enemy flags: D DEF down, A ATK down, S slowed, V takes more damage,
--- B burning, E enraged, W winding up, R barrier up, X rallied (ATK up), P protected by a Warder.
--- Support cards send no HP. Fo is the player's focus target.
+-- G guarded, I invulnerable, N healing blocked, H holding a full Ultimate for a Shield Break. Card numbers:
+-- G Basic progress, K seconds to its Skill, NextIn seconds to its Basic, E / EC energy and Ultimate cost,
+-- Wk / Ex Weaken / Expose stacks. Enemy flags: D DEF down, A ATK down, S slowed, V takes more damage,
+-- B burning, L bleeding, Z frozen, E enraged, W winding up, R barrier up, X rallied (ATK up), P protected
+-- by a Warder, Q Shield Broken. Leader numbers: St Shield fill, Br break seconds left, Cl Clash window left.
+-- Support cards send no HP. Fo is the player's focus target; Ho = AUTO ULT is holding for a break.
 function Engine:Snapshot()
 	local units = {}
 	for _, unit in self.Allies do
@@ -1620,17 +1818,22 @@ function Engine:Snapshot()
 			flags ..= "I"
 		end
 		if unit.HealingLock > 0 then flags ..= "N" end
+		local full = unit.Ultimate ~= nil and unit.Alive and unit.Energy >= unit.UltCost
+		if full and self.Holding then flags ..= "H" end
 		units[unit.Id] = {
 			H = if unit.HasHP then math.max(0, round(unit.HP)) else nil,
 			S = if unit.HasHP then round(unit.Shield) else nil,
 			E = unit.Energy,
 			G = if unit.Alive then gauge(unit.Gauge) else 0,
 			F = flags,
-			K = if unit.Skill and unit.Alive then math.max(unit.SkillCooldown,math.ceil(math.max(0,(unit.NextSkillAt or B.SkillMinSeconds)-self.Time)/B.TurnSeconds)) else nil,
-			UltIn=math.max(0,(unit.NextUltimateAt or B.UltimateMinSeconds)-self.Time,self.NextTeamUltimateAt-self.Time),
+			K = if unit.Skill and unit.Alive and unit.HasHP then math.floor(math.max(0, 1 - unit.SkillGauge) * unit.Cooldown / self:Haste(unit) * 10 + 0.5) / 10 else nil,
+			EC = if unit.Ultimate then unit.UltCost else nil,
+			UltIn = if unit.Ultimate and unit.Alive then math.max(0, unit.UltCost - unit.Energy) / B.EnergyPerSecond else nil,
 			M=if unit.HasHP then unit.MaxHP else nil,
 			Bond=if unit.Bond then unit.Bond.Name else nil,
-			NextIn = if unit.HasHP and unit.Alive then math.max(0, 1 - unit.Gauge) * 100 * B.TurnSeconds / self:Speed(unit) else nil,
+			NextIn = if unit.HasHP and unit.Alive then math.max(0, 1 - unit.Gauge) * unit.Interval / self:Haste(unit) else nil,
+			Wk = if unit.Weaken > 0 then unit.Weaken else nil,
+			Ex = if unit.Expose > 0 then unit.Expose else nil,
 			PairedAlive = if unit.Type == "Support" then unit.Paired ~= nil and unit.Paired.Alive else nil,
 			UsesLeft = if unit.Modifier and unit.Modifier.Def.Uses then math.max(0, unit.Modifier.Def.Uses - unit.Modifier.Used) else nil,
 		}
@@ -1676,10 +1879,12 @@ function Engine:Snapshot()
 			F = flags,
 			Bar = if enemy.Barrier > 0 then enemy.Barrier else nil,
 			St = if enemy.Leader then math.floor(enemy.Stagger * 100) / 100 else nil,
+			Br = if enemy.Leader and enemy.Staggered > 0 then math.floor(enemy.Staggered * 10 + 0.5) / 10 else nil,
+			Cl = if enemy.Pending and (enemy.Pending.Window or 0) > 0 then math.floor(enemy.Pending.Window * 10 + 0.5) / 10 else nil,
 			Nx = if enemy.Leader and enemy.Alive then self:NextBigMove(enemy) else nil, -- { N = name, In = actions }
 		}
 	end
-	return { T = math.floor(self.Time * 10) / 10, U = units, Fo = self.Focus }
+	return { T = math.floor(self.Time * 10) / 10, U = units, Fo = self.Focus, Ho = self.Holding or nil, AU = self.AutoUlt or nil, HB = self.HoldForBreak or nil }
 end
 
 -- End-of-fight numbers for the results screen.

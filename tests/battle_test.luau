@@ -46,8 +46,8 @@ check(allBad, "malformed decks are refused")
 
 -- 2. Engine rules ----------------------------------------------------------------------
 do
-	-- Damage formula: Rook's first hit = his ATK x 100% x (1 - target DEF), or x1.5 on a
-	-- crit. His first target is Kurogane's Warder (the Ironclad taunts, 15% DEF).
+	-- Damage formula: Rook's first hit = his ATK x his Basic % x (1 - target DEF), or x1.5 on a
+	-- crit. His first target is Kurogane's Warder (the Ironclad taunts, 15% DEF; guards have no Shield).
 	local deck = F.deck({ "rook" }, {})
 	local battle, events = F.fight("kurogane", "Normal", deck, starterOwned, 3)
 	local first
@@ -60,19 +60,27 @@ do
 	local def = first and battle.ById[first.T].DEF or 0
 	local rook = Cards.Get("rook") :: any
 	local rookAtk = Cards.Stat(rook, rook.Main, 0, "Normal")
-	local plain, crit = math.floor(rookAtk * (1 - def) + 0.5), math.floor(rookAtk * 1.5 * (1 - def) + 0.5)
+	local pct = (Cards.Ability(rook, "Basic") :: any).Effects[1].Pct
+	local plain, crit = math.floor(rookAtk * pct * (1 - def) + 0.5), math.floor(rookAtk * pct * 1.5 * (1 - def) + 0.5)
 	check(first ~= nil and first.T == "G3" and (first.A == plain or (first.C and first.A == crit)), `damage formula (Rook's first hit {first and first.A} on {first and first.T})`)
 end
 
 do
-	local b = Engine.new({ Units = F.units(F.deck({ "rook", "tomo" }, {}), starterOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
-	b.ById.A1.SPD, b.ById.A2.SPD = 100, 100
-	b.ById.A1.Buffs, b.ById.A2.Buffs = {}, {}
-	b.ById.A1.Gauge, b.ById.A2.Gauge = 1, 1
-	b:Step(Config.Battle.Tick)
-	local first
-	for _, e in b:TakeEvents() do if e.K == "Act" then first = first or e.U end end
-	check(first == "A1" and b.ById.A2.Gauge >= 1, "equal SPD and gauge: the left attacker acts first")
+	-- The squad opens in a ripple: slot N's first Basic lands Config.Battle.SlotOffsets[N] seconds in.
+	local b = Engine.new({ Units = F.units(F.deck({ "rook", "tomo", "noa", "kaede" }, {}), starterOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
+	local first = {}
+	for _ = 1, 15 do
+		b:Step(Config.Battle.Tick)
+		for _, e in b:TakeEvents() do
+			if e.K == "Act" and string.sub(e.U, 1, 1) == "A" and first[e.U] == nil then first[e.U] = b.Time end
+		end
+	end
+	local ripple = true
+	for i, offset in Config.Battle.SlotOffsets do
+		local at = first[`A{i}`]
+		ripple = ripple and at ~= nil and math.abs(at - offset) <= Config.Battle.Tick + 1e-6
+	end
+	check(ripple and first.A1 < first.A2 and first.A2 < first.A3 and first.A3 < first.A4, "the four slots open their first Basics 0 / 0.35 / 0.7 / 1.05 s in")
 end
 
 do
@@ -97,17 +105,16 @@ do
 end
 
 do
-	-- Ultimates need 100 energy and are refused before that.
+	-- Ultimates need the card's full energy cost (Fast 80 / Balanced 100 / Heavy 135) and are refused before.
 	local strongOwned = F.allOwned(0)
 	local strong = Deck.AutoBuild(strongOwned)
 	local b = Engine.new({ Units = F.units(strong, strongOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(2) })
 	check(b:UseUltimate("A1") == false, "an Ultimate is refused without energy")
-	b.ById.A1.Energy = Config.Battle.UltimateCost
-	check(b:UseUltimate("A1") == false, "full energy cannot bypass the opening Ultimate cooldown")
-	b.Time=Config.Battle.UltimateMinSeconds
-	check(b:UseUltimate("A1") == true and b.ById.A1.Energy == 0, "an Ultimate fires after its cooldown at full energy")
-	b.ById.A1.Energy=Config.Battle.UltimateCost
-	check(not b:UseUltimate("A1"), "refilling energy cannot bypass the per-card cooldown")
+	local a1 = b.ById.A1
+	a1.Energy = a1.UltCost - 1
+	check(b:UseUltimate("A1") == false, "one point short of its cost, the Ultimate is refused")
+	a1.Energy = a1.UltCost
+	check(b:UseUltimate("A1") == true and a1.Energy == 0, "a tap at full energy fires the Ultimate and empties the bar")
 	check(b:UseUltimate("Boss") == false and b:UseUltimate("Z9") == false, "Ultimate requests for bad ids are refused")
 end
 
@@ -126,7 +133,7 @@ do
 	local geared = Engine.new({ Units = units, BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(5) })
 	-- Speed buffs add up (a Tempest synergy may already be on): +10% of the card's base SPD.
 	check(math.abs(geared:Speed(geared.ById.A1) - plain:Speed(plain.ById.A1) - plain.ById.A1.SPD * 0.1) < 1e-6, "a +10% speed trait makes the card 10% faster")
-	check(geared.ById.A1.Energy == 0.25 * Config.Battle.UltimateCost, "a +25% energy trait starts the Ultimate a quarter charged")
+	check(geared.ById.A1.Energy == 0.25 * geared.ById.A1.UltCost, "a +25% energy trait starts the Ultimate a quarter charged")
 	check(geared.ById.A1.Main == plain.ById.A1.Main, "traits never change a card's ATK")
 end
 
@@ -207,16 +214,29 @@ do
 end
 
 do
-	-- Menders heal the squad; area attacks hit every enemy.
-	local fx = F.FIGHTS[1]
+	-- Menders mend the leader on a timer and cleanse it; they rally the squad; area attacks hit every enemy.
+	local m = Engine.new({ Units = F.units(F.deck({ "rook" }, {}), starterOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(3) })
+	m.ById.A1.Alive = true
+	m.Boss.HP = math.floor(m.Boss.MaxHP * 0.5)
+	m.Boss.Debuffs.Test = { Stat = "DEF", Amount = 0.1, Left = math.huge }
+	local before = m.Boss.HP
+	local mended, mendAt = nil, nil
+	while m.Time < Config.Battle.MendSeconds + 0.5 and not m.Over do
+		m:Step(Config.Battle.Tick)
+		for _, e in m:TakeEvents() do
+			if e.K == "EnemyHeal" and e.T == "Boss" and e.N then mended, mendAt = e, mendAt or m.Time end
+		end
+	end
+	check(mended ~= nil and mended.A == math.floor(m.Boss.MaxHP * Config.Battle.MendHeal + 0.5) and math.abs(mendAt - Config.Battle.MendSeconds) < 0.15 and m.Boss.Debuffs.Test == nil and m.Boss.HP > before - m.Boss.MaxHP * 0.2,
+		"a Mender mends the leader for 3% of its max HP every 8 s and cleanses its debuffs")
+	local fx = F.FIGHTS[2]
 	local deck, owned = F.fixtureDeck(fx)
 	local _, events = F.fight(fx.Boss, fx.Difficulty, deck, owned, 11)
-	local healed, rallied = false, false
+	local rallied = false
 	for _, e in events do
-		healed = healed or (e.K == "EnemyHeal" and e.A > 0)
 		rallied = rallied or e.K == "Rally"
 	end
-	check(healed and rallied, "the Ember Monk heals hurt enemies and rallies the squad")
+	check(rallied, "the Crow Illusionist rallies the squad")
 	local b = Engine.new({ Units = F.units(F.deck({ "hayate" }, {}), F.own({ "hayate" })), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(1) })
 	b:RunAbility(b.ById.A1, b.ById.A1.Skill, "Skill")
 	local hit = {}

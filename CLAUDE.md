@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-10-30, after the rarity / bulk-pack / boss-HP pass). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-10-30, after the real-time battle pass). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -20,6 +20,8 @@ one Normal fight; no new runtime errors). All 27 owned vault tile names and curr
 The updated layout still needs a real iPhone check; per-world transitions remain unconfirmed. Treat anything not named here as unseen.
 The subsequent illustrated UI kit was implemented and checked in desktop Studio (HUD, SQUAD, BAG, battle controls /
 intro): the uploaded textures loaded, names and filter chips fit, and there were no new runtime errors.
+The 2026-10-30 real-time battle pass (archetype timers, Boss Shield, Clash ring, HOLD ULT, guard links, card
+animations) was built headless only: its battle screen and Arena beams are unseen in Studio.
 
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and
@@ -88,8 +90,8 @@ add +0.5 / +1 / +1 / +2 luck; per slot Limitbreak 30% / Soulfall 20% / Cursed Ni
 `art/cards/celestial-clothed-20261029/` (prompts, source hashes and uploaded ids in its manifest).
 `CelestialArt` maps the assets; `Config.CelestialCardsReady=true`. These cards have named character kits,
 authored base ATK (`ATK` in each `CelestialCards` spec) and twice that HP, from Broly's 2,750 to Muzan's 6,000.
-Their Skills fire every 3 actions for 280-320% DMG; Ultimates hit 350-450% (Limitbreak), 500-550% (Soulfall),
-550-600% (Cursed Night) and 600-650% (Blood Moon). They retain
+Their Basic / Skill / Ultimate damage and timers follow their archetype band like every Attack card (see Deck
+and battle; the rarest sky cards sit at the top of their band). They retain
 borders, 100:1 fusion, traits, mastery and their own Codex section;
 they do not count toward normal completion rewards. No event Supports or same-weather column sync.
 
@@ -136,7 +138,13 @@ Strategist + Wisteria Vial, Thunderclap, Mitotic Seal), lower-mid 1 in 40-60 / 7
 2,650-3,250. The starters take what's left of the pool, so they land at 1 in 7.5-12 rather than 10-20. A rarer
 card never has less ATK than a commoner one, and a rare Gold can outdo a common Rainbow. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
-`Cards.luau`; All 11 former character Supports now have a damaging Basic / Skill / Ultimate and a triggered Passive, keeping their ids, names and character art. The other Attack kits retain their previous abilities. Support relics have one passive definition
+`Cards.luau`; All 11 former character Supports now have a damaging Basic / Skill / Ultimate and a triggered Passive, keeping their ids, names and character art. The other Attack kits retain their previous abilities. **Archetypes (2026-10-30):** `Cards.Archetype` sorts every Attack card by SPD into
+Fast (120-135) / Balanced (105-119) / Heavy (85-104); a post-build pass in `Cards.luau` sets `BasicInterval`,
+`SkillCooldown` (seconds) and `UltimateCost` (80 / 100 / 135) from `Config.Battle.Archetypes` and fits each
+Basic / Skill / Ultimate's per-cast damage into its band (Fast 65-75 / 240-270 / 480-540%, Balanced 100-110 /
+280-320 / 580-650%, Heavy 150-180 / 340-400 / 750-900%), keeping hit counts, every per-hit % a multiple of 5;
+faster cards get the shorter timers and rarer cards the higher damage. Skills no longer count actions
+(`Ability.Every` is only an OnAct passive interval). Support relics have one passive definition
 and its subtitle (`Title`) and colour (`Accent`) fit its name and element. Duplicate pulls grant **no combat
 bonus**: Stars remain a legacy save field, always zero on normal rolls, and copy-based Awakening is retired.
 Copies pile up per border (`BorderCopies`); each owned border has its own tile, and the deck fights at the chosen
@@ -179,42 +187,65 @@ reflected statuses and Black Flames belong to the supported Attack card. Origina
 strength (Base 1 / Gold 1.25 / Rainbow 1.5 / Secret 1.75x), then rounds the **actual server
 value** to the nearest 5 percentage points (positive minimum 5%, maximum 50%), at least 5 points above the border
 below so no two borders repeat. Authored `Values` override that: Eight Trigrams Seal's Crimson Chakra Cloak returns
-at 55% / 70% / 85% / 100% HP on Base / Gold / Rainbow / Secret. Trigger counts, chances, penalties, secondary Burns and healing caps
-are fixed. Passive cards add no Attack rating; BEST DECK ranks them separately by border / rarity. Support traits, foils and mastery affect the supported Attack
+at 55% / 70% / 85% / 100% HP on Base / Gold / Rainbow / Secret. Trigger counts, chances, secondary Burns and healing caps
+are fixed. **No passive carries a self-penalty** (the user's call, 2026-10-30): Attack, sky and Support passives lost
+their DMG / speed / guard costs and healing locks; Heavenly Restriction's Weaken lands on the enemy. Passive cards add no Attack rating; BEST DECK ranks them separately by border / rarity. Support traits, foils and mastery affect the supported Attack
 card; they no longer sit unused on a passive unit.
 
 Support kits (base strengths; inspect the card for its rounded value at another border):
 
 | Card | Passive |
 | --- | --- |
-| Diamond Mitotic Seal | Below 50% HP, cleanse Burn / Freeze and heal 20% max HP; healing blocked for 2 turns; 1 activation. |
+| Diamond Mitotic Seal | Below 50% HP, cleanse Burn / Freeze and heal 20% max HP; 1 activation. |
 | Binding Blood Vow | After an enemy hit, 25% chance to return 15% of DMG taken as an Attack-card counter; 4 activations. |
-| First Form: Thunderclap | On entry, +20% attack speed but -10% DMG for 3 turns; 1 activation. |
+| First Form: Thunderclap | On entry, +20% attack speed for 3 turns; 1 activation. |
 | Heavenly Restriction | 10% evade chance; successful evades Weaken the attacker by 10% for 1 turn; 4 activations. |
 | Cursed Ocular Seal | Skills / Ultimates roll once per cast: 25% chance to Weaken by 15% for 2 turns and Burn for 10% DMG each turn for 3 turns; 4 activations. |
-| Gourd of Living Sand | On entry, 25% max HP shield; -10% attack speed for 2 turns; 1 activation. |
-| Wisteria Antidote Vial | On defeating an opponent, heal 20% max HP but deal 10% less DMG for 2 turns; 3 activations. |
-| Blink Kunai Seal | On entry, 25% Ultimate charge in exchange for -10% attack speed for 2 turns; 1 activation, requires an Ultimate. |
-| Eight Trigrams Seal | Upon a fatal blow, return at 55% (Base) to 100% (Secret) HP; permanently -25% DMG and no further healing; 1 activation. |
+| Gourd of Living Sand | On entry, 25% max HP shield; 1 activation. |
+| Wisteria Antidote Vial | On defeating an opponent, heal 20% max HP; 3 activations. |
+| Blink Kunai Seal | On entry, 25% Ultimate charge; 1 activation, requires an Ultimate. |
+| Eight Trigrams Seal | Upon a fatal blow, return at 55% (Base) to 100% (Secret) HP; 1 activation. |
 | Chakra Puppet Threads | Cleanse and reflect Burn / Freeze; reflected Burn is 15% DMG for 3 turns; 2 applications. |
 | Stormheart Mantle | Direct hits have a 25% chance to drain 10% of actual DMG as HP; capped at 25% max HP per fight; overkill excluded. |
 
 Attack passives, Auras and Signatures are generic triggered bundles (`Ability.Trigger`, `Chance`, `Limit`, optional
 `Every`). `BattleEngine:Trigger` handles OnEntry / OnHit / OnCrit / OnKill / OnAct / BelowHalf, tracks activations and
 prevents reentry into the same bundle. On-hit effects roll for every actual hit; Crows explicitly share one roll per
-Skill / Ultimate cast. Every passive combines a trigger with a cost or status / RNG mechanic. On-entry Auras also
-carry their authored costs. `Bleed` and `Burn` share the timed-damage scheduler but have separate status flags / text.
-Healing locks apply to every HP-healing route (`HealingLock` effect, timed Support costs or permanent cloak cost),
-with a HEAL BLOCK badge (snapshot N). Reflected Freeze costs the enemy its next action (snapshot Z); Bleed is L.
+Skill / Ultimate cast. Every passive combines a trigger with a bound (a chance, an activation limit or a condition)
+and no self-penalty. Energy effects grant a % of the card's own Ultimate cost. `Bleed` and `Burn` share the
+timed-damage scheduler but have separate status flags / text. The engine still honours `HealingLock` (HEAL BLOCK
+badge, snapshot N) though no card applies one now. Reflected Freeze costs the enemy its next action (snapshot Z); Bleed is L.
 Posthumous damage cannot consume a healing activation or heal a defeated card.
 Elements are internal visual / ability themes only (`Elements.CombatEnabled=false`): neutral damage, no counter
 multiplier, elemental stagger bonus or element-count synergy. Familiar bonds use matching columns only. Every fight is the leader +
-3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls. Stagger bar -> 5 s Staggered. Rhythm and threat (`Config.Battle`): SPD 100 basics take 2.5 battle seconds; Skills have an 8 s minimum
-and Ultimates need both 100 energy and a 22 s minimum, with a 3 s team Ultimate gap. Incoming-hit energy is
-limited to one grant per 2 s. At 2x, simulation timers advance twice as fast. Bars start part-filled (StartGauge) and one unit acts
-per tick, one auto-Ultimate per tick; every enemy hit takes at least MinHit of the card's max HP (guard 1%, leader 2%,
-leader's warned move 6% and SkillPierce 40% through shields), so even an overpowered deck takes hits. Attack cards show their next action / Skill in seconds (server snapshot `NextIn`, `K`); blue bars are action progress,
-gold bars are Ultimate charge. Support chips show passive status / remaining uses, with no action or energy bar. Results show passive triggers / dodges
+3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls.
+**Real-time rules (2026-10-30, `Config.Battle`):** each Attack card runs its own Basic interval, Skill cooldown and
+energy (5.4/s, plus 3 per enemy hit at most every 2 s); a Skill whose cooldown is full goes before a due Basic; SPD
+buffs / slows scale both timers; the four slots open their first Basics 0 / 0.35 / 0.7 / 1.05 s in (`SlotOffsets`).
+Enemies keep SPD action bars (`TurnSeconds` 2.5, one enemy per tick), and status durations still count 2.5 s turns.
+Ultimates: tap a full card (BattleInput Ultimate) or AUTO ULT (default on, saved `Settings.AutoUlt`; one at a time,
+3 s apart). **HOLD ULT FOR BREAK** (default on, `Settings.HoldUlt`, BattleInput HoldUlt) keeps full Ultimates
+while the leader's Shield bar is over 60% (cards show HOLD / flag H, snapshot Ho), then chains them 0.5 s apart
+into the break. Server-side, so AFK and HIDE BATTLE keep firing; `BattleControlsVersion` switched both on once.
+**Boss Shield** (the leader's old Stagger bar, snapshot St / Br): the leader takes 0.5x while it stands (muted 🛡
+numbers, event Sd) and 1.5x once broken (big gold numbers, Bk). Hits fill it by DMG % x `ShieldFill` (Basic 0.5%,
+Skill 0.8%, Heavy Skills x2, Ultimate 0.4% per 100%), a guard KO adds 25%, a standing Warder absorbs 30% of hit
+fill; full = glass-shatter break, 6 s stun, its warned move cancelled. **Boss Clash:** a leader's warned move that
+hits the squad opens a 1.2 s window (event ClashOpen, snapshot Cl) when its warning runs out; the CLICK / SPACE TO
+CLASH! ring (Space / gamepad A / X via ContextActionService, never bound while hidden) sends BattleInput Clash
+(own 2/s limiter). In time, the strongest standing card dashes in: 200% ATK back at the leader, the move's damage
+-75%, +30% Shield. Ignored, it lands as normal. **Guards link to the leader** (Arena beams in role colours): a
+Warder's Protect cuts its damage taken 40%; a Mender mends it 3% max HP every 8 s and wipes its debuffs / burns
+(its old heal move is gone, the rally stays); each Striker / Hexer action stacks Expose (+5% DMG taken) / Weaken
+(-5% DMG dealt, plus a Burn) on your highest-ATK card, up to 5, lasting 8 s from the last stack. **Vanguard:**
+Attack slot 1 draws 50% of single-target enemy attacks (80% if its Role is Warder). Every enemy hit still takes
+at least MinHit of the card's max HP (guard 1%, leader 2%, leader's warned move 6% and SkillPierce 40% through
+shields). At 2x, simulation timers advance twice as fast. Attack cards show "SKILL 4.2s" / SKILL READY (snapshot
+`K` seconds, `NextIn` to the next Basic); blue bars are Basic progress, gold bars Ultimate charge (`EC` cost).
+Card animations (`UI/Battle` `animateAttack`): Fast Basics tilt 15° and dart, Heavy Basics wind up to 1.25x and
+slam with a 0.06 s hit-stop and camera shake, Balanced Basics lunge; Skills spin 360° (Heavy: lunge with a border
+flash); Ultimates rise 1.4x with an aura flare under a 0.5 s cut-in, then recoil; hit cards flash white then red,
+squash and shake; full cards hover and shiver. Support chips show passive status / remaining uses, with no action or energy bar. Results show passive triggers / dodges
 or actual healing / shields instead of assigning every support a healing score.
 The boss bar shows its next big move (snapshot Nx). Cost Challenge (Deck Cost by border 2/4/6/8, cap 30) for x2 Trait Shards.
 The engine (`BattleEngine`) is pure and runs headless in tests. Fights are staged in 3D at the boss's spot in its world
@@ -241,11 +272,12 @@ is archived beside the new asset as `PreviousBossKit.rbxm`; the installer and ma
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12). Boss HP (the user's 2026-10-30 call): World 1
 250k / 800k / 2.5M, World 2 1.2M / 4M / 12M, World 3 5.5M / 18M / 55M, World 4 25M / 85M / 250M; ATK ~4% of
-the fixture deck's average card HP. Recommended Attack rating 115.7k ... 16.5M = each fixture deck's power
-(`tests/fixtures.luau`): World 1 on Gold / Rainbow commons, World 2 Rainbow, World 3 Secret (its Nightmare on
+the fixture deck's average card HP. Recommended Attack rating 70.1k ... 16.5M = each fixture deck's power
+(`tests/fixtures.luau`, re-picked for the real-time rules): World 1 on Gold / Base commons, World 2 Rainbow with
+a Gold card or two, World 3 Secret (its Nightmare on
 Secret Soulfall / Cursed Night sky cards), World 4 Normal Secret high cards, Hard four Secret Blood Moon cards.
 The all-Base starter deck (31.5k) can't clear World 1 Normal. **World 4 Nightmare (250M) is out of reach of
-every deck in the game** (the best, four Secret Blood Moon cards, deals ~169M in the 180 s limit); see the checklist. Boss wins pay Roll Packs, Trait Shards and potions (no gear). A rewarded win starts a persisted five-minute
+every deck in the game** (the best, four Secret Blood Moon cards, deals ~183M in the 180 s limit); see the checklist. Boss wins pay Roll Packs, Trait Shards and potions (no gear). A rewarded win starts a persisted five-minute
 cooldown for that boss/difficulty. Fighting again during it is PRACTICE: no rewards, XP, mastery or clear
 progress. Losses do not start a cooldown. Story wins return to results; AUTO CLIMB remains opt-in for towers. With it on, a win shows a 1 s banner (no
 results panel unless it's a milestone, relic / artifact or boss-card unlock) and the next fight starts with a 0.3 s
@@ -254,7 +286,7 @@ overpowers by `Config.Battle.SweepPower` (3x) are won and paid at once, up to `S
 same recordResult + towerRewards as a fought win; never the Pagoda's floor 100). Results show a pack progress bar and
 the streak's totals when no pack dropped. SCOUT is four unit cards (leader + guards: crests, role, big move, affix). Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
 affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 16.5k x 1.068^(floor-1); `Tower.Curve.Points`
-re-measured for the 2026-10-30 stats, floor 31 is a World 1 Normal deck, floor 106 World 4 Hard); every floor
+re-measured for the real-time battle pass, floor 23 is a World 1 Normal deck, floor 106 World 4 Hard); every floor
 pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
 SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past
 it; from floor 50 every win has a 0.1% relic drop (`Items.RelicFloor` / `RelicChance`), the only relic source.
@@ -433,7 +465,8 @@ The character artwork pass did not change identities. The later character-to-Att
 
 - Card copy follows the user's Anime Card Clash style brief: authored technique names and mechanical prose,
   "the supported card", no system-job boilerplate / auto-action / stagger diagnostics. Every passive / Aura /
-  Signature and Support combines a trigger with a trade-off or status / RNG mechanic. Percentages are multiples
+  Signature and Support combines a trigger with a status / RNG mechanic, an activation limit or a condition, and
+  carries **no self-penalty** (the user's call, 2026-10-30). No elemental damage systems. Percentages are multiples
   of 5 in the actual data / server formula, including border scaling; never round only the tooltip.
   Exact roll odds remain exact. Highlight only key percentages, turn counts and named status effects; activation
   limits / effect caps belong in `CardInfo.Badges` pills, backed by server counters. Use lore-themed ability

@@ -4,6 +4,8 @@
 -- guards as smaller figures to its left, right and front, two braziers in the world's colour, and a low
 -- cinematic camera looking up at the leader with depth of field. The leader is a View with the same
 -- calls as ModelView (Kick / Lunge / Flash / SetTint), so the battle screen drives it the same way.
+-- Each guard is tied to the leader by a pulsing link beam in its role's colour (Warder blue shield link,
+-- Mender green mend, Striker red, Hexer violet); the link fades when the guard falls.
 -- Everything here is client-side and goes away in Arena.Stop().
 
 local Players = game:GetService("Players")
@@ -89,6 +91,49 @@ local function figure(id: string, modelId: string, at: CFrame, scale: number, ti
 		Phase = math.random() * 10,
 	}
 	return figures[id]
+end
+
+-- Role colours for the guard -> leader links.
+local LINK_COLORS = {
+	Warder = Color3.fromRGB(110, 190, 255),
+	Mender = Color3.fromRGB(90, 255, 160),
+	Striker = Color3.fromRGB(255, 90, 80),
+	Hexer = Color3.fromRGB(200, 110, 255),
+}
+
+-- A Beam from a guard's chest to the leader's: two Attachments and a plain (untextured) beam that
+-- breathes in width. Cleaned up with the figures' folder.
+local function link(guard, leader, role: string?)
+	local from, to = guard.Model.PrimaryPart, leader.Model.PrimaryPart
+	if from == nil or to == nil then
+		return nil
+	end
+	local color = LINK_COLORS[role or ""] or Color3.new(1, 1, 1)
+	local a0 = Instance.new("Attachment")
+	a0.Name = "LinkFrom"
+	a0.Position = Vector3.new(0, guard.Height * 0.1, 0)
+	a0.Parent = from
+	local a1 = Instance.new("Attachment")
+	a1.Name = "LinkTo"
+	a1.Position = Vector3.new(0, leader.Height * 0.05, 0)
+	a1.Parent = to
+	local beam = Instance.new("Beam")
+	beam.Name = "GuardLink"
+	beam.Attachment0, beam.Attachment1 = a0, a1
+	beam.Color = ColorSequence.new(color, color:Lerp(Color3.new(1, 1, 1), 0.4))
+	beam.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.25),
+		NumberSequenceKeypoint.new(0.5, 0.55),
+		NumberSequenceKeypoint.new(1, 0.25),
+	})
+	beam.LightEmission = 1
+	beam.FaceCamera = true
+	beam.CurveSize0, beam.CurveSize1 = 2, -2
+	beam.Width0, beam.Width1 = 0.35, 0.5
+	beam.Segments = 12
+	beam.Parent = from
+	TweenService:Create(beam, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Width0 = 0.6, Width1 = 0.9 }):Play()
+	return beam
 end
 
 local function billboard(name: string, adornee: BasePart, size: UDim2, lift: number): BillboardGui
@@ -290,6 +335,7 @@ function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Stage
 			break
 		end
 		local fig = figure(guard.Id, guard.GuardId, onGround(offset), GUARD_SCALE, nil)
+		fig.Link = link(fig, leader, guard.Role)
 		local lift = fig.Height / 2 + 2.4
 		guardGuis[i] = billboard(`Guard{i}`, fig.Model.PrimaryPart, UDim2.fromOffset(150, 84), lift)
 	end
@@ -510,6 +556,9 @@ function Arena.SetDown(id: string, down: boolean)
 		local goal = if down then 1 else 0
 		if f.DownGoal ~= goal then
 			f.DownGoal = goal
+			if f.Link then
+				f.Link.Enabled = not down -- a fallen guard's link snaps
+			end
 			if down then
 				f.Highlight.FillColor = Color3.fromRGB(120, 14, 24)
 				f.Highlight.FillTransparency = 0.2

@@ -9,6 +9,14 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- REAL-TIME BATTLE PASS COMPLETE (2026-10-30, headless only): archetype timers (Fast / Balanced / Heavy),
+  Boss Shield 0.5x / 1.5x break, Boss Clash ring (tap / Space), manual Ultimates + AUTO ULT / HOLD ULT FOR
+  BREAK (both default on), guard roles linked to the leader, Vanguard slot 1, card animations, no passive
+  self-penalties. Needs a Studio play-test of the battle screen (clash ring timing at 1x / 2x, Space not
+  jumping, hover / spin / slam animations, shield numbers, Arena link beams, the five left-hand buttons on
+  phone). Fixture decks were re-picked to keep 60-90 s with the user's boss HP; Recommended ratings moved
+  (World 1 Normal 115.7k -> 70.1k). See checklist 5.
+
 - SKY TIERS / PACKS / REVEALS / CLAIM-ALL COMPLETE (2026-10-30): sky base ATK now differs by tier:
   Limitbreak1250, Cursed Night1350, Soulfall1450, Blood Moon1600; normalized rarity adds up to10% within
   each sky. Yhwach1595 > Gojo1449 at equal2500 rarity; Blood Moon1600-1760 tops Soulfall. Existing same-
@@ -167,6 +175,27 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-30 · Claude Code · this commit · The user's real-time battle brief:
+  - Data: `Cards.Archetype` (SPD 120+ Fast, 105-119 Balanced, else Heavy). A post-build pass sets `BasicInterval`,
+    `SkillCooldown`, `UltimateCost` (80 / 100 / 135) from `Config.Battle.Archetypes` and fits every Basic / Skill /
+    Ultimate into its band, keeping hit counts and 5% steps. Every self-penalty was stripped from Attack, sky and
+    Support passives (texts too); Energy effects are a % of the card's own cost.
+  - Engine: per-card real-time timers (SlotOffsets 0 / 0.35 / 0.7 / 1.05), 5.4 energy/s, no Skill action counter or
+    22 s Ultimate minimum. Boss Shield = the old Stagger bar: 0.5x up / 1.5x broken, fill by DMG % x slot rate
+    (Heavy Skills x2), guard KO +25%, Warder absorbs 30%, break = 6 s stun. Clash (1.2 s window after a leader's
+    warned move, 200% ATK reflect, -75% move damage, +30% Shield). HoldForBreak (>60% Shield holds AUTO ULT, then
+    0.5 s chain). Warder Protect 0.4; Mender timed 3% / 8 s mend + cleanse (old heal move removed); Striker /
+    Hexer Expose / Weaken stacks on the highest-ATK card. Vanguard 50% / 80% (Warder).
+  - Server: BattleInput `Clash` (own limiter) and `HoldUlt`; AUTO ULT / HOLD default on (`BattleControlsVersion`
+    migration + save test).
+  - Client: archetype card animations, hover / shiver at full energy, manual Ultimate tap with AUTO on, HOLD ULT FOR
+    BREAK button, Clash ring (ContextActionService Space / A / X, unbound while hidden), muted 🛡 / big gold boss
+    numbers, glass-shatter break, Arena guard -> leader link beams, seconds-based skill chips.
+  - Tuning: the user's boss HP kept; ShieldFill set so breaks are earned; fixture borders re-picked (all 11 at
+    63-85 s median); Recommended = new fixture powers; `Tower.Curve.Points` re-measured (60-70 s floors).
+  - Checks: type 0 errors (old warnings only), props 0 problems, headless ALL CHECKS PASSED (new clash_test).
+    `docs/GAME_CARDS_md.md` regenerated with a fight section and per-card timers. Not seen in Studio.
 
 - 2026-10-30 · Claude Code · this commit · The user's 6-part brief:
   - Instant bulk packs: new `Shared/BulkRoll` (binomial / multinomial). `RollService.openPack` splits packs x rolls

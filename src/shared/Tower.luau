@@ -102,27 +102,27 @@ Tower.GuardianPower = 1.15 -- its recommended power over the floor's
 
 -- The curve: recommended Deck Power at floor 1 and its growth per floor, without end. HP and ATK come
 -- from Points: the leader HP / ATK (guards are shares of it) that a deck of that power beats in about 70 s
--- (re-measured 2026-10-30 with the battle simulator: each fixture deck at its floor beats every enemy
+-- (re-measured 2026-10-30 for the real-time battle pass: each fixture deck at its floor beats every enemy
 -- within ~72 s at 95%+, then smoothed so
 -- neither ever drops as power grows), joined in
 -- log space between points and carried on past the last one by the Beyond exponents.
 Tower.Curve = {
 	Power = 16500,
-	Growth = 1.068, -- about 2x every 10 floors; floor 31 is about a World 1 Normal deck, 106 World 4 Hard
+	Growth = 1.068, -- about 2x every 10 floors; floor 23 is about a World 1 Normal deck, 106 World 4 Hard
 	Points = {
-		{ Power = 16500, HP = 42500, ATK = 29 },
-		{ Power = 22900, HP = 58900, ATK = 34 },
-		{ Power = 115700, HP = 219000, ATK = 66 },
-		{ Power = 295900, HP = 560000, ATK = 105 },
-		{ Power = 504000, HP = 972000, ATK = 138 },
-		{ Power = 801600, HP = 1738000, ATK = 185 },
-		{ Power = 1108800, HP = 3100000, ATK = 246 },
-		{ Power = 1920000, HP = 5000000, ATK = 313 },
-		{ Power = 2284800, HP = 5635000, ATK = 332 },
-		{ Power = 5318400, HP = 18440000, ATK = 601 },
-		{ Power = 5721600, HP = 21070000, ATK = 643 },
-		{ Power = 12787200, HP = 43200000, ATK = 920 },
-		{ Power = 16512000, HP = 58360000, ATK = 1070 },
+		{ Power = 16500, HP = 47500, ATK = 30 },
+		{ Power = 22500, HP = 64700, ATK = 35 },
+		{ Power = 70140, HP = 205900, ATK = 63 },
+		{ Power = 223200, HP = 593000, ATK = 107 },
+		{ Power = 298800, HP = 976000, ATK = 138 },
+		{ Power = 524400, HP = 2017000, ATK = 198 },
+		{ Power = 878400, HP = 3549000, ATK = 263 },
+		{ Power = 1449600, HP = 6208000, ATK = 348 },
+		{ Power = 1920000, HP = 10960000, ATK = 463 },
+		{ Power = 4656000, HP = 20057000, ATK = 626 },
+		{ Power = 5318400, HP = 23958000, ATK = 685 },
+		{ Power = 13401600, HP = 65559000, ATK = 1133 },
+		{ Power = 16512000, HP = 71511000, ATK = 1183 },
 	},
 	Beyond = { HP = 1, ATK = 1 }, -- past the last point: linear stats; full Secret chase decks remain playable
 }

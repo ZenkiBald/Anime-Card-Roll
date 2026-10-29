@@ -46,6 +46,7 @@ local FLUSH_SECONDS = 0.15 -- how often event batches go to the client
 local active = {} -- [Player] = { Engine, Speed, Started }
 local startLimiter = RateLimit.new(1, 3)
 local inputLimiter = RateLimit.new(15, 30)
+local clashLimiter = RateLimit.new(2, 2) -- one Clash per window; mashing doesn't help
 
 local function speedAllowed(data, speed: unknown): boolean
 	if speed == 1 then
@@ -433,7 +434,8 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		Guards = if raid then {} else floor and floor.Guards,
 		TimeLimit = if raid then Raid.FightSeconds else nil,
 	})
-	battle.AutoUlt = data.Settings.AutoUlt == true
+	battle.AutoUlt = data.Settings.AutoUlt ~= false -- on unless the player switched it off
+	battle.HoldForBreak = data.Settings.HoldUlt ~= false
 	local speed = if speedAllowed(data, data.Settings.BattleSpeed) then data.Settings.BattleSpeed else 1
 	local state = {
 		Corrupted=corrupted,
@@ -462,6 +464,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		Raid = if raid then { Name = raid.Name, State = RaidService.Public() } else nil,
 		Snap = battle:Snapshot(),
 		AutoUlt = battle.AutoUlt,
+		HoldUlt = battle.HoldForBreak,
 		Speed = speed,
 		SpeedUnlocked = speedAllowed(data, 2),
 		Intro = state.Intro,
@@ -496,6 +499,15 @@ function BattleService.Start()
 			if state then
 				state.Engine.AutoUlt = value
 			end
+		elseif action == "HoldUlt" then
+			-- HOLD ULT FOR BREAK: AUTO ULT keeps full Ultimates for the leader's Shield Break.
+			if type(value) ~= "boolean" or profile == nil then
+				return
+			end
+			profile.Data.Settings.HoldUlt = value
+			if state then
+				state.Engine.HoldForBreak = value
+			end
 		elseif action == "Speed" then
 			if profile == nil or not speedAllowed(profile.Data, value) then
 				return
@@ -511,9 +523,14 @@ function BattleService.Start()
 			state.Hidden = not value
 			setArenaFocus(player, if value then state.Engine.BossId else nil)
 		elseif action == "Ultimate" then
-			-- The engine checks the card is alive, has an Ultimate and 100 energy.
-			if type(value) == "string" and state.Started then
+			-- A tap on a full card: the engine checks it's alive, has an Ultimate and its full energy cost.
+			if type(value) == "string" and #value <= 8 and state.Started then
 				state.Engine:UseUltimate(value)
+			end
+		elseif action == "Clash" then
+			-- Boss Clash (tap / Space): the engine accepts it only inside an open Clash window.
+			if state.Started and clashLimiter:Allow(player) then
+				state.Engine:Clash()
 			end
 		elseif action == "Target" then
 			-- Focus fire: an enemy id (the engine checks it's a living enemy) or nil to let cards pick.

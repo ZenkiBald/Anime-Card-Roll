@@ -18,7 +18,7 @@
 --   Heal    Pct                                         Shield  Pct (lasts Config.Battle.ShieldTurns)
 --   Buff    Stat ATK | Crit | CritDamage | SPD | Guard (less damage taken), Amount, Turns (nil = whole battle)
 --   Debuff  enemy Stat DEF | ATK | SPD | Vuln (takes more damage), Amount, Turns (nil = whole battle)
---   Energy  Amount, ResetSkill                          Cleanse Amount (burns/freezes removed per card)
+--   Energy  Amount (% of the card's Ultimate cost), ResetSkill                          Cleanse Amount (burns/freezes removed per card)
 --   Taunt   Turns                                       Revive  Pct of max HP
 --   Evade   Hits (enemy hits that miss)
 -- Target: the enemy side for Damage/Burn/Debuff: nil = the current target (the player's focus, else a
@@ -49,7 +49,7 @@ export type Ability = {
 	Name: string,
 	Text: string,
 	Effects: { Effect },
-	Every: number?, -- Skill cooldown, or a passive action interval
+	Every: number?, -- an OnAct passive's action interval (Skills use the card's SkillCooldown seconds)
 	Trigger: string?,
 	Chance: number?,
 	Limit: number?,
@@ -77,6 +77,11 @@ export type Card = {
 	Boss: string?, -- a boss card: joins the pool after this boss's first Normal clear
 	Weather: string?, -- separate Celestial collection; paced rolls / packs during this sky
 	SkyOneIn: number?, -- exact any-border chance per server-paced active-sky search
+	-- Set below for Attack cards (Config.Battle.Archetypes): the real-time battle rhythm.
+	Archetype: string?, -- "Fast" | "Balanced" | "Heavy"
+	BasicInterval: number?, -- seconds between Basics
+	SkillCooldown: number?, -- seconds between Skills
+	UltimateCost: number?, -- energy for the Ultimate
 }
 
 local Config = require(script.Parent.Config)
@@ -114,9 +119,8 @@ local list: { Card } = {
 				{ Kind = "Taunt", Turns = 2 },
 				{ Kind = "Damage", Pct = 1.6 },
 			}, 3),
-			ability("Passive", "Armored Advance", "On entry, harden this card's armor to reduce incoming DMG by {a1}, but lose {a2} attack speed.", {
+			ability("Passive", "Armored Advance", "On entry, harden this card's armor to reduce incoming DMG by {a1}.", {
 				{ Kind = "Buff", Stat = "Guard", Amount = 0.15 },
-				{ Kind = "Buff", Stat = "SPD", Amount = -0.1 },
 			}, nil, { Trigger = "OnEntry" }),
 			ability("Ultimate", "Crushing Footfall", "Crush every enemy for {p1} DMG.", {
 				{ Kind = "Damage", Pct = 1.8, Target = "Enemies" },
@@ -202,9 +206,8 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 5 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.25, Turns = 3 },
 			}),
-			ability("Aura", "Infinite Pressure", "On entry, grant every ally {a1} DMG. Maintaining the field costs this card {a2} attack speed.", {
+			ability("Aura", "Infinite Pressure", "On entry, grant every ally {a1} DMG.", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
-				{ Kind = "Buff", Stat = "SPD", Amount = -0.1, Target = "Self" },
 			}, nil, { Trigger = "OnEntry" }),
 		},
 	},
@@ -228,9 +231,8 @@ local list: { Card } = {
 			ability("Skill", "Shadow Familiar Rush", "A shadow familiar tears into the enemy three times for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 3 },
 			}, 3),
-			ability("Passive", "Ravenous Pact", "When this card defeats an opponent, its familiar grants {a1} DMG for {t1} turns, but this card takes {a2} more DMG for {t2} turns.", {
+			ability("Passive", "Ravenous Pact", "When this card defeats an opponent, its familiar grants {a1} DMG for {t1} turns.", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.25, Turns = 3 },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 3 },
 			}, nil, { Trigger = "OnKill", Limit = 3 }),
 			ability("Ultimate", "Chimera Procession", "Release three familiars at random enemies, each dealing {p1} DMG.", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 3, Target = "RandomEnemy" },
@@ -264,9 +266,8 @@ local list: { Card } = {
 			ability("Ultimate", "Malevolent Barrage", "Rain down six cursed slashes on random enemies, each dealing {p1} DMG.", {
 				{ Kind = "Damage", Pct = 1.3, Hits = 6, Target = "RandomEnemy" },
 			}),
-			ability("Aura", "Shrine of Malice", "On entry, every ally gains {a1} DMG, but the shrine makes them take {a2} more DMG.", {
+			ability("Aura", "Shrine of Malice", "On entry, every ally gains {a1} DMG.", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Target = "Attack" },
 			}, nil, { Trigger = "OnEntry" }),
 		},
 	},
@@ -290,9 +291,8 @@ local list: { Card } = {
 			ability("Skill", "Pride Breaker", "Unleash a royal Ki blast for {p1} DMG.", {
 				{ Kind = "Damage", Pct = 3 },
 			}, 3),
-			ability("Passive", "Unbroken Pride", "When below 50% HP, awaken golden Ki for {a1} DMG. Reckless pride makes this card take {a2} more DMG.", {
+			ability("Passive", "Unbroken Pride", "When below 50% HP, awaken golden Ki for {a1} DMG.", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.25 },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1 },
 			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
 			ability("Ultimate", "Golden Ki Barrage", "Fire eight Ki blasts at random enemies for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.9, Hits = 8, Target = "RandomEnemy" },
@@ -380,10 +380,9 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 1.8 },
 				{ Kind = "Heal", Pct = 0.4, Target = "Lowest" },
 			}, 3),
-			ability("Passive", "Mitotic Regeneration", "When below 50% HP, release stored Chakra to cleanse Burn and Freeze and recover {p2} HP. Exhaustion costs {a3} attack speed for {t3} turns.", {
+			ability("Passive", "Mitotic Regeneration", "When below 50% HP, release stored Chakra to cleanse Burn and Freeze and recover {p2} HP.", {
 				{ Kind = "Cleanse", Amount = 2, Target = "Self" },
 				{ Kind = "Heal", Pct = 0.25, MaxHP = true, Target = "Self" },
-				{ Kind = "Buff", Stat = "SPD", Amount = -0.1, Turns = 2 },
 			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
 			ability("Ultimate", "Hundred-Seal Release", "Strike for {p1} DMG and restore {p2} DMG as HP to every ally.", {
 				{ Kind = "Damage", Pct = 2.5 },
@@ -443,10 +442,9 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 2.1 },
 				{ Kind = "Buff", Stat = "SPD", Amount = 0.15, Turns = 2 },
 			}, 3),
-			ability("Passive", "Trance Reflex", "When below 50% HP, enter a lightning trance: evade the next hit and gain {a2} attack speed, but take {a3} more DMG for {t3} turns.", {
+			ability("Passive", "Trance Reflex", "When below 50% HP, enter a lightning trance: evade the next hit and gain {a2} attack speed.", {
 				{ Kind = "Evade", Hits = 1, Target = "Self" },
 				{ Kind = "Buff", Stat = "SPD", Amount = 0.25 },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 3 },
 			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
 			ability("Ultimate", "Sixfold Lightning", "Cross the battlefield with six lightning slashes for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.65, Hits = 6, Target = "RandomEnemy" },
@@ -474,9 +472,8 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 2, IgnoreDef = true },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.1, Turns = 2 },
 			}, 3),
-			ability("Passive", "Heavenly Physique", "On entry, trust physical instinct to evade the next two hits. Reckless pursuit makes this card take {a2} more DMG for {t2} turns.", {
+			ability("Passive", "Heavenly Physique", "On entry, trust physical instinct to evade the next two hits.", {
 				{ Kind = "Evade", Hits = 2, Target = "Self" },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 3 },
 			}, nil, { Trigger = "OnEntry", Limit = 1 }),
 			ability("Ultimate", "Soul-Splitting Ambush", "Three ruthless cuts ignore defense and protection for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 1.35, Hits = 3, IgnoreDef = true },
@@ -535,10 +532,9 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 2.1 },
 				{ Kind = "Taunt", Turns = 2 },
 			}, 3),
-			ability("Passive", "Automatic Sand Shield", "On entry, living sand shields this card for {p1} DMG and reduces incoming DMG by {a2}, but costs {a3} attack speed.", {
+			ability("Passive", "Automatic Sand Shield", "On entry, living sand shields this card for {p1} DMG and reduces incoming DMG by {a2}.", {
 				{ Kind = "Shield", Pct = 0.8, Target = "Self" },
 				{ Kind = "Buff", Stat = "Guard", Amount = 0.15 },
-				{ Kind = "Buff", Stat = "SPD", Amount = -0.1 },
 			}, nil, { Trigger = "OnEntry", Limit = 1 }),
 			ability("Ultimate", "Imperial Sand Mausoleum", "Bury every enemy for {p1} DMG and lower their defense by {a2} for {t2} turns.", {
 				{ Kind = "Damage", Pct = 1.8, Target = "Enemies" },
@@ -597,9 +593,8 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 2.2 },
 				{ Kind = "Evade", Hits = 1, Target = "Self" },
 			}, 3),
-			ability("Passive", "Yellow Flash", "On entry, blink into position with 25% Ultimate charge. Overextending makes this card take {a2} more DMG for {t2} turns.", {
+			ability("Passive", "Yellow Flash", "On entry, blink into position with 25% Ultimate charge.", {
 				{ Kind = "Energy", Amount = 25, Target = "Self" },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 2 },
 			}, nil, { Trigger = "OnEntry", Limit = 1 }),
 			ability("Ultimate", "Flying Seal Barrage", "Warp between enemies for five strikes at {p1} DMG each and gain {a2} attack speed for {t2} turns.", {
 				{ Kind = "Damage", Pct = 0.9, Hits = 5, Target = "RandomEnemy" },
@@ -627,10 +622,9 @@ local list: { Card } = {
 			ability("Skill", "Planetary Chakra Spiral", "Drive three orbiting Chakra spheres into an enemy for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 1.1, Hits = 3 },
 			}, 3),
-			ability("Passive", "Crimson Lifeline", "When below 50% HP, draw on the sealed beast: recover {p1} HP and gain {a2} DMG, but the cloak prevents further healing.", {
+			ability("Passive", "Crimson Lifeline", "When below 50% HP, draw on the sealed beast: recover {p1} HP and gain {a2} DMG.", {
 				{ Kind = "Heal", Pct = 0.35, MaxHP = true, Target = "Self" },
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.2 },
-				{ Kind = "HealingLock" },
 			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
 			ability("Ultimate", "Sovereign Beast Cataclysm", "Detonate a Beast Bomb for {p1} DMG on every enemy, then land a {p2} DMG Chakra strike on the chosen target.", {
 				{ Kind = "Damage", Pct = 2, Target = "Enemies" },
@@ -692,10 +686,9 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 1.8 },
 				{ Kind = "Bleed", Pct = 0.1, Turns = 3 },
 			}, 3),
-			ability("Passive", "Hidden Puppet Core", "When below 50% HP, shed the damaged shell: cleanse Burn and Freeze and evade two hits. Exposing the core makes this card take {a3} more DMG for {t3} turns.", {
+			ability("Passive", "Hidden Puppet Core", "When below 50% HP, shed the damaged shell: cleanse Burn and Freeze and evade two hits.", {
 				{ Kind = "Cleanse", Amount = 2, Target = "Self" },
 				{ Kind = "Evade", Hits = 2, Target = "Self" },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 2 },
 			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
 			ability("Ultimate", "Hundred-Puppet Cage", "Surround every enemy with puppet blades for three strikes at {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.65, Hits = 3, Target = "Enemies" },
@@ -751,10 +744,9 @@ local list: { Card } = {
 			ability("Skill", "Thunder Lariat", "Drive a lightning lariat through defense and protection for {p1} DMG.", {
 				{ Kind = "Damage", Pct = 2.4, IgnoreDef = true },
 			}, 3),
-			ability("Passive", "Lightning Chakra Armor", "On entry, charge the armor for {a1} attack speed and {a2} less incoming DMG. Maintaining it reduces this card's DMG by {a3} for {t3} turns.", {
+			ability("Passive", "Lightning Chakra Armor", "On entry, charge the armor for {a1} attack speed and {a2} less incoming DMG.", {
 				{ Kind = "Buff", Stat = "SPD", Amount = 0.15 },
 				{ Kind = "Buff", Stat = "Guard", Amount = 0.1 },
-				{ Kind = "Buff", Stat = "ATK", Amount = -0.1, Turns = 3 },
 			}, nil, { Trigger = "OnEntry", Limit = 1 }),
 			ability("Ultimate", "Storm Guillotine", "Drop a lightning-charged heel for {p1} DMG and Weaken every enemy by {a2} for {t2} turns.", {
 				{ Kind = "Damage", Pct = 4.5 },
@@ -785,9 +777,8 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 2.2 },
 				{ Kind = "Burn", Pct = 0.1, Turns = 3 },
 			}, 3),
-			ability("Passive", "Crimson Cloak", "When below 50% HP, unleash the beast's Chakra for {a1} DMG, but the unstable cloak makes this card take {a2} more DMG.", {
+			ability("Passive", "Crimson Cloak", "When below 50% HP, unleash the beast's Chakra for {a1} DMG.", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.25 },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1 },
 			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
 			ability("Ultimate", "Beast Bomb Barrage", "Launch six Beast Bombs at random enemies for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.8, Hits = 6, Target = "RandomEnemy" },
@@ -816,9 +807,8 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 2.5 },
 				{ Kind = "Debuff", Stat = "SPD", Amount = 0.15, Turns = 2, Target = "Enemies" },
 			}, 4),
-			ability("Passive", "Golden Tyranny", "When this card defeats an opponent, recover {p1} HP. Its arrogance makes it take {a2} more DMG for {t2} turns.", {
+			ability("Passive", "Golden Tyranny", "When this card defeats an opponent, recover {p1} HP.", {
 				{ Kind = "Heal", Pct = 0.15, MaxHP = true, Target = "Self" },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 2 },
 			}, nil, { Trigger = "OnKill", Limit = 3 }),
 			ability("Ultimate", "Planet Breaker", "Erase an enemy with a {p1} DMG blast that ignores defense.", {
 				{ Kind = "Damage", Pct = 3.5, IgnoreDef = true },
@@ -847,9 +837,8 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 1.8 },
 				{ Kind = "Debuff", Stat = "DEF", Amount = 0.15, Turns = 3 },
 			}, 3),
-			ability("Passive", "Perfect Hypnosis", "On entry, create two Illusions to evade incoming hits. Maintaining them makes this card take {a2} more DMG for {t2} turns.", {
+			ability("Passive", "Perfect Hypnosis", "On entry, create two Illusions to evade incoming hits.", {
 				{ Kind = "Evade", Hits = 2, Target = "Self" },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Turns = 2 },
 			}, nil, { Trigger = "OnEntry" }),
 			ability("Ultimate", "False Heaven", "Strike through four false realities for {p1} DMG each. Every enemy takes {a2} more DMG for {t2} turns.", {
 				{ Kind = "Damage", Pct = 1.2, Hits = 4 },
@@ -878,14 +867,12 @@ local list: { Card } = {
 			ability("Skill", "Thorned Blood", "Four blood thorns pierce random enemies for {p1} DMG each.", {
 				{ Kind = "Damage", Pct = 0.6, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
-			ability("Passive", "Demon Rebirth", "When below 50% HP, cleanse Burn and Freeze and regenerate {p2} of max HP. This card can no longer be healed.", {
+			ability("Passive", "Demon Rebirth", "When below 50% HP, cleanse Burn and Freeze and regenerate {p2} of max HP.", {
 				{ Kind = "Cleanse", Amount = 2, Target = "Self" },
 				{ Kind = "Heal", Pct = 0.25, MaxHP = true, Target = "Self" },
-				{ Kind = "HealingLock" },
 			}, nil, { Trigger = "BelowHalf", Limit = 1 }),
-			ability("Aura", "Progenitor's Gift", "On entry, share cursed blood for {a1} DMG on every ally. The pact makes them take {a2} more DMG.", {
+			ability("Aura", "Progenitor's Gift", "On entry, share cursed blood for {a1} DMG on every ally.", {
 				{ Kind = "Buff", Stat = "ATK", Amount = 0.1, Target = "Attack" },
-				{ Kind = "Buff", Stat = "Guard", Amount = -0.1, Target = "Attack" },
 			}, nil, { Trigger = "OnEntry" }),
 			ability("Ultimate", "Black Blood Tempest", "Engulf every enemy in a {p1} DMG blood storm.", {
 				{ Kind = "Damage", Pct = 3, Target = "Enemies" },
@@ -913,10 +900,10 @@ local list: { Card } = {
 			Threshold = 0.5,
 			Uses = 1,
 			Turns = 2,
-			Text = "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP. It cannot be healed for {turns} turns.",
+			Text = "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP.",
 		},
 		Abilities = {
-			ability("Passive", "Hundred-Petal Renewal", "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP. It cannot be healed for {turns} turns.", {  }),
+			ability("Passive", "Hundred-Petal Renewal", "When below {threshold} HP, the supported card cleanses Burn and Freeze and recovers {amount} of its max HP.", {  }),
 		},
 	},
 	{
@@ -961,13 +948,12 @@ local list: { Card } = {
 			Kind = "Haste",
 			Trigger = "OnEntry",
 			Amount = 0.2,
-			Penalty = 0.1,
 			Turns = 3,
 			Uses = 1,
-			Text = "On entry, the supported card gains {amount} attack speed for {turns} turns. Lightning-fast cuts deal {penalty} less DMG during that time.",
+			Text = "On entry, the supported card gains {amount} attack speed for {turns} turns.",
 		},
 		Abilities = {
-			ability("Passive", "Thunder Breathing", "On entry, the supported card gains {amount} attack speed for {turns} turns. Lightning-fast cuts deal {penalty} less DMG during that time.", {  }),
+			ability("Passive", "Thunder Breathing", "On entry, the supported card gains {amount} attack speed for {turns} turns.", {  }),
 		},
 	},
 	{
@@ -1040,13 +1026,12 @@ local list: { Card } = {
 			Kind = "OpeningShield",
 			Trigger = "OnEntry",
 			Amount = 0.25,
-			Penalty = 0.1,
 			Turns = 2,
 			Uses = 1,
-			Text = "On entry, sand shields the supported card for {amount} of its max HP. The heavy armor reduces attack speed by {penalty} for {turns} turns.",
+			Text = "On entry, sand shields the supported card for {amount} of its max HP.",
 		},
 		Abilities = {
-			ability("Passive", "Living Sand Armor", "On entry, sand shields the supported card for {amount} of its max HP. The heavy armor reduces attack speed by {penalty} for {turns} turns.", {  }),
+			ability("Passive", "Living Sand Armor", "On entry, sand shields the supported card for {amount} of its max HP.", {  }),
 		},
 	},
 	{
@@ -1066,13 +1051,12 @@ local list: { Card } = {
 			Kind = "KillMend",
 			Trigger = "OnKill",
 			Amount = 0.2,
-			Penalty = 0.1,
 			Turns = 2,
 			Uses = 3,
-			Text = "When the supported card defeats an opponent, recover {amount} of its max HP. The antidote dulls its next attacks, reducing DMG by {penalty} for {turns} turns.",
+			Text = "When the supported card defeats an opponent, recover {amount} of its max HP.",
 		},
 		Abilities = {
-			ability("Passive", "Wisteria Antidote", "When the supported card defeats an opponent, recover {amount} of its max HP. The antidote dulls its next attacks, reducing DMG by {penalty} for {turns} turns.", {  }),
+			ability("Passive", "Wisteria Antidote", "When the supported card defeats an opponent, recover {amount} of its max HP.", {  }),
 		},
 	},
 	{
@@ -1092,13 +1076,12 @@ local list: { Card } = {
 			Kind = "StartEnergy",
 			Trigger = "OnEntry",
 			Amount = 0.25,
-			Penalty = 0.1,
 			Turns = 2,
 			Uses = 1,
-			Text = "On entry, the supported card gains {amount} Ultimate charge, but stabilizing the seal reduces its attack speed by {penalty} for {turns} turns.",
+			Text = "On entry, the supported card gains {amount} Ultimate charge.",
 		},
 		Abilities = {
-			ability("Passive", "Blink Reserve", "On entry, the supported card gains {amount} Ultimate charge, but stabilizing the seal reduces its attack speed by {penalty} for {turns} turns.", {  }),
+			ability("Passive", "Blink Reserve", "On entry, the supported card gains {amount} Ultimate charge.", {  }),
 		},
 	},
 	{
@@ -1119,12 +1102,11 @@ local list: { Card } = {
 			Trigger = "OnFatal",
 			Amount = 0.55,
 			Values = { 0.55, 0.7, 0.85, 1 }, -- return HP by border (Base / Gold / Rainbow / Secret)
-			Penalty = 0.25,
 			Uses = 1,
-			Text = "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.",
+			Text = "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP.",
 		},
 		Abilities = {
-			ability("Passive", "Crimson Chakra Cloak", "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.", {  }),
+			ability("Passive", "Crimson Chakra Cloak", "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP.", {  }),
 		},
 	},
 	{
@@ -1437,6 +1419,85 @@ function Cards.SupportScore(card: Card, stars: number, border: string?, awaken: 
 end
 
 -- Base stats scale only with border and rarity. Legacy stars / awaken arguments remain compatible.
+-- Battle archetypes (Config.Battle.Archetypes): Fast / Balanced / Heavy by SPD. Every Attack card acts in
+-- real time: its Basic on BasicInterval seconds, its Skill on SkillCooldown seconds, its Ultimate at
+-- UltimateCost energy. Within a band the faster card gets the shorter timers.
+function Cards.Archetype(card: Card): string
+	local spd = card.SPD or 100
+	return if spd >= 120 then "Fast" elseif spd >= 105 then "Balanced" else "Heavy"
+end
+
+local function lerp(range: { number }, t: number): number
+	return range[1] + (range[2] - range[1]) * math.clamp(t, 0, 1)
+end
+
+local function snap(value: number, step: number): number
+	return math.floor(value / step + 0.5) * step
+end
+
+-- Fits one ability's damage into its band [lo, hi] near `target` (the per-cast total of all hits, an area
+-- hit counting once), keeping its hit counts and every per-hit % a multiple of 5. A lone Damage effect takes
+-- the in-band total closest to the target that its hit count can make; several effects scale together.
+local function fitDamage(ability: Ability, target: number, lo: number, hi: number)
+	local total, damage = 0, {}
+	for i, effect in ability.Effects do
+		if effect.Kind == "Damage" then
+			total += (effect.Pct or 0) * (effect.Hits or 1)
+			table.insert(damage, i)
+		end
+	end
+	if total <= 0 then
+		return
+	end
+	local effects = {}
+	for i, effect in ability.Effects do
+		effects[i] = table.clone(effect)
+	end
+	if #damage == 1 then
+		local e = effects[damage[1]]
+		local hits = e.Hits or 1
+		local step = 0.05 * hits
+		local best = math.max(step, snap(target, step))
+		if best > hi + 1e-9 then best -= step elseif best < lo - 1e-9 then best += step end
+		e.Pct = math.floor(best / hits * 100 + 0.5) / 100
+	else
+		for _, i in damage do
+			local e = effects[i]
+			e.Pct = math.max(0.05, math.floor(snap((e.Pct or 0) * target / total, 0.05) * 100 + 0.5) / 100)
+		end
+	end
+	ability.Effects = effects
+end
+
+local MIN_RANK, MAX_RANK = math.log(7.5), math.log(4000)
+for _, card in list do
+	if card.Type ~= "Attack" then
+		continue
+	end
+	local kind = Cards.Archetype(card)
+	local arch = Config.Battle.Archetypes[kind]
+	local speed = ((card.SPD or 100) - arch.SPD[1]) / (arch.SPD[2] - arch.SPD[1])
+	local rare = (Cards.RarityRank(card) - MIN_RANK) / (MAX_RANK - MIN_RANK)
+	card.Archetype = kind
+	card.BasicInterval = snap(lerp(arch.Interval, speed), 0.05)
+	card.SkillCooldown = snap(lerp(arch.Cooldown, speed), 0.5)
+	card.UltimateCost = arch.UltCost
+	local abilities = {}
+	for i, source in card.Abilities do
+		abilities[i] = table.clone(source)
+		local a = abilities[i]
+		if a.Slot == "Basic" then
+			fitDamage(a, lerp(arch.Basic, rare), arch.Basic[1], arch.Basic[2])
+		elseif a.Slot == "Skill" then
+			a.Every = nil -- real-time cooldown (card.SkillCooldown), not an action count
+			fitDamage(a, lerp(arch.Skill, rare), arch.Skill[1], arch.Skill[2])
+		elseif a.Slot == "Ultimate" then
+			fitDamage(a, lerp(arch.Ult, rare), arch.Ult[1], arch.Ult[2])
+		end
+	end
+	card.Abilities = abilities
+end
+
 function Cards.Stat(card: Card, base: number, stars: number, border: string?, awaken: number?): number
 	return Cards.StatWithStars(base * Borders.Multiplier(border) * Cards.Scale(card) * Awaken.StatMultiplier(awaken), stars)
 end

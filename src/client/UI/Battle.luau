@@ -1,7 +1,10 @@
 --!nonstrict
 -- Battle screen. The fight runs on the server; this draws the snapshots it streams
 -- (HP, shields, action bars, energy) and animates its events (hits, heals, warnings).
--- The player only taps charged cards to fire Ultimates, toggles Auto and speed, or gives up.
+-- The player taps charged cards to fire Ultimates, taps the CLASH ring (or presses Space) when the leader's
+-- big move lands, toggles AUTO ULT / HOLD ULT FOR BREAK and speed, or gives up. Cards move by archetype:
+-- Fast cards tilt and dart, Heavy cards wind up and slam (with a hit-stop), Skills spin or lunge, Ultimates
+-- rise and flare; full cards hover and shiver until their Ultimate goes.
 -- The squad is staged in 3D in the boss's world (UI/Arena: leader, guards, cinematic camera) with the
 -- boss holder on a world-space billboard; phone guard targets use a fixed right-hand rail.
 -- The squad dock keeps to the lower 22%.
@@ -10,6 +13,8 @@
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ContextActionService = game:GetService("ContextActionService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
@@ -83,6 +88,9 @@ local hintLabel: TextLabel
 local frontRow: Frame
 local backRow: Frame
 local autoButton: any -- children read by name
+local holdButton: any -- HOLD ULT FOR BREAK
+local clashRing: any -- the Boss Clash prompt (children read by name)
+local chargeConn: RBXScriptConnection? = nil -- full cards hover and shiver
 local speedButton: any
 local retryButton: any -- AUTO-RETRY: the boss fight again after a win (AUTO CLIMB in the towers)
 local forfeitButton: any
@@ -98,6 +106,10 @@ local current = nil -- the fight on screen
 local lastSnap = nil
 setHidden = function(on: boolean)
 	battleHidden = on
+	if on and clashRing then
+		clashRing.Visible = false
+		ContextActionService:UnbindAction("BattleClash") -- never take Space from the world while exploring
+	end
 	State.BattleHidden = on
 	gui.Enabled = not on
 	returnGui.Enabled = on
@@ -141,14 +153,14 @@ local BOSS_STATUS = {
 	W = "CHARGING",
 	R = "BARRIER",
 	X = "RALLIED",
-	P = "PROTECTED",
-	Q = "STAGGERED",
+	P = "LINKED",
+	Q = "SHIELD BROKEN",
 }
 local ROLE_TEXT = {
-	Striker = "STRIKER · hits hard",
-	Hexer = "HEXER · burns, freezes, slows",
-	Mender = "MENDER · heals the squad",
-	Warder = "WARDER · taunts, shields the leader",
+	Striker = "STRIKER · Exposes your top card",
+	Hexer = "HEXER · Weakens + burns your top card",
+	Mender = "MENDER · mends + cleanses the leader",
+	Warder = "WARDER · taunts, 40% leader link",
 }
 
 local function clock(seconds: number): string
@@ -408,10 +420,16 @@ local function shakeStage(intensity: number, duration: number)
 end
 
 -- Same idea for a card face inside its slot.
+-- Where a card face rests in its slot: lifted a little while its Ultimate is full (it hovers).
+local HOVER_LIFT = -7
+local function home(tile): UDim2
+	return if tile.Charged then UDim2.new(0.5, 0, 0.5, HOVER_LIFT) else UDim2.fromScale(0.5, 0.5)
+end
+
 local function shakeCard(tile, intensity: number)
 	Effects.Shake(tile.Card, intensity, 0.22)
 	task.delay(0.27, function()
-		tile.Card.Position = UDim2.fromScale(0.5, 0.5)
+		tile.Card.Position = home(tile)
 	end)
 end
 
@@ -483,6 +501,9 @@ end
 
 -- Crisp status badges docked top right on a battle card (instead of tinting the card).
 local BADGES = {
+	{ Flag = "H", Text = "HOLD", Color = Color3.fromRGB(255, 215, 90) },
+	{ Flag = "W", Text = "WEAKEN", Color = Color3.fromRGB(200, 120, 255) },
+	{ Flag = "X", Text = "EXPOSED", Color = Color3.fromRGB(255, 120, 100) },
 	{ Flag = "N", Text = "HEAL BLOCK", Color = Color3.fromRGB(220, 130, 145) },
 	{ Flag = "U", Text = "BUFFED ▲", Color = Color3.fromRGB(255, 210, 60) },
 	{ Flag = "B", Text = "BURN 🔥", Color = Color3.fromRGB(255, 96, 40) },
@@ -637,7 +658,7 @@ local NEON = {
 local CUT_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
 
 -- An obsidian slash across the screen naming an Ultimate: slides in from the left with a punch,
--- holds 0.7 s, then slashes out to the right trailing sparks.
+-- holds 0.5 s, then slashes out to the right trailing sparks.
 local function cutIn(cardId: string, ultName: string)
 	local card = Cards.Get(cardId)
 	if card == nil then
@@ -741,7 +762,7 @@ local function cutIn(cardId: string, ultName: string)
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = sub
 	Kit.tween(band, 0.16, { Position = UDim2.fromScale(0.5, 0.46) }, Enum.EasingStyle.Quart).Completed:Connect(function()
 		shakeStage(5, 0.18)
-		task.delay(0.7, function()
+		task.delay(0.5, function()
 			Effects.Sparks(band, neon, 16, 0.6)
 			Kit.tween(band, 0.16, { Position = UDim2.fromScale(1.8, 0.46) }, Enum.EasingStyle.Quart, Enum.EasingDirection.In).Completed
 				:Connect(function()
@@ -888,9 +909,13 @@ local function makeTile(unit, order: number)
 		CardId = unit.CardId,
 		BaseStatus = status.Text,
 		Badges = badgeDock,
+		Archetype = unit.Archetype or (if isAttack then Cards.Archetype(card) else nil),
+		UltCost = unit.UltCost or 100,
+		Charged = false, -- Ultimate full: the card hovers and shivers (chargeLoop)
+		Busy = 0, -- os.clock() until which an attack animation owns the card's position
 	}
 
-	-- The Skill countdown: "SKILL in 2" (its actions until the Skill) or "SKILL READY", from the snapshot (K).
+	-- The Skill countdown in seconds ("SKILL 4.2s") or "SKILL READY", from the snapshot (K).
 	if isAttack then
 		tile.SkillCD = status -- its own line below the name, clear of the card title
 	end
@@ -961,6 +986,7 @@ local function makeTile(unit, order: number)
 	readyStroke.Parent = tile.Ready
 	pulseForever(readyStroke, { Transparency = 0.75, Thickness = 5 }, 0.45)
 	local readyLabel = Kit.label({
+		Name = "ReadyLabel",
 		Text = "TAP: ULTIMATE",
 		Font = Theme.Font.Display,
 		TextColor3 = Theme.Color.Gold,
@@ -971,6 +997,7 @@ local function makeTile(unit, order: number)
 		Parent = tile.Ready,
 	}, 16)
 	Kit.textStroke(Color3.new(0, 0, 0), 2, 0.1).Parent = readyLabel
+	tile.ReadyLabel = readyLabel
 
 	tile.Warn = Kit.new("Frame", {
 		Name = "Warn",
@@ -1316,6 +1343,7 @@ local function applySnapshot(snap)
 		returnButton.Label.Text = `RETURN TO BATTLE · {pct}% HP\n{timerLabel.Text}`
 	end
 	local cost = current.Info.UltimateCost
+	current.Holding = snap.Ho == true
 	for id, s in snap.U do
 		if id == "Boss" then
 			local maxHP = current.Info.Boss.MaxHP
@@ -1337,11 +1365,18 @@ local function applySnapshot(snap)
 				elseif nextMove.In <= 0 then `⚠ {string.upper(nextMove.N)} INCOMING`
 				else `⚠ {string.upper(nextMove.N)} in {nextMove.In}`
 			local words = flagWords(s.F, BOSS_STATUS)
-			bossStatus.Text = if big ~= "" and words ~= "" then `{big}   ·   {words}` else big .. words
-			bossStatus.TextColor3 = if nextMove and nextMove.In <= 1 then Theme.Color.Danger else Theme.Color.Support
 			local staggered = string.find(s.F, "Q") ~= nil
-			Kit.tween(bossStagger, 0.15, { Size = UDim2.fromScale(if staggered then 1 else (s.St or 0), 0.22) })
-			bossStagger.BackgroundColor3 = if staggered then Color3.new(1, 1, 1) else Theme.Color.Gold
+			-- The Boss Shield: its fill rides along the HP bar; while it stands the leader takes half damage.
+			local shieldWord = if staggered then `SHIELD BROKEN {string.format("%.1f", s.Br or 0)}s` else `🛡 SHIELD {math.floor((s.St or 0) * 100)}%`
+			words = if words ~= "" then `{shieldWord} · {words}` else shieldWord
+			bossStatus.Text = if big ~= "" then `{big}   ·   {words}` else words
+			bossStatus.TextColor3 = if nextMove and nextMove.In <= 1 then Theme.Color.Danger else Theme.Color.Support
+			Kit.tween(bossStagger, 0.15, { Size = UDim2.fromScale(if staggered then 1 else (s.St or 0), 0.3) })
+			bossStagger.BackgroundColor3 = if staggered then Color3.new(1, 1, 1) elseif (s.St or 0) >= Config.Battle.HoldAbove then Color3.fromRGB(150, 230, 255) else SHIELD_COLOR
+			if clashRing and clashRing.Visible and (s.Cl == nil or staggered) and os.clock() - (clashRing:GetAttribute("OpenedAt") or 0) > 0.3 then
+				clashRing.Visible = false -- the window closed on the server (struck, broken or used)
+				ContextActionService:UnbindAction("BattleClash")
+			end
 			if staggerBanner.Visible ~= staggered then
 				staggerBanner.Visible = staggered
 				if staggered then
@@ -1374,11 +1409,16 @@ local function applySnapshot(snap)
 					tile.HpText.Text = if (s.S or 0) > 0 then `{Kit.commas(s.H)} +{Kit.commas(s.S)}` else Kit.commas(s.H)
 					alive = s.H > 0
 				end
-				setBadges(tile.Badges, if alive then s.F else "")
+				local flags = s.F .. (if s.Wk then "W" else "") .. (if s.Ex then "X" else "")
+				setBadges(tile.Badges, if alive then flags else "")
 				if tile.SkillCD then
+					-- Real-time timers: seconds to the next Skill (K), else to the next Basic.
 					local k = s.K
-					tile.SkillCD.Text = if not alive then "DOWN" else `{if k ~= nil and k <= 0 then "SKILL" else "ATK"} {string.format("%.1f", s.NextIn or 0)}s`
-					tile.SkillCD.TextColor3 = if k ~= nil and k <= 0 then Theme.Color.Gold else Theme.Color.Muted
+					tile.SkillCD.Text = if not alive then "DOWN"
+						elseif k == nil then `ATK {string.format("%.1f", s.NextIn or 0)}s`
+						elseif k <= 0.05 then "SKILL READY"
+						else `SKILL {string.format("%.1f", k)}s`
+					tile.SkillCD.TextColor3 = if k ~= nil and k <= 1 then Theme.Color.Gold else Theme.Color.Muted
 				end
 				local gaugeGoal = UDim2.fromScale(s.G, 1)
 				if tile.Gauge and s.G < tile.Gauge.Size.X.Scale then
@@ -1389,9 +1429,20 @@ local function applySnapshot(snap)
 				if tile.Passive then
 					tile.Passive.Text = if not s.PairedAlive then "ATTACKER DOWN" elseif s.Bond then `BONDED · {s.UsesLeft or "ACTIVE"}` elseif s.UsesLeft ~= nil then `PASSIVE · {s.UsesLeft} LEFT` else "PASSIVE · ACTIVE"
 				end
+				local ultCost = s.EC or tile.UltCost or cost
+				local full = alive and tile.HasUlt and s.E >= ultCost - 1e-6
 				if tile.Energy then
-					Kit.tween(tile.Energy, 0.15, { Size = UDim2.fromScale(s.E / cost, 1) })
-					tile.EnergyGlow.Enabled = alive and s.E >= cost and (s.UltIn or 0)<=0
+					Kit.tween(tile.Energy, 0.15, { Size = UDim2.fromScale(math.min(1, s.E / ultCost), 1) })
+					tile.EnergyGlow.Enabled = full
+				end
+				if tile.Charged ~= full then
+					tile.Charged = full
+					if os.clock() >= tile.Busy then
+						Kit.tween(tile.Card, 0.2, { Position = home(tile) }, Enum.EasingStyle.Back)
+					end
+					if not full then
+						tile.Card.Rotation = 0
+					end
 				end
 				if tile.Ko.Visible ~= not alive then
 					tile.Ko.Visible = not alive
@@ -1401,7 +1452,11 @@ local function applySnapshot(snap)
 				tile.Frozen.Visible = alive and string.find(s.F, "Z") ~= nil
 				local tapped = ultTapped[id]
 				local waiting = tapped ~= nil and os.clock() - tapped < 0.6
-				tile.Ready.Visible = alive and tile.HasUlt and s.E >= cost and (s.UltIn or 0)<=0 and not waiting and not current.AutoUlt
+				-- A full card can always be tapped (manual Ultimate), AUTO ULT or not; while AUTO ULT holds for
+				-- a Shield Break it says so.
+				tile.Ready.Visible = full and not waiting
+				local holding = string.find(s.F, "H") ~= nil
+				tile.ReadyLabel.Text = if holding then "HOLD · BREAK" else "TAP: ULTIMATE"
 			end
 		end
 	end
@@ -1461,6 +1516,189 @@ local function showWarning(event)
 	end)
 end
 
+-- Physical card moves by archetype. tile.Busy keeps the full-energy hover from fighting the tween.
+local function animateAttack(tile, ability: string)
+	local card = tile.Card
+	local rest = home(tile)
+	local now = os.clock()
+	if ability == "Ultimate" then
+		-- Rise toward the middle at 1.4x, flare an aura, hold under the cut-in, then recoil home.
+		tile.Busy = now + 0.95
+		tile.Slot.ZIndex = 5
+		card.Rotation = 0
+		Kit.tween(card, 0.22, { Position = UDim2.new(0.5, 0, 0.5, -48) }, Enum.EasingStyle.Quad)
+		Kit.tween(tile.Scale, 0.22, { Scale = 1.4 }, Enum.EasingStyle.Back)
+		glow(tile, tile.TierColor)
+		task.delay(0.2, function()
+			if card.Parent then
+				ring(centerOf(card), tile.TierColor, 180)
+				Effects.Sparks(card, tile.TierColor, 12, 0.6)
+			end
+		end)
+		task.delay(0.62, function()
+			if card.Parent == nil then return end
+			Kit.tween(card, 0.08, { Position = UDim2.new(0.5, 0, 0.5, 12) }, Enum.EasingStyle.Quad).Completed:Connect(function()
+				Kit.tween(card, 0.25, { Position = home(tile) }, Enum.EasingStyle.Back)
+			end)
+			Kit.tween(tile.Scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Quad)
+			task.delay(0.3, function()
+				tile.Slot.ZIndex = 1
+			end)
+		end)
+	elseif ability == "Skill" then
+		tile.Busy = now + 0.45
+		if tile.Archetype == "Heavy" then
+			-- A lunge with a flash along the border.
+			card.Position = rest
+			Kit.tween(card, 0.1, { Position = rest + UDim2.fromOffset(0, -24) }, Enum.EasingStyle.Quad).Completed:Connect(function()
+				Kit.tween(card, 0.24, { Position = home(tile) }, Enum.EasingStyle.Back)
+			end)
+			tile.Flash.BackgroundColor3 = Color3.new(1, 1, 1)
+			tile.Flash.BackgroundTransparency = 0.35
+			Kit.tween(tile.Flash, 0.3, { BackgroundTransparency = 1 })
+		else
+			-- A full 360° spin.
+			card.Rotation = 0
+			Kit.tween(card, 0.38, { Rotation = 360 }, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut).Completed:Connect(function()
+				card.Rotation = 0
+			end)
+		end
+		glow(tile, tile.TierColor)
+	elseif tile.Archetype == "Fast" then
+		-- Tilt 15°, dart and slash, snap back.
+		tile.Busy = now + 0.22
+		card.Rotation = 0
+		Kit.tween(card, 0.05, { Rotation = 15, Position = rest + UDim2.fromOffset(7, -16) }, Enum.EasingStyle.Quad).Completed:Connect(function()
+			Kit.tween(card, 0.13, { Rotation = 0, Position = home(tile) }, Enum.EasingStyle.Back)
+		end)
+	elseif tile.Archetype == "Heavy" then
+		-- Wind up to 1.25x, slam, a 0.06 s hit-stop and a camera shake.
+		tile.Busy = now + 0.5
+		Kit.tween(tile.Scale, 0.14, { Scale = 1.25 }, Enum.EasingStyle.Quad)
+		Kit.tween(card, 0.14, { Position = rest + UDim2.fromOffset(0, 6) }, Enum.EasingStyle.Quad)
+		task.delay(0.14, function()
+			Kit.tween(tile.Scale, 0.06, { Scale = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			Kit.tween(card, 0.06, { Position = rest + UDim2.fromOffset(0, -18) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			task.delay(0.12, function()
+				shakeStage(4, 0.14)
+				Kit.tween(card, 0.2, { Position = home(tile) }, Enum.EasingStyle.Back)
+			end)
+		end)
+	else
+		-- Balanced: a quick lunge up and back.
+		tile.Busy = now + 0.26
+		card.Position = rest
+		Kit.tween(card, 0.08, { Position = rest + UDim2.fromOffset(0, -12) }, Enum.EasingStyle.Quad).Completed:Connect(function()
+			Kit.tween(card, 0.18, { Position = home(tile) }, Enum.EasingStyle.Back)
+		end)
+	end
+end
+
+-- Full cards hover and shiver (one Heartbeat for the whole squad, only while a fight is on screen).
+local function chargeLoop()
+	if chargeConn then
+		chargeConn:Disconnect()
+	end
+	chargeConn = RunService.Heartbeat:Connect(function()
+		if current == nil or battleHidden then
+			return
+		end
+		local t = os.clock()
+		for _, tile in tiles do
+			if tile.Charged and t >= tile.Busy then
+				tile.Card.Rotation = math.sin(t * 46) * 1.3
+				tile.Card.Position = UDim2.new(0.5, math.sin(t * 61) * 1.2, 0.5, HOVER_LIFT + math.sin(t * 3) * 2.5)
+			end
+		end
+	end)
+end
+
+-- The Shield shatters: glass shards fly off the leader, a ring and a flash.
+local function shatter(color: Color3)
+	local at = if Arena.Active() or bossHolder.Parent ~= stage
+		then Vector2.new(fxLayer.AbsoluteSize.X * 0.5, fxLayer.AbsoluteSize.Y * 0.38)
+		else centerOf(bossHolder)
+	local count = if Theme.FxLow then 8 else 18
+	for i = 1, count do
+		local angle = (i / count) * math.pi * 2 + math.random() * 0.4
+		local shard = Kit.new("Frame", {
+			Name = "Shard",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(at.X, at.Y),
+			Size = UDim2.fromOffset(math.random(9, 20), math.random(3, 7)),
+			Rotation = math.deg(angle),
+			BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), math.random() * 0.6),
+			BorderSizePixel = 0,
+			ZIndex = 63,
+			Parent = fxLayer,
+		})
+		local distance = math.random(110, 230)
+		Kit.tween(shard, 0.6, {
+			Position = UDim2.fromOffset(at.X + math.cos(angle) * distance, at.Y + math.sin(angle) * distance + 40),
+			Rotation = shard.Rotation + math.random(-200, 200),
+			BackgroundTransparency = 1,
+		}, Enum.EasingStyle.Quad).Completed:Connect(function()
+			shard:Destroy()
+		end)
+	end
+	ring(at, color, 260)
+	ring(at, Color3.new(1, 1, 1), 160)
+end
+
+-- Boss Clash -----------------------------------------------------------------------------------------
+
+local clashToken = 0
+local function closeClash()
+	clashToken += 1
+	if clashRing then
+		clashRing.Visible = false
+	end
+	ContextActionService:UnbindAction("BattleClash")
+end
+
+local function doClash()
+	if clashRing == nil or not clashRing.Visible or current == nil or current.Ended then
+		return
+	end
+	closeClash()
+	Sfx.Play("Click", 1.4)
+	Remotes.BattleInput:FireServer("Clash")
+end
+
+-- The window opens when the leader's warned move finishes winding up: a ring that shrinks to its edge
+-- as the window runs out. Tap it or press Space (gamepad A / X) in time. Never while the fight is hidden.
+local function openClash(seconds: number)
+	if clashRing == nil or battleHidden then
+		return
+	end
+	clashToken += 1
+	local token = clashToken
+	clashRing.Visible = true
+	clashRing:SetAttribute("OpenedAt", os.clock())
+	local timer = clashRing.Timer
+	timer.Size = UDim2.fromScale(1.75, 1.75)
+	Kit.tween(timer, seconds, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Linear)
+	local scale = clashRing:FindFirstChildOfClass("UIScale")
+	if scale then
+		scale.Scale = 0.6
+		Kit.tween(scale, 0.18, { Scale = 1 }, Enum.EasingStyle.Back)
+	end
+	Sfx.Play("Whoosh", 1.5)
+	ContextActionService:BindActionAtPriority("BattleClash", function(_, inputState)
+		if inputState == Enum.UserInputState.Begin then
+			doClash()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.Space, Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonX)
+	task.delay(seconds + 0.15, function()
+		if token == clashToken then
+			closeClash()
+		end
+	end)
+end
+
+local SHIELDED_COLOR = Color3.fromRGB(150, 165, 190)
+
 local function playEvent(event)
 	if current == nil then
 		return
@@ -1516,8 +1754,8 @@ local function playEvent(event)
 			cutIn(tile.CardId, event.N)
 			Effects.Flash(gui, tile.TierColor, 0.45, 0.55)
 			Sfx.Play("Ultimate")
-			bump(tile.Scale, 0.15)
 			if tile.IsAttack then
+				animateAttack(tile, "Ultimate")
 				for i = 1, 3 do
 					task.delay(i * 0.05, shoot, tile.TierColor, 10, i == 3)
 				end
@@ -1526,12 +1764,13 @@ local function playEvent(event)
 				end
 			end
 		elseif tile.IsAttack then
-			-- Lunge up and fire at the boss.
-			tile.Card.Position = UDim2.new(0.5, 0, 0.5, 0)
-			Kit.tween(tile.Card, 0.08, { Position = UDim2.new(0.5, 0, 0.5, -12) }, Enum.EasingStyle.Quad).Completed:Connect(function()
-				Kit.tween(tile.Card, 0.18, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
-			end)
-			shoot(tile.Accent, if event.Ab == "Skill" then 9 else 6)
+			-- The card moves by archetype, then fires at its target (a Heavy card after its wind-up).
+			animateAttack(tile, event.Ab)
+			if tile.Archetype == "Heavy" and event.Ab ~= "Skill" then
+				task.delay(0.18, shoot, tile.Accent, 8)
+			else
+				shoot(tile.Accent, if event.Ab == "Skill" then 9 else 6)
+			end
 			Sfx.Play("Whoosh", if event.Ab == "Skill" then 1.05 else 1.25 + math.random() * 0.15)
 			if event.Ab == "Skill" then
 				castTag(tile, event.N, "Skill")
@@ -1562,7 +1801,15 @@ local function playEvent(event)
 				color = WEAK_COLOR
 			end
 			local text = (if event.C then `{Kit.commas(event.A)}!` else Kit.commas(event.A)) .. elementMark(event.El)
-			float(frame, text, color, event.C)
+			local big = event.C
+			if event.Bk then
+				-- Into a broken Shield: big gold numbers.
+				color, big, text = Theme.Color.Gold, true, `{Kit.commas(event.A)}!`
+			elseif event.Sd and kind == "Hit" then
+				-- Against the standing Shield (half damage): muted, with a shield mark.
+				color, text = if event.C then Color3.fromRGB(200, 205, 220) else SHIELDED_COLOR, `🛡{text}`
+			end
+			float(frame, text, color, big)
 			if kind == "Hit" then
 				if event.C then
 					Sfx.Play("HeavyHit", 1.1)
@@ -1626,7 +1873,10 @@ local function playEvent(event)
 				end
 				Sfx.Play("Hit", 0.7)
 				slash(tile, if event.Sh then SHIELD_COLOR else Color3.fromRGB(255, 90, 90))
-				glow(tile, Theme.Color.Danger)
+				-- Hit reaction: a white flash going red, a recoil squash and a shake.
+				glow(tile, Color3.new(1, 1, 1))
+				task.delay(0.06, glow, tile, Theme.Color.Danger)
+				bump(tile.Scale, -0.06)
 				shakeCard(tile, 6)
 			end
 		end
@@ -1693,6 +1943,42 @@ local function playEvent(event)
 			float(targetFrame(event.T), `+{Kit.commas(event.A)}`, Theme.Color.Quick)
 			Sfx.Play("Heal", 0.8)
 		end
+		if event.N then
+			-- A Mender's timed mend on the leader (and its cleanse).
+			hint(`{enemyNames[event.U] or "A Mender"}: {event.N}{if event.C then " · debuffs cleansed" else ""} · KO it to stop the mending`)
+			if event.C then
+				float(targetFrame(event.T), "CLEANSED", Theme.Color.Quick)
+			end
+		end
+	elseif kind == "Hex" then
+		local tile = tiles[event.T]
+		if tile then
+			local expose = event.Stat == "Expose"
+			float(tile.Card, `{if expose then "EXPOSED" else "WEAKEN"} x{event.A}`, if expose then Color3.fromRGB(255, 120, 100) else Color3.fromRGB(200, 120, 255))
+		end
+	elseif kind == "ClashOpen" then
+		openClash((event.S or Config.Battle.ClashWindow) / math.max(1, current.Speed))
+	elseif kind == "Clash" then
+		closeClash()
+		local tile = tiles[event.U]
+		callout(`CLASH! {if tile then string.upper((Cards.Get(tile.CardId) :: any).Name) else ""} PARRIES {string.upper(event.N or "")}`, Color3.fromRGB(150, 230, 255), 1.6)
+		Effects.Flash(gui, Color3.new(1, 1, 1), 0.45, 0.4)
+		shakeStage(12, 0.4)
+		Sfx.Play("HeavyHit", 1.4)
+		if tile then
+			-- The strongest card dashes in to meet the blow.
+			tile.Busy = os.clock() + 0.5
+			tile.Card.Position = home(tile)
+			Kit.tween(tile.Card, 0.09, { Position = home(tile) + UDim2.fromOffset(0, -60) }, Enum.EasingStyle.Quad).Completed:Connect(function()
+				Kit.tween(tile.Card, 0.3, { Position = home(tile) }, Enum.EasingStyle.Back)
+			end)
+			glow(tile, Color3.fromRGB(150, 230, 255))
+			if Arena.Active() then
+				Arena.Beam(screenOf(tile.Card), "Boss", Color3.fromRGB(150, 230, 255), 14, true)
+			else
+				bolt(tile.Card, bossHolder, Color3.fromRGB(150, 230, 255), 14)
+			end
+		end
 	elseif kind == "Rally" then
 		local name = enemyNames[event.U] or "THE SQUAD"
 		callout(`{string.upper(name)} RALLIES! +{math.floor(event.A * 100 + 0.5)}% ATK`, Theme.Color.Danger, 1.4)
@@ -1739,20 +2025,27 @@ local function playEvent(event)
 	elseif kind == "SupportProc" then
 		float(targetFrame(event.T), event.N, Theme.Color.Support)
 	elseif kind == "Stagger" then
-		callout(if event.N then `STAGGERED! {string.upper(event.N)} CANCELLED` else "STAGGERED! DEF 0 · ULTIMATES +50%", Theme.Color.Gold, 1.8)
-		Effects.Flash(gui, Theme.Color.Gold, 0.4, 0.6)
-		shakeStage(10, 0.4)
+		-- Shield Break: the glass shatters, the leader is stunned and takes 1.5x.
+		closeClash()
+		local taken = Config.Battle.BrokenTaken
+		callout(if event.N then `SHIELD BREAK! {string.upper(event.N)} CANCELLED` else `SHIELD BREAK! {taken}x DMG · {event.S or Config.Battle.StaggerSeconds}s STUN`, Theme.Color.Gold, 1.8)
+		shatter(Color3.fromRGB(160, 225, 255))
+		Effects.Flash(gui, Color3.fromRGB(200, 240, 255), 0.45, 0.6)
+		shakeStage(12, 0.45)
 		Sfx.Play("Boom", 1.2)
 		warnBanner.Visible = false
+		if Arena.Active() then
+			Arena.Impact("Boss", Color3.fromRGB(160, 225, 255), true)
+		end
 		if bossView then
 			bossView:Flash(Color3.fromRGB(255, 230, 150), 0.5)
 		end
 	elseif kind == "Recover" then
 		if event.T == "Boss" then
-			hint(`{current.BossName} recovered from the Stagger`)
+			hint(`{current.BossName} raised its Shield again`)
 		end
 	elseif kind == "PhaseCancel" then
-		callout(`{string.upper(event.N)} LOST TO THE STAGGER!`, Theme.Color.Gold, 1.6)
+		callout(`{string.upper(event.N)} LOST TO THE SHIELD BREAK!`, Theme.Color.Gold, 1.6)
 	elseif kind == "HPCost" then
 		local tile = tiles[event.T]
 		if tile and event.A > 0 then
@@ -2328,7 +2621,7 @@ local function showResults(summary)
 		end
 		stat("TIME", timeText, Theme.Color.Auto)
 		if (summary.Staggers or 0) > 0 then
-			stat("STAGGERS", tostring(summary.Staggers), Theme.Color.Gold)
+			stat("SHIELD BREAKS", tostring(summary.Staggers), Theme.Color.Gold)
 		end
 		if hasRewards then
 			local packCount = Packs.Count(rewards.NewPacks)
@@ -2787,6 +3080,15 @@ local function setAutoLabel()
 	autoButton.UIStroke.Thickness = if on then 3 else 1.5
 end
 
+-- HOLD ULT FOR BREAK: AUTO ULT keeps full Ultimates while the Shield is nearly full, then fires them into
+-- the break one after another.
+local function setHoldLabel()
+	local on = current ~= nil and current.HoldUlt
+	holdButton.Label.Text = if on then "HOLD ULT FOR BREAK: ON" else "HOLD ULT FOR BREAK: OFF"
+	holdButton.UIStroke.Transparency = if on then 0 else 0.75
+	holdButton.UIStroke.Thickness = if on then 3 else 1.5
+end
+
 -- AUTO-RETRY (boss fights: the same fight again after each win, for farming) shares the results
 -- screen's AUTO REPEAT switch; in the towers it is AUTO CLIMB; raids have no retry.
 local function setRetryLabel()
@@ -2824,6 +3126,8 @@ local function begin(start, bossId: string, difficulty: string?)
 		Speed = start.Speed,
 		SpeedUnlocked = start.SpeedUnlocked,
 		AutoUlt = start.AutoUlt,
+		HoldUlt = start.HoldUlt ~= false,
+		Holding = false,
 		Ended = false,
 		CardOf = {},
 	}
@@ -2838,6 +3142,7 @@ local function begin(start, bossId: string, difficulty: string?)
 		clearChildren(slot)
 	end
 	table.clear(ultTapped)
+	closeClash()
 	clearChildren(frontRow)
 	clearChildren(backRow)
 	clearChildren(fxLayer)
@@ -2948,9 +3253,11 @@ local function begin(start, bossId: string, difficulty: string?)
 	bossGauge.Size = UDim2.fromScale(0, 1)
 	bossStatus.Text = ""
 	setAutoLabel()
+	setHoldLabel()
 	setSpeedLabel()
 	setRetryLabel()
 	applySnapshot(start.Snap)
+	chargeLoop()
 
 	State.BattleHidden = battleHidden
 	gui.Enabled = not battleHidden
@@ -3036,6 +3343,11 @@ function exit()
 		cardInfo = nil
 	end
 	current = nil
+	closeClash()
+	if chargeConn then
+		chargeConn:Disconnect()
+		chargeConn = nil
+	end
 	battleHidden = false
 	State.BattleHidden = false
 	if returnGui then returnGui.Enabled = false end
@@ -3204,7 +3516,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		ZIndex = 3,
 		Parent = hpTrack,
 	}, { Kit.corner(UDim.new(1, 0)) })
-	-- Stagger: hits fill it (counter elements 2.5x); full = the leader is Staggered.
+	-- The Boss Shield: card hits fill it; full = Shield Break (the leader is stunned and takes 1.5x).
 	bossStagger = Kit.new("Frame", {
 		Name = "Stagger",
 		AnchorPoint = Vector2.new(0, 1),
@@ -3217,7 +3529,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	}, { Kit.corner(UDim.new(1, 0)) })
 	staggerBanner = Kit.label({
 		Name = "StaggerBanner",
-		Text = `STAGGERED!  DEF 0 · ULTIMATES +{math.floor(Config.Battle.StaggerUltBonus * 100 + 0.5)}%`,
+		Text = `SHIELD BROKEN!  {Config.Battle.BrokenTaken}x DMG · STUNNED`,
 		Font = Theme.Font.Display,
 		TextColor3 = Theme.Color.Gold,
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -3466,7 +3778,7 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		BackgroundTransparency = 1,
 		Parent = stage,
 	}, {
-		Kit.new("UISizeConstraint", { MinSize = Vector2.new(96, 150), MaxSize = Vector2.new(170, 260) }),
+		Kit.new("UISizeConstraint", { MinSize = Vector2.new(96, 180), MaxSize = Vector2.new(170, 300) }),
 		Kit.new("UIListLayout", {
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -3475,12 +3787,27 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	})
 	autoButton = Kit.button("AUTO ULT: OFF", Theme.Color.Accent, Theme.Color.AutoDeep, {
 		LayoutOrder = 1,
-		Size = UDim2.new(1, 0, 0.22, 0),
+		Size = UDim2.new(1, 0, 0.17, 0),
 		Parent = controlsFrame,
 	})
-	retryButton = Kit.button("AUTO-RETRY: OFF", Theme.Color.Gold, Color3.fromRGB(110, 76, 10), {
+	holdButton = Kit.button("HOLD ULT FOR BREAK: ON", Color3.fromRGB(120, 200, 255), Color3.fromRGB(20, 60, 110), {
 		LayoutOrder = 2,
-		Size = UDim2.new(1, 0, 0.22, 0),
+		Size = UDim2.new(1, 0, 0.17, 0),
+		Parent = controlsFrame,
+	})
+	holdButton.Activated:Connect(function()
+		if current == nil or current.Ended then
+			return
+		end
+		current.HoldUlt = not current.HoldUlt
+		State.Battle.HoldUlt = current.HoldUlt
+		Remotes.BattleInput:FireServer("HoldUlt", current.HoldUlt)
+		hint(if current.HoldUlt then "AUTO ULT saves full Ultimates for the Shield Break" else "AUTO ULT fires as soon as a card is full")
+		setHoldLabel()
+	end)
+	retryButton = Kit.button("AUTO-RETRY: OFF", Theme.Color.Gold, Color3.fromRGB(110, 76, 10), {
+		LayoutOrder = 3,
+		Size = UDim2.new(1, 0, 0.17, 0),
 		Parent = controlsFrame,
 	})
 	retryButton.Activated:Connect(function()
@@ -3509,8 +3836,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		end
 	end)
 	speedButton = Kit.button("SPEED 1x", Theme.Color.Auto, Theme.Color.AutoDeep, {
-		LayoutOrder = 3,
-		Size = UDim2.new(1, 0, 0.22, 0),
+		LayoutOrder = 4,
+		Size = UDim2.new(1, 0, 0.17, 0),
 		Parent = controlsFrame,
 	})
 	speedButton.Activated:Connect(function()
@@ -3529,8 +3856,8 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		setSpeedLabel()
 	end)
 	forfeitButton = Kit.button("GIVE UP", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), {
-		LayoutOrder = 4,
-		Size = UDim2.new(1, 0, 0.22, 0),
+		LayoutOrder = 5,
+		Size = UDim2.new(1, 0, 0.17, 0),
 		Parent = controlsFrame,
 	})
 	local hideButton = Kit.button("HIDE BATTLE", Theme.Color.PanelLight, Theme.Color.Panel, { Name = "HideBattle", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 8), Size = UDim2.fromOffset(150, 36), Parent = gui })
@@ -3577,6 +3904,51 @@ function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 		ZIndex = 40,
 		Parent = gui,
 	})
+	-- Boss Clash prompt: a ring over the middle of the stage with a shrinking timing ring around it.
+	clashRing = Kit.new("TextButton", {
+		Name = "ClashRing",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.47),
+		Size = UDim2.fromScale(0.2, 0.2),
+		BackgroundColor3 = Color3.fromRGB(12, 22, 40),
+		BackgroundTransparency = 0.25,
+		AutoButtonColor = false,
+		Text = "",
+		Visible = false,
+		ZIndex = 56,
+		Parent = gui,
+	}, {
+		Kit.corner(UDim.new(1, 0)),
+		Kit.aspect(1),
+		Kit.new("UISizeConstraint", { MinSize = Vector2.new(120, 120), MaxSize = Vector2.new(240, 240) }),
+		Kit.stroke(Color3.fromRGB(150, 230, 255), 4, 0),
+		Kit.new("UIScale", { Scale = 1 }),
+	})
+	local clashTimer = Kit.new("Frame", {
+		Name = "Timer",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1.75, 1.75),
+		BackgroundTransparency = 1,
+		ZIndex = 56,
+		Parent = clashRing,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	Kit.stroke(Color3.new(1, 1, 1), 3, 0.15).Parent = clashTimer
+	local clashLabel = Kit.label({
+		Name = "Text",
+		Text = "CLICK / SPACE\nTO CLASH!",
+		Font = Theme.Font.Display,
+		TextColor3 = Color3.new(1, 1, 1),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.86, 0.5),
+		ZIndex = 57,
+		Parent = clashRing,
+	}, 24)
+	Kit.textStroke(Color3.fromRGB(10, 40, 80), 2, 0).Parent = clashLabel
+	pulseForever(clashRing, { BackgroundTransparency = 0.05 }, 0.18)
+	clashRing.Activated:Connect(doClash)
+
 	intro = Kit.new("Frame", {
 		Name = "Intro",
 		Size = UDim2.fromScale(1, 1),

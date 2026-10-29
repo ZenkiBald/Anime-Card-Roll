@@ -223,3 +223,16 @@ do
  SaveMigration.Migrate(d)
  check(d.Settings.RevealMinimum=="Rainbow" and d.Settings.RevealStyle=="Pack" and d.Settings.RevealDuplicates==false,"malformed reveal preferences are repaired")
 end
+
+-- Battle controls: AUTO ULT and HOLD ULT FOR BREAK switch on once; a later OFF survives.
+do
+ local d={Cards={},Settings={AutoUlt=false}}
+ SaveMigration.Migrate(d)
+ check(d.BattleControlsVersion==1 and d.Settings.AutoUlt==true and d.Settings.HoldUlt==true,"old saves start with AUTO ULT and HOLD ULT FOR BREAK on")
+ d.Settings.AutoUlt=false;d.Settings.HoldUlt=false
+ SaveMigration.Migrate(d)
+ check(d.Settings.AutoUlt==false and d.Settings.HoldUlt==false,"a later OFF choice is kept (the step runs once)")
+ d.Settings.HoldUlt="yes"
+ SaveMigration.Migrate(d)
+ check(d.Settings.HoldUlt==true,"a malformed hold setting is repaired to on")
+end

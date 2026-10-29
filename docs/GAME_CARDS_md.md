@@ -1,7 +1,7 @@
 # Anime Card Roll: every card, stat and chance (2026-10-30)
 
 Generated from the game data (`src/shared/Cards.luau`, `CelestialCards.luau`, `Weather.luau`, `Borders.luau`,
-`Bosses.luau`) after the rarity / bulk-pack / boss-HP pass. Stats are at 0 stars with no mastery, traits or
+`Bosses.luau`, `Config.luau`) after the real-time battle pass. Stats are at 0 stars with no mastery, traits or
 buffs. How the whole game works is in `CLAUDE.md`.
 
 ## How a roll works
@@ -39,6 +39,43 @@ buffs. How the whole game works is in `CLAUDE.md`.
 | Cursed Night | 0.079% | about 18% | about 54% | about 79 |
 | Blood Moon | 0.027% | about 6% | about 23% | about 27 |
 
+## How a fight works (real-time battle pass)
+- **Every Attack card acts on its own clock**, set by its archetype (from SPD). The four slots open their first
+  Basics 0 / 0.35 / 0.7 / 1.05 s in. SPD buffs and slows speed up or slow down both timers.
+
+  | Archetype | SPD | Basic every | Basic DMG | Skill cooldown | Skill DMG | Ultimate cost | Charge time | Ultimate DMG |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | Fast | 120-135 | 1.0-1.2 s | 65-75% | 6.5-7.5 s | 240-270% | 80 | ~15 s | 480-540% |
+  | Balanced | 105-119 | 1.5-1.8 s | 100-110% | 9-10.5 s | 280-320% | 100 | ~18.5 s | 580-650% |
+  | Heavy | 85-104 | 2.3-2.8 s | 150-180% | 12-14 s | 340-400% | 135 | ~25 s | 750-900% |
+  - DMG is the total of all hits per cast, an area hit counting once.
+  - Within a band, the faster card gets the shorter timers and the rarer card the higher damage.
+  - Energy charges at 5.4 a second, plus 3 for an enemy hit (at most every 2 s).
+- **Ultimates:** tap a full card to fire it. **AUTO ULT** (on by default) fires them for you, also while you're AFK or
+  the battle is hidden. **HOLD ULT FOR BREAK** (on by default) keeps full Ultimates while the boss Shield is over
+  60%, then fires them one after another (0.5 s apart) the moment it breaks.
+- **Boss Shield:** while the leader's Shield stands it takes **0.5x** damage (muted numbers with a shield mark).
+  - Basics chip the bar, Skills chunk it (Heavy Skills twice as hard), Ultimates crack it a little.
+  - A guard KO shatters 25% of the bar. A standing Warder absorbs 30% of the fill.
+  - At 100% it **breaks**: the leader is stunned 6 s (its warned move cancelled) and takes **1.5x** damage (big gold
+    numbers).
+- **Boss Clash:** when the leader's big warned move finishes winding up, a **CLICK / SPACE TO CLASH!** ring shows
+  for 1.2 s. In time, your strongest card dashes in:
+  - it reflects 200% of its ATK into the leader
+  - the move deals 75% less damage
+  - the Shield bar fills 30%
+
+  Ignored (or AFK), the move lands as normal.
+- **Guards** are linked to the leader by beams:
+  - Warder: the leader takes 40% less damage, and it absorbs 30% of Shield fill.
+  - Mender: heals the leader 3% of its max HP every 8 s and cleanses its debuffs.
+  - Striker: stacks Expose (+5% DMG taken, up to 5) on your highest-ATK card.
+  - Hexer: stacks Weaken (-5% DMG dealt, up to 5) on your highest-ATK card and Burns it.
+  - Stacks fall off 8 s after the last one.
+- **Vanguard:** Attack slot 1 draws 50% of single-target enemy attacks (80% if it's a Warder).
+- **Passives have no self-penalties.** Every passive still has a trigger and a bound: a chance, a limit, or a
+  condition. No elemental damage: elements are themes only.
+
 ## Border odds (1x luck)
 | Border | Stat multiplier | Chance per pull |
 | --- | --- | --- |
@@ -50,6 +87,7 @@ buffs. How the whole game works is in `CLAUDE.md`.
 ## Normal pool: Attack cards (strongest base first)
 ### Autonomous God State · The Silver Instinct
 Normal pool · Attack · Cosmic Striker · Weight 5 · SPD 115
+**Balanced** · Basic every 1.6s · Skill cooldown 9.5s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.05% (about 1 in 1,990; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -58,13 +96,14 @@ Card chance per pull: 0.05% (about 1 in 1,990; full pool, boss cards included)
 | Rainbow | 41,600 | 83,200 | 10,000,000 |
 | Secret | 166,400 | 332,800 | 1,000,000,000 |
 
-- **Basic · Instinct Strike**: Strike an enemy for 120% DMG.
-- **Skill · Afterimage Assault** (every 3 actions): Disappear beyond sight, then strike for 300% DMG.
-- **Ultimate · Limit-Breaking Fist**: Break through defense and protection with a 550% DMG strike.
-- **Signature · Perfect Instinct** (every 5 actions): After every 5 attacks, a 50% chance to land a 125% DMG afterimage strike and evade the next enemy hit.
+- **Basic · Instinct Strike**: Strike an enemy for 110% DMG.
+- **Skill · Afterimage Assault**: Disappear beyond sight, then strike for 315% DMG.
+- **Ultimate · Limit-Breaking Fist**: Break through defense and protection with a 640% DMG strike.
+- **Signature · Perfect Instinct**: After every 5 attacks, a 50% chance to land a 125% DMG afterimage strike and evade the next enemy hit.
 
 ### Nine-Tails Sovereign · Vessel of the Nine Tails
 Normal pool · Attack · Cosmic Striker · Weight 5 · SPD 115
+**Balanced** · Basic every 1.6s · Skill cooldown 9.5s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.05% (about 1 in 1,990; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -73,13 +112,14 @@ Card chance per pull: 0.05% (about 1 in 1,990; full pool, boss cards included)
 | Rainbow | 43,200 | 86,400 | 10,000,000 |
 | Secret | 172,800 | 345,600 | 1,000,000,000 |
 
-- **Basic · Chakra Palm**: Strike an enemy for 100% DMG.
-- **Skill · Planetary Chakra Spiral** (every 3 actions): Drive three orbiting Chakra spheres into an enemy for 110% DMG each.
-- **Passive · Crimson Lifeline**: When below 50% HP, draw on the sealed beast: recover 35% HP and gain 20% DMG, but the cloak prevents further healing.
-- **Ultimate · Sovereign Beast Cataclysm**: Detonate a Beast Bomb for 200% DMG on every enemy, then land a 300% DMG Chakra strike on the chosen target.
+- **Basic · Chakra Palm**: Strike an enemy for 110% DMG.
+- **Skill · Planetary Chakra Spiral**: Drive three orbiting Chakra spheres into an enemy for 105% DMG each.
+- **Passive · Crimson Lifeline**: When below 50% HP, draw on the sealed beast: recover 35% HP and gain 20% DMG.
+- **Ultimate · Sovereign Beast Cataclysm**: Detonate a Beast Bomb for 255% DMG on every enemy, then land a 385% DMG Chakra strike on the chosen target.
 
 ### Crimson Scourge · King of Malice
 Normal pool · Attack · Flame Hexer · Weight 6.6667 · SPD 105
+**Balanced** · Basic every 1.8s · Skill cooldown 10.5s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.07% (about 1 in 1,493; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -88,14 +128,15 @@ Card chance per pull: 0.07% (about 1 in 1,493; full pool, boss cards included)
 | Rainbow | 38,400 | 76,800 | 7,500,000 |
 | Secret | 153,600 | 307,200 | 750,000,000 |
 
-- **Basic · Rending Cut**: Strike an enemy for 100% DMG.
-- **Skill · Spatial Severance** (every 3 actions): Cut through the enemy's defenses by 15% for 2 turns, then deal 250% DMG.
+- **Basic · Rending Cut**: Strike an enemy for 110% DMG.
+- **Skill · Spatial Severance**: Cut through the enemy's defenses by 15% for 2 turns, then deal 315% DMG.
 - **Passive · Cursed Incision**: Critical hits carve a Bleed into the enemy, dealing 15% DMG each turn for 3 turns.
-- **Ultimate · Malevolent Barrage**: Rain down six cursed slashes on random enemies, each dealing 130% DMG.
-- **Aura · Shrine of Malice**: On entry, every ally gains 10% DMG, but the shrine makes them take 10% more DMG.
+- **Ultimate · Malevolent Barrage**: Rain down six cursed slashes on random enemies, each dealing 105% DMG.
+- **Aura · Shrine of Malice**: On entry, every ally gains 10% DMG.
 
 ### Dream Reaper · Mirror of Hypnosis
 Normal pool · Attack · Frost Hexer · Weight 6.6667 · SPD 110
+**Balanced** · Basic every 1.7000000000000002s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.07% (about 1 in 1,493; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -104,13 +145,14 @@ Card chance per pull: 0.07% (about 1 in 1,493; full pool, boss cards included)
 | Rainbow | 35,200 | 70,400 | 7,500,000 |
 | Secret | 140,800 | 281,600 | 750,000,000 |
 
-- **Basic · Crow Shuriken**: Send two crow-feather blades into an enemy for 50% DMG each.
-- **Skill · Crimson Illusion** (every 3 actions): Trap an enemy in an Illusion for 220% DMG and Weaken it by 15% for 2 turns.
+- **Basic · Crow Shuriken**: Send two crow-feather blades into an enemy for 55% DMG each.
+- **Skill · Crimson Illusion**: Trap an enemy in an Illusion for 315% DMG and Weaken it by 15% for 2 turns.
 - **Passive · Crow Clone Feint**: After attacking, a 25% chance to dissolve into Crows, evade the next hit and leave Black Flames that Burn for 10% DMG each turn for 3 turns.
-- **Ultimate · Everlasting Black Flames**: Ignite every enemy for 170% DMG and Burn for 15% DMG each turn for 3 turns.
+- **Ultimate · Everlasting Black Flames**: Ignite every enemy for 640% DMG and Burn for 15% DMG each turn for 3 turns.
 
 ### Limitless Sage · The Untouchable
 Normal pool · Attack · Storm Hexer · Weight 6.6667 · SPD 110
+**Balanced** · Basic every 1.7000000000000002s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.07% (about 1 in 1,493; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -119,13 +161,14 @@ Card chance per pull: 0.07% (about 1 in 1,493; full pool, boss cards included)
 | Rainbow | 36,800 | 73,600 | 7,500,000 |
 | Secret | 147,200 | 294,400 | 750,000,000 |
 
-- **Basic · Repulsion Palm**: Strike an enemy for 120% DMG.
-- **Skill · Infinity Collapse** (every 3 actions): Fold space around random enemies with four strikes, each dealing 100% DMG.
-- **Ultimate · Void Convergence**: Collapse the void for 500% DMG. The enemy takes 25% more DMG for 3 turns.
-- **Aura · Infinite Pressure**: On entry, grant every ally 10% DMG. Maintaining the field costs this card 10% attack speed.
+- **Basic · Repulsion Palm**: Strike an enemy for 110% DMG.
+- **Skill · Infinity Collapse**: Fold space around random enemies with four strikes, each dealing 80% DMG.
+- **Ultimate · Void Convergence**: Collapse the void for 640% DMG. The enemy takes 25% more DMG for 3 turns.
+- **Aura · Infinite Pressure**: On entry, grant every ally 10% DMG.
 
 ### Ascended Golden Warrior · Prince of Pride
 Normal pool · Attack · Frost Striker · Weight 10 · SPD 110
+**Balanced** · Basic every 1.7000000000000002s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.10% (about 1 in 995; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -134,13 +177,14 @@ Card chance per pull: 0.10% (about 1 in 995; full pool, boss cards included)
 | Rainbow | 32,800 | 65,600 | 5,000,000 |
 | Secret | 131,200 | 262,400 | 500,000,000 |
 
-- **Basic · Royal Strike**: Strike an enemy for 100% DMG.
-- **Skill · Pride Breaker** (every 3 actions): Unleash a royal Ki blast for 300% DMG.
-- **Passive · Unbroken Pride**: When below 50% HP, awaken golden Ki for 25% DMG. Reckless pride makes this card take 10% more DMG.
-- **Ultimate · Golden Ki Barrage**: Fire eight Ki blasts at random enemies for 90% DMG each.
+- **Basic · Royal Strike**: Strike an enemy for 110% DMG.
+- **Skill · Pride Breaker**: Unleash a royal Ki blast for 310% DMG.
+- **Passive · Unbroken Pride**: When below 50% HP, awaken golden Ki for 25% DMG.
+- **Ultimate · Golden Ki Barrage**: Fire eight Ki blasts at random enemies for 80% DMG each.
 
 ### Lunar Reaper · Crescent Soul Blade
 Normal pool · Attack · Light Hexer · Weight 11.7647 · SPD 112
+**Balanced** · Basic every 1.6500000000000001s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.12% (about 1 in 846; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -149,13 +193,14 @@ Card chance per pull: 0.12% (about 1 in 846; full pool, boss cards included)
 | Rainbow | 31,200 | 62,400 | 4,000,000 |
 | Secret | 124,800 | 249,600 | 400,000,000 |
 
-- **Basic · Soul Slash**: Strike an enemy for 100% DMG.
-- **Skill · Crescent Severance** (every 3 actions): Mark an enemy to take 10% more DMG for 2 turns, then sever its soul for 280% DMG.
+- **Basic · Soul Slash**: Strike an enemy for 110% DMG.
+- **Skill · Crescent Severance**: Mark an enemy to take 10% more DMG for 2 turns, then sever its soul for 310% DMG.
 - **Passive · Reaper's Mark**: Critical hits scar the enemy's soul with Weaken, reducing its DMG by 15% for 2 turns.
-- **Ultimate · Moonless Sky**: Send five crescent blades through defense and protection for 140% DMG each.
+- **Ultimate · Moonless Sky**: Send five crescent blades through defense and protection for 125% DMG each.
 
 ### Time Weaver · Keeper of Hours
 Normal pool · Attack · Void Striker · Weight 13.3333 · SPD 135
+**Fast** · Basic every 1s · Skill cooldown 6.5s · Ultimate at 80 energy (about 15s)
 Card chance per pull: 0.13% (about 1 in 746; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -164,13 +209,14 @@ Card chance per pull: 0.13% (about 1 in 746; full pool, boss cards included)
 | Rainbow | 29,600 | 59,200 | 4,000,000 |
 | Secret | 118,400 | 236,800 | 400,000,000 |
 
-- **Basic · Marked Kunai**: Strike an enemy with a marked blade for 100% DMG.
-- **Skill · Space-Time Spiral** (every 3 actions): Blink behind the enemy for 220% DMG and evade its next hit.
-- **Passive · Yellow Flash**: On entry, blink into position with 25% Ultimate charge. Overextending makes this card take 10% more DMG for 2 turns.
-- **Ultimate · Flying Seal Barrage**: Warp between enemies for five strikes at 90% DMG each and gain 20% attack speed for 2 turns.
+- **Basic · Marked Kunai**: Strike an enemy with a marked blade for 70% DMG.
+- **Skill · Space-Time Spiral**: Blink behind the enemy for 260% DMG and evade its next hit.
+- **Passive · Yellow Flash**: On entry, blink into position with 25% Ultimate charge.
+- **Ultimate · Flying Seal Barrage**: Warp between enemies for five strikes at 105% DMG each and gain 20% attack speed for 2 turns.
 
 ### Storm Oracle · Voice of the Storm
 Normal pool · Attack · Storm Striker · Weight 22.2222 · SPD 120
+**Fast** · Basic every 1.2000000000000002s · Skill cooldown 7.5s · Ultimate at 80 energy (about 15s)
 Card chance per pull: 0.22% (about 1 in 448; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -179,13 +225,14 @@ Card chance per pull: 0.22% (about 1 in 448; full pool, boss cards included)
 | Rainbow | 25,600 | 51,200 | 2,500,000 |
 | Secret | 102,400 | 204,800 | 250,000,000 |
 
-- **Basic · Lightning Elbow**: Crash into an enemy for 100% DMG.
-- **Skill · Thunder Lariat** (every 3 actions): Drive a lightning lariat through defense and protection for 240% DMG.
-- **Passive · Lightning Chakra Armor**: On entry, charge the armor for 15% attack speed and 10% less incoming DMG. Maintaining it reduces this card's DMG by 10% for 3 turns.
-- **Ultimate · Storm Guillotine**: Drop a lightning-charged heel for 450% DMG and Weaken every enemy by 15% for 2 turns.
+- **Basic · Lightning Elbow**: Crash into an enemy for 70% DMG.
+- **Skill · Thunder Lariat**: Drive a lightning lariat through defense and protection for 260% DMG.
+- **Passive · Lightning Chakra Armor**: On entry, charge the armor for 15% attack speed and 10% less incoming DMG.
+- **Ultimate · Storm Guillotine**: Drop a lightning-charged heel for 520% DMG and Weaken every enemy by 15% for 2 turns.
 
 ### Cursed Prodigy · Shadow Familiar Tamer
 Normal pool · Attack · Storm Striker · Weight 26.3158 · SPD 120
+**Fast** · Basic every 1.2000000000000002s · Skill cooldown 7.5s · Ultimate at 80 energy (about 15s)
 Card chance per pull: 0.26% (about 1 in 378; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -194,13 +241,14 @@ Card chance per pull: 0.26% (about 1 in 378; full pool, boss cards included)
 | Rainbow | 24,400 | 48,800 | 2,000,000 |
 | Secret | 97,600 | 195,200 | 200,000,000 |
 
-- **Basic · Cursed Edge**: Strike an enemy for 100% DMG.
-- **Skill · Shadow Familiar Rush** (every 3 actions): A shadow familiar tears into the enemy three times for 80% DMG each.
-- **Passive · Ravenous Pact**: When this card defeats an opponent, its familiar grants 25% DMG for 3 turns, but this card takes 10% more DMG for 3 turns.
-- **Ultimate · Chimera Procession**: Release three familiars at random enemies, each dealing 80% DMG.
+- **Basic · Cursed Edge**: Strike an enemy for 70% DMG.
+- **Skill · Shadow Familiar Rush**: A shadow familiar tears into the enemy three times for 85% DMG each.
+- **Passive · Ravenous Pact**: When this card defeats an opponent, its familiar grants 25% DMG for 3 turns.
+- **Ultimate · Chimera Procession**: Release three familiars at random enemies, each dealing 175% DMG.
 
 ### Fist of Severance · Blood-Pact Brawler
 Normal pool · Attack · Light Striker · Weight 33.3333 · SPD 110
+**Balanced** · Basic every 1.7000000000000002s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.33% (about 1 in 299; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -209,13 +257,14 @@ Card chance per pull: 0.33% (about 1 in 299; full pool, boss cards included)
 | Rainbow | 23,200 | 46,400 | 1,500,000 |
 | Secret | 92,800 | 185,600 | 150,000,000 |
 
-- **Basic · Divergent Impact**: Land a fist and its delayed cursed echo for 50% DMG each.
-- **Skill · Cursed Rush** (every 3 actions): Deliver two crushing punches for 110% DMG each, then inflict Weaken for 10% less enemy DMG over 2 turns.
+- **Basic · Divergent Impact**: Land a fist and its delayed cursed echo for 55% DMG each.
+- **Skill · Cursed Rush**: Deliver two crushing punches for 150% DMG each, then inflict Weaken for 10% less enemy DMG over 2 turns.
 - **Passive · Zone Counter**: After attacking, a 25% chance to land a cursed follow-up for 50% DMG and gain 15% critical chance for 2 turns.
-- **Ultimate · Crimson Flash Barrage**: Unleash four cursed impacts for 110% DMG each and gain 20% critical chance for 2 turns.
+- **Ultimate · Crimson Flash Barrage**: Unleash four cursed impacts for 155% DMG each and gain 20% critical chance for 2 turns.
 
 ### Iron Bastion · Living Sand Fortress
 Normal pool · Attack · Void Warder · Weight 62.5 · SPD 85
+**Heavy** · Basic every 2.8000000000000003s · Skill cooldown 14s · Ultimate at 135 energy (about 25s)
 Card chance per pull: 0.63% (about 1 in 159; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -224,13 +273,14 @@ Card chance per pull: 0.63% (about 1 in 159; full pool, boss cards included)
 | Rainbow | 19,200 | 38,400 | 800,000 |
 | Secret | 76,800 | 153,600 | 80,000,000 |
 
-- **Basic · Sand Spear**: Drive a sand spear into an enemy for 100% DMG.
-- **Skill · Sand Coffin** (every 3 actions): Crush an enemy for 210% DMG and draw attacks for 2 turns.
-- **Passive · Automatic Sand Shield**: On entry, living sand shields this card for 80% DMG and reduces incoming DMG by 15%, but costs 10% attack speed.
-- **Ultimate · Imperial Sand Mausoleum**: Bury every enemy for 180% DMG and lower their defense by 15% for 3 turns.
+- **Basic · Sand Spear**: Drive a sand spear into an enemy for 165% DMG.
+- **Skill · Sand Coffin**: Crush an enemy for 370% DMG and draw attacks for 2 turns.
+- **Passive · Automatic Sand Shield**: On entry, living sand shields this card for 80% DMG and reduces incoming DMG by 15%.
+- **Ultimate · Imperial Sand Mausoleum**: Bury every enemy for 825% DMG and lower their defense by 15% for 3 turns.
 
 ### Infernal Warden · Purgatory Flamekeeper
 Normal pool · Attack · Flame Striker · Weight 71.4286 · SPD 128
+**Fast** · Basic every 1.1s · Skill cooldown 7s · Ultimate at 80 energy (about 15s)
 Card chance per pull: 0.72% (about 1 in 139; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -239,13 +289,14 @@ Card chance per pull: 0.72% (about 1 in 139; full pool, boss cards included)
 | Rainbow | 18,000 | 36,000 | 750,000 |
 | Secret | 72,000 | 144,000 | 75,000,000 |
 
-- **Basic · Flame Arc**: Strike an enemy for 100% DMG.
-- **Skill · Blazing Resolve** (every 3 actions): Slash every enemy twice for 70% DMG each. Gain 20% attack speed for 2 turns and shield every ally for 30% DMG.
+- **Basic · Flame Arc**: Strike an enemy for 70% DMG.
+- **Skill · Blazing Resolve**: Slash every enemy twice for 125% DMG each. Gain 20% attack speed for 2 turns and shield every ally for 30% DMG.
 - **Passive · Scorching Wake**: On a hit, a 20% chance to leave Burn behind, dealing 10% DMG each turn for 3 turns.
-- **Ultimate · Purgatory Dance**: Sweep every enemy for 160% DMG and inflict Burn for 10% DMG each turn for 3 turns.
+- **Ultimate · Purgatory Dance**: Sweep every enemy for 510% DMG and inflict Burn for 10% DMG each turn for 3 turns.
 
 ### Shadow Puppeteer · Mistress of Strings
 Normal pool · Attack · Storm Hexer · Weight 83.3333 · SPD 110
+**Balanced** · Basic every 1.7000000000000002s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.84% (about 1 in 119; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -255,12 +306,13 @@ Card chance per pull: 0.84% (about 1 in 119; full pool, boss cards included)
 | Secret | 67,200 | 134,400 | 60,000,000 |
 
 - **Basic · Puppet Needle**: Launch two puppet needles for 50% DMG each.
-- **Skill · Scarlet Puppet Rush** (every 3 actions): Slash an enemy for 180% DMG and leave a needle wound that Bleeds for 10% DMG each turn for 3 turns.
-- **Passive · Hidden Puppet Core**: When below 50% HP, shed the damaged shell: cleanse Burn and Freeze and evade two hits. Exposing the core makes this card take 10% more DMG for 2 turns.
-- **Ultimate · Hundred-Puppet Cage**: Surround every enemy with puppet blades for three strikes at 65% DMG each.
+- **Skill · Scarlet Puppet Rush**: Slash an enemy for 300% DMG and leave a needle wound that Bleeds for 10% DMG each turn for 3 turns.
+- **Passive · Hidden Puppet Core**: When below 50% HP, shed the damaged shell: cleanse Burn and Freeze and evade two hits.
+- **Ultimate · Hundred-Puppet Cage**: Surround every enemy with puppet blades for three strikes at 205% DMG each.
 
 ### Phantom Blade · Cloud-Step Assassin
 Normal pool · Attack · Frost Striker · Weight 166.6667 · SPD 120
+**Fast** · Basic every 1.2000000000000002s · Skill cooldown 7.5s · Ultimate at 80 energy (about 15s)
 Card chance per pull: 1.67% (about 1 in 60; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -269,13 +321,14 @@ Card chance per pull: 1.67% (about 1 in 60; full pool, boss cards included)
 | Rainbow | 12,800 | 25,600 | 300,000 |
 | Secret | 51,200 | 102,400 | 30,000,000 |
 
-- **Basic · Assassin's Cut**: Cut an enemy for 100% DMG.
-- **Skill · Inverted Spear** (every 3 actions): Pierce protection and defense for 200% DMG, then expose the enemy to 10% more DMG for 2 turns.
-- **Passive · Heavenly Physique**: On entry, trust physical instinct to evade the next two hits. Reckless pursuit makes this card take 10% more DMG for 3 turns.
-- **Ultimate · Soul-Splitting Ambush**: Three ruthless cuts ignore defense and protection for 135% DMG each.
+- **Basic · Assassin's Cut**: Cut an enemy for 70% DMG.
+- **Skill · Inverted Spear**: Pierce protection and defense for 250% DMG, then expose the enemy to 10% more DMG for 2 turns.
+- **Passive · Heavenly Physique**: On entry, trust physical instinct to evade the next two hits.
+- **Ultimate · Soul-Splitting Ambush**: Three ruthless cuts ignore defense and protection for 165% DMG each.
 
 ### Starfall Witch · Mistress of Hounds
 Normal pool · Attack · Void Hexer · Weight 200 · SPD 100
+**Heavy** · Basic every 2.4000000000000004s · Skill cooldown 12.5s · Ultimate at 135 energy (about 25s)
 Card chance per pull: 2.01% (about 1 in 50; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -284,13 +337,14 @@ Card chance per pull: 2.01% (about 1 in 50; full pool, boss cards included)
 | Rainbow | 12,000 | 24,000 | 250,000 |
 | Secret | 48,000 | 96,000 | 25,000,000 |
 
-- **Basic · Shadow Fang**: Strike an enemy for 100% DMG.
-- **Skill · Hound Pursuit** (every 3 actions): Three shadow hounds pursue random enemies, each dealing 70% DMG.
+- **Basic · Shadow Fang**: Strike an enemy for 160% DMG.
+- **Skill · Hound Pursuit**: Three shadow hounds pursue random enemies, each dealing 120% DMG.
 - **Passive · Shadow Bind**: On a hit, a 20% chance for the hounds to Weaken the enemy by 15% for 2 turns.
-- **Ultimate · Chimera Garden**: Drown the enemy in shadows, lowering defense by 15% for 3 turns before dealing 350% DMG.
+- **Ultimate · Chimera Garden**: Drown the enemy in shadows, lowering defense by 15% for 3 turns before dealing 795% DMG.
 
 ### Titan Warder · Armored Colossus
 Normal pool · Attack · Flame Warder · Weight 222.2222 · SPD 95
+**Heavy** · Basic every 2.5500000000000003s · Skill cooldown 13s · Ultimate at 135 energy (about 25s)
 Card chance per pull: 2.23% (about 1 in 45; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -299,13 +353,14 @@ Card chance per pull: 2.23% (about 1 in 45; full pool, boss cards included)
 | Rainbow | 11,600 | 23,200 | 250,000 |
 | Secret | 46,400 | 92,800 | 25,000,000 |
 
-- **Basic · Colossus Fist**: Strike an enemy for 100% DMG.
-- **Skill · Wallbreaker Rush** (every 3 actions): Draw enemy attacks for 2 turns, then charge for 160% DMG.
-- **Passive · Armored Advance**: On entry, harden this card's armor to reduce incoming DMG by 15%, but lose 10% attack speed.
-- **Ultimate · Crushing Footfall**: Crush every enemy for 180% DMG.
+- **Basic · Colossus Fist**: Strike an enemy for 160% DMG.
+- **Skill · Wallbreaker Rush**: Draw enemy attacks for 2 turns, then charge for 355% DMG.
+- **Passive · Armored Advance**: On entry, harden this card's armor to reduce incoming DMG by 15%.
+- **Ultimate · Crushing Footfall**: Crush every enemy for 795% DMG.
 
 ### Solar Blade · Dawn Swordsman
 Normal pool · Attack · Flame Striker · Weight 250 · SPD 100
+**Heavy** · Basic every 2.4000000000000004s · Skill cooldown 12.5s · Ultimate at 135 energy (about 25s)
 Card chance per pull: 2.51% (about 1 in 40; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -314,13 +369,14 @@ Card chance per pull: 2.51% (about 1 in 40; full pool, boss cards included)
 | Rainbow | 11,200 | 22,400 | 200,000 |
 | Secret | 44,800 | 89,600 | 20,000,000 |
 
-- **Basic · Sunlit Edge**: Strike an enemy for 100% DMG.
-- **Skill · Flowing Sun** (every 3 actions): Cut through an enemy twice, dealing 90% DMG with each slash.
+- **Basic · Sunlit Edge**: Strike an enemy for 160% DMG.
+- **Skill · Flowing Sun**: Cut through an enemy twice, dealing 180% DMG with each slash.
 - **Passive · Ember Breathing**: Critical hits ignite the enemy with Burn, dealing 10% DMG each turn for 3 turns.
-- **Ultimate · Dance of Dawn**: Unleash a 400% DMG sun slash and inflict Burn for 5% DMG each turn for 3 turns.
+- **Ultimate · Dance of Dawn**: Unleash a 790% DMG sun slash and inflict Burn for 5% DMG each turn for 3 turns.
 
 ### Celestial Strategist · Wisteria Tactician
 Normal pool · Attack · Light Hexer · Weight 833.3333 · SPD 125
+**Fast** · Basic every 1.1500000000000001s · Skill cooldown 7s · Ultimate at 80 energy (about 15s)
 Card chance per pull: 8.37% (about 1 in 12; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -329,13 +385,14 @@ Card chance per pull: 8.37% (about 1 in 12; full pool, boss cards included)
 | Rainbow | 8,000 | 16,000 | 60,000 |
 | Secret | 32,000 | 64,000 | 6,000,000 |
 
-- **Basic · Butterfly Thrust**: Pierce an enemy with two swift thrusts for 50% DMG each.
-- **Skill · Wisteria Sting** (every 3 actions): Strike for 170% DMG and open a toxin-laced wound that Bleeds for 10% DMG each turn for 3 turns.
+- **Basic · Butterfly Thrust**: Pierce an enemy with two swift thrusts for 35% DMG each.
+- **Skill · Wisteria Sting**: Strike for 240% DMG and open a toxin-laced wound that Bleeds for 10% DMG each turn for 3 turns.
 - **Passive · Wisteria Dose**: Critical hits have a 50% chance to inject another dose: inflict Bleed for 10% DMG each turn for 2 turns and Weaken by 10% for 2 turns.
-- **Ultimate · Centipede Dance**: Zigzag through an enemy's defense and protection with five thrusts for 75% DMG each.
+- **Ultimate · Centipede Dance**: Zigzag through an enemy's defense and protection with five thrusts for 100% DMG each.
 
 ### Thunder Flash · Sleeping Lightning
 Normal pool · Attack · Storm Striker · Weight 1250 · SPD 130
+**Fast** · Basic every 1.05s · Skill cooldown 7s · Ultimate at 80 energy (about 15s)
 Card chance per pull: 12.56% (about 1 in 8; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -344,13 +401,14 @@ Card chance per pull: 12.56% (about 1 in 8; full pool, boss cards included)
 | Rainbow | 7,520 | 15,040 | 40,000 |
 | Secret | 30,080 | 60,160 | 4,000,000 |
 
-- **Basic · Lightning Draw**: Draw and slash for 100% DMG.
-- **Skill · Thunderclap Dash** (every 3 actions): Flash through an enemy for 210% DMG and accelerate by 15% for 2 turns.
-- **Passive · Trance Reflex**: When below 50% HP, enter a lightning trance: evade the next hit and gain 25% attack speed, but take 10% more DMG for 3 turns.
-- **Ultimate · Sixfold Lightning**: Cross the battlefield with six lightning slashes for 65% DMG each.
+- **Basic · Lightning Draw**: Draw and slash for 65% DMG.
+- **Skill · Thunderclap Dash**: Flash through an enemy for 240% DMG and accelerate by 15% for 2 turns.
+- **Passive · Trance Reflex**: When below 50% HP, enter a lightning trance: evade the next hit and gain 25% attack speed.
+- **Ultimate · Sixfold Lightning**: Cross the battlefield with six lightning slashes for 80% DMG each.
 
 ### Spirit Weaver · Soul-Thread Medic
 Normal pool · Attack · Void Mender · Weight 1333.3333 · SPD 115
+**Balanced** · Basic every 1.6s · Skill cooldown 9.5s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 13.40% (about 1 in 7; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -360,11 +418,12 @@ Card chance per pull: 13.40% (about 1 in 7; full pool, boss cards included)
 | Secret | 28,800 | 57,600 | 4,000,000 |
 
 - **Basic · Spirit Thread**: Send out two soul threads, each dealing 50% DMG to a random enemy.
-- **Skill · Soul Rejection** (every 3 actions): Weave a shield worth 80% DMG around every ally.
+- **Skill · Soul Rejection**: Weave a shield worth 80% DMG around every ally.
 - **Passive · Thread of Renewal**: After attacking, a 25% chance to mend this card for 15% of its DMG and remove a Burn or Freeze.
 
 ### Lotus Blossom · Hundred-Healing Medic
 Normal pool · Attack · Light Mender · Weight 1333.3333 · SPD 105
+**Balanced** · Basic every 1.8s · Skill cooldown 10.5s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 13.40% (about 1 in 7; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -374,9 +433,9 @@ Card chance per pull: 13.40% (about 1 in 7; full pool, boss cards included)
 | Secret | 29,120 | 58,240 | 4,000,000 |
 
 - **Basic · Chakra Fist**: Drive a Chakra-charged punch into an enemy for 100% DMG.
-- **Skill · Cherry Blossom Clash** (every 3 actions): Shatter the ground for 180% DMG and mend the lowest-HP ally for 40% DMG.
-- **Passive · Mitotic Regeneration**: When below 50% HP, release stored Chakra to cleanse Burn and Freeze and recover 25% HP. Exhaustion costs 10% attack speed for 2 turns.
-- **Ultimate · Hundred-Seal Release**: Strike for 250% DMG and restore 60% DMG as HP to every ally.
+- **Skill · Cherry Blossom Clash**: Shatter the ground for 280% DMG and mend the lowest-HP ally for 40% DMG.
+- **Passive · Mitotic Regeneration**: When below 50% HP, release stored Chakra to cleanse Burn and Freeze and recover 25% HP.
+- **Ultimate · Hundred-Seal Release**: Strike for 580% DMG and restore 60% DMG as HP to every ally.
 
 ## Normal pool: Support cards
 ### Eight Trigrams Seal · Caged Beast Talisman
@@ -389,7 +448,7 @@ Card chance per pull: 0.05% (about 1 in 1,990; full pool, boss cards included)
 | Rainbow | 85% | 10,000,000 |
 | Secret | 100% | 1,000,000,000 |
 
-- **Passive · Crimson Chakra Cloak**: Upon a fatal blow, the supported card releases its sealed Chakra and returns at 55% HP. The Crimson Cloak costs 25% DMG and prevents further healing.
+- **Passive · Crimson Chakra Cloak**: Upon a fatal blow, the supported card releases its sealed Chakra and returns at 55% HP.
 
 ### Cursed Ocular Seal · Hypnotic Crow Crest
 Normal pool · Support · Frost Mender · Weight 6.6667 · SPD 0
@@ -413,7 +472,7 @@ Card chance per pull: 0.11% (about 1 in 945; full pool, boss cards included)
 | Rainbow | 40% | 5,000,000 |
 | Secret | 45% | 500,000,000 |
 
-- **Passive · Blink Reserve**: On entry, the supported card gains 25% Ultimate charge, but stabilizing the seal reduces its attack speed by 10% for 2 turns.
+- **Passive · Blink Reserve**: On entry, the supported card gains 25% Ultimate charge.
 
 ### Binding Blood Vow · Cursed Counter-Pact
 Normal pool · Support · Light Warder · Weight 23.8095 · SPD 0
@@ -449,7 +508,7 @@ Card chance per pull: 0.67% (about 1 in 149; full pool, boss cards included)
 | Rainbow | 40% | 750,000 |
 | Secret | 45% | 75,000,000 |
 
-- **Passive · Living Sand Armor**: On entry, sand shields the supported card for 25% of its max HP. The heavy armor reduces attack speed by 10% for 2 turns.
+- **Passive · Living Sand Armor**: On entry, sand shields the supported card for 25% of its max HP.
 
 ### Chakra Puppet Threads · Reversal String Technique
 Normal pool · Support · Storm Mender · Weight 76.9231 · SPD 0
@@ -485,7 +544,7 @@ Card chance per pull: 10.05% (about 1 in 10; full pool, boss cards included)
 | Rainbow | 30% | 50,000 |
 | Secret | 35% | 5,000,000 |
 
-- **Passive · Thunder Breathing**: On entry, the supported card gains 20% attack speed for 3 turns. Lightning-fast cuts deal 10% less DMG during that time.
+- **Passive · Thunder Breathing**: On entry, the supported card gains 20% attack speed for 3 turns.
 
 ### Wisteria Antidote Vial · Butterfly Medical Extract
 Normal pool · Support · Light Mender · Weight 1250 · SPD 0
@@ -497,7 +556,7 @@ Card chance per pull: 12.56% (about 1 in 8; full pool, boss cards included)
 | Rainbow | 30% | 40,000 |
 | Secret | 35% | 4,000,000 |
 
-- **Passive · Wisteria Antidote**: When the supported card defeats an opponent, recover 20% of its max HP. The antidote dulls its next attacks, reducing DMG by 10% for 2 turns.
+- **Passive · Wisteria Antidote**: When the supported card defeats an opponent, recover 20% of its max HP.
 
 ### Diamond Mitotic Seal · Forbidden Medical Crest
 Normal pool · Support · Light Mender · Weight 1333.3333 · SPD 0
@@ -509,11 +568,12 @@ Card chance per pull: 13.40% (about 1 in 7; full pool, boss cards included)
 | Rainbow | 30% | 40,000 |
 | Secret | 35% | 4,000,000 |
 
-- **Passive · Hundred-Petal Renewal**: When below 50% HP, the supported card cleanses Burn and Freeze and recovers 20% of its max HP. It cannot be healed for 2 turns.
+- **Passive · Hundred-Petal Renewal**: When below 50% HP, the supported card cleanses Burn and Freeze and recovers 20% of its max HP.
 
 ## Boss cards
 ### Tailed Beast Calamity · The Ember Fox
 Boss card · unlocks after beating kurogane on Normal · Attack · Flame Hexer · Weight 5 · SPD 102
+**Heavy** · Basic every 2.35s · Skill cooldown 12s · Ultimate at 135 energy (about 25s)
 Card chance per pull: 0.05% (about 1 in 1,990; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -522,13 +582,14 @@ Card chance per pull: 0.05% (about 1 in 1,990; full pool, boss cards included)
 | Rainbow | 42,400 | 84,800 | 10,000,000 |
 | Secret | 169,600 | 339,200 | 1,000,000,000 |
 
-- **Basic · Chakra Claw**: Strike an enemy for 110% DMG.
-- **Skill · Chakra Eruption** (every 3 actions): Burst through the enemy for 220% DMG. Searing Chakra inflicts Burn for 10% DMG each turn for 3 turns.
-- **Passive · Crimson Cloak**: When below 50% HP, unleash the beast's Chakra for 25% DMG, but the unstable cloak makes this card take 10% more DMG.
-- **Ultimate · Beast Bomb Barrage**: Launch six Beast Bombs at random enemies for 80% DMG each.
+- **Basic · Chakra Claw**: Strike an enemy for 175% DMG.
+- **Skill · Chakra Eruption**: Burst through the enemy for 395% DMG. Searing Chakra inflicts Burn for 10% DMG each turn for 3 turns.
+- **Passive · Crimson Cloak**: When below 50% HP, unleash the beast's Chakra for 25% DMG.
+- **Ultimate · Beast Bomb Barrage**: Launch six Beast Bombs at random enemies for 145% DMG each.
 
 ### Galactic Emperor · The Frost Tyrant
 Boss card · unlocks after beating rimeveil on Normal · Attack · Frost Hexer · Weight 4 · SPD 98
+**Heavy** · Basic every 2.45s · Skill cooldown 12.5s · Ultimate at 135 energy (about 25s)
 Card chance per pull: 0.04% (about 1 in 2,488; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -537,13 +598,14 @@ Card chance per pull: 0.04% (about 1 in 2,488; full pool, boss cards included)
 | Rainbow | 44,800 | 89,600 | 12,500,000 |
 | Secret | 179,200 | 358,400 | 1,250,000,000 |
 
-- **Basic · Death Ray**: Strike an enemy for 100% DMG.
-- **Skill · Emperor's Command** (every 4 actions): Deal 250% DMG and suppress every enemy's attack speed by 15% for 2 turns.
-- **Passive · Golden Tyranny**: When this card defeats an opponent, recover 15% HP. Its arrogance makes it take 10% more DMG for 2 turns.
-- **Ultimate · Planet Breaker**: Erase an enemy with a 350% DMG blast that ignores defense.
+- **Basic · Death Ray**: Strike an enemy for 180% DMG.
+- **Skill · Emperor's Command**: Deal 395% DMG and suppress every enemy's attack speed by 15% for 2 turns.
+- **Passive · Golden Tyranny**: When this card defeats an opponent, recover 15% HP.
+- **Ultimate · Planet Breaker**: Erase an enemy with a 890% DMG blast that ignores defense.
 
 ### Mirror Flower Overlord · The Hollow Betrayer
 Boss card · unlocks after beating vex on Normal · Attack · Void Hexer · Weight 3.125 · SPD 104
+**Heavy** · Basic every 2.3000000000000003s · Skill cooldown 12s · Ultimate at 135 energy (about 25s)
 Card chance per pull: 0.03% (about 1 in 3,185; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -552,13 +614,14 @@ Card chance per pull: 0.03% (about 1 in 3,185; full pool, boss cards included)
 | Rainbow | 48,000 | 96,000 | 15,000,000 |
 | Secret | 192,000 | 384,000 | 1,500,000,000 |
 
-- **Basic · Illusion Cut**: Strike an enemy for 100% DMG.
-- **Skill · Shattered Reflection** (every 3 actions): Deal 180% DMG and expose a false opening, lowering defense by 15% for 3 turns.
-- **Passive · Perfect Hypnosis**: On entry, create two Illusions to evade incoming hits. Maintaining them makes this card take 10% more DMG for 2 turns.
-- **Ultimate · False Heaven**: Strike through four false realities for 120% DMG each. Every enemy takes 15% more DMG for 3 turns.
+- **Basic · Illusion Cut**: Strike an enemy for 180% DMG.
+- **Skill · Shattered Reflection**: Deal 400% DMG and expose a false opening, lowering defense by 15% for 3 turns.
+- **Passive · Perfect Hypnosis**: On entry, create two Illusions to evade incoming hits.
+- **Ultimate · False Heaven**: Strike through four false realities for 225% DMG each. Every enemy takes 15% more DMG for 3 turns.
 
 ### Demon Progenitor · The Thousand-Year Storm
 Boss card · unlocks after beating tenrai on Normal · Attack · Storm Striker · Weight 2.5 · SPD 110
+**Balanced** · Basic every 1.7000000000000002s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Card chance per pull: 0.03% (about 1 in 3,981; full pool, boss cards included)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -567,15 +630,16 @@ Card chance per pull: 0.03% (about 1 in 3,981; full pool, boss cards included)
 | Rainbow | 52,000 | 104,000 | 20,000,000 |
 | Secret | 208,000 | 416,000 | 2,000,000,000 |
 
-- **Basic · Blood Whip**: Strike an enemy for 100% DMG.
-- **Skill · Thorned Blood** (every 3 actions): Four blood thorns pierce random enemies for 60% DMG each.
-- **Passive · Demon Rebirth**: When below 50% HP, cleanse Burn and Freeze and regenerate 25% of max HP. This card can no longer be healed.
-- **Aura · Progenitor's Gift**: On entry, share cursed blood for 10% DMG on every ally. The pact makes them take 10% more DMG.
-- **Ultimate · Black Blood Tempest**: Engulf every enemy in a 300% DMG blood storm.
+- **Basic · Blood Whip**: Strike an enemy for 110% DMG.
+- **Skill · Thorned Blood**: Four blood thorns pierce random enemies for 80% DMG each.
+- **Passive · Demon Rebirth**: When below 50% HP, cleanse Burn and Freeze and regenerate 25% of max HP.
+- **Aura · Progenitor's Gift**: On entry, share cursed blood for 10% DMG on every ally.
+- **Ultimate · Black Blood Tempest**: Engulf every enemy in a 650% DMG blood storm.
 
 ## Celestial sky cards (only while their sky is active)
 ### Ultra Instinct Goku · Dragon Ball
 Sky card · Limitbreak Skies · Attack · Light Striker · Weight 1 · SPD 110
+**Balanced** · Basic every 1.7000000000000002s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Chance: 1 in 3,000 per pull while Limitbreak Skies is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -585,12 +649,13 @@ Chance: 1 in 3,000 per pull while Limitbreak Skies is active (at 1x luck)
 | Secret | 208,000 | 416,000 | 1,500,000,000 |
 
 - **Basic · Instinct Rush**: Strike for 110% DMG.
-- **Skill · Autonomous Counter** (every 3 actions): Strike for 280% DMG, then evade the next enemy hit.
-- **Ultimate · Supreme Kamehameha**: Unleash 350% DMG on every enemy.
-- **Passive · A Body Beyond Thought**: On entry, evade the next two hits, but lose 10% attack speed for 2 turns.
+- **Skill · Autonomous Counter**: Strike for 320% DMG, then evade the next enemy hit.
+- **Ultimate · Supreme Kamehameha**: Unleash 645% DMG on every enemy.
+- **Passive · A Body Beyond Thought**: On entry, evade the next two hits.
 
 ### Ultra Ego Vegeta · Dragon Ball
 Sky card · Limitbreak Skies · Attack · Void Striker · Weight 1 · SPD 95
+**Heavy** · Basic every 2.5500000000000003s · Skill cooldown 13s · Ultimate at 135 energy (about 25s)
 Chance: 1 in 2,500 per pull while Limitbreak Skies is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -599,13 +664,14 @@ Chance: 1 in 2,500 per pull while Limitbreak Skies is active (at 1x luck)
 | Rainbow | 48,800 | 97,600 | 12,500,000 |
 | Secret | 195,200 | 390,400 | 1,250,000,000 |
 
-- **Basic · Destroyer's Blow**: Strike for 110% DMG.
-- **Skill · Destruction Sphere** (every 3 actions): Strike for 300% DMG and reduce the target's defense by 25% for 2 turns.
-- **Ultimate · Final Destruction**: Unleash 350% DMG on every enemy.
-- **Passive · Pride in the Pain**: When below 50% HP, gain 35% DMG, but take 15% more DMG for the rest of the battle.
+- **Basic · Destroyer's Blow**: Strike for 180% DMG.
+- **Skill · Destruction Sphere**: Strike for 395% DMG and reduce the target's defense by 25% for 2 turns.
+- **Ultimate · Final Destruction**: Unleash 890% DMG on every enemy.
+- **Passive · Pride in the Pain**: When below 50% HP, gain 35% DMG for the rest of the battle.
 
 ### Blue Gogeta · Dragon Ball
 Sky card · Limitbreak Skies · Attack · Cosmic Striker · Weight 1 · SPD 105
+**Balanced** · Basic every 1.8s · Skill cooldown 10.5s · Ultimate at 100 energy (about 19s)
 Chance: 1 in 2,000 per pull while Limitbreak Skies is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -615,12 +681,13 @@ Chance: 1 in 2,000 per pull while Limitbreak Skies is active (at 1x luck)
 | Secret | 185,600 | 371,200 | 1,000,000,000 |
 
 - **Basic · Meteor Combination**: Strike for 110% DMG.
-- **Skill · Stardust Fall** (every 3 actions): Strike four times for 80% DMG per hit.
-- **Ultimate · Stardust Breaker**: Release the finishing blow for 450% DMG.
-- **Passive · Perfect Fusion**: On entry, gain 25% critical chance, but lose 10% attack speed for 3 turns.
+- **Skill · Stardust Fall**: Strike four times for 80% DMG per hit.
+- **Ultimate · Stardust Breaker**: Release the finishing blow for 640% DMG.
+- **Passive · Perfect Fusion**: On entry, gain 25% critical chance for 3 turns.
 
 ### Full Power Broly · Dragon Ball
 Sky card · Limitbreak Skies · Attack · Storm Striker · Weight 1 · SPD 90
+**Heavy** · Basic every 2.6500000000000004s · Skill cooldown 13.5s · Ultimate at 135 energy (about 25s)
 Chance: 1 in 1,500 per pull while Limitbreak Skies is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -629,13 +696,14 @@ Chance: 1 in 1,500 per pull while Limitbreak Skies is active (at 1x luck)
 | Rainbow | 44,000 | 88,000 | 7,500,000 |
 | Secret | 176,000 | 352,000 | 750,000,000 |
 
-- **Basic · Raging Impact**: Strike for 110% DMG.
-- **Skill · Gigantic Roar** (every 3 actions): Strike for 300% DMG and Weaken the target by 15% for 2 turns.
-- **Ultimate · Gigantic Catastrophe**: Strike random enemies five times for 90% DMG each.
-- **Passive · Uncontained Rage**: When below 50% HP, gain 35% DMG, but take 15% more DMG for the rest of the battle.
+- **Basic · Raging Impact**: Strike for 175% DMG.
+- **Skill · Gigantic Roar**: Strike for 390% DMG and Weaken the target by 15% for 2 turns.
+- **Ultimate · Gigantic Catastrophe**: Strike random enemies five times for 175% DMG each.
+- **Passive · Uncontained Rage**: When below 50% HP, gain 35% DMG for the rest of the battle.
 
 ### Horn of Salvation Ichigo · Bleach
 Sky card · Soulfall · Attack · Void Striker · Weight 1 · SPD 105
+**Balanced** · Basic every 1.8s · Skill cooldown 10.5s · Ultimate at 100 energy (about 19s)
 Chance: 1 in 3,500 per pull while Soulfall is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -645,12 +713,13 @@ Chance: 1 in 3,500 per pull while Soulfall is active (at 1x luck)
 | Secret | 224,000 | 448,000 | 2,000,000,000 |
 
 - **Basic · Zangetsu**: Strike for 110% DMG.
-- **Skill · Gran Rey Getsuga** (every 3 actions): Strike for 300% DMG and inflict Bleed for 20% DMG each turn for 2 turns.
-- **Ultimate · True Bankai**: Release the finishing blow for 550% DMG.
-- **Passive · Hollow Resolve**: When below 50% HP, gain 25% attack speed for 3 turns, but cannot be healed for 3 turns.
+- **Skill · Gran Rey Getsuga**: Strike for 320% DMG and inflict Bleed for 20% DMG each turn for 2 turns.
+- **Ultimate · True Bankai**: Release the finishing blow for 650% DMG.
+- **Passive · Hollow Resolve**: When below 50% HP, gain 25% attack speed for 3 turns.
 
 ### Hogyoku Aizen · Bleach
 Sky card · Soulfall · Attack · Void Striker · Weight 1 · SPD 100
+**Heavy** · Basic every 2.4000000000000004s · Skill cooldown 12.5s · Ultimate at 135 energy (about 25s)
 Chance: 1 in 4,500 per pull while Soulfall is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -659,13 +728,14 @@ Chance: 1 in 4,500 per pull while Soulfall is active (at 1x luck)
 | Rainbow | 60,000 | 120,000 | 25,000,000 |
 | Secret | 240,000 | 480,000 | 2,500,000,000 |
 
-- **Basic · Silent Cut**: Strike for 110% DMG.
-- **Skill · Complete Hypnosis** (every 3 actions): Strike for 300% DMG and Weaken the target by 15% for 2 turns.
-- **Ultimate · Black Coffin**: Unleash 500% DMG on every enemy.
+- **Basic · Silent Cut**: Strike for 180% DMG.
+- **Skill · Complete Hypnosis**: Strike for 400% DMG and Weaken the target by 15% for 2 turns.
+- **Ultimate · Black Coffin**: Unleash 900% DMG on every enemy.
 - **Passive · Beyond Perception**: After attacking, a 25% chance to evade the next hit and slow the target by 20% for 2 turns.
 
 ### Bankai Yamamoto · Bleach
 Sky card · Soulfall · Attack · Flame Striker · Weight 1 · SPD 90
+**Heavy** · Basic every 2.6500000000000004s · Skill cooldown 13.5s · Ultimate at 135 energy (about 25s)
 Chance: 1 in 6,000 per pull while Soulfall is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -674,13 +744,14 @@ Chance: 1 in 6,000 per pull while Soulfall is active (at 1x luck)
 | Rainbow | 64,000 | 128,000 | 30,000,000 |
 | Secret | 256,000 | 512,000 | 3,000,000,000 |
 
-- **Basic · Ashen Edge**: Strike for 110% DMG.
-- **Skill · Zanka no Tachi** (every 3 actions): Strike for 280% DMG and Burn for 25% DMG each turn for 3 turns.
-- **Ultimate · Heaven and Earth in Ash**: Unleash 500% DMG on every enemy.
-- **Passive · Fifteen Million Degrees**: After attacking, a 25% chance to Burn the target for 15% DMG each turn for 2 turns, but take 10% more DMG for 2 turns.
+- **Basic · Ashen Edge**: Strike for 180% DMG.
+- **Skill · Zanka no Tachi**: Strike for 400% DMG and Burn for 25% DMG each turn for 3 turns.
+- **Ultimate · Heaven and Earth in Ash**: Unleash 900% DMG on every enemy.
+- **Passive · Fifteen Million Degrees**: After attacking, a 25% chance to Burn the target for 15% DMG each turn for 2 turns.
 
 ### The Almighty Yhwach · Bleach
 Sky card · Soulfall · Attack · Cosmic Striker · Weight 1 · SPD 95
+**Heavy** · Basic every 2.5500000000000003s · Skill cooldown 13s · Ultimate at 135 energy (about 25s)
 Chance: 1 in 8,000 per pull while Soulfall is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -689,13 +760,14 @@ Chance: 1 in 8,000 per pull while Soulfall is active (at 1x luck)
 | Rainbow | 68,800 | 137,600 | 40,000,000 |
 | Secret | 275,200 | 550,400 | 4,000,000,000 |
 
-- **Basic · Reishi Arrow**: Strike for 110% DMG.
-- **Skill · Future Severance** (every 3 actions): Deal 280% DMG and slow the target by 25% for 2 turns.
-- **Ultimate · Auswahlen**: Unleash 500% DMG on every enemy.
-- **Passive · The Future I Choose**: When below 50% HP, evade the next two hits, but deal 15% less DMG for 2 turns.
+- **Basic · Reishi Arrow**: Strike for 180% DMG.
+- **Skill · Future Severance**: Deal 400% DMG and slow the target by 25% for 2 turns.
+- **Ultimate · Auswahlen**: Unleash 900% DMG on every enemy.
+- **Passive · The Future I Choose**: When below 50% HP, evade the next two hits.
 
 ### Awakened Gojo · Jujutsu Kaisen
 Sky card · Cursed Night · Attack · Cosmic Striker · Weight 1 · SPD 110
+**Balanced** · Basic every 1.7000000000000002s · Skill cooldown 10s · Ultimate at 100 energy (about 19s)
 Chance: 1 in 6,500 per pull while Cursed Night is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -705,12 +777,13 @@ Chance: 1 in 6,500 per pull while Cursed Night is active (at 1x luck)
 | Secret | 259,200 | 518,400 | 3,000,000,000 |
 
 - **Basic · Limitless Impact**: Strike for 110% DMG.
-- **Skill · Hollow Purple** (every 3 actions): Strike for 280% DMG, then evade the next enemy hit.
-- **Ultimate · Unlimited Void**: Unleash 550% DMG on every enemy.
-- **Passive · Infinity**: On entry, evade the next two hits, but lose 10% attack speed for 2 turns.
+- **Skill · Hollow Purple**: Strike for 320% DMG, then evade the next enemy hit.
+- **Ultimate · Unlimited Void**: Unleash 650% DMG on every enemy.
+- **Passive · Infinity**: On entry, evade the next two hits.
 
 ### True Form Sukuna · Jujutsu Kaisen
 Sky card · Cursed Night · Attack · Void Striker · Weight 1 · SPD 100
+**Heavy** · Basic every 2.4000000000000004s · Skill cooldown 12.5s · Ultimate at 135 energy (about 25s)
 Chance: 1 in 8,000 per pull while Cursed Night is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -719,13 +792,14 @@ Chance: 1 in 8,000 per pull while Cursed Night is active (at 1x luck)
 | Rainbow | 68,800 | 137,600 | 40,000,000 |
 | Secret | 275,200 | 550,400 | 4,000,000,000 |
 
-- **Basic · Dismantle**: Strike for 110% DMG.
-- **Skill · Cleave** (every 3 actions): Strike for 300% DMG and inflict Bleed for 20% DMG each turn for 2 turns.
-- **Ultimate · Malevolent Shrine**: Strike every enemy three times for 190% DMG per hit.
-- **Passive · Binding Vow**: On entry, gain 25% DMG, but cannot be healed for 3 turns.
+- **Basic · Dismantle**: Strike for 180% DMG.
+- **Skill · Cleave**: Strike for 400% DMG and inflict Bleed for 20% DMG each turn for 2 turns.
+- **Ultimate · Malevolent Shrine**: Strike every enemy three times for 300% DMG per hit.
+- **Passive · Binding Vow**: On entry, gain 25% DMG for the rest of the battle.
 
 ### Yuta & Rika · Jujutsu Kaisen
 Sky card · Cursed Night · Attack · Light Striker · Weight 1 · SPD 100
+**Heavy** · Basic every 2.4000000000000004s · Skill cooldown 12.5s · Ultimate at 135 energy (about 25s)
 Chance: 1 in 4,500 per pull while Cursed Night is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -734,13 +808,14 @@ Chance: 1 in 4,500 per pull while Cursed Night is active (at 1x luck)
 | Rainbow | 60,000 | 120,000 | 25,000,000 |
 | Secret | 240,000 | 480,000 | 2,500,000,000 |
 
-- **Basic · Cursed Blade**: Strike for 110% DMG.
-- **Skill · Cursed Speech** (every 3 actions): Strike for 300% DMG and Weaken the target by 15% for 2 turns.
-- **Ultimate · Pure Love**: Release the finishing blow for 600% DMG.
+- **Basic · Cursed Blade**: Strike for 180% DMG.
+- **Skill · Cursed Speech**: Strike for 400% DMG and Weaken the target by 15% for 2 turns.
+- **Ultimate · Pure Love**: Release the finishing blow for 900% DMG.
 - **Passive · Reverse Cursed Technique**: After a critical hit, heal for 20% of this card's DMG and cleanse one Burn or Freeze.
 
 ### Toji — Sorcerer Killer · Jujutsu Kaisen
 Sky card · Cursed Night · Attack · Void Striker · Weight 1 · SPD 115
+**Balanced** · Basic every 1.6s · Skill cooldown 9.5s · Ultimate at 100 energy (about 19s)
 Chance: 1 in 3,500 per pull while Cursed Night is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -750,12 +825,13 @@ Chance: 1 in 3,500 per pull while Cursed Night is active (at 1x luck)
 | Secret | 224,000 | 448,000 | 2,000,000,000 |
 
 - **Basic · Split Soul Slash**: Strike for 110% DMG.
-- **Skill · Inverted Spear** (every 3 actions): Strike for 300% DMG and reduce the target's defense by 25% for 2 turns.
-- **Ultimate · Chain of a Thousand Miles**: Strike random enemies five times for 120% DMG each.
-- **Passive · Heavenly Restriction**: On entry, gain 25% attack speed, but take 15% more DMG for the rest of the battle.
+- **Skill · Inverted Spear**: Strike for 320% DMG and reduce the target's defense by 25% for 2 turns.
+- **Ultimate · Chain of a Thousand Miles**: Strike random enemies five times for 130% DMG each.
+- **Passive · Heavenly Restriction**: On entry, gain 25% attack speed for the rest of the battle.
 
 ### Moon Breathing Kokushibo · Demon Slayer
 Sky card · Blood Moon · Attack · Void Striker · Weight 1 · SPD 105
+**Balanced** · Basic every 1.8s · Skill cooldown 10.5s · Ultimate at 100 energy (about 19s)
 Chance: 1 in 18,000 per pull while Blood Moon is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -765,12 +841,13 @@ Chance: 1 in 18,000 per pull while Blood Moon is active (at 1x luck)
 | Secret | 355,200 | 710,400 | 10,000,000,000 |
 
 - **Basic · Crescent Slash**: Strike for 110% DMG.
-- **Skill · Moonlit Calamity** (every 3 actions): Strike for 300% DMG and inflict Bleed for 20% DMG each turn for 2 turns.
-- **Ultimate · Tenman Crescent**: Unleash 600% DMG on every enemy.
+- **Skill · Moonlit Calamity**: Strike for 320% DMG and inflict Bleed for 20% DMG each turn for 2 turns.
+- **Ultimate · Tenman Crescent**: Unleash 650% DMG on every enemy.
 - **Passive · Transparent World**: On entry, gain 20% critical chance and reduce the target's defense by 20% for 3 turns.
 
 ### Compass Needle Akaza · Demon Slayer
 Sky card · Blood Moon · Attack · Storm Striker · Weight 1 · SPD 115
+**Balanced** · Basic every 1.6s · Skill cooldown 9.5s · Ultimate at 100 energy (about 19s)
 Chance: 1 in 10,000 per pull while Blood Moon is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -780,12 +857,13 @@ Chance: 1 in 10,000 per pull while Blood Moon is active (at 1x luck)
 | Secret | 307,200 | 614,400 | 5,000,000,000 |
 
 - **Basic · Destructive Fist**: Strike for 110% DMG.
-- **Skill · Disorder** (every 3 actions): Strike four times for 80% DMG per hit.
-- **Ultimate · Blue Silver Chaotic Afterglow**: Strike every enemy three times for 210% DMG per hit.
+- **Skill · Disorder**: Strike four times for 80% DMG per hit.
+- **Ultimate · Blue Silver Chaotic Afterglow**: Strike every enemy three times for 215% DMG per hit.
 - **Passive · Compass Needle**: After attacking, a 25% chance to evade the next hit and gain 15% critical chance for 2 turns.
 
 ### Frozen Lotus Doma · Demon Slayer
 Sky card · Blood Moon · Attack · Frost Striker · Weight 1 · SPD 95
+**Heavy** · Basic every 2.5500000000000003s · Skill cooldown 13s · Ultimate at 135 energy (about 25s)
 Chance: 1 in 14,000 per pull while Blood Moon is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -794,13 +872,14 @@ Chance: 1 in 14,000 per pull while Blood Moon is active (at 1x luck)
 | Rainbow | 82,400 | 164,800 | 75,000,000 |
 | Secret | 329,600 | 659,200 | 7,500,000,000 |
 
-- **Basic · Lotus Fan**: Strike for 110% DMG.
-- **Skill · Frozen Lotus** (every 3 actions): Deal 280% DMG and slow the target by 25% for 2 turns.
-- **Ultimate · Water Lily Bodhisattva**: Unleash 600% DMG on every enemy.
+- **Basic · Lotus Fan**: Strike for 180% DMG.
+- **Skill · Frozen Lotus**: Deal 400% DMG and slow the target by 25% for 2 turns.
+- **Ultimate · Water Lily Bodhisattva**: Unleash 900% DMG on every enemy.
 - **Passive · Frozen Blood**: After attacking, a 25% chance to Weaken the target by 20% for 2 turns and shield this card for 25% of its DMG.
 
 ### Demon King Muzan · Demon Slayer
 Sky card · Blood Moon · Attack · Void Striker · Weight 1 · SPD 105
+**Balanced** · Basic every 1.8s · Skill cooldown 10.5s · Ultimate at 100 energy (about 19s)
 Chance: 1 in 25,000 per pull while Blood Moon is active (at 1x luck)
 | Border | ATK | HP | Rarity (1 in) |
 | --- | --- | --- | --- |
@@ -810,23 +889,23 @@ Chance: 1 in 25,000 per pull while Blood Moon is active (at 1x luck)
 | Secret | 384,000 | 768,000 | 12,500,000,000 |
 
 - **Basic · Whip of Blood**: Strike for 110% DMG.
-- **Skill · Black Blood Thorns** (every 3 actions): Strike for 300% DMG and inflict Bleed for 20% DMG each turn for 2 turns.
+- **Skill · Black Blood Thorns**: Strike for 320% DMG and inflict Bleed for 20% DMG each turn for 2 turns.
 - **Ultimate · Calamity of Blood**: Unleash 650% DMG on every enemy.
-- **Passive · Demon King's Regeneration**: When below 50% HP, heal for 50% of this card's DMG, but deal 15% less DMG for 3 turns.
+- **Passive · Demon King's Regeneration**: When below 50% HP, heal for 50% of this card's DMG.
 
 ## Bosses
-- **Tailed Beast Calamity** · The Ember Fox (World 1, Ember Village): Normal: HP 250,000, recommended Attack rating 115,700; Hard: HP 800,000, recommended Attack rating 295,900; Nightmare: HP 2,500,000, recommended Attack rating 801,600
-- **Galactic Emperor** · The Frost Tyrant (World 2, Frostfang Peaks): Normal: HP 1,200,000, recommended Attack rating 504,000; Hard: HP 4,000,000, recommended Attack rating 1,108,800; Nightmare: HP 12,000,000, recommended Attack rating 1,920,000
-- **Mirror Flower Overlord** · The Hollow Betrayer (World 3, Neon Abyss): Normal: HP 5,500,000, recommended Attack rating 2,284,800; Hard: HP 18,000,000, recommended Attack rating 5,721,600; Nightmare: HP 55,000,000, recommended Attack rating 13,401,600
+- **Tailed Beast Calamity** · The Ember Fox (World 1, Ember Village): Normal: HP 250,000, recommended Attack rating 70,140; Hard: HP 800,000, recommended Attack rating 223,200; Nightmare: HP 2,500,000, recommended Attack rating 524,400
+- **Galactic Emperor** · The Frost Tyrant (World 2, Frostfang Peaks): Normal: HP 1,200,000, recommended Attack rating 298,800; Hard: HP 4,000,000, recommended Attack rating 878,400; Nightmare: HP 12,000,000, recommended Attack rating 1,920,000
+- **Mirror Flower Overlord** · The Hollow Betrayer (World 3, Neon Abyss): Normal: HP 5,500,000, recommended Attack rating 1,449,600; Hard: HP 18,000,000, recommended Attack rating 4,656,000; Nightmare: HP 55,000,000, recommended Attack rating 13,401,600
 - **Demon Progenitor** · The Thousand-Year Storm (World 4, Stormspire Isle): Normal: HP 25,000,000, recommended Attack rating 5,318,400; Hard: HP 85,000,000, recommended Attack rating 16,512,000; Nightmare: HP 250,000,000, recommended Attack rating 25,000,000
 
 **Notes on the bosses:**
-- **Squads:** each recommended rating is a squad that wins in about 60-90 s:
-  - World 1: Gold / Rainbow commons
-  - World 2: Rainbow
+- **Squads:** each recommended rating is a squad that wins in about 60-90 s under the real-time rules:
+  - World 1: a Gold / Base mix of commons
+  - World 2: Rainbow, with a Gold card or two
   - World 3: Secret (its Nightmare needs Secret Soulfall / Cursed Night sky cards)
   - World 4 Normal: Secret high cards
   - World 4 Hard: four Secret Blood Moon cards
 - **Starter deck:** the all-Base starter deck (31.5k) can't clear World 1 Normal yet.
-- **World 4 Nightmare (250M HP)** is currently out of reach of every deck: the best one deals about 169M before
-  the 3-minute limit.
+- **World 4 Nightmare (250M HP)** is still out of reach of every deck: the best one deals about 183M before the
+  3-minute limit.

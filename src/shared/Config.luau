@@ -83,11 +83,23 @@ Config.Rewards = {
 
 -- Battle rules from the design doc. Boss stats live in Bosses.luau.
 Config.Battle = {
-	TurnSeconds = 2.5, -- a SPD 100 card acts once per turn; durations count battle seconds
-	SkillMinSeconds = 8,
-	UltimateMinSeconds = 22,
-	TeamUltimateGap = 3,
+	TurnSeconds = 2.5, -- enemies: a SPD 100 bar fills once per turn; status durations count turns of this length
+	-- Attack cards act in real time by archetype (Cards.Archetype, from SPD): each Basic on its own interval,
+	-- each Skill on its own cooldown, each Ultimate when its energy is full. Within a band the faster card
+	-- gets the shorter interval / cooldown and the rarer card the higher damage. Damage totals are per cast
+	-- (all hits); Cards.luau fits every Attack ability into its band (per-hit multiples of 5%).
+	Archetypes = {
+		Fast = { SPD = { 120, 135 }, Interval = { 1.2, 1.0 }, Basic = { 0.65, 0.75 }, Cooldown = { 7.5, 6.5 }, Skill = { 2.4, 2.7 }, UltCost = 80, Ult = { 4.8, 5.4 }, SkillShield = 1 },
+		Balanced = { SPD = { 105, 119 }, Interval = { 1.8, 1.5 }, Basic = { 1.0, 1.1 }, Cooldown = { 10.5, 9 }, Skill = { 2.8, 3.2 }, UltCost = 100, Ult = { 5.8, 6.5 }, SkillShield = 1 },
+		Heavy = { SPD = { 85, 104 }, Interval = { 2.8, 2.3 }, Basic = { 1.5, 1.8 }, Cooldown = { 14, 12 }, Skill = { 3.4, 4.0 }, UltCost = 135, Ult = { 7.5, 9.0 }, SkillShield = 2 },
+	},
+	SlotOffsets = { 0, 0.35, 0.7, 1.05 }, -- each Attack slot's first Basic, in seconds: the squad attacks in a ripple
+	EnergyPerSecond = 5.4, -- every card charges its Ultimate in real time (Fast ~15 s, Balanced ~18.5 s, Heavy ~25 s)
+	EnergyPerHit = 3, -- plus a little from enemy hits (at most once per HitEnergyInterval)
 	HitEnergyInterval = 2,
+	TeamUltimateGap = 3, -- AUTO ULT fires at most one Ultimate per this many seconds...
+	BreakChainGap = 0.5, -- ...except during a Shield Break, when held Ultimates fire one after another
+	HoldAbove = 0.6, -- HOLD ULT FOR BREAK: AUTO ULT holds full Ultimates while the Shield bar is over 60%
 	Tick = 0.1, -- simulation step, in battle seconds
 	TimeLimit = 180, -- lose when the 3-minute timer ends
 	IntroSeconds = 2, -- "FIGHT!" banner before the first tick
@@ -96,17 +108,23 @@ Config.Battle = {
 	-- floor's recommended power are won at once and paid in full, up to SweepFloors per start.
 	SweepPower = 3,
 	SweepFloors = 5,
-	-- Rhythm: action bars start part-filled (StartGauge, by SPD and slot) so a fight opens with units acting
-	-- one after another, and at most one unit acts per tick (the rest keep a full bar and go next tick).
+	-- Enemy rhythm: enemy action bars start part-filled (StartGauge) and at most one enemy acts per tick.
 	StartGauge = { Min = 0.2, Max = 0.75 },
 	OneActionPerTick = true,
 	-- Threat: an enemy hit always takes at least this share of the target card's max HP (before Guard), so
 	-- even a deck far above a fight's power feels its hits; a leader's warned move also pierces shields.
 	MinHit = { Guard = 0.01, Leader = 0.02, LeaderSkill = 0.06 },
 	SkillPierce = 0.4, -- share of a leader's warned move that goes through shields
-	UltimateCost = 100,
-	EnergyPerAction = 10,
-	EnergyPerHit = 3,
+	-- Vanguard: Attack slot 1 draws this share of single-target enemy attacks (WarderVanguard if it's a Warder).
+	Vanguard = 0.5,
+	WarderVanguard = 0.8,
+	-- Boss Clash: when a leader's warned move finishes winding up, a ClashWindow-second ring opens. A tap /
+	-- Space in time sends the strongest card in: it reflects ClashReflect x its ATK, the move's damage to the
+	-- squad is cut by ClashCut and the Shield bar fills ClashShield. Ignored, the move lands as normal.
+	ClashWindow = 1.2,
+	ClashReflect = 2,
+	ClashCut = 0.75,
+	ClashShield = 0.3,
 	CritChance = 0.1,
 	CritDamage = 1.5,
 	ShieldTurns = 2,
@@ -117,15 +135,24 @@ Config.Battle = {
 	PhaseAt = 0.5, -- boss adds its phase-2 move at 50% HP
 	EnrageAt = 0.2, -- and enrages at 20%
 	EnrageATK = 0.3,
-	-- Stagger bar (leaders and raid Colossi): each card hit on the leader fills StaggerPerHit, x2.5 from an
-	-- element that beats it (x1.5 for Cosmic), x0.5 from one it beats. Full = Staggered for StaggerSeconds:
-	-- its warned move is cancelled, it can't act, its DEF is 0 and Ultimates hit it for +50%.
-	StaggerPerHit = 0.012,
-	StaggerCounter = 2.5,
-	StaggerCosmic = 1.5,
-	StaggerWeak = 0.5,
-	StaggerSeconds = 5,
-	StaggerUltBonus = 0.5,
+	-- Boss Shield (the leader's Stagger bar): while it stands the leader takes ShieldTaken damage. Card hits
+	-- fill the bar by their DMG % x ShieldFill[slot] (Heavy Skills x their archetype's SkillShield), a guard
+	-- KO adds GuardKOShield and a Warder standing absorbs WarderAbsorb of the fill. Full = Shield Break: the
+	-- leader is stunned for StaggerSeconds (its warned move cancelled) and takes BrokenTaken damage.
+	ShieldTaken = 0.5,
+	BrokenTaken = 1.5,
+	ShieldFill = { Basic = 0.005, Skill = 0.008, Ultimate = 0.004, Clash = 0 },
+	GuardKOShield = 0.25,
+	WarderAbsorb = 0.3,
+	StaggerSeconds = 6,
+	-- Guard roles: a Warder links to the leader (Protect, Bosses.luau); a Mender mends it every MendSeconds
+	-- for MendHeal of its max HP and cleanses its debuffs; Strikers / Hexers stack Expose (more DMG taken) /
+	-- Weaken (less DMG dealt) on your highest-ATK card, up to HexStacks, each refreshing HexSeconds.
+	MendSeconds = 8,
+	MendHeal = 0.03,
+	HexStack = 0.05,
+	HexStacks = 5,
+	HexSeconds = 8,
 	Speeds = { 1, 2 }, -- 2x unlocks after clearing World 1 Normal (always on while unlock rules are off)
 	SpeedUnlock = "kurogane:Normal",
 }

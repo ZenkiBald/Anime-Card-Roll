@@ -134,14 +134,14 @@ local function fight(boss, difficulty, attack, support, border, supportBorder, e
 		Borders = wear(border, attack, support, supportBorder, extra) }
 end
 Fixtures.FIGHTS = {
-	fight("kurogane", "Normal", { "tomo", "rook", "hana", "luna" }, S1, "Gold", "Normal"),
-	fight("kurogane", "Hard", { "hana", "kaede", "suzu", "luna" }, S1, "Rainbow", "Normal", { luna = "Gold" }),
-	fight("kurogane", "Nightmare", { "amane", "hayate", "tetsu", "ibuki" }, S2, "Rainbow", "Gold"),
-	fight("rimeveil", "Normal", { "tomo", "rook", "noa", "kaede" }, S2, "Rainbow", "Normal"),
-	fight("rimeveil", "Hard", { "goro", "sora", "amaya", "tetsu" }, S2, "Rainbow"),
+	fight("kurogane", "Normal", { "tomo", "rook", "hana", "luna" }, S1, "Gold", "Normal", { rook = "Normal", luna = "Normal" }),
+	fight("kurogane", "Hard", { "hana", "kaede", "suzu", "luna" }, S1, "Rainbow", "Normal", { luna = "Gold", kaede = "Gold" }),
+	fight("kurogane", "Nightmare", { "amane", "hayate", "tetsu", "ibuki" }, S2, "Rainbow", "Gold", { hayate = "Gold", ibuki = "Gold" }),
+	fight("rimeveil", "Normal", { "tomo", "rook", "noa", "kaede" }, S2, "Rainbow", "Normal", { tomo = "Gold", rook = "Gold" }),
+	fight("rimeveil", "Hard", { "goro", "sora", "amaya", "tetsu" }, S2, "Rainbow", nil, { amaya = "Gold" }),
 	fight("rimeveil", "Nightmare", { "raijen", "aurelia", "akane", "mirai" }, S3, "Rainbow"),
-	fight("vex", "Normal", { "tomo", "rook", "noa", "ibuki" }, S1, "Secret", "Normal"),
-	fight("vex", "Hard", { "orin", "tsubasa", "kaito", "amaya" }, S2, "Secret"),
+	fight("vex", "Normal", { "tomo", "rook", "noa", "ibuki" }, S1, "Secret", "Normal", { tomo = "Rainbow", noa = "Rainbow" }),
+	fight("vex", "Hard", { "orin", "tsubasa", "kaito", "amaya" }, S2, "Secret", nil, { orin = "Rainbow" }),
 	fight("vex", "Nightmare", { "celestial_blizzard_yhwach", "celestial_thunder_sukuna", "celestial_thunder_gojo", "celestial_eclipse_akaza" }, S3, "Secret"),
 	fight("tenrai", "Normal", { "orin", "tsubasa", "sora", "amaya" }, S2, "Secret"),
 	fight("tenrai", "Hard", BLOOD_MOON, S3, "Secret"),

@@ -243,6 +243,16 @@ function SaveMigration.Migrate(data: any): { string }
 	local reveal=RevealPolicy.Read(data.Settings)
 	if data.RevealSettingsVersion~=1 then table.insert(done,"reveal preferences initialized");data.RevealSettingsVersion=1 end
 	for key,value in reveal do data.Settings[key]=value end
+	-- 2026-10-30 battle controls: AUTO ULT and HOLD ULT FOR BREAK start on (once), so AFK / hidden fights
+	-- keep firing Ultimates; later choices stay. Malformed values are repaired to on.
+	if data.BattleControlsVersion~=1 then
+		data.Settings.AutoUlt=true
+		data.Settings.HoldUlt=true
+		data.BattleControlsVersion=1
+		table.insert(done,"AUTO ULT and HOLD ULT FOR BREAK switched on")
+	end
+	if type(data.Settings.AutoUlt)~="boolean" then data.Settings.AutoUlt=true end
+	if type(data.Settings.HoldUlt)~="boolean" then data.Settings.HoldUlt=true end
 	return done
 end
 

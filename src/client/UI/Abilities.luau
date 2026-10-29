@@ -1,6 +1,6 @@
 --!nonstrict
 -- A card's abilities, written so a player can read them at a glance: one row per ability with a
--- coloured slot badge (BASIC, SKILL, ULTIMATE ...), when it fires ("every 3rd turn"), the name in big
+-- coloured slot badge (BASIC, SKILL, ULTIMATE ...), when it fires ("every 1.6s"), the name in big
 -- letters and the effect with its numbers picked out in gold. Used by the Index detail, the card
 -- reveal and the battle info popup.
 
@@ -16,21 +16,35 @@ local Abilities = {}
 
 -- How each slot looks and when it fires, in plain words.
 Abilities.Slots = {
-	Basic = { Label = "BASIC", Color = Color3.fromRGB(170, 176, 196), When = "" },
-	Skill = { Label = "SKILL", Color = Color3.fromRGB(80, 170, 255), When = "Every %d turns" },
+	Basic = { Label = "BASIC", Color = Color3.fromRGB(170, 176, 196), When = "Every %ss" },
+	Skill = { Label = "SKILL", Color = Color3.fromRGB(80, 170, 255), When = "Cooldown %ss" },
 	Passive = { Label = "PASSIVE", Color = Color3.fromRGB(86, 214, 138), When = "" },
-	Ultimate = { Label = "ULTIMATE", Color = Color3.fromRGB(255, 196, 46), When = "" },
+	Ultimate = { Label = "ULTIMATE", Color = Color3.fromRGB(255, 196, 46), When = "%d energy" },
 	Aura = { Label = "AURA", Color = Color3.fromRGB(200, 110, 255), When = "" },
 	Signature = { Label = "SIGNATURE", Color = Color3.fromRGB(255, 110, 150), When = "" },
 }
 
--- "Every 3 actions: 3 hits x 80% ATK" -> "3 hits × <gold>80%</gold> ATK" (the timing moves to the chip).
+-- "3 hits × <gold>80%</gold> ATK" (the timing sits in the chip: Cards.luau archetype timers).
 function Abilities.Describe(ability, card, stars, border, awaken): string
 	return CardInfo.Highlight(if card then CardInfo.Describe(card, ability, stars or 0, border, awaken) else ability.Text)
 end
 
-function Abilities.When(ability, _card): string
-	return if ability.Slot == "Skill" then string.format(Abilities.Slots.Skill.When, ability.Every or 3) else ""
+local function seconds(value: number): string
+	return (string.gsub(string.format("%.2f", value), "%.?0+$", ""))
+end
+
+function Abilities.When(ability, card): string
+	if card == nil or card.Type ~= "Attack" then
+		return ""
+	end
+	if ability.Slot == "Basic" and card.BasicInterval then
+		return string.format(Abilities.Slots.Basic.When, seconds(card.BasicInterval))
+	elseif ability.Slot == "Skill" and card.SkillCooldown then
+		return string.format(Abilities.Slots.Skill.When, seconds(card.SkillCooldown))
+	elseif ability.Slot == "Ultimate" and card.UltimateCost then
+		return string.format(Abilities.Slots.Ultimate.When, card.UltimateCost)
+	end
+	return ""
 end
 
 function Abilities.Badges(ability, card, parent: Instance, order: number, z: number?)

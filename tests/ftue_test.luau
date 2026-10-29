@@ -71,7 +71,8 @@ local owned = F.allOwned(0)
 local function counterStaggers(attackId)
 	local battle = Engine.new({ Units = F.units(F.deck({ attackId }, {}), owned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(4), Guards = {} })
 	battle.Boss.Stagger = 0.999
-	battle:HitEnemy(battle.ById.A1, battle.Boss, 0.01)
+	battle.Slot = "Basic" -- a Basic chips the Shield bar
+	battle:HitEnemy(battle.ById.A1, battle.Boss, 1)
 	return battle:Summary().Staggers or 0
 end
 check(counterStaggers("mirai") == 1, "a Stagger of any theme counts for the guide (Q6)")

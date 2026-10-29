@@ -18,8 +18,10 @@
 -- format, plus two support moves that target the guard's own side:
 --   Heal = share of the leader's max HP, given to the most hurt enemy (Target "Ally")
 --   Rally = { Amount, Turns }: every enemy +ATK (Target "Ally")
--- A guard type with Taunt draws your cards' attacks (unless you tap another target), and Protect makes
--- the leader take that much less damage while it stands.
+-- Roles link each guard to the leader (BattleEngine, Config.Battle): a Warder (Taunt + Protect) cuts the
+-- leader's damage taken by Protect and absorbs part of the Shield bar's fill while it stands; a Mender
+-- mends the leader (MendName) every few seconds and cleanses its debuffs; Strikers / Hexers stack Expose /
+-- Weaken on your highest-ATK card.
 export type Burn = { Pct: number, Turns: number }
 export type Slow = { Amount: number, Turns: number }
 
@@ -56,6 +58,7 @@ export type GuardType = {
 	DEF: number,
 	Taunt: boolean?,
 	Protect: number?,
+	MendName: string?, -- a Mender's timed mend on the leader (Config.Battle.MendSeconds / MendHeal)
 	Moves: { Move },
 }
 
@@ -117,9 +120,9 @@ local list: { Boss } = {
 			{ Name = "Slag Cut", Target = "Single", Pct = 1, Burn = { Pct = 0.15, Turns = 2 } },
 		},
 		Difficulties = {
-			Normal = { D = 1, Recommended = 115700, HP = 250000, ATK = 190, WarnSeconds = 2 },
-			Hard = { D = 2, Recommended = 295900, HP = 800000, ATK = 490, WarnSeconds = 2 },
-			Nightmare = { D = 3, Recommended = 801600, HP = 2500000, ATK = 1340, WarnSeconds = 1 },
+			Normal = { D = 1, Recommended = 70140, HP = 250000, ATK = 190, WarnSeconds = 2 },
+			Hard = { D = 2, Recommended = 223200, HP = 800000, ATK = 490, WarnSeconds = 2 },
+			Nightmare = { D = 3, Recommended = 524400, HP = 2500000, ATK = 1340, WarnSeconds = 1 },
 		},
 	},
 	{
@@ -144,8 +147,8 @@ local list: { Boss } = {
 			{ Name = "Crystal Shard", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 4, Recommended = 504000, HP = 1200000, ATK = 840, WarnSeconds = 2 },
-			Hard = { D = 5, Recommended = 1108800, HP = 4000000, ATK = 1850, WarnSeconds = 2 },
+			Normal = { D = 4, Recommended = 298800, HP = 1200000, ATK = 840, WarnSeconds = 2 },
+			Hard = { D = 5, Recommended = 878400, HP = 4000000, ATK = 1850, WarnSeconds = 2 },
 			Nightmare = { D = 6, Recommended = 1920000, HP = 12000000, ATK = 3200, WarnSeconds = 1 },
 		},
 	},
@@ -172,8 +175,8 @@ local list: { Boss } = {
 			{ Name = "Rend", Target = "Single", Pct = 1 },
 		},
 		Difficulties = {
-			Normal = { D = 7, Recommended = 2284800, HP = 5500000, ATK = 3810, WarnSeconds = 2 },
-			Hard = { D = 8, Recommended = 5721600, HP = 18000000, ATK = 9540, WarnSeconds = 2 },
+			Normal = { D = 7, Recommended = 1449600, HP = 5500000, ATK = 3810, WarnSeconds = 2 },
+			Hard = { D = 8, Recommended = 4656000, HP = 18000000, ATK = 9540, WarnSeconds = 2 },
 			Nightmare = { D = 9, Recommended = 13401600, HP = 55000000, ATK = 22340, WarnSeconds = 1 },
 		},
 	},
@@ -238,16 +241,15 @@ local function guard(id: string, name: string, icon: string, role: string, world
 	return g :: GuardType
 end
 
--- Every Mender heals the most hurt enemy for 1.2% of the leader's HP every other action and rallies
--- the squad every 5th; every Warder taunts and cuts the leader's damage taken by 30%.
-local function mender(spell: string, rally: string, hit: string): { Move }
+-- Every Mender mends the leader on a timer (its spell, MendName) and rallies the squad every 5th action;
+-- every Warder taunts and cuts the leader's damage taken by 40%.
+local function mender(spell: string, rally: string, hit: string): ({ Move }, { [string]: any })
 	return {
 		{ Name = rally, Target = "Ally", Pct = 0, Every = 5, Rally = { Amount = 0.15, Turns = 2 } },
-		{ Name = spell, Target = "Ally", Pct = 0, Every = 2, Heal = 0.012 },
 		{ Name = hit, Target = "Single", Pct = 0.8 },
-	}
+	}, { MendName = spell }
 end
-local WARDER = { Taunt = true, Protect = 0.3 }
+local WARDER = { Taunt = true, Protect = 0.4 }
 
 local guardList: { GuardType } = {
 	guard("ashigaru", "Crimson-Eye Shinobi", "🗡️", "Striker", 1, "Flame", Color3.fromRGB(255, 120, 70), {

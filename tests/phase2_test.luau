@@ -113,6 +113,7 @@ local owned = F.allOwned(0)
 local function staggersWith(attackId)
 	local battle = Engine.new({ Units = F.units(F.deck({ attackId }, {}), owned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(3), Guards = {} })
 	local fill = 0
+	battle.Slot = "Basic"
 	for _ = 1, 20 do
 		battle:HitEnemy(battle.ById.A1, battle.Boss, 0.01)
 		fill = battle.Boss.Stagger + battle.Boss.Staggers
@@ -125,11 +126,13 @@ do
 	local battle = Engine.new({ Units = F.units(F.deck({ "rook" }, {}), owned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(4), Guards = {} })
 	local events = {}
 	battle.Boss.Stagger = 0.999
-	battle:HitEnemy(battle.ById.A1, battle.Boss, 0.01)
+	battle.Slot = "Basic"
+	battle:HitEnemy(battle.ById.A1, battle.Boss, 1)
+	battle.Slot = nil
 	for _, e in battle:TakeEvents() do
 		events[e.K] = true
 	end
-	check(events.Stagger and battle.Boss.Staggered > 0 and battle:EnemyDEF(battle.Boss) == 0, "a full bar Staggers the leader: DEF 0")
+	check(events.Stagger and battle.Boss.Staggered > 0 and battle:ShieldFactor(battle.Boss) == Config.Battle.BrokenTaken, "a full Shield bar breaks: the leader takes 1.5x")
 	local gauge = battle.Boss.Gauge
 	battle:Step(1)
 	check(battle.Boss.Gauge == gauge, "a Staggered leader can't act")

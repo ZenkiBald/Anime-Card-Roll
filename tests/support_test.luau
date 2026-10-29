@@ -52,36 +52,36 @@ local function attacker(id)
 end
 do
 	local blink = attacker("orin")
-	check(blink.ById.A1.Energy == 25 and blink:Buff(blink.ById.A1, "Guard") == -.1, "Time Weaver's entry charge and vulnerability are both real")
+	check(blink.ById.A1.Energy == 0.25 * blink.ById.A1.UltCost and blink:Buff(blink.ById.A1, "Guard") == 0, "Time Weaver's entry charge is a real 25% of its Ultimate, with no vulnerability")
 	local cloak = attacker("aurelia"); local a = cloak.ById.A1
 	a.HP = math.floor(a.MaxHP * .4)
 	cloak:DamageAlly(a, 1, "Hit", "Boss")
 	local after = a.HP
 	cloak:RunEffect(a, { Kind = "Heal", Pct = 1, Target = "Self" })
-	check(a.HP == after and a.HealingLock == math.huge and cloak:Buff(a, "ATK") == .2, "Nine-Tails Sovereign's own cloak heals once, grants DMG and blocks further healing")
+	check(a.HP > after and a.HealingLock == 0 and cloak:Buff(a, "ATK") == .2, "Nine-Tails Sovereign's own cloak heals once and grants DMG, without blocking later healing")
 	local b = attacker("goro"); b.Rng = { NextNumber = function() return 0 end }
 	b.Boss.HP = 1e8; b.Boss.MaxHP = 1e8
 	for _ = 1, 8 do b:Trigger(b.ById.A1, "OnAct") end
 	check(b.ById.A1.Triggered[1].Used == 4 and b.ById.A1.Dealt > 0, "Fist of Severance's follow-up actually strikes and stops at four activations")
 end
 local banned = { "Fights and takes enemy hits", "Paired attacker only:", "matching Attack slot only", "Automatic on its action", "triggers per battle", "once per cast", "next hit can defeat", "Give this card", "turn(s)", "base damage" }
+-- 2026-10-30: passives lost their self-penalties. Each still needs a trigger plus a bound: a status / RNG
+-- mechanic, an activation limit or a condition (below half HP, on a kill ...).
 for _, card in Cards.List do
 	for _, ability in card.Abilities do
-		local strength = 0
-		if ability.Trigger or (card.Support and card.Support.Trigger) then strength += 1 end
-		local cost, status = false, ability.Chance ~= nil
+		local trigger = ability.Trigger ~= nil or (card.Support ~= nil and card.Support.Trigger ~= nil)
+		local penalty, bounded = false, ability.Chance ~= nil or ability.Limit ~= nil
 		for _, effect in ability.Effects do
-			cost = cost or (effect.Kind == "Buff" and effect.Amount < 0) or effect.Kind == "HealingLock"
-			status = status or table.find({ "Burn", "Bleed", "Debuff", "Cleanse", "Evade" }, effect.Kind) ~= nil
+			penalty = penalty or (effect.Kind == "Buff" and effect.Amount < 0 and (effect.Target == nil or effect.Target == "Self")) or effect.Kind == "HealingLock"
+			bounded = bounded or table.find({ "Burn", "Bleed", "Debuff", "Cleanse", "Evade" }, effect.Kind) ~= nil or effect.When ~= nil
 		end
+		bounded = bounded or table.find({ "BelowHalf", "OnKill", "OnCrit", "OnEntry" }, ability.Trigger or "") ~= nil
 		if card.Support then
-			cost = (card.Support.Penalty or 0) > 0 or card.Support.Kind == "LowHeal"
-			status = card.Support.Chance ~= nil or card.Support.Kind == "Dodge" or card.Support.Kind == "Cleanse"
+			penalty = card.Support.Kind ~= "Dodge" and (card.Support.Penalty or 0) > 0
+			bounded = card.Support.Chance ~= nil or card.Support.Uses ~= nil or card.Support.Threshold ~= nil or card.Support.Kind == "Dodge"
 		end
-		if cost then strength += 1 end
-		if status then strength += 1 end
 		if ability.Slot == "Passive" or ability.Slot == "Aura" or ability.Slot == "Signature" then
-			check(strength >= 2, card.Id .. " " .. ability.Name .. " combines a trigger with a cost or status / RNG mechanic")
+			check(trigger and bounded and not penalty, card.Id .. " " .. ability.Name .. " has a trigger and a bound, and no self-penalty")
 		end
 		local allCopyClean = true
 		for _, border in { "Normal", "Gold", "Rainbow", "Secret" } do
@@ -111,25 +111,25 @@ for _, border in { "Normal", "Gold", "Rainbow", "Secret" } do
 	a.Burns = { { Damage = 1, Ticks = 2, Timer = 2 } }
 	local before = a.HP - 1
 	b:DamageAlly(a, 1, "Hit", "Boss")
-	check(a.HP == before + math.floor(a.MaxHP * mod.Amount + 0.5) and mod.Used == 1 and not a.Frozen and #a.Burns == 0 and a.HealingLock == 2*Config.Battle.TurnSeconds, border .. " renewal cleanses, uses the rounded server percentage, and applies its healing cost")
+	check(a.HP == before + math.floor(a.MaxHP * mod.Amount + 0.5) and mod.Used == 1 and not a.Frozen and #a.Burns == 0 and a.HealingLock == 0, border .. " renewal cleanses and uses the rounded server percentage, with no healing lock")
 	before = a.HP
-	check(b:SupportHeal(mod, a, 100) == 0 and a.HP == before, border .. " healing lock really prevents healing")
+	check(b:SupportHeal(mod, a, 100) == 100 and a.HP == before + 100, border .. " later healing still lands after the renewal")
 	a.HP = 1
 	b:DamageAlly(a, a.MaxHP * 2, "Hit", "Boss")
 	check(not a.Alive and mod.Used == 1, border .. " renewal is limited and cannot revive")
 	local swift = setup("thunderclap_form", border)
 	local base = attacker("rook")
-	check(near(swift:Buff(swift.ById.A1, "SPD") - base:Buff(base.ById.A1, "SPD"), Cards.SupportValue(Cards.Get("thunderclap_form"), 0, border)) and near(swift.ById.A1.Buffs["Cost:S1"].Amount, -.1), border .. " thunder speed has its real DMG trade-off")
+	check(near(swift:Buff(swift.ById.A1, "SPD") - base:Buff(base.ById.A1, "SPD"), Cards.SupportValue(Cards.Get("thunderclap_form"), 0, border)) and swift.ById.A1.Buffs["Cost:S1"] == nil, border .. " thunder speed is real, with no DMG trade-off")
 	check(Cards.SupportValue(Cards.Get("thunderclap_form"), 5, border, 3) * 100 % 5 < 1e-8, border .. " copies and Awakening keep actual passive strength in steps of 5%")
 end
 do
 	local b = setup("beast_seal")
 	local a, support = b.ById.A1, b.ById.S1
 	b:DamageAlly(a, a.MaxHP * 2, "Hit", "Boss")
-	check(a.Alive and a.HP == math.floor(a.MaxHP * .55 + .5) and a.Invuln == 0 and near(a.Buffs["Cost:S1"].Amount, -.25), "Crimson Chakra Cloak returns at 55% HP (Base) and costs 25% DMG")
+	check(a.Alive and a.HP == math.floor(a.MaxHP * .55 + .5) and a.Invuln == 0 and a.Buffs["Cost:S1"] == nil, "Crimson Chakra Cloak returns at 55% HP (Base) with no DMG cost")
 	local seal = Cards.Get("beast_seal") :: any
 	check(Cards.SupportValue(seal, 0, "Gold") == .7 and Cards.SupportValue(seal, 0, "Rainbow") == .85 and Cards.SupportValue(seal, 0, "Secret") == 1, "the cloak returns at 70% / 85% / 100% on Gold / Rainbow / Secret")
-	check(b:SupportHeal(support.Modifier, a, 100) == 0 and a.HealingLock == math.huge and b:Snapshot().U.A1.F:find("N"), "the cloak permanently prevents healing and exposes its status")
+	check(b:SupportHeal(support.Modifier, a, 100) == 100 and a.HealingLock == 0 and not b:Snapshot().U.A1.F:find("N"), "after the cloak the card can still be healed (no healing lock)")
 	b:DamageAlly(a, a.MaxHP * 2, "Hit", "Boss")
 	check(not a.Alive and support.Modifier.Used == 1 and b.ById.A2.Alive, "a second fatal hit defeats the supported card without reviving again")
 	local report = b:Summary().Units.S1.Passive
@@ -182,7 +182,7 @@ end
 do
 	local b = setup("wisteria_vial"); local a = b.ById.A1; a.HP = 1
 	b:DamageEnemy(b.ById.G1, a, b.ById.G1.MaxHP, false, "Hit")
-	check(a.HP > 1 and near(a.Buffs["Cost:S1"].Amount, -.1) and b.ById.S1.Modifier.Used == 1, "Wisteria Antidote triggers on a real defeat and pays its DMG cost")
+	check(a.HP > 1 and a.Buffs["Cost:S1"] == nil and b.ById.S1.Modifier.Used == 1, "Wisteria Antidote triggers on a real defeat, with no DMG cost")
 end
 do
 	local b = attacker("akane"); b.Rng = { NextNumber = function() return 0 end }
@@ -190,10 +190,10 @@ do
 	check(#b.Boss.Burns == 1 and b.Boss.Burns[1].Kind == "Bleed" and b:Snapshot().U.Boss.F:find("L"), "Cursed Incision inflicts distinct Bleed on a critical hit")
 	local c = attacker("kaito"); c.ById.A1.HP = c.ById.A1.MaxHP*.4
 	c:DamageAlly(c.ById.A1, 1, "Hit", "Boss")
-	check(near(c:Buff(c.ById.A1, "ATK"), .25) and near(c:Buff(c.ById.A1, "Guard"), -.1) and c.ById.A1.Triggered[1].Used == 1, "Unbroken Pride awakens once below half HP with a real defensive cost")
+	check(near(c:Buff(c.ById.A1, "ATK"), .25) and near(c:Buff(c.ById.A1, "Guard"), 0) and c.ById.A1.Triggered[1].Used == 1, "Unbroken Pride awakens once below half HP, with no defensive cost")
 	local d = attacker("tenrai_card"); local a = d.ById.A1; a.HP = a.MaxHP*.4; a.Frozen = true
 	d:DamageAlly(a, 1, "Hit", "Boss")
-	check(not a.Frozen and a.HP > a.MaxHP*.5 and a.HealingLock == math.huge, "Demon Rebirth cleanses and regenerates before permanently locking healing")
+	check(not a.Frozen and a.HP > a.MaxHP*.5 and a.HealingLock == 0, "Demon Rebirth cleanses and regenerates, without locking healing")
 end
 check(Info.Highlight("Deal 125% DMG for 3 turns. Burn enemy 2."):find('<b>3 turns</b>', 1, true) and not Info.Highlight("enemy 2"):find('<font', 1, true), "only percentages, turn counts and statuses are highlighted")
 check(Info.Badges(Cards.Get("beast_seal"), Cards.Get("beast_seal").Abilities[1])[1] == "Activation Limit: 1", "activation limits are structured badge data, not paragraphs")

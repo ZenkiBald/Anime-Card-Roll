@@ -28,7 +28,7 @@ local State = {
 	Progress = { Cleared = {}, BestTime = {}, RewardAt={} },
 	Tower = { Best = 0, Run = 0, Pagoda = 0 }, -- Infinite Tower best run and run now, Pagoda floors cleared
 	Packs = {}, -- Roll Packs held: Packs.luau id -> count
-	Battle = { AutoUlt = false, Speed = 1 },
+	Battle = { AutoUlt = true, HoldUlt = true, Speed = 1 },
 	Store = { Passes = {}, Restricted = true, Mock = false }, -- MonetizationService.State
 	Raid = nil, -- the server's raid (RaidService.Public): window, pool, top hitters; nil until it arrives
 	-- Long-term progression (MetaService.State): potions, upgrades, Index claims, daily, gifts, milestones,

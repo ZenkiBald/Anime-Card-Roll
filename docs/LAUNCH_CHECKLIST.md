@@ -61,6 +61,15 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] Real-time battle pass (2026-10-30, headless only): play a World 1 Normal fight at 1x and 2x. Check:
+  - Fast / Balanced / Heavy Basic, Skill and Ultimate animations; full cards hovering; hit flash / shake.
+  - The CLASH ring appears when a big move lands, a tap and Space both work, and Space doesn't make the
+    character jump. A HIDE BATTLE mid-window leaves Space free.
+  - Muted 🛡 numbers while the Shield stands, big gold ones after the shatter; SHIELD BROKEN banner.
+  - HOLD · BREAK on full cards above 60% Shield, then the 0.5 s Ultimate chain; AUTO ULT / HOLD toggles save.
+  - Guard link beams in the Arena (and that they fade when a guard falls); five left-hand buttons on phone.
+  - Feel: fights now open with every card attacking; Recommended ratings dropped (World 1 Normal 70.1k).
+
 - [x] Sky tiers / bulk packs / reveal settings / claim-all (2026-10-30): live Base Yhwach1595 > Gojo1449,
   with Blood Moon1600-1760; all same-rarity normal / boss comparisons and story / tower fixtures pass.
   Actual Secret showcase label matches Borders.Secret gradient. SETTINGS minimum / Pack Flip vs Cinematic /
