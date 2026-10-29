@@ -92,7 +92,9 @@ function Style.Spin(gradient, owner, speed)
 end
 
 function Style.Text(label)
-	label.TextColor3 = WHITE
+	-- Keep authored semantic colors (HP / luck green, damage red, rarity tints).
+	local c=label.TextColor3
+	local dark=math.max(c.R,c.G,c.B)<.3
 	label.TextStrokeTransparency = 1
 	if label.Font ~= Enum.Font.LuckiestGuy then label.Font = Enum.Font.FredokaOne end
 	local outline = nil
@@ -104,8 +106,8 @@ function Style.Text(label)
 		local connection = label:GetPropertyChangedSignal("TextTransparency"):Connect(function() outline.Transparency = label.TextTransparency end)
 		outline.Destroying:Once(function() connection:Disconnect() end)
 	end
-	outline.Color = BLACK
-	outline.Thickness = 2.5
+	outline.Color = if dark then WHITE else BLACK
+	outline.Thickness = if dark then 0.6 else 2.5
 	outline.Transparency = label.TextTransparency
 end
 
@@ -121,10 +123,10 @@ function Style.Surface(target, color, deep, kind)
 	if not color then
 		color = gradient.Color.Keypoints[1].Value
 		if color == WHITE then color = target.BackgroundColor3 end
-		local h,s,v = color:ToHSV()
-		color = if v < .35 or s < .15 then Color3.fromRGB(91, 103, 178) else Color3.fromHSV(h, math.max(s, .45), math.max(v, .72))
+		local _,s,v = color:ToHSV()
+		color = if v < .35 or s < .15 then Color3.fromRGB(42, 60, 80) else color
 	end
-	deep = deep or color:Lerp(Color3.fromRGB(24, 22, 65), .6)
+	deep = deep or color:Lerp(Color3.fromRGB(8, 17, 28), .6)
 	gradient.Color = ColorSequence.new(color, deep)
 	gradient.Rotation = 90
 	gradient.Enabled = true
@@ -147,7 +149,7 @@ function Style.Surface(target, color, deep, kind)
 		target.BackgroundTransparency = 1
 		if not folder:FindFirstChild("ButtonLabel") then
 			local label = make("TextLabel", { Name = "ButtonLabel", Size = UDim2.fromScale(1,1), BackgroundTransparency = 1, ZIndex = target.ZIndex + 4 }, folder)
-			local properties = { "Text", "Font", "TextSize", "TextScaled", "TextWrapped", "TextXAlignment", "TextYAlignment", "RichText" }
+			local properties = { "Text", "TextColor3", "Font", "TextSize", "TextScaled", "TextWrapped", "TextXAlignment", "TextYAlignment", "RichText" }
 			local connections = {}
 			local function sync()
 				for _, property in properties do label[property] = target[property] end

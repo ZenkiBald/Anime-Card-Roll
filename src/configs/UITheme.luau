@@ -15,14 +15,14 @@ end
 local UITheme = {
 	Colors = {
 		-- Surfaces: Urushi lacquer, three depths.
-		UrushiBase = Color3.fromRGB(29, 28, 63),
-		UrushiRaised = Color3.fromRGB(72, 77, 133),
-		UrushiInset = Color3.fromRGB(22, 23, 49),
+		UrushiBase = Color3.fromRGB(13, 23, 35),
+		UrushiRaised = Color3.fromRGB(38, 56, 75),
+		UrushiInset = Color3.fromRGB(9, 17, 28),
 		-- Text: Washi parchment.
 		WashiParchment = Color3.new(1, 1, 1),
 		WashiGhost = Color3.fromRGB(200, 210, 240),
 		-- Frames: Tamahagane folded steel.
-		TamahaganeSlate = Color3.fromRGB(67, 59, 45), -- quiet antique-brass bezels
+		TamahaganeSlate = Color3.fromRGB(73, 97, 118),
 		TamahaganeEdge = Color3.fromRGB(86, 92, 104), -- #565C68 highlights, notches
 		TamahaganeRust = Color3.fromRGB(26, 28, 34), -- #1A1C22 the dark side of a bevel
 		-- Calls to action: Vermilion wax seal.
@@ -35,11 +35,11 @@ local UITheme = {
 		SurgeGold = Color3.fromRGB(220, 183, 107), -- warm gold leaf, sealed surge
 		SpiritSheen = Color3.fromRGB(236, 229, 216), -- the flowing sheen on JuicyButton rims (parchment, not cyan)
 		-- Older names, the same values, so every screen built on them follows the new tokens.
-		UrushiBlack = Color3.fromRGB(29, 28, 63), -- legacy token name, same vector panel base
-		Tamahagane = Color3.fromRGB(67, 59, 45), -- = TamahaganeSlate
+		UrushiBlack = Color3.fromRGB(13, 23, 35),
+		Tamahagane = Color3.fromRGB(73, 97, 118),
 		TamahaganeLight = Color3.fromRGB(86, 92, 104), -- = TamahaganeEdge
 		VermilionSeal = Color3.fromRGB(201, 59, 43), -- = VermilionWax
-		TextMuted = Color3.fromRGB(200, 210, 240),
+		TextMuted = Color3.fromRGB(181, 200, 216),
 
 		-- Element glow tints, by Elements.luau id (Flame, Frost, Storm, Light, Void, Cosmic).
 		Elements = elementColors,

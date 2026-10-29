@@ -20,6 +20,8 @@ local PackBatch = require(Shared.PackBatch)
 local Collections = require(Shared.Collections)
 local Weather = require(Shared.Weather)
 local WeatherService = require(script.Parent.WeatherService)
+local CelestialRolls=require(Shared.CelestialRolls)
+
 
 local Remotes = ReplicatedStorage.Remotes
 local GlobalAnnounce = require(script.Parent.GlobalAnnounce)
@@ -48,6 +50,15 @@ local DevCommands = require(Shared.DevCommands)
 local RollService = {}
 
 local rng = Random.new()
+local skySearches={}
+local function skyFind(player)
+	if not Config.CelestialCardsReady then return nil end
+	local state=WeatherService.State()
+	if state.Id=="clear" then return nil end
+	local gate=skySearches[player] or {};skySearches[player]=gate
+	if not CelestialRolls.Take(gate,state.Key,workspace:GetServerTimeNow()) then return nil end
+	return CelestialRolls.Pick(Cards.WeatherPool(state.Id),rng:NextNumber())
+end
 
 local lastRoll = {} -- [Player] = os.clock() of their last roll
 local openLimiter = RateLimit.new(1, 2) -- opening Roll Packs: one a second
@@ -278,17 +289,10 @@ local function rollClick(player: Player, profile, perfect: boolean, click: boole
 	for _ = 2, count do
 		table.insert(extra, doRoll(player, profile, nil, nil, { BorderMult = mult, FoilMult = foilMult }))
 	end
-	-- Normal pulls stay intact; a sky opportunity is normalized to ten pulls per pack.
-	local weather=WeatherService.State()
-	local weatherDef=Weather.ById[weather.Id]
-	if Config.CelestialCardsReady and weatherDef.PackOneIn>0 then
-		local eligible=Cards.WeatherPool(weather.Id)
-		for _=1,count do
-			if rng:NextNumber()<1/(10*weatherDef.PackOneIn) then
-				table.insert(extra,doRoll(player,profile,nil,nil,{CelestialId=eligible[rng:NextInteger(1,#eligible)].Id}))
-			end
-		end
-	end
+	-- A single paced search is shared by every roll source; Triple Roll cannot multiply it.
+	local found=skyFind(player)
+	if found then table.insert(extra,doRoll(player,profile,nil,nil,{CelestialId=found.Id})) end
+
 	main.Extra = if #extra > 0 then extra else nil
 
 	local before = Momentum.Count(player)
@@ -343,18 +347,15 @@ local function openPack(player: Player, profile, pack: Packs.Pack, count: number
 	end
 	local batch = PackBatch.New()
 	local touched = {}
-	local weather=WeatherService.State()
-	local weatherDef=Weather.ById[weather.Id]
+	local found=skyFind(player)
 	for index = 1, count * pack.Rolls do
 		local result = doRoll(player, profile, luck, xp, opts)
 		PackBatch.Add(batch, result)
 		touched[result.CardId] = true
-		if Config.CelestialCardsReady and index%10==0 and weatherDef.PackOneIn>0 and rng:NextNumber()<1/weatherDef.PackOneIn then
-			local eligible=Cards.WeatherPool(weather.Id)
-			local bonus=doRoll(player,profile,luck,xp,{CelestialId=eligible[rng:NextInteger(1,#eligible)].Id})
-			PackBatch.Add(batch,bonus)
-			touched[bonus.CardId]=true
-		end
+	end
+	if found then
+		local bonus=doRoll(player,profile,luck,xp,{CelestialId=found.Id})
+		PackBatch.Add(batch,bonus);touched[bonus.CardId]=true
 	end
 	MetaService.AddXP(player, data, xp.XP)
 	PackBatch.Finish(batch)
@@ -529,6 +530,7 @@ function RollService.OpenPacks(player: Player, packId: unknown, count: unknown)
 end
 
 function RollService.Start()
+	Players.PlayerRemoving:Connect(function(player) skySearches[player]=nil end)
 	Remotes.GetState.OnServerInvoke = function(player: Player)
 		if not stateLimiter:Allow(player) then
 			return { Ok = false, Reason = "Loading" } -- the client asks again

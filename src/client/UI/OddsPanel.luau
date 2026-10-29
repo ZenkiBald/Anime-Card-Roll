@@ -67,7 +67,7 @@ local function refresh()
 		local chance=pull[id]
 		if card.Weather then
 			local sky=Weather.ById[card.Weather]
-			row.Chance.Text=if Config.CelestialCardsReady and State.Weather.Id==card.Weather then string.format("%.3f%% / pack",100/(sky.PackOneIn*4)) else "INACTIVE"
+			row.Chance.Text=if Config.CelestialCardsReady and State.Weather.Id==card.Weather then string.format("%.3f%% / sky search",100/card.SkyOneIn) else "INACTIVE"
 			row.OneIn.Text=sky.Name.." only"
 		else
 			row.Chance.Text=if chance then Odds.FormatPercent(chance*100) else "Unavailable"

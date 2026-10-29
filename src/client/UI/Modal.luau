@@ -66,7 +66,8 @@ function Modal.Banner(parent: Instance, title: string, textSize: number?): any -
 		Kit.stroke(Theme.Color.Line, 1.2, 0),
 		Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 30), PaddingRight = UDim.new(0, 22) }),
 	})
-	Kit.surface(banner, Color3.fromRGB(159, 117, 255), Color3.fromRGB(86, 45, 200), "Header")
+	local accent=Theme.Section(title)
+	Kit.surface(banner, accent, accent:Lerp(Theme.Color.Backdrop,.55), "Header")
 	local label = Kit.new("TextLabel", {
 		Name = "Title",
 		Text = string.upper(title),
@@ -186,7 +187,7 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		Selectable = false,
 		Parent = self.Panel,
 	})
-	Kit.surface(self.Panel, Color3.fromRGB(78, 76, 137), Color3.fromRGB(27, 26, 59), "Window")
+	Kit.surface(self.Panel, Theme.Color.PanelLight, Theme.Color.Panel, "Window")
 	-- Phones: the panel is laid out at desktop size and scaled down to the screen (Modal.FitScale), so a
 	-- short landscape screen shows the same layout smaller instead of squashing rows to nothing. It
 	-- also takes almost the whole screen there.
@@ -299,7 +300,8 @@ Page.__index = Page
 local function styleTab(button: TextButton, on: boolean)
 	button.TextColor3 = Color3.new(1,1,1)
 	button.BackgroundTransparency = 0
-	Kit.surface(button, if on then Color3.fromRGB(158, 111, 255) else Color3.fromRGB(91, 103, 178), if on then Color3.fromRGB(83, 40, 181) else Color3.fromRGB(43, 45, 91))
+	local accent=Theme.Section(button.Name)
+	Kit.surface(button, if on then accent else Theme.Color.PanelLight, if on then accent:Lerp(Theme.Color.Backdrop,.6) else Theme.Color.Panel)
 	local stroke = button:FindFirstChildOfClass("UIStroke")
 	if stroke then
 		stroke.Color = C.TamahaganeSlate

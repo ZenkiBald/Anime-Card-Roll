@@ -75,14 +75,14 @@ export type Card = {
 	-- slot 1 links to Attack slot 1, ...). Stat is a trait stat (Traits.luau); BattleEngine applies it.
 	Link: { Name: string, Stat: string, Amount: number, Text: string }?,
 	Boss: string?, -- a boss card: joins the pool after this boss's first Normal clear
-	Weather: string?, -- separate Celestial collection; only consumable packs during this weather
+	Weather: string?, -- separate Celestial collection; paced rolls / packs during this sky
+	SkyOneIn: number?, -- exact any-border chance per server-paced active-sky search
 }
 
 local Config = require(script.Parent.Config)
 local Borders = require(script.Parent.Borders)
 local Awaken = require(script.Parent.Awaken)
 local Odds = require(script.Parent.Odds)
-local Weather = require(script.Parent.Weather)
 local CelestialCards = require(script.Parent.CelestialCards)
 
 local function ability(slot: string, name: string, text: string, effects: { Effect }, every: number?, rules: { Trigger: string?, Chance: number?, Limit: number? }?): Ability
@@ -1255,6 +1255,7 @@ end
 function Cards.WeatherPool(weatherId: string): {Card}
 	local pool={}
 	for _,card in list do if card.Weather==weatherId then table.insert(pool,card) end end
+	table.sort(pool,function(a,b) return (a.SkyOneIn or 0)<(b.SkyOneIn or 0) end)
 	return pool
 end
 
@@ -1269,6 +1270,7 @@ end
 Cards.RarityScale = { CommonWeight = 10, Exponent = 0.15 }
 
 function Cards.Scale(card: Card): number
+	if card.SkyOneIn then return (card.SkyOneIn/600)^0.13 end
 	local s = Cards.RarityScale
 	return (s.CommonWeight / math.max(0.01, card.Weight)) ^ s.Exponent
 end
@@ -1347,7 +1349,7 @@ function Cards.RawRarity(cardId: string, border: string?): number
 		fullChances = Cards.PullChances(normal)
 	end
 	local card=Cards.Get(cardId)
-	local pull = if card and card.Weather then 1/(Weather.ById[card.Weather].PackOneIn*4) else (fullChances :: { [string]: number })[cardId] or 0
+	local pull = if card and card.SkyOneIn then 1/card.SkyOneIn else (fullChances :: { [string]: number })[cardId] or 0
 	local chance = Borders.Chances()[border or "Normal"] or 0
 	if pull <= 0 or chance <= 0 then
 		return 0

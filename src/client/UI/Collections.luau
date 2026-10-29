@@ -11,14 +11,18 @@ local State=require(script.Parent.Parent.State)
 local Collections={}
 local modal, preview, heading, info, choose, choices
 local selected="normal"
+local choiceButtons={}
 local busy=false
 local function refresh()
 	if not modal or not modal.IsOpen then return end
 	local def=Catalog.ById[selected]
 	heading.Text=def.Name
+	for id,button in choiceButtons do
+		Kit.surface(button,if id==selected then Theme.Color.Info else Theme.Color.PanelLight,if id==selected then Theme.Color.InfoDeep else Theme.Color.Panel)
+	end
 	local unlocked=Catalog.Unlocked(selected,State.Progress.Cleared)
 	local active=State.Summary.SelectedCollection==selected
-	info.Text=def.Text .. "\n" .. (if unlocked then "Unlocked boss cards stay eligible. Active Celestial Cards use their separate weather chance." else "Unlock: " .. def.Unlock)
+	info.Text=def.Text .. "\n" .. (if unlocked then "Unlocked boss cards stay eligible. Sky cards are separate rare finds while their sky is active." else "Unlock: " .. def.Unlock)
 	choose.Label.Text=if active then "ACTIVE COLLECTION" elseif unlocked then "SELECT COLLECTION" else "LOCKED"
 	Kit.dim(choose,not unlocked or active)
 	for _,child in preview:GetChildren() do if child:IsA("GuiObject") then child:Destroy() end end
@@ -37,7 +41,8 @@ function Collections.Init(playerGui)
 	modal=Modal.new(playerGui,"CollectionsGui","CARD PACKS",Vector2.new(.9,.88),Vector2.new(1120,760))
 	choices=Kit.new("Frame",{BackgroundTransparency=1,Size=UDim2.new(.26,-10,1,0),Parent=modal.Body},{Kit.new("UIListLayout",{Padding=UDim.new(0,8)})})
 	for i,def in Catalog.List do
-		local button=Kit.button(def.Name,Theme.Color.Quick,Color3.fromRGB(32,72,120),{LayoutOrder=i,Size=UDim2.new(1,0,0,58),Parent=choices})
+		local button=Kit.button(def.Name,Theme.Color.PanelLight,Theme.Color.Panel,{LayoutOrder=i,Size=UDim2.new(1,0,0,58),Parent=choices})
+		choiceButtons[def.Id]=button
 		button.Activated:Connect(function() selected=def.Id;refresh() end)
 	end
 	local right=Kit.new("Frame",{BackgroundTransparency=1,Position=UDim2.fromScale(.27,0),Size=UDim2.fromScale(.73,1),Parent=modal.Body})

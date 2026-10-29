@@ -50,7 +50,7 @@ function Abilities.Badges(ability, card, parent: Instance, order: number, z: num
 		for _, part in { { -16, 12, 5, 45 }, { -12, 10, 9, -45 } } do
 			Kit.new("Frame", { Name = "Check", Position = UDim2.fromOffset(part[1], part[2]), Size = UDim2.fromOffset(part[3], 2), Rotation = part[4], BorderSizePixel = 0, BackgroundColor3 = Color3.fromRGB(28, 48, 36), ZIndex = level + 2, Parent = pill })
 		end
-		Kit.new("TextLabel", { Text = label, TextSize = 13, Font = Theme.Font.Bold, TextColor3 = Color3.fromRGB(21, 27, 32), BackgroundTransparency = 1,
+		Kit.new("TextLabel", { Text = label, TextSize = 13, Font = Theme.Font.Medium, TextColor3 = Color3.fromRGB(21, 27, 32), BackgroundTransparency = 1,
 			Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, ZIndex = level + 2, Parent = pill })
 	end
 end
@@ -108,7 +108,7 @@ function Abilities.Row(ability, parent: Instance, order: number, size: string?, 
 		Text = slot.Label,
 		Font = Theme.Font.Heavy,
 		TextSize = if big then 15 else 14,
-		TextColor3 = Color3.fromRGB(8, 10, 15),
+		TextColor3 = Theme.Color.Text,
 		BackgroundTransparency = 1,
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromScale(0, 1),

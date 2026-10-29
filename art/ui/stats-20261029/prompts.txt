@@ -1,0 +1,9 @@
+Built-in image_gen; transparent_background=true for both assets.
+
+damage-source.png
+Create one production game UI icon asset: a single bold upward diagonal silver sword with a vivid crimson red faceted blade core and red gemstone pommel, representing DAMAGE / ATTACK. Glossy simulator vector illustration for a Roblox anime card game, clean chunky black outer outline, bright white specular highlights, polished bevels, readable silhouette even at 20px. No sparks outside the silhouette, no aura, no lettering, no numbers, no badge or square background, isolated centered with 10% padding on an actually transparent alpha background. Square composition, high contrast. This will be paired with a green health heart in exactly the same shiny plastic vector style.
+
+health-source.png
+Create one production game UI icon asset: a single plump heart-shaped emerald green health crystal, with a modest silver metallic bevel around its edge and a tiny white medical plus engraved at the center. Represents HEALTH / HP. Glossy simulator vector illustration for a Roblox anime card game, clean chunky dark outer outline, bright white specular highlights top left, saturated green faceted surfaces, polished bevels, readable silhouette even at 20px. No sparks outside the silhouette, no aura, no lettering, no numbers, no badge or square background, isolated centered with 10% padding on an actually transparent alpha background. Square composition, high contrast. Match a silver edged crimson gemstone sword icon's shiny plastic jewel style, but green signifies health.
+
+256 x 256 upload PNGs are Lanczos reductions of the unchanged alpha source PNGs.

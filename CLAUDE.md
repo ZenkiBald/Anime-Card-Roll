@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-10-29). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-10-30). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -85,12 +85,19 @@ Soulfall (Bleach), Cursed Night (Jujutsu Kaisen) and Blood Moon (Demon Slayer) l
 add +0.5 / +1 / +1 / +2 luck. Each has four separate Attack cards and cohesive clothed portrait art in
 `art/cards/celestial-clothed-20261029/` (prompts, source hashes and uploaded ids in its manifest).
 `CelestialArt` maps the assets; `Config.CelestialCardsReady=true`. These cards have named character kits,
-900 ATK / 1800 HP before rarity scaling, borders, 100:1 fusion, traits, mastery and their own Codex section;
+1250 ATK / 2500 HP at rarity 600, then the same `(SkyOneIn / 600)^0.13` stat curve across every sky,
+borders, 100:1 fusion, traits, mastery and their own Codex section;
 they do not count toward normal completion rewards. No event Supports or same-weather column sync.
 
-Normal pulls keep their usual rates. While a sky is active, every ten-card pack-equivalent independently
-rolls an extra event card at 1/100 / 1/150 / 1/150 / 1/500; ROLL / AUTO normalize that chance per individual
-pull. All eligible sky cards are equally likely within their sky. Bulk receipts include every normal and
+Normal pulls keep their usual rates / quantities. While a sky is active, ROLL, AUTO, Triple Roll and
+consumable packs share one server-paced sky search per second per player. Searches never bank while idle;
+a bulk pack opening gives one search, not one per card / pack. It still delivers every normal pull.
+`CelestialRolls.Pick` has disjoint per-card `1 / SkyOneIn` chances with a no-find remainder, unaffected by
+luck (luck still improves the find's border). Limitbreak: Broly 600 / Gogeta 750 / Vegeta 800 / Goku 1000;
+Soulfall: Ichigo 1200 / Aizen 1500 / Yamamoto 2000 / Yhwach 2500; Cursed Night: Toji 1500 / Yuta 2000 /
+Gojo 2500 / Sukuna 3000; Blood Moon: Akaza 4000 / Doma 5000 / Kokushibo 6000 / Muzan 8000.
+Displayed border rarity uses that same chance and border odds. Rarer sky cards have greater actual stats;
+at matched rarity / border each exceeds a normal / boss card. Bulk receipts include every normal and
 bonus card in the same rarest-first highlights / complete grouped summary. No out-of-weather event drops.
 Matching sky cards gain +20% ATK / max HP in every battle, reverting when it ends; transitions preserve HP
 percentage and never provide free healing. BEST DECK accounts for the active sky.
@@ -102,8 +109,10 @@ Blood Moon or another summon; cooldown is five minutes after a summoned sky ends
 cooldown too. Expired overrides return to the shared schedule. A named banner announces summons.
 Fragments / supplies are earned through daily / streak / playtime / milestone / quest / wheel rewards,
 raids, new tower records and Corrupted Hard / Nightmare bosses (+20% leader HP during an active sky).
-The sky HUD is read-only: anime, luck, distinct remaining-time readout and four eligible portraits, or a
-forecast. Items / crafting stay in BAG > SKY ITEMS. Illustrated active-potion / worn-relic icons sit at
+The sky HUD is read-only: anime, green luck bonus, remaining time and four eligible slots, or a forecast.
+Unowned slots have dark mystery art / ??? names; ownership reveals their portrait / name immediately.
+Each slot shows its base rarity, and the hint states the shared search pace. Items / crafting stay in
+BAG > SKY ITEMS. Illustrated active-potion / worn-relic icons sit at
 bottom RIGHT with hover / tap details. Short screens use one compact icon row and separate progress bars.
 `SkyFx` adds subtle camera-local grading / bounded motes (12/s, 3/s on LOW), paused behind panels / fights;
 it never overwrites world or tower-night lighting. The tower-night `ZoneFx.InfiniteTower` mood from Studio
@@ -402,7 +411,8 @@ The character artwork pass did not change identities. The later character-to-Att
 - The server owns every roll, stat and result; the client only requests and animates. Validate every remote argument on
   the server, rate-limit it (`RateLimit`), and check ownership / NPC range where it applies.
 - Attack borders always win: Base 1x / Gold 4x / Rainbow 16x / Secret 64x; base stats within +-10% of one line (HP = 2 x ATK),
-  then rarer cards scale up (`Cards.Scale`: (10 / Weight) ^ 0.15, boss cards up to about 1.5x, the user's call; event Attacks start at 900 ATK / 1800 HP before rarity scaling);
+  then rarer cards scale up (`Cards.Scale`: (10 / Weight) ^ 0.15, boss cards up to about 1.5x; event Attacks
+  use 1250 ATK / 2500 HP times (SkyOneIn / 600)^0.13, independently of normal-pool weights);
   duplicates grant no stats; mastery never multiplies ATK / HP. A card on one border never reaches the next
   through mastery (odds_test checks). Traits stay
   small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border fusion only: 100 copies at one border -> 1 at the next.
@@ -437,9 +447,16 @@ Secret chase decks). Re-run after changing
 The server list opens / closes with Tab or its fold button; Tab passes through while typing and while
 the list is hidden. The desktop sky panel moves below the expanded list; compact screens hide that panel
 until the list folds. The HUD shows Trait Shards and rolls; retired diamond Shards are absent, while
-Celestial Fragments remain in BAG. Card sheets use plain DMG / HP, trait / foil / type tags and ability
-names without emoji. Element badges / filters / matchup guides are hidden; internal themes still color
-art effects. TRAINING uses the existing illustrated clover, hourglass, prism, Trait Shard and tome assets.
+Celestial Fragments remain in BAG. Neutral dark slate windows keep glossy edges; section titles / active
+tabs follow their meaning. Attack / DMG is crimson, Support / HP / luck green, navigation blue, training /
+rewards gold. Shared typography preserves authored colors, including small high-contrast pills.
+`StatLine` uses uploaded red sword / green heart images on full cards, formation stats, inspectors and
+hover sheets; prompts / alpha sources / upload hashes live in `art/ui/stats-20261029/manifest.json`.
+Card faces show name, rarity, one headline, trait / foil and combat stats; repeated type / subtitle /
+passive tags are removed. The compact inspector shows stats, one technique, rarity / copies and actions;
+the skill sheet's collapsed collection section has concise copy / foil / trait / next mastery / bond facts.
+Element badges / filters / matchup guides are hidden; internal themes still color art effects. TRAINING
+uses the existing illustrated clover, hourglass, prism, Trait Shard and tome assets.
 
 DEV has a searchable card picker with exact border / copies, custom luck / earned-luck reset, Trait
 Shard / Fragment and pack grants, local sky / duration previews, level edits, sky supplies and boss

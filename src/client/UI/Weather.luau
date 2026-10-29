@@ -35,10 +35,10 @@ local function refresh()
 	title.Text=string.upper(def.Name)
 	subtitle.Text=if active or forecast then def.Series else "Normal cards are always available"
 	bonus.Text=if active then string.format("+%gx luck",def.Luck) elseif forecast then "FORECAST" else "CALM"
-	bonus.TextColor3=def.Color
+	bonus.TextColor3=Theme.Color.Luck
 	timer.Text=if active then clock(current.Ends-now) elseif current.Next then clock(current.Next.Starts-now) else "--:--"
 	timeLabel.Text=if active then "TIME LEFT" else "NEXT SKY"
-	footer.Text=if hasCards then (if active then "Rolls + packs can find these cards" else "These cards become available when this sky arrives") else "Sky items and potions are in BAG"
+	footer.Text=if hasCards then (if active then "Roll / AUTO / packs · 1 sky search / sec" else "Available when this sky arrives") else "Sky items and potions are in BAG"
 	caption.Text=if active then "EXCLUSIVE ATTACK CARDS · ROLLABLE NOW" else "UPCOMING EXCLUSIVE CARDS"
 	caption.Visible=hasCards;strip.Visible=hasCards
 	edge.Color=def.Color
@@ -49,18 +49,29 @@ local function refresh()
 	fill.Size=UDim2.fromScale(math.clamp(left/duration,0,1),1)
 	fill.BackgroundColor3=def.Color
 	fill.Parent.Visible=active or forecast
-	local key=preview..tostring(hasCards)
+	local discoveries={}
+	for _,card in Cards.WeatherPool(preview) do
+		local own=State.Cards[card.Id]
+		table.insert(discoveries,if own and (own.Copies or 0)>0 then "1" else "0")
+	end
+	local key=preview..tostring(hasCards)..table.concat(discoveries)
 	if key~=shown then
 		shown=key
 		for _,child in strip:GetChildren() do if child:IsA("GuiObject") then child:Destroy() end end
 		if hasCards then
 			for i,card in Cards.WeatherPool(preview) do
+				local own=State.Cards[card.Id]
+				local discovered=own and (own.Copies or 0)>0
 				local cell=Kit.new("Frame",{Name=card.Id,LayoutOrder=i,Size=UDim2.fromOffset(71,104),BackgroundColor3=Color3.fromRGB(17,21,38),Parent=strip},{Kit.corner(),Kit.stroke(def.Color,1.5,.15)})
-				Kit.new("ImageLabel",{Name="Portrait",Image=card.Image or "",ScaleType=Enum.ScaleType.Crop,Size=UDim2.new(1,-4,1,-22),Position=UDim2.fromOffset(2,2),BackgroundTransparency=1,Parent=cell},{Kit.corner()})
+				Kit.surface(cell,Color3.fromRGB(18,26,40),Color3.fromRGB(5,9,17))
+				cell:SetAttribute("Discovered",discovered==true)
+				Kit.new("ImageLabel",{Name="Portrait",Image=if discovered then card.Image or "" else "",ScaleType=Enum.ScaleType.Crop,Size=UDim2.new(1,-4,1,-22),Position=UDim2.fromOffset(2,2),BackgroundTransparency=1,Parent=cell},{Kit.corner()})
+				Kit.label({Name="Mystery",Text="?",Visible=not discovered,TextColor3=Theme.Color.Muted,Position=UDim2.fromScale(.2,.15),Size=UDim2.fromScale(.6,.52),Parent=cell},38)
+				Kit.label({Name="Rarity",Text=Kit.commas(card.SkyOneIn),TextColor3=Theme.Color.Gold,Position=UDim2.fromScale(.05,.64),Size=UDim2.fromScale(.9,.16),ZIndex=4,Parent=cell},13)
 				local name=string.match(card.Id,"_([^_]+)$") or card.Name
 				name=string.upper(string.sub(name,1,1))..string.sub(name,2)
 				if name=="Yuta" then name="Yuta & Rika" end
-				Kit.label({Name="CharacterName",Text=name,Position=UDim2.new(0,2,1,-21),Size=UDim2.new(1,-4,0,19),Parent=cell},12)
+				Kit.label({Name="CharacterName",Text=if discovered then name else "???",Position=UDim2.new(0,2,1,-21),Size=UDim2.new(1,-4,0,19),Parent=cell},12)
 			end
 		end
 	end
@@ -101,7 +112,7 @@ local function refresh()
 	footer.Position=UDim2.new(0,if short then 10 else 12,1,if short then -18 else -26)
 	footer.Size=UDim2.fromOffset(if short then 216 else 306,if short then 12 else 17)
 	footer.TextSize=if short then 10 else 12
-	if short and hasCards then footer.Text=if active then "Rollable now · rolls + packs" else "Available when this sky starts" end
+	if short and hasCards then footer.Text=if active then "Rare sky finds · 1 search / sec" else "Available when this sky starts" end
 
 end
 function Ui.Init(playerGui)
@@ -129,6 +140,7 @@ function Ui.Init(playerGui)
 		refresh()
 	end)
 	Modal.Changed:Connect(refresh)
+	State.Changed:Connect(refresh)
 	PlayerList.Changed:Connect(refresh)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refresh)
 	task.spawn(function() while true do refresh();task.wait(1) end end)

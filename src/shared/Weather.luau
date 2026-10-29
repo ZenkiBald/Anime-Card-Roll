@@ -5,11 +5,11 @@ Weather.SlotSeconds = 900
 Weather.ForecastSeconds = 150
 Weather.Seed = 731947
 Weather.List = {
-	{ Id="clear", Name="Quiet Skies", Luck=0, Seconds=0, PackOneIn=0, Color=Color3.fromRGB(130,210,255) },
-	{ Id="rain", Name="Limitbreak Skies", Series="Dragon Ball", Luck=0.5, Seconds=300, PackOneIn=100, Color=Color3.fromRGB(75,170,255) },
-	{ Id="blizzard", Name="Soulfall", Series="Bleach", Luck=1, Seconds=300, PackOneIn=150, Color=Color3.fromRGB(160,235,255) },
-	{ Id="thunder", Name="Cursed Night", Series="Jujutsu Kaisen", Luck=1, Seconds=300, PackOneIn=150, Color=Color3.fromRGB(175,120,255) },
-	{ Id="eclipse", Name="Blood Moon", Series="Demon Slayer", Luck=2, Seconds=180, PackOneIn=500, Color=Color3.fromRGB(255,80,115) },
+	{ Id="clear", Name="Quiet Skies", Luck=0, Seconds=0, Color=Color3.fromRGB(130,210,255) },
+	{ Id="rain", Name="Limitbreak Skies", Series="Dragon Ball", Luck=0.5, Seconds=300, Color=Color3.fromRGB(75,170,255) },
+	{ Id="blizzard", Name="Soulfall", Series="Bleach", Luck=1, Seconds=300, Color=Color3.fromRGB(160,235,255) },
+	{ Id="thunder", Name="Cursed Night", Series="Jujutsu Kaisen", Luck=1, Seconds=300, Color=Color3.fromRGB(175,120,255) },
+	{ Id="eclipse", Name="Blood Moon", Series="Demon Slayer", Luck=2, Seconds=180, Color=Color3.fromRGB(255,80,115) },
 }
 Weather.ById = {} :: {[string]: any}
 for _, def in Weather.List do Weather.ById[def.Id]=def end
@@ -59,6 +59,4 @@ for _,def in Weather.List do
 		table.insert(Weather.Items,{Id=`sigil:{def.Id}`,Name=`{def.Name} Sigil`,Weather=def.Id,Text=`Summon {def.Name} for 3 minutes on this server. Craft with {Weather.SigilCost(def.Id)} Celestial Fragments.`,Art=if def.Id=="rain" then "Artifact:prism" elseif def.Id=="blizzard" then "Artifact:frostsigil" elseif def.Id=="thunder" then "Artifact:stormcrown" else "Artifact:voideye"})
 	end
 end
--- One opportunity per ten-card consumable pack equivalent; bulk and condensed packs agree.
-function Weather.PackTrials(rolls: number): number return math.floor(math.max(0,rolls)/10) end
 return Weather

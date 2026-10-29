@@ -9,6 +9,21 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- SEMANTIC UI / SKY RARITY COMPLETE (2026-10-30): dark neutral glossy windows, meaningful tab colors,
+  Attack / DMG red, Support / HP / luck green; shared typography no longer forces everything white.
+  New uploaded red sword / green heart art is used on card sheets / formation / inspector / hover.
+  Removed repeated card type / subtitle / passive tags and shortened inspector / collection details.
+  Sky HUD hides unowned portraits / names as dark mystery slots; discovery reveals only owned cards,
+  with each base rarity shown. Individual any-border sky odds: Limitbreak 600-1000, Soulfall 1200-2500,
+  Cursed Night 1500-3000, Blood Moon 4000-8000. Same rising stats curve across skies, stronger than normal /
+  boss cards at matched rarity. ROLL / AUTO / Triple Roll / packs share one sky search per second;
+  bulk opening retains every normal pull but cannot multiply / bank sky chances. Normal odds, existing
+  ownership / kits / summons / saves preserved. Required checks and desktop Studio checks pass;
+  ordinary discovery / longer scarcity / phone / all other-screen review remain in checklist 5.
+  Studio reconnected as d9f18db7-02a5-4dfe-99bd-f5cd96e52de2, same placeId 82125530113782.
+  Sources synced; final CardView / Abilities contrast fixes also applied through MCP after reconnect.
+  Studio Edit; temporary previews removed by stopping Play, upload helper stopped. Nothing published.
+
 - TOWER / UI / DEV COMPLETE (2026-10-29): Tab folds / expands SERVER, sky panel clears the list;
   card sheets use clean DMG / HP / trait / foil labels, element badges / filters / matchup text removed.
   Retired diamond HUD counter removed; Trait Shards remain, Celestial Fragments stay in BAG. TRAINING
@@ -137,6 +152,34 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-30 · Codex · this commit · Applied requested color / icon / card-density / sky rarity pass.
+  UITheme / Theme / Modal / Controls / VectorStyle use neutral slate surfaces and semantic accents;
+  removed shared white-text override, retained readable small pill / trait labels. Attack red, Support /
+  HP / luck green, navigation blue, training / rewards gold. Added StatLine shared image-backed stats;
+  two alpha AI assets generated with built-in image_gen, reduced to 256px and uploaded. Full source /
+  exact prompts / asset ids / hashes in art/ui/stats-20261029. Formation / sheet / hover / inspector
+  use them. Mini cards omit repeated role text; full card omits subtitle / repeated passive / type tags.
+  Short inspector keeps stats, technique, border / copies / actions; collapsed collection section now
+  has concise copy / foil / traits / next mastery / familiar bond facts, without emoji diagnostics.
+  Collection selection is blue / neutral rather than every button green. Sky HUD uses dark unknown
+  slots / ??? names until owned, reacts immediately to discovery, shows individual base rarities and
+  shared search pace. Sixteen SkyOneIn values replace equal four-card odds; 1250/2500 at rarity600,
+  times (SkyOneIn/600)^0.13 across skies. Blood Moon is a 4000-8000 chase; Limitbreak600-1000.
+  CelestialRolls uses exact disjoint per-card probabilities and a no-find remainder. One nonbanking
+  server search / second / player shared by manual / auto / triple / bulk sources; every normal pack
+  pull preserved. No renamed cards, new save fields, world edits or summon-rule changes.
+  Checks: luau-lsp exit0 / zero errors, check_props5775 / zero problems, full bundle ALL CHECKS PASSED.
+  Added sampled500k searches per sky, pacing / no banking, distinct odds / rising stats and same-rarity
+  normal / boss comparisons; all story / tower fixtures still pass (~74-76s story medians).
+  Studio desktop: SQUAD / Training / Card Packs / Demon Progenitor full sheet, both new image ids loaded,
+  readable pills / tags; four unknown sky slots -> only Broly portrait reveals -> original client state
+  restored. Live server Limitbreak numbers600/750/800/1000 and ATK1250/1287/1298/1336 confirmed.
+  Controlled fresh-sky pack transaction on a non-yielding profile copy:100 packs ->1000 normal +1 forced
+  sky find; immediate next pack ->0sky / picker called once; real profile and picker restored. No test
+  grants saved. Existing asset203785492 type warning remains. Unsure: user palette preference, all other
+  screens / mobile sharpness and ordinary multi-event rarity feel; checklist5 records those. Studio Edit,
+  upload helper stopped, branch pushed, nothing published. Unrelated art / .codex files left untouched.
 
 - 2026-10-29 · Codex · this commit · Refined the user's existing 22-floor tower in place from the pagoda
   reference, preserving untouched geometry / markers / moved trees in ServerStorage. 1.7x base hall,

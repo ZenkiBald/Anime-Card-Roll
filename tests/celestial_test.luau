@@ -32,7 +32,47 @@ do
 	local summon={Id="eclipse",Key="test",Starts=100,Ends=280,Summoned=true}
 	check(W.At(110,summon).Id=="eclipse" and W.At(280,summon).Key~="test","local summons override only until they end")
 	check(W.Pick(0)=="rain" and W.Pick(.999)=="eclipse" and W.SigilCost("eclipse")==25,"Orb odds and Eclipse crafting use authored data")
-	check(W.PackTrials(1000)==100*W.PackTrials(10),"condensed and bulk packs have equivalent weather opportunities")
+
+end
+
+-- Sky finds are distinct authored probabilities, shared across all roll sources at a real-time pace.
+do
+	local C,R,W=MODULES.Cards,MODULES.CelestialRolls,MODULES.Weather
+	local gate={}
+	check(R.Take(gate,"sky",100) and not R.Take(gate,"sky",100) and not R.Take(gate,"sky",100.99),"manual / AUTO / pack requests cannot duplicate a sky search")
+	check(R.Take(gate,"sky",101) and R.Take(gate,"sky",10000) and not R.Take(gate,"sky",10000),"sky searches refill once per second and never bank idle attempts")
+	local normal=C.Pool({["kurogane:Normal"]=true,["rimeveil:Normal"]=true,["vex:Normal"]=true,["tenrai:Normal"]=true})
+	local total=0
+	for _,card in normal do total+=card.Weight end
+	local minBlood,maxLimit=math.huge,0
+	for _,sky in W.List do
+		if sky.Id=="clear" then continue end
+		local seen,last,stats={},0,0
+		local pool=C.WeatherPool(sky.Id)
+		local mass=0
+		for _,card in pool do
+			local atk=C.Stat(card,card.Main,0,"Normal")
+			check(not seen[card.SkyOneIn] and card.SkyOneIn>last and atk>stats,"rarer sky cards have unique odds and stronger stats: "..card.Name)
+			seen[card.SkyOneIn]=true;last=card.SkyOneIn;stats=atk
+			local stronger=true
+			for _,other in normal do
+				if other.Type~="Attack" then continue end
+				local matched=table.clone(other);matched.Weight=total/card.SkyOneIn
+				stronger=stronger and atk>C.Stat(matched,matched.Main,0,"Normal")
+			end
+			check(stronger,"sky card outstats a normal / boss card at the same rarity: "..card.Name)
+			mass+=1/card.SkyOneIn
+			if sky.Id=="rain" then maxLimit=math.max(maxLimit,card.SkyOneIn) end
+			if sky.Id=="eclipse" then minBlood=math.min(minBlood,card.SkyOneIn) end
+		end
+		check(mass<.01 and R.Pick(pool,.99999)==nil,"most eligible sky searches remain ordinary rolls: "..sky.Name)
+		local counts={};local rng=Random.new(429);local n=500000
+		for _=1,n do local found=R.Pick(pool,rng:NextNumber());if found then counts[found.Id]=(counts[found.Id] or 0)+1 end end
+		local matches=true
+		for _,card in pool do local chance=1/card.SkyOneIn;matches=matches and math.abs((counts[card.Id] or 0)-n*chance)<5*math.sqrt(n*chance*(1-chance)) end
+		check(matches,"sampled per-card sky odds match their displayed rarity: "..sky.Name)
+	end
+	check(maxLimit==1000 and minBlood==4000,"Blood Moon is a rarer chase than the 600-1000 Limitbreak range")
 end
 
 do

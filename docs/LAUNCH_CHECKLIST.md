@@ -54,6 +54,22 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Semantic UI / sky rarity pass (2026-10-29): desktop SQUAD / TRAINING / CARD PACKS and Demon
+  Progenitor's full sheet inspected. Dark slate windows, blue navigation, red Attack / DMG, green
+  Support / HP / luck; red sword / green heart images visibly loaded, small pills / trait tags readable.
+  Compact inspector / card faces / collection section have fewer repeated labels and no card emojis.
+  All four Limitbreak HUD slots show dark ? / ??? / base rarity without ownership; client-only Broly
+  discovery immediately loads only his portrait / name. Original client state restored. Server reports
+  Limitbreak 600 / 750 / 800 / 1000 and 1250 / 1287 / 1298 / 1336 Base ATK. Controlled, non-yielding
+  profile-copy pack check: 100 ten-card packs -> 1000 normal + one forced sky find; immediate second
+  opening -> zero sky finds / no second search. Original profile and picker restored. Natural sky
+  eligibility, all-card rarity / relative stats, 500k sampled searches per sky, battle / tower fixtures
+  and all required checks pass. Existing asset-type warning 203785492 remains unrelated.
+- [ ] User review: semantic colors across BAG / fights / results, hover / collection sheet scrolling,
+  narrow-screen stat icon / number fit, unknown -> real sky discovery after an ordinary roll / rejoin,
+  and ordinary luck / border / sky-find pacing. A bulk opening still gives all normal pulls but shares
+  one sky search per second with ROLL / AUTO. Review scarcity over multiple natural / summoned skies.
+
 - [x] Tower / UI / DEV pass (2026-10-29): existing 22-floor Studio Assistant tower refined and exported,
   original backed up; 52.7-stud base / curved roofs / timber / windows / gables / embers inspected in Studio.
   All parts anchored; named foundation-to-roof gaps <0.00002 studs. Entrance approach pathfinding succeeds

@@ -19,7 +19,6 @@ local Theme = require(script.Parent.Theme)
 local Skin = require(script.Parent.Skin)
 local CardView = require(script.Parent.CardView)
 local BorderFx = require(script.Parent.BorderFx)
-local ElementUi = require(script.Parent.ElementUi)
 
 local CardTile = {}
 
@@ -201,22 +200,6 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	rarityLabel.TextColor3 = if borderId == "Gold" or borderId == "Normal" then Color3.fromRGB(255, 221, 95) else Color3.fromRGB(125, 245, 255)
 	rarityLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 6
 
-	-- Say which row it belongs in; the border already communicates the tier.
-	Kit.label({
-		Name = "CardType", Text = string.upper(card.Type), Font = Theme.Font.Bold,
-		TextColor3 = if card.Type == "Support" then Color3.fromRGB(139, 221, 177) else Color3.fromRGB(255, 160, 140),
-		TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.fromScale(0.06, 0.03),
-		Size = UDim2.fromScale(0.65, 0.12), ZIndex = 6, Parent = button,
-	}, 11)
-
-	-- Element and role (top-right): diamond IconBadges, shown before the card is found too (for planning).
-	ElementUi.Badge(card.Element, {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(0.96, 0.03),
-		Size = UDim2.fromScale(0.22, 0.22),
-		ZIndex = 6,
-		Parent = button,
-	})
 
 	-- In the deck: a small vermilion seal under the stars.
 	if owned then

@@ -29,22 +29,22 @@ local passives: {[string]: any} = {
 	regeneration={Trigger="BelowHalf",Limit=1,Text="When below 50% HP, heal for {p1} of this card's DMG, but deal {a2} less DMG for {t2} turns.",Effects={{Kind="Heal",Pct=.5,Target="Self"},buff("ATK",-.15,3)}},
 }
 local specs: {any} = {
-	{Id="celestial_rain_goku",Weather="rain",Name="Ultra Instinct Goku",Title="Dragon Ball",Element="Light",SPD=110,Basic="Instinct Rush",Skill="Autonomous Counter",Ultimate="Supreme Kamehameha",Passive="A Body Beyond Thought",Kind="dodge"},
-	{Id="celestial_rain_vegeta",Weather="rain",Name="Ultra Ego Vegeta",Title="Dragon Ball",Element="Void",SPD=95,Basic="Destroyer's Blow",Skill="Destruction Sphere",Ultimate="Final Destruction",Passive="Pride in the Pain",Kind="rage"},
-	{Id="celestial_rain_gogeta",Weather="rain",Name="Blue Gogeta",Title="Dragon Ball",Element="Cosmic",SPD=105,Basic="Meteor Combination",Skill="Stardust Fall",Ultimate="Stardust Breaker",Passive="Perfect Fusion",Kind="crit"},
-	{Id="celestial_rain_broly",Weather="rain",Name="Full Power Broly",Title="Dragon Ball",Element="Storm",SPD=90,Basic="Raging Impact",Skill="Gigantic Roar",Ultimate="Gigantic Catastrophe",Passive="Uncontained Rage",Kind="rage"},
-	{Id="celestial_blizzard_ichigo",Weather="blizzard",Name="Horn of Salvation Ichigo",Title="Bleach",Element="Void",SPD=105,Basic="Zangetsu",Skill="Gran Rey Getsuga",Ultimate="True Bankai",Passive="Hollow Resolve",Kind="resolve"},
-	{Id="celestial_blizzard_aizen",Weather="blizzard",Name="Hogyoku Aizen",Title="Bleach",Element="Void",SPD=100,Basic="Silent Cut",Skill="Complete Hypnosis",Ultimate="Black Coffin",Passive="Beyond Perception",Kind="hypnosis"},
-	{Id="celestial_blizzard_yamamoto",Weather="blizzard",Name="Bankai Yamamoto",Title="Bleach",Element="Flame",SPD=90,Basic="Ashen Edge",Skill="Zanka no Tachi",Ultimate="Heaven and Earth in Ash",Passive="Fifteen Million Degrees",Kind="flames"},
-	{Id="celestial_blizzard_yhwach",Weather="blizzard",Name="The Almighty Yhwach",Title="Bleach",Element="Cosmic",SPD=95,Basic="Reishi Arrow",Skill="Future Severance",Ultimate="Auswahlen",Passive="The Future I Choose",Kind="future"},
-	{Id="celestial_thunder_gojo",Weather="thunder",Name="Awakened Gojo",Title="Jujutsu Kaisen",Element="Cosmic",SPD=110,Basic="Limitless Impact",Skill="Hollow Purple",Ultimate="Unlimited Void",Passive="Infinity",Kind="dodge"},
-	{Id="celestial_thunder_sukuna",Weather="thunder",Name="True Form Sukuna",Title="Jujutsu Kaisen",Element="Void",SPD=100,Basic="Dismantle",Skill="Cleave",Ultimate="Malevolent Shrine",Passive="Binding Vow",Kind="vow"},
-	{Id="celestial_thunder_yuta",Weather="thunder",Name="Yuta & Rika",Title="Jujutsu Kaisen",Element="Light",SPD=100,Basic="Cursed Blade",Skill="Cursed Speech",Ultimate="Pure Love",Passive="Reverse Cursed Technique",Kind="renewal"},
-	{Id="celestial_thunder_toji",Weather="thunder",Name="Toji — Sorcerer Killer",Title="Jujutsu Kaisen",Element="Void",SPD=115,Basic="Split Soul Slash",Skill="Inverted Spear",Ultimate="Chain of a Thousand Miles",Passive="Heavenly Restriction",Kind="restriction"},
-	{Id="celestial_eclipse_kokushibo",Weather="eclipse",Name="Moon Breathing Kokushibo",Title="Demon Slayer",Element="Void",SPD=105,Basic="Crescent Slash",Skill="Moonlit Calamity",Ultimate="Tenman Crescent",Passive="Transparent World",Kind="moon"},
-	{Id="celestial_eclipse_akaza",Weather="eclipse",Name="Compass Needle Akaza",Title="Demon Slayer",Element="Storm",SPD=115,Basic="Destructive Fist",Skill="Disorder",Ultimate="Blue Silver Chaotic Afterglow",Passive="Compass Needle",Kind="compass"},
-	{Id="celestial_eclipse_doma",Weather="eclipse",Name="Frozen Lotus Doma",Title="Demon Slayer",Element="Frost",SPD=95,Basic="Lotus Fan",Skill="Frozen Lotus",Ultimate="Water Lily Bodhisattva",Passive="Frozen Blood",Kind="ice"},
-	{Id="celestial_eclipse_muzan",Weather="eclipse",Name="Demon King Muzan",Title="Demon Slayer",Element="Void",SPD=105,Basic="Whip of Blood",Skill="Black Blood Thorns",Ultimate="Calamity of Blood",Passive="Demon King's Regeneration",Kind="regeneration"},
+	{Id="celestial_rain_goku",Weather="rain",SkyOneIn=1000,Name="Ultra Instinct Goku",Title="Dragon Ball",Element="Light",SPD=110,Basic="Instinct Rush",Skill="Autonomous Counter",Ultimate="Supreme Kamehameha",Passive="A Body Beyond Thought",Kind="dodge"},
+	{Id="celestial_rain_vegeta",Weather="rain",SkyOneIn=800,Name="Ultra Ego Vegeta",Title="Dragon Ball",Element="Void",SPD=95,Basic="Destroyer's Blow",Skill="Destruction Sphere",Ultimate="Final Destruction",Passive="Pride in the Pain",Kind="rage"},
+	{Id="celestial_rain_gogeta",Weather="rain",SkyOneIn=750,Name="Blue Gogeta",Title="Dragon Ball",Element="Cosmic",SPD=105,Basic="Meteor Combination",Skill="Stardust Fall",Ultimate="Stardust Breaker",Passive="Perfect Fusion",Kind="crit"},
+	{Id="celestial_rain_broly",Weather="rain",SkyOneIn=600,Name="Full Power Broly",Title="Dragon Ball",Element="Storm",SPD=90,Basic="Raging Impact",Skill="Gigantic Roar",Ultimate="Gigantic Catastrophe",Passive="Uncontained Rage",Kind="rage"},
+	{Id="celestial_blizzard_ichigo",Weather="blizzard",SkyOneIn=1200,Name="Horn of Salvation Ichigo",Title="Bleach",Element="Void",SPD=105,Basic="Zangetsu",Skill="Gran Rey Getsuga",Ultimate="True Bankai",Passive="Hollow Resolve",Kind="resolve"},
+	{Id="celestial_blizzard_aizen",Weather="blizzard",SkyOneIn=1500,Name="Hogyoku Aizen",Title="Bleach",Element="Void",SPD=100,Basic="Silent Cut",Skill="Complete Hypnosis",Ultimate="Black Coffin",Passive="Beyond Perception",Kind="hypnosis"},
+	{Id="celestial_blizzard_yamamoto",Weather="blizzard",SkyOneIn=2000,Name="Bankai Yamamoto",Title="Bleach",Element="Flame",SPD=90,Basic="Ashen Edge",Skill="Zanka no Tachi",Ultimate="Heaven and Earth in Ash",Passive="Fifteen Million Degrees",Kind="flames"},
+	{Id="celestial_blizzard_yhwach",Weather="blizzard",SkyOneIn=2500,Name="The Almighty Yhwach",Title="Bleach",Element="Cosmic",SPD=95,Basic="Reishi Arrow",Skill="Future Severance",Ultimate="Auswahlen",Passive="The Future I Choose",Kind="future"},
+	{Id="celestial_thunder_gojo",Weather="thunder",SkyOneIn=2500,Name="Awakened Gojo",Title="Jujutsu Kaisen",Element="Cosmic",SPD=110,Basic="Limitless Impact",Skill="Hollow Purple",Ultimate="Unlimited Void",Passive="Infinity",Kind="dodge"},
+	{Id="celestial_thunder_sukuna",Weather="thunder",SkyOneIn=3000,Name="True Form Sukuna",Title="Jujutsu Kaisen",Element="Void",SPD=100,Basic="Dismantle",Skill="Cleave",Ultimate="Malevolent Shrine",Passive="Binding Vow",Kind="vow"},
+	{Id="celestial_thunder_yuta",Weather="thunder",SkyOneIn=2000,Name="Yuta & Rika",Title="Jujutsu Kaisen",Element="Light",SPD=100,Basic="Cursed Blade",Skill="Cursed Speech",Ultimate="Pure Love",Passive="Reverse Cursed Technique",Kind="renewal"},
+	{Id="celestial_thunder_toji",Weather="thunder",SkyOneIn=1500,Name="Toji — Sorcerer Killer",Title="Jujutsu Kaisen",Element="Void",SPD=115,Basic="Split Soul Slash",Skill="Inverted Spear",Ultimate="Chain of a Thousand Miles",Passive="Heavenly Restriction",Kind="restriction"},
+	{Id="celestial_eclipse_kokushibo",Weather="eclipse",SkyOneIn=6000,Name="Moon Breathing Kokushibo",Title="Demon Slayer",Element="Void",SPD=105,Basic="Crescent Slash",Skill="Moonlit Calamity",Ultimate="Tenman Crescent",Passive="Transparent World",Kind="moon"},
+	{Id="celestial_eclipse_akaza",Weather="eclipse",SkyOneIn=4000,Name="Compass Needle Akaza",Title="Demon Slayer",Element="Storm",SPD=115,Basic="Destructive Fist",Skill="Disorder",Ultimate="Blue Silver Chaotic Afterglow",Passive="Compass Needle",Kind="compass"},
+	{Id="celestial_eclipse_doma",Weather="eclipse",SkyOneIn=5000,Name="Frozen Lotus Doma",Title="Demon Slayer",Element="Frost",SPD=95,Basic="Lotus Fan",Skill="Frozen Lotus",Ultimate="Water Lily Bodhisattva",Passive="Frozen Blood",Kind="ice"},
+	{Id="celestial_eclipse_muzan",Weather="eclipse",SkyOneIn=8000,Name="Demon King Muzan",Title="Demon Slayer",Element="Void",SPD=105,Basic="Whip of Blood",Skill="Black Blood Thorns",Ultimate="Calamity of Blood",Passive="Demon King's Regeneration",Kind="regeneration"},
 }
 local function moves(spec: any): {any}
 	local basic={Slot="Basic",Name=spec.Basic,Text="Strike for {p1} DMG.",Effects={damage(1.1)}} :: any
@@ -88,7 +88,7 @@ function M.Build(): {any}
 	local cards={}
 	for _,spec in specs do
 		table.insert(cards,{Id=spec.Id,Weather=spec.Weather,Name=spec.Name,Title=spec.Title,Type="Attack",Role="Striker",
-			Weight=1,Element=spec.Element,Main=900,HP=1800,SPD=spec.SPD,Glyph="CS",
+			Weight=1,SkyOneIn=spec.SkyOneIn,Element=spec.Element,Main=1250,HP=2500,SPD=spec.SPD,Glyph="CS",
 			Accent=Weather.ById[spec.Weather].Color,Image=Art[spec.Id],Abilities=moves(spec)})
 	end
 	return cards

@@ -112,7 +112,7 @@ local function statRow(parent: Instance, stat, order: number)
 	local count = Kit.label({
 		Text = "",
 		Font = Theme.Font.Display,
-		TextColor3 = stat.Color,
+		TextColor3 = Theme.Color.Text,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -140, 0, 8),

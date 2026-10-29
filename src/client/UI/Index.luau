@@ -6,15 +6,12 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rarity = require(Shared.Rarity) -- trait tier colours only
 local Cards = require(Shared.Cards)
-local CardInfo = require(Shared.CardInfo)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
 local ColumnBonds = require(Shared.ColumnBonds)
 local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
-local Config = require(Shared.Config)
 local Odds = require(Shared.Odds)
 local Meta = require(Shared.Meta)
 
@@ -22,6 +19,7 @@ local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
 local CardView = require(script.Parent.CardView)
+local StatLine=require(script.Parent.StatLine)
 local Abilities = require(script.Parent.Abilities)
 local CardTile = require(script.Parent.CardTile)
 local Controls = require(script.Parent.Controls)
@@ -143,7 +141,8 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 
 	line(if owned then card.Name else "???", Theme.Font.Display, Theme.Color.Text, 30, 28)
 	if owned then
-		line(Kit.statsText(card, stars, best, node, true), Theme.Font.Heavy, Theme.Color.Text, 24, 18)
+		order+=1
+		StatLine.new(card,stars,best,node,{Size=UDim2.new(1,0,0,28),LayoutOrder=order,ZIndex=22,Parent=right},true)
 		order = Abilities.List(card, right, order, "big", best)
 	end
 	-- Collection data remains available without competing with the ability text.
@@ -158,153 +157,51 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		toggle.Text = if extras.Visible then "HIDE COLLECTION & MASTERY" else "SHOW COLLECTION & MASTERY"
 	end)
 	infoParent = extras
-	line(
-		`<font color="#{tier.Color:ToHex()}">{string.upper(tier.Name)} BORDER{if card.Type == "Attack" then ` · {tier.Multiplier}x` else ""}</font>  ·  {card.Type}  ·  {if owned then card.Title else "Not found yet"}`,
-		Theme.Font.Heavy,
-		Theme.Color.Muted,
-		20,
-		17
-	)
-	-- The card's pull chance (any border); boss cards only join the pool after their boss's first Normal clear.
-	local featured = Cards.FeaturedAt(workspace:GetServerTimeNow())
-	local pullChance = Cards.PullChances(Cards.Pool(State.Progress.Cleared), nil, nil, featured)[card.Id]
-	if featured == card.Id then
-		line(`⭐ FEATURED THIS WEEK: x{Cards.FeaturedBoost} as likely to pull`, Theme.Font.Heavy, Theme.Color.Gold, 18, 15)
-	end
-	if pullChance then
-		local chance = pullChance * 100
-		line(`Chance per roll: <b>{Odds.FormatPercent(chance)}</b>, any border`, Theme.Font.Bold, Theme.Color.Support, 18, 15)
-		-- Its rarity number at each border (Cards.Rarity: pulls it takes at 1x luck).
-		local parts = {}
-		for _, b in Borders.List do
-			table.insert(parts, `<font color="#{b.Color:ToHex()}">{b.Name}</font> <b>{Kit.commas(Cards.Rarity(card.Id, b.Id))}</b>`)
-		end
-		line(`RARITY  {table.concat(parts, "   ")}`, Theme.Font.Heavy, Theme.Color.Text, 18, 15)
+	line(tier.Name.." border · "..card.Type,Theme.Font.Heavy,tier.Color,22,17)
+	local chance=if card.SkyOneIn then 1/card.SkyOneIn else Cards.PullChances(Cards.Pool(State.Progress.Cleared),nil,nil,Cards.FeaturedAt(workspace:GetServerTimeNow()))[card.Id]
+	if card.SkyOneIn then
+		local sky=require(Shared.Weather).ById[card.Weather]
+		line(sky.Name.." only · "..Odds.FormatPercent(100*chance).." per sky search",Theme.Font.Medium,Theme.Color.Muted,20,15)
+		line("ROLL / AUTO / packs share one sky search per second. Luck improves borders.",Theme.Font.Medium,Theme.Color.Muted,20,14)
+	elseif chance then
+		line(Odds.FormatPercent(chance*100).." card chance · any border",Theme.Font.Medium,Theme.Color.Muted,20,15)
 	elseif card.Boss then
-		line(`🔒 Beat {string.upper(card.Boss)} on Normal to add this card to the roll pool`, Theme.Font.Bold, Theme.Color.Support, 18, 15)
+		line("Unlock by beating this card's boss on Normal.",Theme.Font.Medium,Theme.Color.Muted,20,15)
 	end
 	if owned then
-		line(
-			`{CardInfo.CopyBonus(stars)}  ·  {entry.Copies} pulled`,
-			Theme.Font.Bold,
-			Theme.Color.Gold,
-			20,
-			16
-		)
-		if card.Type == "Attack" then
-			line(`Action speed {card.SPD} · Attack rating {Kit.commas(Cards.Power(card, stars, best, node))}`, Theme.Font.Medium, Theme.Color.Text, 20, 16)
+		local piles={}
+		for _,id in Borders.Order do
+			local n=(entry.BorderCopies or {})[id] or 0
+			if n>0 then table.insert(piles,Borders.Get(id).Name.." x"..Kit.commas(n)) end
 		end
-		-- Border fusion: 100 copies at one border fuse into 1 copy at the next (Hoshi, in town).
-		local copies = entry.BorderCopies or {}
-		local copyParts = {}
-		for _, id in Borders.Order do
-			table.insert(copyParts, `<font color="#{Borders.Get(id).Color:ToHex()}">{Borders.Get(id).Name} {Kit.commas(copies[id] or 0)}</font>`)
+		line("COPIES  "..table.concat(piles," · "),Theme.Font.Heavy,Theme.Color.Text,22,15)
+		line("100 copies of one border fuse into the next at Hoshi.",Theme.Font.Medium,Theme.Color.Muted,20,14)
+		local foil=Foils.Get(Foils.Best(entry.Foils))
+		if foil.Id~="standard" then line(foil.Name..": "..foil.Text,Theme.Font.Medium,foil.Color,22,15) end
+		for i,id in {entry.Trait or "",entry.Trait2 or ""} do
+			local trait=Traits.Get(id)
+			if trait then line("TRAIT "..i.."  "..trait.Name.." · "..Traits.Text(id),Theme.Font.Medium,Theme.Color.Text,22,15) end
 		end
-		line(`Copies  {table.concat(copyParts, "  ·  ")}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)
-		local fuseFrom = Borders.BestOwned(copies)
-		for _, id in Borders.Order do
-			if Borders.Next(id) and (copies[id] or 0) >= Config.FusionCopies then
-				fuseFrom = id
-			end
-		end
-		local fuseTo = Borders.Next(fuseFrom)
-		line(
-			if fuseTo
-				then `🔥 Border fusion: <b>{Kit.commas(copies[fuseFrom] or 0)}/{Config.FusionCopies}</b> {Borders.Get(fuseFrom).Name} copies fuse into 1 {string.upper(Borders.Get(fuseTo).Name)} (Hoshi the Fusion Master, in town)`
-				else `🔥 Secret Border: the top of the ladder`,
-			Theme.Font.Bold,
-			Color3.fromRGB(255, 160, 90),
-			20,
-			16
-		)
+		if not entry.Trait2Unlocked and node<Traits.Slot2Node then line("Second trait: reach 10 distinct boss victories.",Theme.Font.Medium,Theme.Color.Muted,20,14) end
+		line("MASTERY  "..Awaken.Count(entry).." distinct boss victories",Theme.Font.Heavy,Theme.Color.Gold,22,17)
+		local nextNode=Awaken.Nodes[node+1]
+		if nextNode then line("Next at "..nextNode.Challenges..": "..nextNode.Text,Theme.Font.Medium,Theme.Color.Muted,20,15) end
 		for _,bond in ColumnBonds.List do
 			if card.Id==bond.Attack or card.Id==bond.Support then
 				local partner=Cards.Get(if card.Id==bond.Attack then bond.Support else bond.Attack)
-				line(`Bond: {bond.Name} · pair with {if partner then partner.Name else "its companion"} in the same numbered column. {bond.Text}`,Theme.Font.Bold,Color3.fromRGB(255,190,120),38,15)
+				line("BOND  "..(if partner then partner.Name else bond.Name).." · "..bond.Text,Theme.Font.Medium,Theme.Color.Support,22,15)
 			end
 		end
-		-- Borders found for this card: each one lit or still to find, with its odds.
-		local found = entry.Borders or {}
-		local parts = {}
-		for _, border in Borders.List do
-			if border.Id ~= "Normal" then
-				local has = found[border.Id] == true
-				local color = if has then border.Color:ToHex() else "6E6A88"
-				table.insert(parts, `<font color="#{color}">{if has then "◆" else "◇"} <b>{string.upper(border.Name)}</b></font>`)
-			end
-		end
-		line(`Borders  {table.concat(parts, "   ")}`, Theme.Font.Heavy, Theme.Color.Text, 20, 17)
-		if best ~= "Normal" then
-			line(if card.Type == "Support" then CardInfo.BorderHelp(card, best) else `Wearing {tier.Name}: {tier.Multiplier}x base stats`, Theme.Font.Bold, tier.Color, 18, 15)
-		end
-		-- Foils found, Mastery ranks, and the trait slots (rolled at the Trait Master).
-		local foundFoils = entry.Foils or {}
-		local foilParts = {}
-		for i, foil in Foils.List do
-			if i > 1 then
-				local has = foundFoils[foil.Id] == true
-				local color = if has then foil.Color:ToHex() else "6E6A88"
-				table.insert(foilParts, `<font color="#{color}">{if has then "FOUND" else "MISSING"} <b>{string.upper(foil.Name)}</b></font>`)
-			end
-		end
-		line(`Foils  {table.concat(foilParts, "   ")}`, Theme.Font.Heavy, Theme.Color.Text, 20, 17)
-		local bestFoil = Foils.Best(entry.Foils)
-		if bestFoil ~= "standard" then
-			line(`Wearing {Foils.Get(bestFoil).Name}: {Foils.Get(bestFoil).Text} (in battle)`, Theme.Font.Bold, Foils.Get(bestFoil).Color, 18, 15)
-		end
-		local nodeParts = {}
-		for _, n in Awaken.Nodes do
-			local open = node >= n.Node
-			table.insert(nodeParts, `<font color="#{if open then "FFC42E" else "6E6A88"}">{if open then "●" else "○"} {n.Challenges}: {n.Text}</font>`)
-		end
-		line(`BATTLE MASTERY  ({Awaken.Count(entry)} distinct boss challenges)\nWin different story boss difficulties with this card equipped. Repeats and duplicate pulls grant no marks.\n{table.concat(nodeParts, "\n")}`, Theme.Font.Bold, Theme.Color.Text, 20, 15)
-		local function traitLineText(id: string?): string
-			local trait = Traits.Get(id)
-			return if trait
-				then `<font color="#{Rarity.Get(trait.Tier).Color:ToHex()}"><b>{string.upper(trait.Name)}</b></font> ({trait.Tier}): {Traits.Text(trait.Id)}`
-				else "none yet"
-		end
-		line(`Trait 1  {traitLineText(entry.Trait)}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)
-		line(
-			if entry.Trait2Unlocked or node >= Traits.Slot2Node then `Trait 2  {traitLineText(entry.Trait2)}` else `Trait 2  🔒 opens at Mastery rank {Traits.Slot2Node}`,
-			Theme.Font.Heavy,
-			Theme.Color.Text,
-			20,
-			16
-		)
-		order += 1
-		-- Traits are rolled in town only: walk to Kenshin the Trait Master, beside Hoshi.
-		line(
-			if entry.Pending
-				then "🧬 A trait roll waits for your choice: visit Kenshin the Trait Master in town"
-				else `🧬 New traits: visit Kenshin the Trait Master in town (🧬{Traits.RollCost} a roll)`,
-			Theme.Font.Bold,
-			Color3.fromRGB(80, 230, 200),
-			16,
-			14
-		)
-
-		-- FAVOURITE: this card becomes your picture in the server list and on your name tag.
-		order += 1
-		local isFav = State.Meta.Favorite == card.Id
-		local fav = Kit.button(if isFav then "★ YOUR FAVOURITE" else "☆ SET AS FAVOURITE", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
-			LayoutOrder = order,
-			Size = UDim2.new(0, 230, 0, 40),
-			ZIndex = 22,
-			Parent = infoParent,
-		})
+		order+=1
+		local fav=Kit.button(if State.Meta.Favorite==card.Id then "YOUR FAVOURITE" else "SET FAVOURITE",Theme.Color.Info,Theme.Color.InfoDeep,{LayoutOrder=order,Size=UDim2.new(0,230,0,36),ZIndex=22,Parent=infoParent})
 		fav.Activated:Connect(function()
-			local want = if State.Meta.Favorite == card.Id then "" else card.Id
-			local result = MetaClient.Call("SetFavorite", want)
-			if result.Ok then
-				Sfx.Play("Upgrade", 1.3)
-				fav.Label.Text = if want ~= "" then "★ YOUR FAVOURITE" else "☆ SET AS FAVOURITE"
-			end
+			local want=if State.Meta.Favorite==card.Id then "" else card.Id
+			local result=MetaClient.Call("SetFavorite",want)
+			if result.Ok then fav.Label.Text=if want~="" then "YOUR FAVOURITE" else "SET FAVOURITE" end
 		end)
 	else
-		line("Keep rolling to discover this card and its abilities!", Theme.Font.Bold, Theme.Color.Muted, 20, 16)
+		line("Discover this card to see its abilities.",Theme.Font.Medium,Theme.Color.Muted,20,16)
 	end
-	line("Use BACK TO CARDS to return to your team.", Theme.Font.Medium, Theme.Color.Muted, 18, 14)
 	panel.Activated:Connect(function()
 		closeDetail()
 		Index.Refresh()
@@ -635,7 +532,7 @@ function Index.Init(playerGui: Instance, openOdds: () -> (), host: any?)
 		filterBy = value
 		redraw()
 	end)
-	local oddsButton = Kit.button("📊 ODDS", Theme.Color.Auto, Theme.Color.AutoDeep, {
+	local oddsButton = Kit.button("ODDS", Theme.Color.Auto, Theme.Color.AutoDeep, {
 		LayoutOrder = 3,
 		Size = UDim2.new(0, 104, 1, 0),
 		Parent = right,

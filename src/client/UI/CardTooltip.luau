@@ -16,6 +16,7 @@ local Awaken = require(Shared.Awaken)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local StatLine=require(script.Parent.StatLine)
 local Abilities = require(script.Parent.Abilities)
 local State = require(script.Parent.Parent.State)
 
@@ -65,7 +66,7 @@ local function build(cardId: string, border: string): Frame?
 	label("CardTier", `{tier.Name} · {card.Type}`, 2, 13, tier.Color)
 	local own = State.Cards[card.Id]
 	local stars, node = if own then own.Stars else 0, if own then Awaken.Level(own) else 0
-	if card.Type == "Attack" then label("Stats", Kit.statsText(card, stars, border, node, true), 3, 15, Theme.Color.Text) end
+	if card.Type == "Attack" then StatLine.new(card,stars,border,node,{Size=UDim2.new(1,-4,0,24),LayoutOrder=3,ZIndex=52,Parent=scroll},true) end
 	for i, ability in card.Abilities do
 		local row = Abilities.Row(ability, scroll, i + 3, "small", card, stars, border, node)
 		-- Rows share the same renderer as the full card sheet, above this tooltip's surface.

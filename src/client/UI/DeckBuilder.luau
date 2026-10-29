@@ -20,13 +20,13 @@ local CardInfo = require(Shared.CardInfo)
 local Borders = require(Shared.Borders)
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
-local Elements = require(Shared.Elements)
 local ColumnBonds = require(Shared.ColumnBonds)
 local Awaken = require(Shared.Awaken)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local StatLine=require(script.Parent.StatLine)
 local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 local Modal = require(script.Parent.Modal)
 local CardTile = require(script.Parent.CardTile)
@@ -36,7 +36,6 @@ local ElementGuide = require(script.Parent.ElementGuide)
 local Waypoint = require(script.Parent.Waypoint)
 local CardTooltip = require(script.Parent.CardTooltip)
 local Index = require(script.Parent.Index)
-local ElementUi = require(script.Parent.ElementUi)
 local MetaClient = require(script.Parent.Parent.MetaClient)
 local Avatars = require(script.Parent.Parent.Avatars)
 local State = require(script.Parent.Parent.State)
@@ -45,7 +44,7 @@ local DeckBuilder = {}
 
 local CRIMSON = Color3.fromRGB(255, 70, 90)
 local C = UITheme.Colors
-local CYAN = C.SpiritCyan -- the backline and its spirit tethers (soft spirit blue, not electric cyan)
+local CYAN = Theme.Color.Support
 local ROW_COLORS = { Attack = CRIMSON, Support = CYAN }
 
 local REASONS = {
@@ -242,9 +241,7 @@ local function removeSelected()
 	end
 end
 
-local function roman(n: number): string
-	return ({ "I", "II", "III", "IV", "V" })[n] or tostring(n)
-end
+
 
 local function clear(frame: Instance)
 	for _, child in frame:GetChildren() do
@@ -330,7 +327,6 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 	tile.Activated:Connect(function()
 		plate:SetAttribute("Tap", ((plate:GetAttribute("Tap") or 0) :: number) + 1)
 	end)
-	local border = Borders.Get(if own then Deck.PlayBorder(own) else nil)
 	local info = Kit.new("Frame", {
 		Name = "Info",
 		Position = UDim2.new(0.28, 32, 0, 0),
@@ -339,30 +335,16 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 		Parent = plate,
 	})
 	local compact = workspace.CurrentCamera.ViewportSize.Y < 540
-	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, if compact then 0.5 else 0.3), Parent = info }, 17)
-	text({ Text = if card.Type == "Support" then CardInfo.Job(card) else `HP {Kit.commas(Cards.Stat(card, card.HP or 0, if own then own.Stars else 0, if own then Deck.PlayBorder(own) else "Normal", if own then Awaken.Level(own) else 0))}`, Visible = not compact, Font = Theme.Font.Bold, TextColor3 = Theme.Color.Muted, Position = UDim2.fromScale(0, 0.39), Size = UDim2.fromScale(1, 0.22), Parent = info }, 12)
-	-- Element and role badges, then the card's power.
-	ElementUi.Badge(card.Element, {
-		Position = UDim2.fromScale(0, 0.62),
-		Size = UDim2.fromScale(0.34, 0.34),
-		DominantAxis = Enum.DominantAxis.Height,
-		ZIndex = 4,
-		Parent = info,
-	})
-	local powerText = text({
-		Text = CardInfo.Headline(card, if own then own.Stars else 0, if own then Deck.PlayBorder(own) else "Normal", if own then Awaken.Level(own) else 0),
-		Position = UDim2.fromScale(0, 0.66),
-		Size = UDim2.fromScale(1, 0.26),
-		Parent = info,
-	}, 14)
-	-- Keep the concrete stat clear of the element badge at any plate size.
-	local function placeBadges()
-		local h = Kit.logicalSize(info).Y * 0.34
-		powerText.Position = UDim2.new(0, h + 6, 0.66, 0)
-		powerText.Size = UDim2.new(1, -(h + 6), 0.26, 0)
+	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = Theme.Color.Text, Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, if compact then 0.5 else 0.3), Parent = info }, 17)
+	if card.Type=="Attack" then
+		local stars=if own then own.Stars else 0
+		local chosen=if own then Deck.PlayBorder(own) else "Normal"
+		local node=if own then Awaken.Level(own) else 0
+		StatLine.Value(info,"HP",Kit.commas(Cards.Stat(card,card.HP or 0,stars,chosen,node)),{Visible=not compact,Position=UDim2.fromScale(0,.4),Size=UDim2.fromScale(1,.23)})
+		StatLine.Value(info,"DMG",Kit.commas(Cards.Stat(card,card.Main,stars,chosen,node)),{Position=UDim2.fromScale(0,.68),Size=UDim2.fromScale(1,.23)})
+	else
+		text({Text=CardInfo.Headline(card,0,if own then Deck.PlayBorder(own) else "Normal"),TextColor3=Theme.Color.Support,Position=UDim2.fromScale(0,.48),Size=UDim2.fromScale(1,.35),Parent=info},16)
 	end
-	info:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeBadges)
-	placeBadges()
 end
 
 -- The link between slot N's two cards: the Support card's Slot Link, and BOND ACTIVE when they're a bond.
@@ -623,41 +605,13 @@ local function drawInspector()
 	local owns = Deck.OwnedBorders(own)
 	local best = if inspectBorder and table.find(owns, inspectBorder) then inspectBorder else playing
 	local border = Borders.Get(best)
-	local element = Elements.Get(card.Element)
-	local left = Kit.new("Frame", { Name = "Facts", Size = UDim2.new(0.58, -8, 1, 0), BackgroundTransparency = 1, Parent = inspector })
-	text({ Text = string.upper(card.Name), Font = Theme.Font.Display, TextColor3 = border.Color, Size = UDim2.new(1, -56, 0, 22), Parent = left }, 20)
-	-- Element and role badges beside the name.
-	ElementUi.Badge(card.Element, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -26, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left })
-	if card.Type == "Attack" then ElementUi.RoleBadge(card.Role, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, -2), Size = UDim2.fromOffset(26, 26), Parent = left }) end
-	text({
-		-- The battle numbers first (the tooltip has the title, element and role), then the tier.
-		Text = `{Kit.statsText(card, own.Stars, best, Awaken.Level(own), true)}   <font color="#{border.Color:ToHex()}">{Borders.Label(best)} · rarity {Kit.commas(Cards.Rarity(card.Id, best))}</font>`,
-		Font = Theme.Font.Heavy,
-		TextColor3 = Theme.Color.Muted,
-		Position = UDim2.fromOffset(0, 24),
-		Size = UDim2.new(1, 0, 0, 16),
-		Parent = left,
-	}, 13)
-	-- Traits: slot 1, and slot 2 once Awakening node 4 is open.
-	-- Show its job and real Basic / Skill values first; advanced progression stays in VIEW SKILLS.
-	local basic, skill = Cards.Ability(card, "Basic") or Cards.Ability(card, "Passive"), Cards.Ability(card, "Skill")
-	local description = if basic then CardInfo.Describe(card, basic, own.Stars, best, Awaken.Level(own)) else CardInfo.Job(card)
-	text({ Name = "BasicEffect", Text = description, TextWrapped = true, TextColor3 = Theme.Color.Support, Position = UDim2.fromOffset(0, 43), Size = UDim2.new(1, 0, 0, 38), Parent = left }, 14)
-	text({ Text = if skill then `SKILL every {skill.Every or 3} actions · base action {string.format("%.1f", Config.Battle.TurnSeconds * 100 / card.SPD)}s` elseif card.Type == "Support" then "" else `ACTS EVERY {math.floor(Config.Battle.TurnSeconds * 100 / card.SPD * 10 + 0.5) / 10}s · blue bar = next action`, TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 83), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 12)
-	text({ Text = `{CardInfo.CopyBonus(own.Stars)} · {own.Copies} pulled`, TextColor3 = Theme.Color.Gold, Position = UDim2.fromOffset(0, 103), Size = UDim2.new(1, 0, 0, 18), Parent = left }, 13)
-	-- Copies at every border (each is its own card in the vault) and the border it fights at.
-	local piles = {}
-	for _, b in owns do
-		local info = Borders.Get(b)
-		table.insert(piles, `<font color="#{info.Color:ToHex()}">{info.Name} x{Kit.commas((own.BorderCopies or {})[b] or 0)}</font>`)
-	end
-	text({
-		Text = `COPIES  {table.concat(piles, " · ")}   <font color="#8A94AC">fights as {Borders.Get(playing).Name}</font>`,
-		RichText = true,
-		Position = UDim2.fromOffset(0, 123),
-		Size = UDim2.new(1, 0, 0, 18),
-		Parent = left,
-	}, 13)
+	local left=Kit.new("Frame",{Name="Facts",Size=UDim2.new(.58,-8,1,0),BackgroundTransparency=1,Parent=inspector})
+	text({Text=card.Name,Font=Theme.Font.Display,Size=UDim2.new(1,0,0,24),Parent=left},20)
+	StatLine.new(card,own.Stars,best,Awaken.Level(own),{Position=UDim2.fromOffset(0,28),Size=UDim2.new(1,0,0,26),Parent=left},true)
+	local ability=Cards.Ability(card,if card.Type=="Support" then "Passive" else "Skill")
+	text({Text=if ability then ability.Name else "Passive effect",TextColor3=Theme.Color.Text,Position=UDim2.fromOffset(0,62),Size=UDim2.new(1,0,0,22),Parent=left},17)
+	text({Text=border.Name.." · "..Kit.commas(Cards.Rarity(card.Id,best)).." rarity",TextColor3=border.Color,Position=UDim2.fromOffset(0,90),Size=UDim2.new(1,0,0,20),Parent=left},14)
+	text({Text=Kit.commas((own.BorderCopies or {})[best] or 0).." copies · 100 fuse to the next border",TextColor3=Theme.Color.Muted,Position=UDim2.fromOffset(0,117),Size=UDim2.new(1,0,0,32),Parent=left},13)
 
 	-- Actions.
 	local actions = Kit.new("Frame", {
@@ -721,13 +675,13 @@ local function drawInspector()
 			return
 		end
 		modal:Close()
-		if Waypoint.To("fuser", "🔥 HOSHI · FUSION MASTER", FIRE_GOLD) then
+		if Waypoint.To("fuser", "HOSHI · FUSION MASTER", FIRE_GOLD) then
 			hint("Follow the line to Hoshi in town to fuse")
 		end
 	end)
 	-- EQUIP AS AVATAR: a behind-shoulder showcase plus the existing element aura / tier effects.
 	local worn = State.Meta.Avatar == card.Id
-	local avatar = Kit.button(if worn then "✓ WORN AS AVATAR" else "EQUIP AS AVATAR", if element then element.Color else CYAN, Color3.fromRGB(20, 26, 40), {
+	local avatar = Kit.button(if worn then "WORN AS AVATAR" else "EQUIP AS AVATAR", Theme.Color.Info, Color3.fromRGB(20, 26, 40), {
 		LayoutOrder = 3,
 		Size = UDim2.new(1, 0, 0, 30),
 		Parent = actions,
@@ -755,7 +709,7 @@ local function drawInspector()
 	end)
 	master.Activated:Connect(function()
 		modal:Close()
-		if Waypoint.To("traitmaster", "🧬 KENSHIN · TRAIT MASTER", Color3.fromRGB(80, 230, 200)) then
+		if Waypoint.To("traitmaster", "KENSHIN · TRAIT MASTER", Color3.fromRGB(80, 230, 200)) then
 			hint("Follow the line to Kenshin, beside Hoshi in town")
 		end
 	end)
@@ -848,23 +802,10 @@ local function drawFooter()
 	drawCost()
 	clear(synergyStrip)
 	local count = 0
-	for _, active in Elements.ActiveSynergies(Deck.Elements(working)) do
-		local element = Elements.Get(active.Synergy.Element)
-		local tier = table.find(active.Synergy.Tiers, active.Tier) or 1
-		count += 1
-		tag(count, `{element.Icon} {string.upper(active.Synergy.Name)} {roman(tier)}`, element.Color)
-	end
-	local ids = {}
-	for _, row in Deck.Rows do
-		for _, id in working[row] do
-			if id ~= "" then
-				table.insert(ids, id)
-			end
-		end
-	end
+
 	for _, bond in ColumnBonds.Active(working) do
 		count += 1
-		tag(count, `🤝 {string.upper(bond.Name)}`, Theme.Color.Gold)
+		tag(count, string.upper(bond.Name), Theme.Color.Gold)
 	end
 	if count == 0 then
 		text({
@@ -893,7 +834,9 @@ function refresh()
 	drawInspector()
 	drawFooter()
 	for kind, button in typeTabs do
-		button.BackgroundTransparency = if kind == typeBy then 0 else 0.6
+		local accent=ROW_COLORS[kind]
+		Kit.surface(button,if kind==typeBy then accent else accent:Lerp(Theme.Color.PanelLight,.5),accent:Lerp(Theme.Color.Backdrop,.65))
+		button.BackgroundTransparency=0
 	end
 	task.defer(sizeGrid)
 end
@@ -941,7 +884,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 	local left = pane({ Name = "Formation", Size = UDim2.new(0.48, -6, 1, 0), Parent = modal.Body })
 	Kit.padding(10).Parent = left
 	text({ Text = "YOUR TEAM · 4 ATTACK + 4 SUPPORT", Font = Theme.Font.Display, Size = UDim2.new(1, 0, 0, 24), Parent = left }, 20)
-	text({ Name = "TeamGuide", Text = "Only Attack cards fight. Supports have no damage or HP.\nMatching numbers pair cards: each Support modifies one attacker.", TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 34), Parent = left }, 13)
+	text({ Name = "TeamGuide", Text = "4 Attack cards fight. Match each Support to the same numbered slot.", TextColor3 = Theme.Color.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 34), Parent = left }, 13)
 	Controls.Header(left, "ATTACK · Damage + HP", CRIMSON, { Position = UDim2.fromOffset(0, 68), Size = UDim2.new(0.44, 0, 0, 28) })
 	Controls.Header(left, "SUPPORT · PASSIVE", CYAN, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 68), Size = UDim2.new(0.44, 0, 0, 28) })
 

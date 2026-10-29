@@ -20,6 +20,7 @@ local Foils = require(Shared.Foils)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
+local StatLine=require(script.Parent.StatLine)
 local Skin = require(script.Parent.Skin)
 local BorderFx = require(script.Parent.BorderFx)
 local ElementUi = require(script.Parent.ElementUi)
@@ -558,31 +559,8 @@ function CardView.new(cardId: string, opts: Options?): Frame
 	Kit.textStroke(Color3.new(0, 0, 0), if compact then 1.5 else 2.5, 0.05).Parent = nameLabel
 
 	if compact then
-		if owned then
-			local starLabel = Kit.label({
-				Name = "CardType",
-				Text = string.upper(card.Type),
-				Font = Theme.Font.Heavy,
-				TextColor3 = Theme.Color.Gold,
-				Position = UDim2.fromScale(0.1, 0.7),
-				Size = UDim2.fromScale(0.8, 0.09),
-				ZIndex = 5,
-				Parent = frame,
-			}, 16)
-			Kit.textStroke(Color3.new(0, 0, 0), 1.2, 0.2).Parent = starLabel
-		end
+
 	else
-		Kit.label({
-			Name = "CardTitle",
-			Text = if owned then card.Title else "Not found yet",
-			Font = Theme.Font.Bold,
-			TextColor3 = Color3.fromRGB(210, 222, 244),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Position = UDim2.fromScale(0.05, 0.19),
-			Size = UDim2.fromScale(0.78, 0.045),
-			ZIndex = 5,
-			Parent = frame,
-		}, 18)
 
 		local ability = headline(card)
 		if owned and ability then
@@ -608,7 +586,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.3).Parent = abilityName
 
 			-- Tag chips: the card's trait (in its tier colour), its role and its always-on abilities.
-			local tags = row(frame, "Tags", 0.755, 0.13, true)
+			local tags = row(frame, "Tags", 0.79, 0.065, false)
 			local tagList = {}
 			local trait = Traits.Get(options.Trait)
 			if trait then
@@ -618,15 +596,10 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			if options.Foil and options.Foil ~= "standard" then
 				table.insert(tagList, { foil.Name, foil.Color })
 			end
-			table.insert(tagList, { if card.Type == "Attack" then "Attack" else "Support", Color3.fromRGB(218, 230, 253) })
-			for _, a in card.Abilities do
-				if (a.Slot == "Passive" or a.Slot == "Aura" or a.Slot == "Signature") and #tagList < 4 then
-					table.insert(tagList, { a.Name, Color3.fromRGB(218, 230, 253) })
-				end
-			end
+
 			for i, tagInfo in tagList do
-				local tag = chip(tags, i, tagInfo[1], tagInfo[2], 0.45, Color3.fromRGB(10, 12, 19))
-				tag.Size = UDim2.new(0.45, 0, 0.44, 0)
+				local tag = chip(tags, i, tagInfo[1], tagInfo[2], 0.45)
+				tag.Size = UDim2.new(0.47, 0, 1, 0)
 			end
 		end
 
@@ -642,7 +615,10 @@ function CardView.new(cardId: string, opts: Options?): Frame
 				leftText, leftColor = CardInfo.Headline(card, stars, options.Border, options.Awaken), Color3.fromRGB(139, 221, 177)
 				rightText, rightColor = "SUPPORT", Color3.fromRGB(139, 221, 177)
 			end
-			for i, info in { { leftText, leftColor }, { rightText, rightColor } } do
+			if card.Type=="Attack" then
+				StatLine.new(card,stars,options.Border,options.Awaken,{Position=UDim2.fromScale(.04,.9),Size=UDim2.fromScale(.92,.075),ZIndex=6,Parent=frame})
+			end
+			for i, info in ipairs(if card.Type=="Support" then { { leftText, leftColor }, { rightText, rightColor } } else {}) do
 				local stat = Kit.label({
 					Name = if i == 1 then "StatLeft" else "StatRight",
 					Text = info[1],

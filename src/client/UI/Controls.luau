@@ -172,13 +172,14 @@ function Controls.Tab(parent: Instance, text: string, color: Color3, order: numb
 		BackgroundColor3 = UITheme.Colors.VermilionWax,
 		Parent = button,
 	})
-	button.UIGradient.Enabled = false -- tabs are flat: a raised plate when on, bare text when off
+	button.UIGradient.Enabled = true
 	button.BackgroundColor3 = UITheme.Colors.UrushiRaised
 	Kit.pressable(button)
-	local _ = color -- the tab's colour is kept for callers; the active mark is the vermilion underline
 	local function set(on: boolean)
+		Kit.surface(button,if on then color else Theme.Color.PanelLight,if on then color:Lerp(Theme.Color.Backdrop,.6) else Theme.Color.Panel)
 		bar.Visible = on
-		button.BackgroundTransparency = if on then 0 else 1
+		bar.BackgroundColor3=color
+		button.BackgroundTransparency = 0
 		button.UIStroke.Transparency = if on then 0 else 1
 		label.TextColor3 = if on then UITheme.Colors.WashiParchment else UITheme.Colors.WashiGhost
 	end
@@ -221,6 +222,7 @@ end
 -- A section banner: dark metal with the text in caps and a sharp neon bar in `color` under it.
 function Controls.Header(parent: Instance, text: string, color: Color3, props: { [string]: any }?): Frame
 	local header = tile("Frame", { Name = "Header", Parent = parent })
+	Kit.surface(header,color:Lerp(Theme.Color.Panel,.45),color:Lerp(Theme.Color.Backdrop,.8),"Header")
 	if props then
 		for key, value in props do
 			header[key] = value

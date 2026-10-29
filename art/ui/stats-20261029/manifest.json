@@ -1,0 +1,32 @@
+{
+  "generator": "built-in image_gen",
+  "date": "2026-10-29",
+  "icons": [
+    {
+      "name": "damage",
+      "asset": "rbxassetid://115433246877589",
+      "source": "damage-source.png",
+      "upload": "damage.png",
+      "source_sha256": "81f3ddd2fda114ac65eed93ebe2d87ac1cc9825bd56e18506654aed0db3cfe34",
+      "upload_sha256": "dcf4c37682a9382bc0ce16aab9124dcecefc2348d59099c125f3c74c644cb2c3",
+      "prompt": "A single bold upward diagonal silver sword with a vivid crimson faceted blade core and red gemstone pommel. Glossy Roblox simulator vector illustration, dark outline, white specular highlights, transparent alpha background, no text or badge. Readable at 20px.",
+      "size": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "health",
+      "asset": "rbxassetid://85300546215088",
+      "source": "health-source.png",
+      "upload": "health.png",
+      "source_sha256": "7ea1e4a93ba9e6ffe662a560ef8d61c0de2a66d5b9bc52e1f10ec4a092733557",
+      "upload_sha256": "068106c0e8b5a74bca6c42ad61c941214eb5f59da70c513ca2b374daf166f73c",
+      "prompt": "A single emerald green heart-shaped health crystal with silver bevel and white medical plus. Glossy Roblox simulator vector illustration matching the red gemstone sword, dark outline, white highlights, transparent alpha background, no text or badge. Readable at 20px.",
+      "size": [
+        256,
+        256
+      ]
+    }
+  ]
+}
