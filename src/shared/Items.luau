@@ -182,7 +182,7 @@ end
 local KIND_TEXT = {
 	RollSpeed = "faster rolls",
 	Border = "border chance",
-	ShardGain = "Shards",
+	ShardGain = "Trait Shards",
 	XPGain = "XP",
 }
 

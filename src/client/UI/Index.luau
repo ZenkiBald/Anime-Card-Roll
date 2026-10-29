@@ -345,7 +345,7 @@ local function section(rarity: string, order: number)
 	local pool = {}
 	local found = 0
 	for _, card in Cards.List do
-		if card.Boss == nil then
+		if card.Boss == nil and not card.Weather then
 			table.insert(pool, card)
 			local own = State.Cards[card.Id]
 			if own and (rarity == "Normal" or (own.Borders and own.Borders[rarity])) then
@@ -358,7 +358,7 @@ local function section(rarity: string, order: number)
 	for _, card in Cards.List do
 		local own = State.Cards[card.Id]
 		local owned = own ~= nil
-		local here = if owned then Borders.Best(own.Borders) == rarity else (rarity == "Normal" and card.Boss == nil)
+		local here = not card.Weather and (if owned then Borders.Best(own.Borders) == rarity else (rarity == "Normal" and card.Boss == nil))
 		if not here then
 			continue
 		end
@@ -517,6 +517,24 @@ local function section(rarity: string, order: number)
 	end
 end
 
+local function celestialSection()
+	if not require(Shared.Config).CelestialCardsReady then return end
+	local holder=Kit.new("Frame",{Name="CelestialCodex",LayoutOrder=10,Size=UDim2.new(1,-8,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=list},{Kit.new("UIListLayout",{Padding=UDim.new(0,10)})})
+	Kit.label({Text="CELESTIAL CODEX · EVENT ATTACK CARDS",Size=UDim2.new(1,0,0,32),Font=Theme.Font.Display,Parent=holder},22)
+	for _,sky in require(Shared.Weather).List do
+		if sky.Id=="clear" then continue end
+		Kit.label({Text=sky.Name.." · "..sky.Series,TextColor3=sky.Color,Size=UDim2.new(1,0,0,24),Parent=holder},18)
+		local grid=Kit.new("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=holder},{Kit.new("UIGridLayout",{CellSize=UDim2.fromOffset(cellSize,cellSize),CellPadding=UDim2.fromOffset(10,10)})})
+		for _,card in Cards.List do
+			if card.Weather==sky.Id and (search=="" or string.find(string.lower(card.Name),search,1,true)) then
+				local own=State.Cards[card.Id]
+				local tile=CardTile.new(card.Id,{Owned=own~=nil,Border=if own then Borders.Best(own.Borders) else "Normal"})
+				tile.Parent=grid;tile.Activated:Connect(function() showDetail(card) end)
+			end
+		end
+	end
+end
+
 function Index.Refresh()
 	if not modal.IsOpen or not dirty or detail ~= nil then
 		return
@@ -532,11 +550,9 @@ function Index.Refresh()
 		local count = math.clamp(math.floor(width / 120), 3, 9)
 		cellSize = math.floor((width - 10 * (count - 1)) / count)
 	end
-	local total, found = #Cards.List, 0
+	local total, found = 0, 0
 	for _, card in Cards.List do
-		if State.Cards[card.Id] then
-			found += 1
-		end
+		if not card.Weather then total+=1; if State.Cards[card.Id] then found+=1 end end
 	end
 	progressLabel.Text = `FOUND {found} / {total}  ·  {math.floor(found / total * 100)}%`
 	Kit.tween(progressFill, 0.4, { Size = UDim2.fromScale(math.max(0.02, found / total), 1) })
@@ -546,6 +562,7 @@ function Index.Refresh()
 	for i, border in Borders.Order do
 		section(border, i)
 	end
+	celestialSection()
 end
 
 local function redraw()

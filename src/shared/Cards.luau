@@ -75,12 +75,15 @@ export type Card = {
 	-- slot 1 links to Attack slot 1, ...). Stat is a trait stat (Traits.luau); BattleEngine applies it.
 	Link: { Name: string, Stat: string, Amount: number, Text: string }?,
 	Boss: string?, -- a boss card: joins the pool after this boss's first Normal clear
+	Weather: string?, -- separate Celestial collection; only consumable packs during this weather
 }
 
 local Config = require(script.Parent.Config)
 local Borders = require(script.Parent.Borders)
 local Awaken = require(script.Parent.Awaken)
 local Odds = require(script.Parent.Odds)
+local Weather = require(script.Parent.Weather)
+local CelestialCards = require(script.Parent.CelestialCards)
 
 local function ability(slot: string, name: string, text: string, effects: { Effect }, every: number?, rules: { Trigger: string?, Chance: number?, Limit: number? }?): Ability
 	return { Slot = slot, Name = name, Text = text, Effects = effects, Every = every,
@@ -1178,6 +1181,8 @@ local list: { Card } = {
 -- Card illustrations: paste each card's Roblox image asset id here (0 = no art yet, the card shows its
 -- element-lit bust). Upload the PNG from art/cards/ in Studio (Asset Manager > Bulk Import), right-click it,
 -- Copy Asset ID. The picture must belong to the same account or group that owns the game.
+for _,card in CelestialCards.Build() do table.insert(list,card :: any) end
+
 local ART: { [string]: number } = {
 	rook = 81352447112619,
 	kaede = 127877704459720,
@@ -1247,6 +1252,12 @@ for _, card in list do
 	end
 end
 
+function Cards.WeatherPool(weatherId: string): {Card}
+	local pool={}
+	for _,card in list do if card.Weather==weatherId then table.insert(pool,card) end end
+	return pool
+end
+
 function Cards.Get(id: string): Card?
 	return Cards.ById[id]
 end
@@ -1267,7 +1278,7 @@ end
 function Cards.Pool(cleared: { [string]: boolean }?): { Card }
 	local pool = {}
 	for _, card in list do
-		if card.Boss == nil or (cleared ~= nil and cleared[`{card.Boss}:Normal`] == true) then
+		if card.Weather==nil and (card.Boss == nil or (cleared ~= nil and cleared[`{card.Boss}:Normal`] == true)) then
 			table.insert(pool, card)
 		end
 	end
@@ -1294,7 +1305,7 @@ end
 function Cards.FeaturedAt(t: number): string
 	local candidates = {}
 	for _, card in list do
-		if card.Boss == nil and card.Weight <= Cards.FeaturedMaxWeight then
+		if card.Weather==nil and card.Boss == nil and card.Weight <= Cards.FeaturedMaxWeight then
 			table.insert(candidates, card.Id)
 		end
 	end
@@ -1331,9 +1342,12 @@ end
 local fullChances: { [string]: number }? = nil
 function Cards.RawRarity(cardId: string, border: string?): number
 	if fullChances == nil then
-		fullChances = Cards.PullChances(list)
+		local normal={}
+		for _,card in list do if not card.Weather then table.insert(normal,card) end end
+		fullChances = Cards.PullChances(normal)
 	end
-	local pull = (fullChances :: { [string]: number })[cardId] or 0
+	local card=Cards.Get(cardId)
+	local pull = if card and card.Weather then 1/(Weather.ById[card.Weather].PackOneIn*4) else (fullChances :: { [string]: number })[cardId] or 0
 	local chance = Borders.Chances()[border or "Normal"] or 0
 	if pull <= 0 or chance <= 0 then
 		return 0

@@ -6,14 +6,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Elements = require(Shared.Elements)
 local Cards = require(Shared.Cards)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
-local ElementUi = require(script.Parent.ElementUi)
-local State = require(script.Parent.Parent.State)
 
 local ElementGuide = {}
 
@@ -49,64 +46,24 @@ local function draw()
 		return line(order, text, color or Theme.Color.Text, size or 17, font)
 	end
 
-	add("THE ELEMENT WHEEL", Theme.Color.Gold, 22, Theme.Font.Display)
-	add(
-		`Every card, boss and guard has an element. A hit from an element that beats the target's deals <b>x{Elements.Strong}</b> (▲); into one that beats yours, <b>x{Elements.Weak}</b> (▼). Enemies hit your cards by the same rule. A higher rarity still wins any matchup.`,
-		Theme.Color.Muted,
-		16
-	)
-	for _, element in Elements.List do
-		local weakTo = {}
-		for _, other in Elements.List do
-			if other.Id ~= "Cosmic" and table.find(other.Beats, element.Id) then
-				table.insert(weakTo, other.Id)
-			end
-		end
-		local weakText = if element.Id == "Cosmic" or #weakTo == 0 then "nothing" else ElementUi.RichList(weakTo)
-		add(`<b>{ElementUi.Rich(element.Id)}</b>   beats {ElementUi.RichList(element.Beats)}   ·   weak to {weakText}`, Theme.Color.Text, 17, Theme.Font.Heavy)
+	add("BUILD YOUR FOUR COLUMNS",Theme.Color.Gold,22,Theme.Font.Display)
+	add("Attack cards fight and take hits. A Support changes the Attack card directly above it. Supports work with any attacker; a familiar partner adds the bond bonus listed below.",Theme.Color.Text,17)
+	add("FAMILIAR BONDS",Theme.Color.Gold,22,Theme.Font.Display)
+	for _,bond in require(Shared.ColumnBonds).List do
+		local attack,support=Cards.Get(bond.Attack),Cards.Get(bond.Support)
+		add(attack.Name.." + "..support.Name,Theme.Color.Quick,18,Theme.Font.Heavy)
+		add(bond.Text,Theme.Color.Text,16)
 	end
+	add("BATTLE RHYTHM",Theme.Color.Gold,22,Theme.Font.Display)
+	add("Basic attacks follow the blue action bar. Skills wait at least 8 seconds. Ultimates need full charge and a 22-second cooldown; changing speed accelerates the whole simulation.",Theme.Color.Text,17)
+	add("Focus a Warder to break its protection or a Mender to stop enemy healing. The leader falling wins the fight. Familiar column combos fire once as the leader weakens.",Theme.Color.Text,17)
+	add("CARD THEMES",Theme.Color.Gold,22,Theme.Font.Display)
+	add("Flame, Frost and the other icons describe artwork and techniques. They do not multiply damage, grant counters or create team-count bonuses. Status effects still work as written.",Theme.Color.Muted,16)
 
-	add("SYNERGIES", Theme.Color.Gold, 22, Theme.Font.Display)
-	add("Cards of one element anywhere in your deck (Attack and Support together) power the whole deck for the fight. 4 replaces 2. Cosmic counts for none.", Theme.Color.Muted, 16)
-	for _, synergy in Elements.Synergies do
-		local tiers = {}
-		for _, tier in synergy.Tiers do
-			table.insert(tiers, `<b>{tier.Count}</b>: {tier.Text}`)
-		end
-		add(`{ElementUi.Rich(synergy.Element)} <b>{string.upper(synergy.Name)}</b>   {table.concat(tiers, "   ·   ")}`, Theme.Color.Text, 16, Theme.Font.Bold)
-	end
-
-	add("BONDS", Theme.Color.Gold, 22, Theme.Font.Display)
-	add(
-		`Two named cards in one deck: when the enemy leader first drops to half HP (or {Elements.BondAt} s in), and both still stand, they fire a Dual Ultimate together, once a fight.`,
-		Theme.Color.Muted,
-		16
-	)
-	for _, bond in Elements.Bonds do
-		local names = {}
-		for _, id in bond.Cards do
-			local card = Cards.Get(id)
-			local have = State.Cards[id] ~= nil
-			table.insert(names, `{if have then "✓ " else ""}{if card then card.Name else id}`)
-		end
-		add(`🤝 <b>{string.upper(bond.Name)}</b>  ({table.concat(names, " + ")})  {math.floor(bond.Pct * 100)}% of both cards' power`, Color3.fromRGB(255, 200, 140), 16, Theme.Font.Heavy)
-		add(bond.Text, Theme.Color.Muted, 14)
-	end
-
-	add("TACTICS", Theme.Color.Gold, 22, Theme.Font.Display)
-	for _, tip in {
-		"Scout first: the BATTLE screen shows the leader's and each guard's element. COUNTER-BUILD fills your deck with the cards that beat them.",
-		"The Warder (🛡️) shields the leader while it stands: tap it to focus it down first.",
-		"Menders are Light: Void cards cut them down fast (and Light cards break Void Warders).",
-		"Bonds fire as the leader hits half HP: keep both cards alive until then.",
-		"The tower's daily mutator boosts one element: switch decks to ride it.",
-	} do
-		add(`• {tip}`, Theme.Color.Text, 16)
-	end
 end
 
 function ElementGuide.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "ElementGuideGui", "ELEMENTS", Vector2.new(0.8, 0.84), Vector2.new(900, 640))
+	modal = Modal.new(playerGui, "ElementGuideGui", "BONDS & TACTICS", Vector2.new(0.8, 0.84), Vector2.new(900, 640))
 	list = Kit.new("ScrollingFrame", {
 		Name = "Guide",
 		Size = UDim2.fromScale(1, 1),

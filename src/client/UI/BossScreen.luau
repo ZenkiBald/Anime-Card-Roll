@@ -21,6 +21,7 @@ local Items = require(Shared.Items)
 local Tower = require(Shared.Tower)
 local Packs = require(Shared.Packs)
 local Elements = require(Shared.Elements)
+local ColumnBonds = require(Shared.ColumnBonds)
 local Raid = require(Shared.Raid)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
@@ -55,6 +56,8 @@ local costChallenge = false -- boss fights: the 30-point Cost Challenge (2x Trai
 local raidLive: { [string]: any } = {} -- the RAID tab's live labels, updated every second without a rebuild
 local tabsLive = false -- whether the tabs were drawn with the raid live
 local raidShape = "" -- what the RAID tab was built for (window, open, cleared): a change rebuilds it
+local cooldownText: TextLabel?
+local storyFightButton
 local showcase: Frame -- left: the boss in 3D
 local showcaseGradient: UIGradient
 local showcaseName: TextLabel
@@ -417,14 +420,7 @@ local function scoutBox(order: number, leaderId: string, guards: { string }, dec
 		}),
 		Kit.new("UISizeConstraint", { MinSize = Vector2.new(0, 0) }),
 	})
-	local counters = {}
-	for _, counter in Elements.Counters(leader.Element) do
-		local e = Elements.Get(counter)
-		table.insert(counters, if e then `{e.Icon} {string.upper(counter)}` else string.upper(counter))
-	end
-	local leaderLines = {
-		`WEAK TO <font color="#FFD700"><b>{table.concat(counters, " · ")}</b></font> (+30% DMG)`,
-	}
+	local leaderLines = {"Watch the leader's warned move. Focus a guard to interrupt its role."}
 	local leaderMove = bigMove(leader.Moves)
 	if leaderMove then
 		table.insert(leaderLines, `⚠ Big move: <b>{leaderMove}</b> (warned first)`)
@@ -483,7 +479,7 @@ local function scoutBox(order: number, leaderId: string, guards: { string }, dec
 		end
 		chipText(t, 2, `{string.upper(active.Synergy.Name)} ({active.Count})`, C.WashiParchment, 13)
 	end
-	for _, bond in Elements.ActiveBonds(ids) do
+	for _, bond in ColumnBonds.Active(deck) do
 		count += 1
 		local t = chip(tags, count, Theme.Color.Gold)
 		chipText(t, 1, `🤝 {string.upper(bond.Name)}`, Theme.Color.Gold, 13)
@@ -500,12 +496,12 @@ local function scoutBox(order: number, leaderId: string, guards: { string }, dec
 	}, {
 		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
 	})
-	local counter = Kit.button("COUNTER-BUILD", C.VermilionHover, C.VermilionWax, {
+	local counter = Kit.button("BEST DECK", C.VermilionHover, C.VermilionWax, {
 		LayoutOrder = 1,
 		Size = UDim2.new(0, 220, 1, 0),
 		Parent = buttons,
 	})
-	local guide = Kit.button("HOW ELEMENTS WORK", C.TamahaganeSlate, C.UrushiBase, {
+	local guide = Kit.button("BONDS & TACTICS", C.TamahaganeSlate, C.UrushiBase, {
 		LayoutOrder = 2,
 		Size = UDim2.new(0, 220, 1, 0),
 		Parent = buttons,
@@ -593,6 +589,7 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 		Size = UDim2.new(0, 220, 1, 0),
 		Parent = buttons,
 	})
+	storyFightButton=if mode=="boss" then fightButton else nil
 	Kit.dim(fightButton, not unlocked)
 	fightButton.Activated:Connect(function()
 		if unlocked and Deck.Count(deck, "Attack") == 0 then
@@ -652,7 +649,7 @@ local function powerBox(order: number, recommended: number, power: number)
 end
 
 local function rewardExtras(reward): string
-	local extras = `+💎{Kit.commas(reward.Shards)} Shards  ·  +🧬{reward.TraitShards} Trait Shards`
+	local extras = `+{math.ceil(reward.Shards/Meta.ShardExchange)+reward.TraitShards} Trait Shards`
 	if reward.Potion then
 		local potion = Meta.PotionById[reward.Potion]
 		extras ..= `  ·  {potion.Icon} {potion.Name}`
@@ -721,14 +718,14 @@ local function buildTower()
 		Theme.Font.Bold
 	)
 	if floor.Guardian and not record then
-		text(rewardBox, 5, `Guardian bonuses (x{Tower.GuardianShards} Shards, a sure potion) pay on floors past your best run (floor {tower.Best})`, Theme.Color.Muted, 15, Theme.Font.Bold)
+		text(rewardBox, 5, `Guardian bonuses (x{Tower.GuardianShards} converted Trait Shards, a sure potion) pay on floors past your best run (floor {tower.Best})`, Theme.Color.Muted, 15, Theme.Font.Bold)
 	elseif not floor.Guardian then
 		local guardian = Tower.NextGuardian(floorNo)
 		text(
 			rewardBox,
 			5,
 			if guardian > tower.Best
-				then `Next Guardian: floor {guardian} · x{Tower.GuardianShards} Shards, a sure potion and 2 Roll Packs`
+				then `Next Guardian: floor {guardian} · x{Tower.GuardianShards} converted Trait Shards, a sure potion and 2 Roll Packs`
 				else `Next Guardian: floor {guardian} · 2 Roll Packs (its bonuses pay past floor {tower.Best})`,
 			Theme.Color.Gold,
 			16,
@@ -943,12 +940,12 @@ local function buildRaid()
 	text(
 		rewardBox,
 		2,
-		`Cleared: <b>+💎{Kit.commas(reward.Shards)}</b> + <b>🧬{reward.TraitShards}</b> (two good runs; more damage pays more) + <b>{Packs.Describe(reward.Packs)}</b>`,
+		`Cleared: <b>+{math.ceil(reward.Shards/Meta.ShardExchange)+reward.TraitShards} Trait Shards</b> (two good runs; more damage pays more) + <b>{Packs.Describe(reward.Packs)}</b>`,
 		Theme.Color.Text,
 		17,
 		Theme.Font.Bold
 	)
-	text(rewardBox, 3, `Top hitter: <b>+{Packs.Describe(Raid.TopPacks)} +🧬{Raid.TopTraitShards}</b>   ·   Not cleared: about half the Shards`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+	text(rewardBox, 3, `Top hitter: <b>+{Packs.Describe(Raid.TopPacks)} +🧬{Raid.TopTraitShards}</b>   ·   Not cleared: about half the Trait Shards`, Theme.Color.Gold, 16, Theme.Font.Heavy)
 	text(rewardBox, 4, `Each run is {Raid.FightSeconds} s against a Colossus sized to your deck, so every player's hits count.`, Theme.Color.Muted, 15, Theme.Font.Bold)
 
 	deckAndFight(5, deck, open, function()
@@ -1076,12 +1073,17 @@ local function build()
 	text(
 		rewardBox,
 		3,
-		`+💎{reward.Shards} Shards  ·  +🧬{Rewards.TraitShards(fight.D, false) * (if costChallenge then Config.Deck.CostTraitShards else 1)} Trait Shards ({if cleared()[key] then "" else "x2 first clear · "}{if costChallenge then "Cost Challenge x2" else "x2 on a Cost Challenge"})  ·  {math.floor(Config.Rewards.PotionChance * 100)}% chance of a {dropPotion.Icon} {dropPotion.Name}`,
+		`+{math.ceil(reward.Shards/Meta.ShardExchange)+Rewards.TraitShards(fight.D, false) * (if costChallenge then Config.Deck.CostTraitShards else 1)} Trait Shards ({if cleared()[key] then "" else "x2 first clear · "}{if costChallenge then "Cost Challenge x2" else "x2 on a Cost Challenge"})  ·  {math.floor(Config.Rewards.PotionChance * 100)}% chance of a {dropPotion.Icon} {dropPotion.Name}`,
 		Theme.Color.Text,
 		17,
 		Theme.Font.Bold
 	)
 	local best = State.Progress.BestTime and State.Progress.BestTime[key]
+	if difficulty~="Normal" and State.Weather.Id~="clear" then text(rewardBox,7,"CORRUPTED · +20% boss HP · +5 Celestial Fragments on a rewarded win",Theme.Color.Danger,15,Theme.Font.Heavy) end
+	local clockLabel=text(rewardBox,6,"",Theme.Color.Gold,16,Theme.Font.Heavy)
+	cooldownText=clockLabel
+	local left=math.max(0,((State.Progress.RewardAt or {})[key] or 0)-os.time())
+	clockLabel.Text=if left>0 then `PRACTICE ONLY · rewards return in {left//60}:{string.format("%02d",left%60)}` else "Rewards ready · a win starts this challenge's 5-minute reward cooldown"
 	if cleared()[key] then
 		local bestText = if best then string.format("Best time %d:%04.1f", best // 60, best % 60) else "Cleared"
 		text(rewardBox, 5, `✓ {bestText}`, Theme.Color.Quick, 17, Theme.Font.Heavy)
@@ -1106,7 +1108,7 @@ local function build()
 			return
 		end
 		return actions.Fight(bossId, difficulty, if costChallenge then { Cost = true } else nil)
-	end, if costChallenge then "FIGHT! · COST" else nil, boss.Id)
+	end, if left>0 then "PRACTICE · NO REWARDS" elseif costChallenge then "FIGHT! · COST" else nil, boss.Id)
 	hintLabel.Parent = body -- its own row: inside the wrapping button row it pushed the buttons up
 end
 
@@ -1260,6 +1262,10 @@ function BossScreen.Init(playerGui: Instance, bossActions: Actions)
 			task.wait(1)
 			if modal.IsOpen and mode == "raid" then
 				updateRaidLive()
+			elseif modal.IsOpen and mode=="boss" and cooldownText and cooldownText.Parent then
+				local left=math.max(0,((State.Progress.RewardAt or {})[Bosses.FightKey(bossId,difficulty)] or 0)-os.time())
+				cooldownText.Text=if left>0 then `PRACTICE ONLY · rewards return in {left//60}:{string.format("%02d",left%60)}` else "Rewards ready · choose another challenge or fight for rewards"
+				if storyFightButton and storyFightButton.Parent then storyFightButton.Label.Text=if left>0 then "PRACTICE · NO REWARDS" elseif costChallenge then "FIGHT! · COST" else "FIGHT!" end
 			end
 		end
 	end)

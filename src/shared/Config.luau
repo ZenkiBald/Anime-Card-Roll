@@ -4,6 +4,7 @@
 local Config = {}
 
 Config.GameName = "Anime Card Roll"
+Config.CelestialCardsReady = true -- all 16 clothed portraits loaded in Studio
 
 -- TEST PHASE SWITCH
 -- true  = dev panel on, all roll buttons unlocked, saves go to a separate test store.
@@ -16,7 +17,9 @@ Config.DevGroupRank = 254
 
 Config.Roll = {
 	Cooldown = 1.2, -- seconds between rolls, enforced on the server
-	LuckCap = 25, -- tiered luck (Odds.Chances): Commons stay about 28% even at the cap
+	LuckSoftStart = 5,
+	LuckSoftScale = 10,
+	DevLuckMax = 1000000, -- test input bound; earned luck has diminishing returns, not this cap
 }
 
 Config.Unlocks = {
@@ -76,7 +79,11 @@ Config.Rewards = {
 
 -- Battle rules from the design doc. Boss stats live in Bosses.luau.
 Config.Battle = {
-	TurnSeconds = 2, -- a SPD 100 card acts once per turn; buff, burn and shield durations count turns
+	TurnSeconds = 2.5, -- a SPD 100 card acts once per turn; durations count battle seconds
+	SkillMinSeconds = 8,
+	UltimateMinSeconds = 22,
+	TeamUltimateGap = 3,
+	HitEnergyInterval = 2,
 	Tick = 0.1, -- simulation step, in battle seconds
 	TimeLimit = 180, -- lose when the 3-minute timer ends
 	IntroSeconds = 2, -- "FIGHT!" banner before the first tick
@@ -94,8 +101,8 @@ Config.Battle = {
 	MinHit = { Guard = 0.01, Leader = 0.02, LeaderSkill = 0.06 },
 	SkillPierce = 0.4, -- share of a leader's warned move that goes through shields
 	UltimateCost = 100,
-	EnergyPerAction = 20,
-	EnergyPerHit = 10,
+	EnergyPerAction = 10,
+	EnergyPerHit = 3,
 	CritChance = 0.1,
 	CritDamage = 1.5,
 	ShieldTurns = 2,

@@ -17,6 +17,9 @@ local Bosses = require(Shared.Bosses)
 local Tower = require(Shared.Tower)
 local Packs = require(Shared.Packs)
 local PackBatch = require(Shared.PackBatch)
+local Collections = require(Shared.Collections)
+local Weather = require(Shared.Weather)
+local WeatherService = require(script.Parent.WeatherService)
 
 local Remotes = ReplicatedStorage.Remotes
 local GlobalAnnounce = require(script.Parent.GlobalAnnounce)
@@ -84,7 +87,9 @@ end
 local function summary(player: Player, data)
 	return {
 		TotalRolls = data.TotalRolls,
+		SelectedCollection = data.SelectedCollection or "normal",
 		Shards = data.Shards,
+		Fragments = data.Celestial and data.Celestial.Fragments or 0,
 		Luck = luckFor(player, data),
 		Cooldown = cooldownFor(data, player),
 		TraitShards = data.TraitShards or 0,
@@ -123,6 +128,7 @@ local function fullState(player: Player, data)
 end
 
 export type RollOptions = {
+	CelestialId: string?, -- internal only: a server-picked weather bonus, never supplied by a remote
 	BorderMult: number?, -- x border odds (surges, infused packs under a luck boost)
 	FoilMult: number?, -- x foil odds (perfect surges)
 	Element: string?, -- infused packs: this element's cards weigh Packs.InfuseWeight in the pool
@@ -132,7 +138,7 @@ export type RollOptions = {
 -- A card from the player's pool by Weight (the infused element's cards and the week's Featured Card
 -- weighted up).
 local function pickCard(data, element: string?)
-	local pool = Cards.Pool(data.Progress.Cleared)
+	local pool = Collections.Pool(data.SelectedCollection, data.Progress.Cleared)
 	local chances = Cards.PullChances(pool, element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()))
 	local target = rng:NextNumber()
 	for _, card in pool do
@@ -169,7 +175,7 @@ local function doRoll(player: Player, profile, luck: number?, batch: { XP: numbe
 	local data = profile.Data
 	local o = opts or {}
 
-	local card = pickCard(data, o.Element)
+	local card = if o.CelestialId then Cards.Get(o.CelestialId) else pickCard(data, o.Element)
 	-- The border: the tier. Luck, the Border Chance stat / artifacts and surge / pack multipliers raise it.
 	local borderBoost = (1 + Meta.Bonus(data.Stats, data.Gear, "Border")) * (o.BorderMult or 1) - 1
 	local rollLuck = luck or luckFor(player, data)
@@ -270,6 +276,17 @@ local function rollClick(player: Player, profile, perfect: boolean, click: boole
 	for _ = 2, count do
 		table.insert(extra, doRoll(player, profile, nil, nil, { BorderMult = mult, FoilMult = foilMult }))
 	end
+	-- Normal pulls stay intact; a sky opportunity is normalized to ten pulls per pack.
+	local weather=WeatherService.State()
+	local weatherDef=Weather.ById[weather.Id]
+	if Config.CelestialCardsReady and weatherDef.PackOneIn>0 then
+		local eligible=Cards.WeatherPool(weather.Id)
+		for _=1,count do
+			if rng:NextNumber()<1/(10*weatherDef.PackOneIn) then
+				table.insert(extra,doRoll(player,profile,nil,nil,{CelestialId=eligible[rng:NextInteger(1,#eligible)].Id}))
+			end
+		end
+	end
 	main.Extra = if #extra > 0 then extra else nil
 
 	local before = Momentum.Count(player)
@@ -285,12 +302,12 @@ end
 -- Pays a win: Roll Packs into the player's packs (opened later, at their luck then), Shards, a potion
 -- (sure, or by chance) and Trait Shards. `relicFloor`: an Infinite Tower win on that floor also rolls for
 -- a relic (Items.RollDrops: only from Items.RelicFloor up). `towerArtifact`: a finite tower's artifact.
-local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, traitShards: number?, relicFloor: number?, towerArtifact: string?)
+local function payWin(player: Player, profile, packs: { [string]: number }?, shards: number, potion: string?, potionChance: number, traitShards: number?, relicFloor: number?, towerArtifact: string?, fragments: number?, supplies: {[string]:number}?)
 	local held = profile.Data.Packs
 	for id, count in (packs or {}) :: { [string]: number } do
 		held[id] = (held[id] or 0) + count
 	end
-	local bundle = { Shards = shards, Potions = {}, TraitShards = traitShards }
+	local bundle = { Shards = shards, Potions = {}, TraitShards = traitShards, Fragments=fragments, Celestial=supplies }
 	if potion and rng:NextNumber() < potionChance then
 		bundle.Potions[potion] = 1
 	end
@@ -324,10 +341,18 @@ local function openPack(player: Player, profile, pack: Packs.Pack, count: number
 	end
 	local batch = PackBatch.New()
 	local touched = {}
-	for _ = 1, count * pack.Rolls do
+	local weather=WeatherService.State()
+	local weatherDef=Weather.ById[weather.Id]
+	for index = 1, count * pack.Rolls do
 		local result = doRoll(player, profile, luck, xp, opts)
 		PackBatch.Add(batch, result)
 		touched[result.CardId] = true
+		if Config.CelestialCardsReady and index%10==0 and weatherDef.PackOneIn>0 and rng:NextNumber()<1/weatherDef.PackOneIn then
+			local eligible=Cards.WeatherPool(weather.Id)
+			local bonus=doRoll(player,profile,luck,xp,{CelestialId=eligible[rng:NextInteger(1,#eligible)].Id})
+			PackBatch.Add(batch,bonus)
+			touched[bonus.CardId]=true
+		end
 	end
 	MetaService.AddXP(player, data, xp.XP)
 	PackBatch.Finish(batch)
@@ -340,7 +365,7 @@ local function openPack(player: Player, profile, pack: Packs.Pack, count: number
 	return batch, cards, luck
 end
 
-function RollService.RewardRolls(player: Player, d: number, firstClear: boolean, costChallenge: boolean?)
+function RollService.RewardRolls(player: Player, d: number, firstClear: boolean, costChallenge: boolean?, corrupted: boolean?)
 	local profile = DataService.Get(player)
 	if profile == nil then
 		return nil
@@ -349,7 +374,7 @@ function RollService.RewardRolls(player: Player, d: number, firstClear: boolean,
 	-- potion. No relics or artifacts: those come from the towers only.
 	local reward = Rewards.For(d)
 	local traitShards = Rewards.TraitShards(d, firstClear) * (if costChallenge then Config.Deck.CostTraitShards else 1)
-	return payWin(player, profile, Packs.ForBoss(d, firstClear), reward.Shards, reward.Potion, Config.Rewards.PotionChance, traitShards)
+	return payWin(player, profile, Packs.ForBoss(d, firstClear), reward.Shards, reward.Potion, Config.Rewards.PotionChance, traitShards,nil,nil,if corrupted then 5 else nil)
 end
 
 -- A won tower floor. The Infinite Tower (Tower.Reward): every floor of a run pays, run milestones drop
@@ -364,7 +389,7 @@ function RollService.TowerRewards(player: Player, floor: number, mode: string, r
 	local reward = if mode == Tower.PagodaId then Tower.PagodaReward(floor) else Tower.Reward(floor, record)
 	local pagoda = mode == Tower.PagodaId
 	local artifact = if reward.Milestone then reward.Milestone.Artifact else nil
-	local result = payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.TraitShards, if pagoda then nil else floor, artifact)
+	local result = payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.TraitShards, if pagoda then nil else floor, artifact,if record and floor%10==0 then 3 else nil,if record and floor%25==0 then {orb=1} else nil)
 	result.Milestone = reward.Milestone
 	return result
 end
@@ -372,7 +397,7 @@ end
 -- A raid payout for a hitter who left before the raid ended: the same reward, built into one bundle and
 -- sent to their save as a message; it lands when they next play.
 function RollService.RaidRewardsOffline(userId: number, reward, name: string)
-	local bundle = { Shards = reward.Shards, TraitShards = reward.TraitShards, Packs = reward.Packs }
+	local bundle = { Shards = reward.Shards, TraitShards = reward.TraitShards, Packs = reward.Packs, Fragments=5, Celestial={orb=1} }
 	DataService.SendMessage(userId, { Kind = "Grant", Source = "Raid", Note = name, Bundle = bundle })
 end
 
@@ -390,7 +415,7 @@ function RollService.RaidRewards(player: Player, reward)
 	if profile == nil then
 		return nil
 	end
-	return payWin(player, profile, reward.Packs, reward.Shards, nil, 0, reward.TraitShards)
+	return payWin(player, profile, reward.Packs, reward.Shards, nil, 0, reward.TraitShards,nil,nil,5,{orb=1})
 end
 
 local function cooldownLeft(player: Player): number
@@ -574,19 +599,7 @@ function RollService.Start()
 			made = rule.To
 			TutorialService.Note(player, "Condense")
 		elseif action == "Infuse" then
-			local id = if type(element) == "string" then Packs.InfusedId(element) else nil
-			if packId ~= "1000" or id == nil then
-				return { Ok = false, Reason = "BadRequest" }
-			end
-			if (held["1000"] or 0) < 1 then
-				return { Ok = false, Reason = "NotEnough" }
-			end
-			if data.Shards < Packs.InfuseCost then
-				return { Ok = false, Reason = "NoShards" }
-			end
-			data.Shards -= Packs.InfuseCost
-			held["1000"] -= 1
-			made = id
+			return {Ok=false,Reason="Retired"}
 		else
 			return { Ok = false, Reason = "BadRequest" }
 		end
@@ -628,7 +641,7 @@ function RollService.Start()
 		end
 		if action == "SetLuck" then
 			local luck = tonumber(value) or 1
-			MetaService.SetDevLuck(player, math.clamp(luck, 1, Config.Roll.LuckCap))
+			MetaService.SetDevLuck(player, math.clamp(luck, 1, Config.Roll.DevLuckMax))
 		elseif action == "GrantAll" or action == "GrantStarter" then
 			-- GrantStarter: just the most common cards (Weight 8+), a first deck; GrantAll: the whole pool.
 			for _, card in Cards.Pool(profile.Data.Progress.Cleared) do

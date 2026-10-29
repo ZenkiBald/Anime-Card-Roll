@@ -59,7 +59,7 @@ end
 -- by the server on claim.
 function MetaClient.RarityComplete(border: string): boolean
 	for _, card in Cards.List do
-		if card.Boss == nil then
+		if card.Boss == nil and card.Weather==nil then
 			local entry = State.Cards[card.Id]
 			if entry == nil or (border ~= "Normal" and not (entry.Borders and entry.Borders[border])) then
 				return false

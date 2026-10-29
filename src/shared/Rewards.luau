@@ -40,7 +40,7 @@ end
 
 -- Boss luck x the player's own luck, under the overall cap.
 function Rewards.TotalLuck(bossLuck: number, playerLuck: number): number
-	return math.min(Config.Roll.LuckCap, bossLuck * playerLuck)
+	return bossLuck * playerLuck
 end
 
 return Rewards

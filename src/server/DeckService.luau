@@ -82,7 +82,7 @@ function DeckService.Start()
 					against = Bosses.SquadElements(deck)
 				end
 			end
-			local built = Deck.AutoBuild(data.Cards, against)
+			local built = Deck.AutoBuild(data.Cards, against,ReplicatedStorage:GetAttribute("WeatherId") :: string?)
 			for _, row in Deck.Rows do
 				for _, id in built[row] do
 					if data.Cards[id] then

@@ -13,7 +13,7 @@ export type Chances = { [string]: number }
 
 -- Percent chance of each border at `luck` with `boost` (Border Chance stat etc.). Sums to 100.
 function Odds.Chances(luck: number, boost: number?): Chances
-	local chances = Borders.Chances(boost, math.clamp(luck, 1, Config.Roll.LuckCap))
+	local chances = Borders.Chances(boost, math.max(1,luck))
 	local percent: Chances = {}
 	for id, chance in chances do
 		percent[id] = chance * 100

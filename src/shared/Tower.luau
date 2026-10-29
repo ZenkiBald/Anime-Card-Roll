@@ -109,17 +109,17 @@ Tower.Curve = {
 	Power = 16500,
 	Growth = 1.068, -- about 2x every 10 floors; floor 37 is about Tenrai Nightmare
 	Points = {
-		{ Power = 16500, HP = 78000, ATK = 16 },
-		{ Power = 25400, HP = 130000, ATK = 28 },
-		{ Power = 31700, HP = 160000, ATK = 35 },
-		{ Power = 47800, HP = 300000, ATK = 55 },
-		{ Power = 64300, HP = 320000, ATK = 65 },
-		{ Power = 98100, HP = 800000, ATK = 80 },
-		{ Power = 117200, HP = 910000, ATK = 100 },
-		{ Power = 151900, HP = 1900000, ATK = 135 },
-		{ Power = 175600, HP = 2800000, ATK = 165 },
-		{ Power = 697700, HP = 15000000, ATK = 650 },
-		{ Power = 2790700, HP = 60000000, ATK = 1700 },
+		{ Power = 16500, HP = 35100, ATK = 11 },
+		{ Power = 25400, HP = 58500, ATK = 20 },
+		{ Power = 31700, HP = 72000, ATK = 24 },
+		{ Power = 47800, HP = 135000, ATK = 38 },
+		{ Power = 64300, HP = 144000, ATK = 46 },
+		{ Power = 98100, HP = 360000, ATK = 56 },
+		{ Power = 117200, HP = 409500, ATK = 70 },
+		{ Power = 151900, HP = 855000, ATK = 94 },
+		{ Power = 175600, HP = 1260000, ATK = 115 },
+		{ Power = 697700, HP = 5400000, ATK = 455 },
+		{ Power = 2790700, HP = 21000000, ATK = 1190 },
 	},
 	Beyond = { HP = 1, ATK = 1 }, -- past the last point: linear stats; full Secret chase decks remain playable
 }

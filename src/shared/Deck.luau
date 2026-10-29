@@ -255,7 +255,7 @@ end
 -- The strongest 4 + 4, every card at its best border (DeckService clears their `Play` picks). With
 -- `against` (the enemy squad's elements) it counter-builds: each card's power is weighed by
 -- Deck.MatchupValue, so cards that beat the squad's elements move up.
-function Deck.AutoBuild(owned: Owned, against: { string }?): Deck
+function Deck.AutoBuild(owned: Owned, against: { string }?, weatherId: string?): Deck
 	local deck = Deck.Empty()
 	for _, row in Deck.Rows do
 		local pool = {}
@@ -268,8 +268,8 @@ function Deck.AutoBuild(owned: Owned, against: { string }?): Deck
 		table.sort(pool, function(a, b)
 			local ea, eb = owned[a], owned[b]
 			local ca, cb = Cards.Get(a) :: Cards.Card, Cards.Get(b) :: Cards.Card
-			local pa = (if row == "Support" then Cards.SupportScore(ca, ea.Stars, Borders.Best(ea.Borders), Awaken.Level(ea :: any)) else Deck.PowerAt(a, owned, Borders.Best(ea.Borders))) * Deck.MatchupValue(a, against)
-			local pb = (if row == "Support" then Cards.SupportScore(cb, eb.Stars, Borders.Best(eb.Borders), Awaken.Level(eb :: any)) else Deck.PowerAt(b, owned, Borders.Best(eb.Borders))) * Deck.MatchupValue(b, against)
+			local pa = (if row == "Support" then Cards.SupportScore(ca, ea.Stars, Borders.Best(ea.Borders), Awaken.Level(ea :: any)) else Deck.PowerAt(a, owned, Borders.Best(ea.Borders))) * Deck.MatchupValue(a, against) * (if ca.Weather and ca.Weather==weatherId then 1.2 else 1)
+			local pb = (if row == "Support" then Cards.SupportScore(cb, eb.Stars, Borders.Best(eb.Borders), Awaken.Level(eb :: any)) else Deck.PowerAt(b, owned, Borders.Best(eb.Borders))) * Deck.MatchupValue(b, against) * (if cb.Weather and cb.Weather==weatherId then 1.2 else 1)
 			if pa ~= pb then
 				return pa > pb
 			end

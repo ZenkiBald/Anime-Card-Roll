@@ -8,7 +8,7 @@ do
 	for _, card in Cards.List do
 		if card.Type == "Attack" then attacks += 1 else supports += 1 end
 	end
-	check(attacks == 26 and supports == 11, "the pool has 26 character Attack cards and 11 independent Support relics")
+	check(attacks == 42 and supports == 11, "37 normal cards plus sixteen Celestial Attack cards")
 	for characterId, relicId in Cards.LegacySupports do
 		local card, relic = Cards.Get(characterId), Cards.Get(relicId)
 		check(card.Type == "Attack" and card.Image ~= nil and card.Support == nil and relic.Type == "Support" and relic.Image ~= card.Image, characterId .. " keeps its portrait as an attacker; the relic never borrows that portrait")
@@ -109,7 +109,7 @@ for _, border in { "Normal", "Gold", "Rainbow", "Secret" } do
 	a.Burns = { { Damage = 1, Ticks = 2, Timer = 2 } }
 	local before = a.HP - 1
 	b:DamageAlly(a, 1, "Hit", "Boss")
-	check(a.HP == before + math.floor(a.MaxHP * mod.Amount + 0.5) and mod.Used == 1 and not a.Frozen and #a.Burns == 0 and a.HealingLock == 4, border .. " renewal cleanses, uses the rounded server percentage, and applies its healing cost")
+	check(a.HP == before + math.floor(a.MaxHP * mod.Amount + 0.5) and mod.Used == 1 and not a.Frozen and #a.Burns == 0 and a.HealingLock == 2*Config.Battle.TurnSeconds, border .. " renewal cleanses, uses the rounded server percentage, and applies its healing cost")
 	before = a.HP
 	check(b:SupportHeal(mod, a, 100) == 0 and a.HP == before, border .. " healing lock really prevents healing")
 	a.HP = 1

@@ -102,7 +102,11 @@ do
 	local b = Engine.new({ Units = F.units(strong, strongOwned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(2) })
 	check(b:UseUltimate("A1") == false, "an Ultimate is refused without energy")
 	b.ById.A1.Energy = Config.Battle.UltimateCost
-	check(b:UseUltimate("A1") == true and b.ById.A1.Energy == 0, "an Ultimate fires at 100 energy and spends it")
+	check(b:UseUltimate("A1") == false, "full energy cannot bypass the opening Ultimate cooldown")
+	b.Time=Config.Battle.UltimateMinSeconds
+	check(b:UseUltimate("A1") == true and b.ById.A1.Energy == 0, "an Ultimate fires after its cooldown at full energy")
+	b.ById.A1.Energy=Config.Battle.UltimateCost
+	check(not b:UseUltimate("A1"), "refilling energy cannot bypass the per-card cooldown")
 	check(b:UseUltimate("Boss") == false and b:UseUltimate("Z9") == false, "Ultimate requests for bad ids are refused")
 end
 
@@ -245,7 +249,7 @@ for d, row in DESIGN do
 	end
 end
 check(rewardsOk, "reward rolls and boss luck match the design table for D 1-9")
-check(near(Rewards.TotalLuck(4, 8), Config.Roll.LuckCap), "boss luck x player luck is capped at the luck cap")
+check(near(Rewards.TotalLuck(4,8),32), "boss luck multiplies earned luck without a hard cap")
 
 local dOk = true
 for _, boss in Bosses.List do

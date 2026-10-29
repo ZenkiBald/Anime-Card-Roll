@@ -26,6 +26,7 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local HudArt = require(script.Parent.HudArt)
+local Hud = require(script.Parent.Hud)
 local BagArt = require(script.Parent.BagArt)
 local Skin = require(script.Parent.Skin)
 local Modal = require(script.Parent.Modal)
@@ -1365,6 +1366,7 @@ local function applySnapshot(snap)
 			if tile then
 				local alive = true
 				if tile.IsAttack and s.H then
+					tile.MaxHP=s.M or tile.MaxHP
 					local ratio = s.H / tile.MaxHP
 					setHp(tile.HpFill, tile.HpTrail, ratio)
 					tile.HpFill.BackgroundColor3 = hpColor(ratio)
@@ -1385,11 +1387,11 @@ local function applySnapshot(snap)
 					Kit.tween(tile.Gauge, 0.15, { Size = gaugeGoal }, Enum.EasingStyle.Linear)
 				end
 				if tile.Passive then
-					tile.Passive.Text = if not s.PairedAlive then "ATTACKER DOWN" elseif s.UsesLeft ~= nil then `PASSIVE · {s.UsesLeft} LEFT` else "PASSIVE · ACTIVE"
+					tile.Passive.Text = if not s.PairedAlive then "ATTACKER DOWN" elseif s.Bond then `BONDED · {s.UsesLeft or "ACTIVE"}` elseif s.UsesLeft ~= nil then `PASSIVE · {s.UsesLeft} LEFT` else "PASSIVE · ACTIVE"
 				end
 				if tile.Energy then
 					Kit.tween(tile.Energy, 0.15, { Size = UDim2.fromScale(s.E / cost, 1) })
-					tile.EnergyGlow.Enabled = alive and s.E >= cost
+					tile.EnergyGlow.Enabled = alive and s.E >= cost and (s.UltIn or 0)<=0
 				end
 				if tile.Ko.Visible ~= not alive then
 					tile.Ko.Visible = not alive
@@ -1399,7 +1401,7 @@ local function applySnapshot(snap)
 				tile.Frozen.Visible = alive and string.find(s.F, "Z") ~= nil
 				local tapped = ultTapped[id]
 				local waiting = tapped ~= nil and os.clock() - tapped < 0.6
-				tile.Ready.Visible = alive and tile.HasUlt and s.E >= cost and not waiting and not current.AutoUlt
+				tile.Ready.Visible = alive and tile.HasUlt and s.E >= cost and (s.UltIn or 0)<=0 and not waiting and not current.AutoUlt
 			end
 		end
 	end
@@ -2061,6 +2063,7 @@ end
 -- is on, unless it's a moment worth the full panel: a Pagoda milestone or its crown, a relic or artifact,
 -- a boss card unlocked.
 local function chains(summary): boolean
+	if summary.Practice or (current and not current.Tower) then return false end
 	if current == nil or summary.Result ~= "Win" or current.Raid then
 		return false
 	end
@@ -2078,6 +2081,7 @@ end
 
 local function showResults(summary)
 	current.Ended = true
+	if summary.Practice then Hud.Hint("Practice complete · no rewards while this boss is on cooldown") end
 	returnButton.Label.Text = `{string.upper(summary.Result)} · VIEW RESULT`
 	countWin(summary)
 	if summary.Result ~= "Win" then
@@ -2809,6 +2813,8 @@ local function begin(start, bossId: string, difficulty: string?)
 	local boss = Bosses.Get(if tower then tower.Boss else start.Info.BossId or bossId)
 	current = {
 		Info = start.Info,
+		Practice=start.Practice,
+		Corrupted=start.Corrupted,
 		BossId = boss.Id,
 		Difficulty = if tower then tower.Difficulty else start.Info.Difficulty or difficulty,
 		Tower = tower,

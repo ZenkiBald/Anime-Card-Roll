@@ -21,8 +21,9 @@ local Reveal = require(UI.Reveal)
 local Index = require(UI.Index)
 local Bag = require(UI.Bag)
 local StatsPanel = require(UI.Stats)
-local Shop = require(UI.Shop)
 local Gifts = require(UI.Gifts)
+local CollectionsUi = require(UI.Collections)
+local WeatherUi = require(UI.Weather)
 local Journey = require(UI.Journey)
 local Travel = require(UI.Travel)
 local Settings = require(UI.Settings)
@@ -50,6 +51,7 @@ local Battle = require(UI.Battle)
 local State = require(script.Parent.State)
 local HubFx = require(script.Parent.HubFx)
 local ZoneFx = require(script.Parent.ZoneFx)
+local SkyFx = require(script.Parent.SkyFx)
 local LightingSetup = require(script.Parent.LightingSetup)
 local Sfx = require(UI.Sfx)
 local MetaClient = require(script.Parent.MetaClient)
@@ -268,8 +270,9 @@ OddsPanel.Init(playerGui)
 Index.Init(playerGui, OddsPanel.Toggle, squadPanel)
 Bag.Init(playerGui)
 StatsPanel.Init(playerGui, squadPanel)
-Shop.Init(playerGui, squadPanel)
+squadPanel:SetTabText("UPGRADES","TRAINING")
 Gifts.Init(playerGui, questsPanel)
+CollectionsUi.Init(playerGui)
 Journey.Init(questsPanel, function(goal)
 	if goal.Action == "Squad" then
 		squadPanel:Show("DECK")
@@ -358,6 +361,7 @@ end)
 Reveal.Muted = Modal.AnyOpen
 -- Music and lighting follow the zone you walk into.
 ZoneFx.Start()
+SkyFx.Start()
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 	if State.InBattle then
 		return
@@ -372,6 +376,8 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		end
 	elseif prompt:GetAttribute("Npc") == "fuser" then
 		Fusion.Open()
+	elseif prompt:GetAttribute("Npc") == "collector" then
+		CollectionsUi.Open()
 	elseif prompt:GetAttribute("Npc") == "traitmaster" then
 		TraitMaster.Open()
 	elseif prompt:GetAttribute("Npc") == "wheel" then
@@ -412,6 +418,8 @@ Hud.Init(playerGui, {
 	OnRaid = BossScreen.OpenRaid,
 	OnDev = if State.Dev then DevPanel.Toggle else nil, -- only for test tool users (DevAccess)
 })
+
+WeatherUi.Init(playerGui)
 
 State.Changed:Connect(function(kind)
 	if kind ~= "raid" then

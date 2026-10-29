@@ -34,9 +34,10 @@ export type Info = {
 	Claimed: { [string]: boolean }?, -- roll milestones claimed, keyed by tostring(Rolls)
 	Shards: number,
 	Upgrades: { [string]: number }?, -- Shard Shop levels
+	Weather: any?,
+	Now: number?,
 }
 
-local ROMAN = { "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII" }
 
 local function better(a: Goal?, b: Goal): Goal
 	if a == nil then
@@ -114,22 +115,44 @@ function Goals.Next(info: Info): Goal?
 		end
 		previous = milestone.Rolls
 	end
-	-- Shard Shop upgrades: Shards toward the next level of each.
-	for _, upgrade in Meta.Upgrades do
-		local level = (info.Upgrades or {})[upgrade.Id] or 0
-		local cost = Meta.UpgradeCost(upgrade.Id, level)
-		if cost then
-			local progress = math.clamp(info.Shards / cost, 0, 1)
-			best = better(best, {
-				Kind = "Upgrade",
-				Text = `Next Upgrade: {upgrade.Name} {ROMAN[level + 1] or tostring(level + 1)} ({math.floor(progress * 100)}%)`,
-				-- An affordable upgrade is a nudge, not an alarm: just under a ready fusion.
-				Progress = math.min(progress, 0.999),
-				Ready = progress >= 1,
-			})
+	return best
+end
+
+-- The nearest distinct targets; completed mastery and capped borders do not create dead-end bars.
+function Goals.Closest(info: Info): {Goal}
+	local best: {[string]:Goal}={}
+	local function add(goal: Goal)
+		best[goal.Kind]=better(best[goal.Kind],goal)
+	end
+	local total,found=0,0
+	for _,card in Cards.List do
+		if not card.Weather and not card.Boss then total+=1; if info.Cards[card.Id] then found+=1 end end
+	end
+	if found<total then add({Kind="Collection",Text=`Vault: {found}/{total} normal cards`,Progress=found/total,Ready=false}) end
+	for id,entry in info.Cards do
+		local card=Cards.Get(id)
+		if card then
+			for border,pile in entry.BorderCopies or {} do
+				if Borders.Next(border) and pile>0 then
+					add({Kind="Fusion",Text=`Fusion: {card.Name} {pile}/{Config.FusionCopies}`,Progress=math.min(1,pile/Config.FusionCopies),Ready=pile>=Config.FusionCopies})
+				end
+			end
+			local node=Awaken.Nodes[Awaken.Level(entry)+1]
+			if node then add({Kind="Mastery",Text=`Mastery: {card.Name} {Awaken.Count(entry)}/{node.Challenges}`,Progress=math.min(.999,Awaken.Count(entry)/node.Challenges),Ready=false}) end
 		end
 	end
-	return best
+	local sky=info.Weather
+	if sky and sky.Next and info.Now and sky.Id=="clear" then
+		local left=math.max(0,sky.Next.Starts-info.Now)
+		add({Kind="Weather",Text=`Next sky: {math.ceil(left/60)} min`,Progress=math.clamp(1-left/900,0,.999),Ready=false})
+	end
+	local nextGoal=Goals.Next(info)
+	if nextGoal then add(nextGoal) end
+	local sorted={}
+	for _,goal in best do table.insert(sorted,goal) end
+	table.sort(sorted,function(a,b) if a.Progress~=b.Progress then return a.Progress>b.Progress end;return a.Kind<b.Kind end)
+	while #sorted>3 do table.remove(sorted) end
+	return sorted
 end
 
 -- Visible long-term targets, derived from existing server snapshots; this page awards nothing.
@@ -181,7 +204,7 @@ function Goals.Journey(info: any): { any }
 		Title = "EARN THE PAGODA CROWN", Count = `{pagoda}/{Tower.Pagoda.Floors} floors`,
 		Progress = math.clamp(pagoda / Tower.Pagoda.Floors, 0, 1),
 		Text = if pagoda < Tower.Pagoda.Floors then `Next milestone: floor {nextFloor}. Cleared floors stay cleared.` else "Crown earned. Your Pagoda progress is complete.",
-		Reward = if pagoda < Tower.Pagoda.Floors then `Floor {nextFloor}: {milestone.Shards} Shards, {milestone.TraitShards} Trait Shards and packs. Crown + Pagoda Master title at floor {Tower.Pagoda.Floors}.` else "The Crown of the Hundred Floors is always active; no relic slot needed.",
+		Reward = if pagoda < Tower.Pagoda.Floors then `Floor {nextFloor}: {math.ceil(milestone.Shards/Meta.ShardExchange)+milestone.TraitShards} Trait Shards and packs. Crown + Pagoda Master title at floor {Tower.Pagoda.Floors}.` else "The Crown of the Hundred Floors is always active; no relic slot needed.",
 		Action = "Pagoda", ArtKey = "TowerArtifact:hundredcrown",
 	})
 	local best = tower.Best or 0

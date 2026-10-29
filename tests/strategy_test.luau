@@ -25,94 +25,29 @@ for _, g in Bosses.GuardList do
 end
 check(valid, "every card, boss and guard has an element (Cosmic only on the chase cards)")
 
-local counters = true
-for _, boss in Bosses.List do
-	local answers = Elements.Counters(boss.Element)
-	local any = false
-	for _, card in Cards.List do
-		if card.Type == "Attack" and table.find(answers, card.Element) then
-			any = true
-		end
-	end
-	counters = counters and any
+-- Themes remain for art/statuses but do not create elemental advantages or hidden team buffs.
+local neutral=true
+for _,a in Elements.List do
+ for _,b in Elements.List do neutral=neutral and Elements.Multiplier(a.Id,b.Id)==1 end
 end
-check(counters, "every boss has an Attack card whose element beats it")
-
-check(Elements.Multiplier("Flame", "Frost") == Elements.Strong and Elements.Multiplier("Frost", "Flame") == Elements.Weak, "Flame beats Frost, Frost into Flame is weak")
-check(Elements.Multiplier("Frost", "Storm") == Elements.Strong and Elements.Multiplier("Storm", "Flame") == Elements.Strong, "Frost beats Storm, Storm beats Flame")
-check(Elements.Multiplier("Light", "Void") == Elements.Strong and Elements.Multiplier("Void", "Light") == Elements.Strong, "Light and Void beat each other")
-check(Elements.Multiplier("Cosmic", "Void") == Elements.Strong and Elements.Multiplier("Storm", "Cosmic") == 1, "Cosmic beats every element and is weak to none")
-check(Elements.Multiplier("Flame", "Flame") == 1 and Elements.Multiplier("Light", "Storm") == 1, "everything else is neutral")
-
--- The border still wins: a card one border up beats one below even when its matchup is against it.
-local borderWins = true
-local Borders = MODULES.Borders
-for i = 2, #Borders.Order do
-	local lower, upper = Borders.Multiplier(Borders.Order[i - 1]), Borders.Multiplier(Borders.Order[i])
-	borderWins = borderWins and upper * Elements.Weak > lower * Elements.Strong
+check(neutral,"every elemental matchup is neutral")
+check(#Elements.ActiveSynergies({"Flame","Flame","Storm","Storm","Storm","Storm"})==0,"theme counts grant no combat synergy")
+local Bonds=MODULES.ColumnBonds
+for _,bond in Bonds.List do
+ check(Cards.Get(bond.Attack).Type=="Attack" and Cards.Get(bond.Support).Type=="Support","familiar bond has a real attacker and relic: "..bond.Name)
 end
-check(borderWins, "the border still wins: border x Weak (0.85) beats the border below x Strong (1.3)")
-
-local syn = Elements.ActiveSynergies({ "Flame", "Flame", "Frost", "Cosmic", "Cosmic" })
-check(#syn == 1 and syn[1].Synergy.Element == "Flame" and syn[1].Tier.Count == 2, "2 cards of an element switch its synergy on; Cosmic counts for none")
-syn = Elements.ActiveSynergies({ "Storm", "Storm", "Storm", "Storm", "Void", "Void" })
-local storm4 = false
-for _, s in syn do
-	storm4 = storm4 or (s.Synergy.Element == "Storm" and s.Tier.Count == 4)
-end
-check(#syn == 2 and storm4, "4 cards switch on the bigger tier, and two synergies can run at once")
-
-local bondsOk = true
-for _, bond in Elements.Bonds do
-	bondsOk = bondsOk and Cards.Get(bond.Cards[1]) ~= nil and Cards.Get(bond.Cards[2]) ~= nil and bond.Cards[1] ~= bond.Cards[2]
-end
-check(bondsOk, "every bond names two real cards")
-check(#Elements.ActiveBonds({ "rook", "tomo", "hana" }) == 1 and #Elements.ActiveBonds({ "rook", "hana" }) == 0, "a bond needs both its cards in the deck")
-
--- 2. In battle -------------------------------------------------------------------------------------
+check(#Bonds.Active(F.deck({"hana"},{"mitotic_seal"}))==1 and #Bonds.Active(F.deck({"hana","rook"},{"","mitotic_seal"}))==0,"familiar bonds require the matching column")
 do
-	-- Mirai (Storm) into Kurogane (Flame) is strong; nobody's hits on her from Flame enemies are strong.
-	local owned = F.allOwned(0)
-	local battle, events = F.fight("kurogane", "Normal", F.deck({ "mirai" }, {}), owned, 5)
-	local strongOnFlame, weakFromFlame = false, false
-	for _, e in events do
-		if e.K == "Hit" and e.U == "A1" and battle.ById[e.T] and battle.ById[e.T].Element == "Flame" then
-			strongOnFlame = strongOnFlame or e.El == 1
-		end
-		if e.K == "Hit" and e.T == "A1" and battle.ById[e.U] and battle.ById[e.U].Element == "Flame" then
-			weakFromFlame = weakFromFlame or e.El == -1
-		end
-	end
-	check(strongOnFlame, "a Storm card's hits on Flame enemies are marked strong")
-	check(weakFromFlame, "Flame enemies' hits on a Storm card are marked weak")
-end
-
-do
-	-- Rook + Tomo: one Dual Ultimate a fight, as the leader drops to half (or at BondAt).
-	local owned = F.allOwned(0)
-	local _, events = F.fight("kurogane", "Normal", F.deck({ "rook", "tomo", "mirai", "suzu" }, { "thunderclap_form", "heavenly_pact", "mitotic_seal", "blood_vow" }), owned, 9)
-	local fired, once = 0, true
-	local seenBond = {}
-	for _, e in events do
-		if e.K == "Bond" then
-			fired += 1
-			once = once and not seenBond[e.N]
-			seenBond[e.N] = true
-		end
-	end
-	-- Only character partners count: Rook + Tomo and Mirai + Suzu; relics are not their former owners.
-	check(once and fired == 2, `each character bond in the deck fires once ({fired} of 2 fired)`)
-end
-
-do
-	-- Synergies are on from the first second: 2 Flame cards = Wildfire on the Attack cards.
-	local battle = Engine.new({
-		Units = F.units(F.deck({ "rook", "tomo" }, {}), F.allOwned(0)),
-		BossId = "kurogane",
-		Difficulty = "Normal",
-		Rng = Random.new(1),
-	})
-	check(#battle.Synergies == 1 and battle:Buff(battle.ById.A1, "ATK") > 0, "a synergy's buff is on as the fight opens")
+ local owned=F.allOwned(0)
+ local battle,events=F.fight("kurogane","Normal",F.deck({"hana","suzu","rook","tomo"},{"mitotic_seal","thunderclap_form","",""}),owned,9)
+ local seen,fired={},0
+ local once=true
+ for _,e in events do
+  if e.K=="Bond" then fired+=1;once=once and not seen[e.N];seen[e.N]=true end
+  if e.K=="Hit" then check(e.El==nil or e.El==0,"theme does not mark a hit strong or weak") end
+ end
+ check(once and fired==2,"each familiar column combo fires only once")
+ check(#battle.Synergies==0,"no obsolete elemental synergy is installed")
 end
 
 -- 3. Tower mutators --------------------------------------------------------------------------------

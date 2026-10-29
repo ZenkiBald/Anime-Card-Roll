@@ -94,6 +94,7 @@ end
 -- and "x2" when there are no Shards. Other potions go on a small line under the number.
 -- `iconKey` swaps the main icon (the day-7 chest uses the GIFTS icon).
 local function rewardFace(frame: GuiObject, bundle, iconTop: number, iconKey: string?)
+	bundle=Meta.RetireShards(bundle)
 	local firstPotion, potionCount = nil, 0
 	for _, potion in Meta.Potions do
 		local count = bundle.Potions and bundle.Potions[potion.Id]
@@ -101,17 +102,17 @@ local function rewardFace(frame: GuiObject, bundle, iconTop: number, iconKey: st
 			firstPotion, potionCount = potion, count
 		end
 	end
-	local shards = bundle.Shards or 0
+	local shards = bundle.TraitShards or 0
 	local icon = Kit.label({
 		Name = "RewardIcon",
-		Text = if shards > 0 or firstPotion == nil then "💎" else firstPotion.Icon,
+		Text = if shards > 0 or firstPotion == nil then "🧬" else firstPotion.Icon,
 		Font = Theme.Font.Heavy,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, iconTop),
 		Size = UDim2.fromOffset(46, 46),
 		Parent = frame,
 	}, 42)
-	local key = iconKey or (if shards > 0 then "Shard" elseif firstPotion then `Potion:{firstPotion.Id}` else nil)
+	local key = iconKey or (if shards > 0 then "TraitShards" elseif firstPotion then `Potion:{firstPotion.Id}` else nil)
 	local art = if key then Skin.Icon(icon, key) else nil
 	local amount = Kit.label({
 		Text = if shards > 0 then `+{Kit.commas(shards)}` elseif firstPotion then `x{potionCount}` else "",

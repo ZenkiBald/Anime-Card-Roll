@@ -6,6 +6,7 @@ Art.Images = {
 	["Pack:100"] = "rbxassetid://116467113731774",
 	["Pack:1000"] = "rbxassetid://73224833848812",
 	["Potion:luck"] = "rbxassetid://122750737102872",
+	["Potion:speed"] = "rbxassetid://76106395983375",
 	["Potion:superluck"] = "rbxassetid://117584023617913",
 	["Potion:mythic"] = "rbxassetid://84666551247218",
 	["Artifact:voideye"] = "rbxassetid://124981086592443",

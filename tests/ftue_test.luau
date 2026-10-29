@@ -72,10 +72,10 @@ local function counterStaggers(attackId)
 	local battle = Engine.new({ Units = F.units(F.deck({ attackId }, {}), owned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(4), Guards = {} })
 	battle.Boss.Stagger = 0.999
 	battle:HitEnemy(battle.ById.A1, battle.Boss, 0.01)
-	return battle:Summary().CounterStaggers or 0
+	return battle:Summary().Staggers or 0
 end
-check(counterStaggers("mirai") == 1, "a Stagger finished by a counter element is counted (Q6)")
-check(counterStaggers("rook") == 0, "a neutral element's Stagger is not")
+check(counterStaggers("mirai") == 1, "a Stagger of any theme counts for the guide (Q6)")
+check(counterStaggers("rook") == 1, "a neutral theme also completes the Stagger guide")
 
 -- 5. Shard bundles (STORE middle section) ---------------------------------------------------------
 local MonetizationConfig = MODULES.MonetizationConfig

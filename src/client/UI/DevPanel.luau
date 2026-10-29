@@ -76,7 +76,7 @@ function DevPanel.Init(playerGui: Instance)
 
 	-- Luck
 	local luckRow = section(list, 1, "LUCK (server-side, this session only)")
-	for i, luck in { 1, 2, 3, Config.Roll.LuckCap } do
+	for i, luck in { 1, 2, 3, 100 } do
 		local button = Kit.button(`{luck}x`, Theme.Color.Quick, Theme.Color.QuickDeep, {
 			LayoutOrder = i,
 			Size = UDim2.fromOffset(72, 36),

@@ -325,7 +325,7 @@ function MonetizationService.Start()
 		elseif action == "BuyTotem" then
 			return buyTotem(player)
 		elseif action == "BuyShards" then
-			return buyShards(player, key)
+			return {Ok=false,Reason="Retired"}
 		end
 		return { Ok = false, Reason = "BadRequest" }
 	end

@@ -21,6 +21,7 @@ local Borders = require(Shared.Borders)
 local Config = require(Shared.Config)
 local Deck = require(Shared.Deck)
 local Elements = require(Shared.Elements)
+local ColumnBonds = require(Shared.ColumnBonds)
 local Awaken = require(Shared.Awaken)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
@@ -372,9 +373,7 @@ local function drawLink(link: Frame, index: number)
 	local linked = attackId ~= "" and support ~= nil and support.Support ~= nil
 	local bond = nil
 	if attackId ~= "" and supportId ~= "" then
-		for _, candidate in Elements.ActiveBonds({ attackId, supportId }) do
-			bond = candidate
-		end
+		bond = ColumnBonds.For(Cards.Get(attackId),support)
 	end
 	local icon = text({
 		Text = "🔗",
@@ -863,13 +862,13 @@ local function drawFooter()
 			end
 		end
 	end
-	for _, bond in Elements.ActiveBonds(ids) do
+	for _, bond in ColumnBonds.Active(working) do
 		count += 1
 		tag(count, `🤝 {string.upper(bond.Name)}`, Theme.Color.Gold)
 	end
 	if count == 0 then
 		text({
-			Text = "No synergy yet: 2 cards of one element switch one on (tap for the guide)",
+			Text = "Pair a character with its familiar Support in the same column to activate a Bond.",
 			TextColor3 = C.WashiGhost,
 			Font = Theme.Font.Bold,
 			AutomaticSize = Enum.AutomaticSize.X,
@@ -880,7 +879,7 @@ local function drawFooter()
 		}, 13)
 	end
 	local auto: any = autoButton
-	auto.Label.Text = if target then "COUNTER-BUILD" else "AUTO-BUILD"
+	auto.Label.Text = "BEST DECK"
 	backButton.Visible = returnTo ~= nil
 	drawPresets()
 end
@@ -1076,7 +1075,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 			loadWorking()
 			refresh()
 			Sfx.Play("Upgrade", 1.1)
-			hint(if target then "Rebuilt to counter this fight's elements" else "Filled with your strongest cards")
+			hint("Best Deck equipped for the current sky")
 		end
 	end)
 	local clearButton = Kit.button("CLEAR", C.TamahaganeSlate, C.UrushiBase, { LayoutOrder = 2, Size = UDim2.new(0.16, 0, 1, 0), Parent = actions })

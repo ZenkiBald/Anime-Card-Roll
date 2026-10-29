@@ -44,6 +44,14 @@ local MOODS = {
 		Atmosphere = { Color = Color3.fromRGB(120, 125, 140), Decay = Color3.fromRGB(70, 75, 90), Density = 0.45, Haze = 2.4, Glare = 0 },
 		Grade = { TintColor = Color3.fromRGB(225, 230, 245), Saturation = -0.15, Contrast = 0.15 },
 	},
+	-- The Infinite Tower: deep night around the glowing shoji windows and lanterns; the tower reads as a
+	-- beacon of warm light against a near-black sky.
+	InfiniteTower = {
+		Lighting = { ClockTime = 0, Brightness = 0.3, OutdoorAmbient = Color3.fromRGB(12, 16, 25), Ambient = Color3.fromRGB(12, 16, 25) },
+		Atmosphere = { Color = Color3.fromRGB(16, 22, 38), Decay = Color3.fromRGB(5, 8, 16), Density = 0.38, Haze = 1.6, Glare = 0 },
+		Grade = { TintColor = Color3.fromRGB(235, 230, 245), Saturation = 0.1, Contrast = 0.12 },
+		Bloom = { Intensity = 0.7, Threshold = 1.5 },
+	},
 }
 
 -- Zones where lightning strikes now and then: a bolt in the sky near you, a flash and thunder.

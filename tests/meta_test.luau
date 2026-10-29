@@ -94,7 +94,7 @@ check(Meta.StatResetCost({ Luck = 4 }) == 4 * Meta.StatResetPerPoint and Meta.St
 check(near(Meta.PotionLuck({}), 1), "no potion: x1")
 check(near(Meta.PotionLuck({ luck = 30, superluck = 10 }), 2), "luck potions don't multiply each other: the best applies")
 check(near(Meta.PotionLuck({ superluck = 0 }), 1), "an expired potion does nothing")
-check(near(Meta.TotalLuck(5, 6), Config.Roll.LuckCap) and Config.Roll.LuckCap == 25, "total luck is capped at 25x")
+check(near(Meta.TotalLuck(5, 6), 10) and Meta.TotalLuck(100,3)>100, "potions add luck and earned luck has no hard cap")
 
 -- Cooldown.
 check(near(Meta.Cooldown({ RollSpeed = 0 }, {}), Config.Roll.Cooldown), "roll cooldown starts at 1.2 s")
@@ -185,7 +185,7 @@ check(event ~= nil and near(left, 30), "an event runs at the end of the cycle")
 local nextEvent = Meta.EventAt(Meta.EventEvery * 1001 + Meta.EventEvery - 30)
 check(nextEvent ~= event, "events take turns")
 check(Meta.EventAt(10, { Id = "xp", Ends = 20 }).Id == "xp", "a forced event overrides the schedule")
-check(near(Meta.TotalLuck(4, 4, 2), Config.Roll.LuckCap), "event luck stays under the cap")
+check(near(Meta.TotalLuck(4,4,2,1),16), "weather and potion luck add before event multipliers")
 check(Meta.Cooldown({ RollSpeed = 4 }, {}, 0.4) >= 0.4, "event speed never takes rolls under 0.4 s")
 
 -- Lucky Wheel: positive weights, real potions, and the pick covers every slice.
@@ -215,7 +215,7 @@ do
 	local roll = Goals.Next({ Cards = {}, Rolls = 45, Shards = 0 })
 	check(roll ~= nil and roll.Kind == "Milestone" and string.find(roll.Text, "50 rolls", 1, true) ~= nil, "no cards yet: the next roll milestone")
 	local shop = Goals.Next({ Cards = {}, Rolls = 0, Claimed = {}, Shards = 32, Upgrades = { Luck = 0 } })
-	check(shop ~= nil and shop.Kind == "Upgrade" and string.find(shop.Text, "Lucky Charm I (80%)", 1, true) ~= nil, "32 of 40 Shards: 'Next Upgrade: Lucky Charm I (80%)'")
+	check((shop == nil or shop.Kind ~= "Upgrade"), "retired Shard upgrades never appear as a progress target")
 	local top = Goals.Next({ Cards = { luna = { Copies = 1, Stars = 0, BorderCopies = { Secret = 1 } } }, Rolls = 0, Shards = 0 })
 	check(top == nil or top.Kind ~= "Fusion", "a Secret pile has no fusion goal (no border above)")
 end

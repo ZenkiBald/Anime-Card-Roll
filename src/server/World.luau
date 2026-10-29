@@ -569,6 +569,11 @@ local function buildFromMap(map: Instance, markers: Instance)
 	local spawn = markers:FindFirstChild("Spawn")
 	local spawnCFrame = if spawn and spawn:IsA("BasePart") then spawn.CFrame else CFrame.new(0, 5, 0)
 	spawnAt(hub, spawnCFrame)
+	local collectorSpot=spawnCFrame*CFrame.new(14,-0.5,12)
+	local collector=npc("collector",collectorSpot*CFrame.new(0,TownModels.Height("collector")/2,0),hub,"Choose collection","Card Packs")
+	local collectionPrompt=(collector.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")
+	if collectionPrompt then collectionPrompt:SetAttribute("Npc","collector") end
+	sign(collector.PrimaryPart :: BasePart,4.3,"CARD PACKS","Choose your collection",Color3.fromRGB(185,150,255))
 	-- Madame Fortuna stands at the Wheel marker; without one, a short walk to the spawn's left,
 	-- facing it (move her by adding a Wheel marker in Studio).
 	local wheelMarker = markers:FindFirstChild("Wheel")
@@ -687,6 +692,10 @@ function World.Build()
 	fuserAt(hub, CFrame.lookAt(Vector3.new(-14, 1.2, 8), Vector3.new(0, 1.2, 0)))
 	traitMasterAt(hub, CFrame.lookAt(Vector3.new(-22, 1.2, 14), Vector3.new(0, 1.2, 0)))
 	fortuneAt(hub, CFrame.lookAt(Vector3.new(0, 1.2, 20), Vector3.new(0, 1.2, 0)))
+	local collector=npc("collector",CFrame.new(18,1.2+TownModels.Height("collector")/2,8),hub,"Choose collection","Card Packs")
+	local collectorPrompt=(collector.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")
+	if collectorPrompt then collectorPrompt:SetAttribute("Npc","collector") end
+	sign(collector.PrimaryPart :: BasePart,4.3,"CARD PACKS","Choose your collection",Color3.fromRGB(185,150,255))
 	towerAt(hub, CFrame.lookAt(Vector3.new(30, 1.2, 18), Vector3.new(0, 1.2, 0)))
 	spawnAt(hub, CFrame.new(0, 1.4, 0))
 

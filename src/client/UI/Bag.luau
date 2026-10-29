@@ -14,6 +14,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Meta = require(Shared.Meta)
 local Items = require(Shared.Items)
 local Packs = require(Shared.Packs)
+local Weather = require(Shared.Weather)
 local Rarity = require(Shared.Rarity)
 
 local Kit = require(script.Parent.Kit)
@@ -34,13 +35,14 @@ local TABS = {
 	{ Name = "ALL", Color = Color3.fromRGB(255, 196, 46) },
 	{ Name = "PACKS", Color = Color3.fromRGB(255, 160, 60) },
 	{ Name = "POTIONS", Color = Color3.fromRGB(86, 214, 138) },
+	{ Name = "SKY ITEMS", Color = Color3.fromRGB(130, 170, 255) },
 	{ Name = "RELICS", Color = Color3.fromRGB(255, 120, 220) },
 	{ Name = "ARTIFACTS", Color = Color3.fromRGB(255, 140, 90) },
 }
 -- Kind "Artifact" is a relic (Items.Artifacts, worn in 3 slots); "TowerArtifact" an artifact (always on).
-local KIND_ORDER = { Pack = 1, Potion = 2, Artifact = 3, TowerArtifact = 4 }
-local KIND_TAB = { Pack = "PACKS", Potion = "POTIONS", Artifact = "RELICS", TowerArtifact = "ARTIFACTS" }
-local KIND_NAME = { Pack = "Pack", Potion = "Potion", Artifact = "Relic", TowerArtifact = "Artifact" }
+local KIND_ORDER = { Pack = 1, Potion = 2, Weather = 3, Artifact = 4, TowerArtifact = 5 }
+local KIND_TAB = { Pack = "PACKS", Potion = "POTIONS", Weather = "SKY ITEMS", Artifact = "RELICS", TowerArtifact = "ARTIFACTS" }
+local KIND_NAME = { Pack = "Pack", Potion = "Potion", Weather = "Sky Item", Artifact = "Relic", TowerArtifact = "Artifact" }
 local GOLD_DEEP = Color3.fromRGB(150, 100, 10)
 
 local modal
@@ -120,6 +122,11 @@ local function entries()
 		})
 	end
 	local data = gear()
+	local sky = State.Meta.Celestial or {Fragments=0,Inventory={}}
+	for i, item in Weather.Items do
+		add({Key=`Weather:{item.Id}`,Kind="Weather",Id=item.Id,Item=item,Name=item.Name,Icon="",Count=(sky.Inventory or {})[item.Id] or 0,
+			Color=if item.Weather then Weather.ById[item.Weather].Color else Color3.fromRGB(160,180,255),Order=i})
+	end
 	local worn = {}
 	for _, id in data.Worn or {} do
 		worn[id] = true
@@ -207,7 +214,7 @@ local function crestOf(entry): string
 end
 
 local function itemIcon(entry, props)
-	local image = BagArt.Get(entry.Key)
+	local image = BagArt.Get(entry.Key) or (entry.Item.Art and BagArt.Get(entry.Item.Art))
 	if image then
 		local label = Kit.new("ImageLabel", {
 			Name = "Icon", BackgroundTransparency = 1, Image = image,
@@ -373,6 +380,24 @@ local function call(name: string, arg: any, okText: string?): boolean
 	return result.Ok
 end
 
+local function skyCall(actionName: string, id: string?)
+	if busy then return end
+	busy = true
+	local ok, result = pcall(function() return ReplicatedStorage.Remotes.Weather:InvokeServer(actionName,id) end)
+	busy = false
+	if not ok then hint("Connection interrupted. Try again."); return end
+	if result.Ok then
+		State.Meta.Celestial=result.Stock
+		State.Weather=result.State
+		State.Notify("weather-items")
+		if actionName~="Get" then hint(if actionName=="Craft" then "Sigil crafted!" else "Sky item used!"); Sfx.Play("Upgrade",1.2) end
+	else
+		local messages={NoFragments="Not enough Celestial Fragments",NoItem="You don't have this item",CannotExtend="This sky cannot be extended again",EclipseActive="Cannot summon during Blood Moon",Cooldown="Summoning is cooling down",TooFast="Wait a moment and try again"}
+		hint(messages[result.Reason] or "Couldn't use this item")
+	end
+	Bag.Refresh()
+end
+
 -- A cover over the whole bag (pack reveals); close() takes it away.
 local function cover(): (Frame, () -> ())
 	busy = true
@@ -524,7 +549,7 @@ local function showDetail(entry)
 		opener(row2, `OPEN ALL ({Kit.commas(math.min(entry.Count, 10000 // item.Rolls))})`, "all", 2)
 		-- Condensing and infusing are done in town, at Hoshi's PACK ALCHEMY.
 		if Packs.Condense[item.Id] or item.Id == "1000" then
-			detailText(8, "⚗️ Condense 10 into a bigger pack, or infuse a Mega Pack with an element: visit Hoshi the Fusion Master in town.", Theme.Color.Muted, 14, Theme.Font.Heavy)
+			detailText(8, "Condense 10 into a bigger pack: visit Hoshi the Fusion Master in town.", Theme.Color.Muted, 14, Theme.Font.Heavy)
 		end
 	elseif entry.Kind == "Potion" then
 		detailText(4, item.Text, Theme.Color.Text, 17, Theme.Font.Heavy)
@@ -539,15 +564,28 @@ local function showDetail(entry)
 				Sfx.Play("Potion") -- the bag redraws with the new timer (State.Changed)
 			end
 		end)
-		action(row, `BUY 💎{item.Price}`, Theme.Color.Accent, Theme.Color.AccentDeep, 2, (State.Summary.Shards or 0) >= item.Price, function()
-			call("BuyPotion", item.Id, `Bought a {item.Name}`)
+
+	elseif entry.Kind == "Weather" then
+		detailText(4,item.Text,Theme.Color.Text,16,Theme.Font.Heavy)
+		local stock=State.Meta.Celestial or {Fragments=0}
+		detailText(5,`Celestial Fragments: {Kit.commas(stock.Fragments or 0)}`,Theme.Color.Gold,16)
+		local sky=State.Weather
+		local cooldown=if sky then math.max(0,(sky.CooldownEnds or 0)-workspace:GetServerTimeNow()) else 0
+		detailText(6,if cooldown>0 then `Summon cooldown: {clock(cooldown)}` else "Summons last 3 minutes, then have a 5-minute server cooldown. Blood Moon blocks summons.",Theme.Color.Muted,14)
+		local row=actionRow(7)
+		action(row,"USE",entry.Color,entry.Color:Lerp(Color3.new(0,0,0),.5),1,entry.Count>0,function()
+			if entry.Count>0 then skyCall("Use",item.Id) else hint("Earn sky items from quests, bosses, tower and raids") end
 		end)
+		if item.Weather then
+			local cost=Weather.SigilCost(item.Weather)
+			action(row,`CRAFT · {cost}`,Theme.Color.Gold,GOLD_DEEP,2,(stock.Fragments or 0)>=cost,function() skyCall("Craft",item.Weather) end)
+		end
 	elseif entry.Kind == "Artifact" then
 		detailText(4, `Lv {entry.Level}/{Items.MaxLevel}: <b>{Items.ArtifactText(item, entry.Level)}</b>`, Theme.Color.Gold, 17, Theme.Font.Heavy)
 		if entry.Level < Items.MaxLevel then
 			detailText(5, `A duplicate raises it to Lv {entry.Level + 1}: {Items.ArtifactText(item, entry.Level + 1)}`, Theme.Color.Muted, 14)
 		else
-			detailText(5, `Max level: duplicates melt into 💎{Items.MeltShards[item.Rarity] or 100} Shards.`, Theme.Color.Muted, 14)
+			detailText(5, `Max level: duplicates melt into {math.ceil((Items.MeltShards[item.Rarity] or 100)/Meta.ShardExchange)} Trait Shards.`, Theme.Color.Muted, 14)
 		end
 		local worn = gear().Worn or {}
 		detailText(6, `Relics worn: <b>{#worn}/{Items.ArtifactSlots}</b>  ·  relics drop only in the Infinite Tower, from floor {Items.RelicFloor} (0.1% a win)`, Theme.Color.Text, 15, Theme.Font.Heavy)
@@ -578,10 +616,10 @@ function Bag.Refresh()
 		return
 	end
 	summaryLabel.Text = string.format(
-		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Roll cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   💎 <b>%s</b>   ·   🧬 <b>%s</b>   ·   Packs <b>%s</b>   ·   Relics worn <b>%d/%d</b>',
+		'Luck <font color="#56D68A"><b>%.2fx</b></font>   ·   Cooldown <font color="#50B4FF"><b>%.2fs</b></font>   ·   Fragments <b>%s</b>   ·   Trait Shards <b>%s</b>   ·   Packs <b>%s</b>   ·   Relics <b>%d/%d</b>',
 		State.Luck(),
 		State.Cooldown(),
-		Kit.commas(State.Summary.Shards or 0),
+		Kit.commas((State.Meta.Celestial or {Fragments=0}).Fragments or 0),
 		Kit.commas(State.Summary.TraitShards or 0),
 		Kit.commas(Packs.Count(State.Packs)),
 		#(gear().Worn or {}),
@@ -749,6 +787,7 @@ function Bag.Init(playerGui: Instance)
 
 	modal.OnOpen = function()
 		showTab(currentTab)
+		task.spawn(function() skyCall("Get") end)
 	end
 	State.Changed:Connect(function(kind)
 		if kind ~= "roll" then

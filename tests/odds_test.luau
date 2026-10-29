@@ -37,11 +37,11 @@ end
 check(allSum, "border odds always sum to 100% (luck 1-25, any boost)")
 check(noneNegative, "no negative chances at any luck or boost")
 check(baseKept, "however much is stacked, Base keeps at least half")
-check(near(Odds.Chances(100).Secret, Odds.Chances(Config.Roll.LuckCap).Secret), "luck past the cap does nothing")
+check(Odds.Chances(100).Secret > Odds.Chances(25).Secret and Borders.EffectiveLuck(100)<100, "luck keeps improving beyond 25 with diminishing returns")
 
 -- 4. Sampled frequencies match the table (1,000,000 pulls at 25x luck, where every border shows up).
 local rng = Random.new(42)
-local luck = Config.Roll.LuckCap
+local luck = 25
 local chances = Borders.Chances(0, luck)
 local counts = { Normal = 0, Gold = 0, Rainbow = 0, Secret = 0 }
 local N = 1000000
@@ -68,7 +68,7 @@ for _, card in Cards.List do
 		bosses += 1
 	end
 end
-check(bosses == 4 and #startPool == #Cards.List - 4, "4 boss cards, out of the pool until unlocked")
+check(bosses == 4 and #startPool == #Cards.List - 4 - 16, "4 boss cards, out of the pool until unlocked")
 check(#Cards.Pool({ ["kurogane:Normal"] = true }) == #startPool + 1, "beating Kurogane on Normal adds Kurogane's card to the pool")
 local pc = Cards.PullChances(startPool)
 local pcSum = 0
@@ -83,7 +83,7 @@ check(infused.rook > pc.rook and infused.kaede < pc.kaede, "an infused pack lean
 local bandOk = true
 for _, card in Cards.List do
 	if card.Type == "Attack" then
-		bandOk = bandOk and card.Main >= 450 and card.Main <= 600 and card.HP == 2 * card.Main
+		bandOk = bandOk and card.Main >= 450 and card.Main <= (if card.Weather then 900 else 600) and card.HP == 2 * card.Main
 	else
 		bandOk = bandOk and card.HP == nil and card.Main == 0 and card.SPD == 0 and card.Support ~= nil
 	end
@@ -150,7 +150,7 @@ do
 	check(minBase >= 2 and maxSecret > 1e7, `rarity numbers run from {minBase} (a common Base card) past 10,000,000 (a rare Secret)`)
 	check(Cards.Rarity("nobody", "Gold") == 0, "an unknown card has no rarity number")
 	local c = Cards.List[1]
-	local expected = 1 / (Cards.PullChances(Cards.List)[c.Id] * Borders.Chances().Gold)
+	local expected = 1 / (Cards.PullChances(Cards.Pool({["kurogane:Normal"]=true,["rimeveil:Normal"]=true,["vex:Normal"]=true,["tenrai:Normal"]=true}))[c.Id] * Borders.Chances().Gold)
 	check(math.abs(Cards.RawRarity(c.Id, "Gold") - expected) < 1e-6, "the raw rarity is 1 / (pull chance x border chance)")
 	check(Odds.Round(48) == 50 and Odds.Round(12) == 12 and Odds.Round(9950000) == 10000000 and Odds.Round(7462500) == 7500000 and Odds.Round(130) == 125 and Odds.Round(2400) == 2500, "rarity numbers snap to round numbers (50, 12, 10,000,000, 7,500,000, 125, 2,500)")
 	local roundOk = true

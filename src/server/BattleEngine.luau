@@ -44,6 +44,7 @@ local Cards = require(Shared.Cards)
 local Bosses = require(Shared.Bosses)
 local Elements = require(Shared.Elements)
 local Awaken = require(Shared.Awaken)
+local ColumnBonds = require(Shared.ColumnBonds)
 
 local B = Config.Battle
 
@@ -72,6 +73,7 @@ export type Setup = {
 	Stats: Stats?,
 	Guards: { string }?,
 	TimeLimit: number?,
+	WeatherId: string?,
 }
 
 -- Effects that only make sense on a card with HP.
@@ -137,6 +139,8 @@ local function newUnit(spec: UnitSpec)
 		Healed = 0, -- HP healed + shields given this battle
 	}
 	unit.HP = unit.MaxHP
+	unit.BaseMain=unit.Main
+	unit.BaseMaxHP=unit.MaxHP
 	unit.SkillCooldown = if unit.Skill then (unit.Skill.Every or 3) - 1 else 0
 	-- The card's trait (Traits.luau): a head start on its Ultimate, or a buff that lasts the whole
 	-- fight (Left = huge, so it never runs out and bosses can't steal it).
@@ -202,6 +206,8 @@ function Engine.new(setup: Setup)
 	local self = setmetatable({}, Engine)
 	self.Rng = setup.Rng or Random.new()
 	self.Time = 0
+	self.WeatherId=setup.WeatherId or "clear"
+	self.NextTeamUltimateAt=0
 	self.Over = false
 	self.Result = nil
 	self.AutoUlt = false
@@ -281,11 +287,20 @@ function Engine.new(setup: Setup)
 
 	-- Supports are equipment for the matching attacker, never extra combatants.
 	self.Links = {}
+	self:SetWeather(self.WeatherId)
 	for _, unit in self.Allies do
-		local link = unit.Card.Support
+		local link = if unit.Card.Support then table.clone(unit.Card.Support) else nil
 		local slot = string.match(unit.Id, "^S(%d+)$")
 		local front = slot and self.ById[`A{slot}`]
 		if link and front and front.HasHP then
+			local bond=ColumnBonds.For(front.Card,unit.Card)
+			unit.Bond=bond
+			if bond then
+				if bond.Stat=="Chance" then link.Chance=math.min(1,(link.Chance or 0)+bond.Amount)
+				elseif bond.Stat=="Uses" then link.Uses=(link.Uses or 0)+bond.Amount
+				elseif bond.Stat=="Guard" then front.Buffs[`Bond:{unit.Id}`]={Stat="Guard",Amount=bond.Amount,Left=math.huge} end
+				table.insert(self.Bonds,{Bond={Name=bond.Name,Pct=3},A=front,B=unit})
+			end
 			-- A passive card never acts. Its traits, foil and mastery therefore belong to its paired attacker.
 			for i, effect in unit.EquipEffects do
 				if effect.Stat == "StartEnergy" then
@@ -294,9 +309,15 @@ function Engine.new(setup: Setup)
 				else front.Buffs[`SupportTrait:{unit.Id}:{i}`] = { Stat=effect.Stat, Amount=effect.Amount, Left=math.huge } end
 			end
 			local amount = Cards.SupportValue(unit.Card, unit.Stars, unit.Border, unit.Awaken)
-			local mod = { Source = unit, Def = link, Amount = amount, Used = 0, Healed = 0 }
+			if bond and bond.Stat=="Amount" then amount=math.min(.5,amount+bond.Amount) end
+			local mod = { Source = unit, Def = link, Amount = amount, BaseAmount=amount, Used = 0, Healed = 0 }
 			unit.Modifier = mod
 			unit.Paired = front
+			if unit.Card.Weather then
+				local bonus=(if unit.Card.Weather==self.WeatherId then .2 else 0)+(if bond and bond.Stat=="Celestial" then .2 else 0)
+				mod.Amount=math.min(.5,math.floor(amount*(1+bonus)*20+.5)/20)
+				amount=mod.Amount
+			end
 			table.insert(front.SupportMods, mod)
 			if link.Kind == "StartEnergy" then
 				if front.Ultimate then
@@ -358,25 +379,6 @@ function Engine.new(setup: Setup)
 			for _, effect in active.Tier.Effects do
 				self:RunEffect(self.Allies[1], effect, true, `Synergy:{active.Synergy.Element}`)
 			end
-		end
-	end
-	-- Bonds: the Attack card (if either is one) leads the Dual Ultimate, so its element counts.
-	for _, bond in Elements.ActiveBonds(cardIds) do
-		local a, b
-		for _, unit in self.Allies do
-			if unit.Card.Id == bond.Cards[1] or unit.Card.Id == bond.Cards[2] then
-				if a == nil then
-					a = unit
-				else
-					b = unit
-				end
-			end
-		end
-		if a and b and (a.HasHP or b.HasHP) then
-			if b.Type == "Attack" and a.Type ~= "Attack" then
-				a, b = b, a
-			end
-			table.insert(self.Bonds, { Bond = bond, A = a, B = b })
 		end
 	end
 	self.Events = {} -- start-of-battle effects are part of the initial state, not news
@@ -916,7 +918,10 @@ function Engine:HitAlly(enemy, target, move)
 	if not target.Alive then
 		return
 	end
-	self:GainEnergy(target, B.EnergyPerHit)
+	if self.Time >= (target.NextHitEnergyAt or 0) then
+		self:GainEnergy(target, B.EnergyPerHit)
+		target.NextHitEnergyAt=self.Time+B.HitEnergyInterval
+	end
 	if move.Burn then
 		table.insert(target.Burns, {
 			Damage = math.max(1, round(atk * move.Burn.Pct)),
@@ -1091,13 +1096,28 @@ function Engine:Opening()
 	self.Opened = true
 end
 
+function Engine:SetWeather(id: string)
+	self.WeatherId=id
+	for _,unit in self.Allies do
+		if unit.HasHP then
+			local bonus=if unit.Card.Weather==id then .2 else 0
+			local ratio=unit.HP/math.max(1,unit.MaxHP)
+			local newHP=round(unit.BaseMaxHP*(1+bonus))
+			unit.Shield=round(unit.Shield*newHP/math.max(1,unit.MaxHP))
+			unit.Main=round(unit.BaseMain*(1+bonus));unit.MaxHP=newHP;unit.HP=round(newHP*ratio)
+
+		end
+	end
+end
+
 function Engine:CardAct(unit)
 	if not unit.HasHP then return end
 	unit.Actions += 1
 	local ability, slot = unit.Basic, "Basic"
 	if unit.Skill then
-		if unit.SkillCooldown <= 0 then
+		if unit.SkillCooldown <= 0 and self.Time >= (unit.NextSkillAt or B.SkillMinSeconds) then
 			ability, slot = unit.Skill, "Skill"
+			unit.NextSkillAt=self.Time+B.SkillMinSeconds
 			unit.SkillCooldown = (unit.Skill.Every or 3) - 1
 		else
 			unit.SkillCooldown -= 1
@@ -1294,6 +1314,8 @@ function Engine:CanUltimate(unit): boolean
 		and unit.Alive
 		and unit.Ultimate ~= nil
 		and unit.Energy >= B.UltimateCost
+		and self.Time >= (unit.NextUltimateAt or B.UltimateMinSeconds)
+		and self.Time >= self.NextTeamUltimateAt
 		and not self.Over
 end
 
@@ -1303,6 +1325,8 @@ function Engine:UseUltimate(id: string): (boolean, string?)
 		return false, "NotReady"
 	end
 	unit.Energy = 0
+	unit.NextUltimateAt=self.Time+B.UltimateMinSeconds
+	self.NextTeamUltimateAt=self.Time+B.TeamUltimateGap
 	local target = self:CardTarget()
 	self:Emit({ K = "Act", U = unit.Id, Ab = "Ultimate", N = unit.Ultimate.Name, T = if target then target.Id else nil })
 	self:RunAbility(unit, unit.Ultimate, "Ultimate")
@@ -1505,6 +1529,7 @@ function Engine:Info()
 			Element = unit.Element,
 			MaxHP = if unit.HasHP then unit.MaxHP else nil,
 			Main = if unit.HasHP then unit.Main else nil,
+			Bond = unit.Bond,
 			Ultimate = if unit.Ultimate then unit.Ultimate.Name else nil,
 			Skill = if unit.Skill then unit.Skill.Name else nil, -- its countdown rides in the snapshot (K)
 		})
@@ -1601,7 +1626,10 @@ function Engine:Snapshot()
 			E = unit.Energy,
 			G = if unit.Alive then gauge(unit.Gauge) else 0,
 			F = flags,
-			K = if unit.Skill and unit.Alive then unit.SkillCooldown else nil,
+			K = if unit.Skill and unit.Alive then math.max(unit.SkillCooldown,math.ceil(math.max(0,(unit.NextSkillAt or B.SkillMinSeconds)-self.Time)/B.TurnSeconds)) else nil,
+			UltIn=math.max(0,(unit.NextUltimateAt or B.UltimateMinSeconds)-self.Time,self.NextTeamUltimateAt-self.Time),
+			M=if unit.HasHP then unit.MaxHP else nil,
+			Bond=if unit.Bond then unit.Bond.Name else nil,
 			NextIn = if unit.HasHP and unit.Alive then math.max(0, 1 - unit.Gauge) * 100 * B.TurnSeconds / self:Speed(unit) else nil,
 			PairedAlive = if unit.Type == "Support" then unit.Paired ~= nil and unit.Paired.Alive else nil,
 			UsesLeft = if unit.Modifier and unit.Modifier.Def.Uses then math.max(0, unit.Modifier.Def.Uses - unit.Modifier.Used) else nil,

@@ -10,6 +10,9 @@ local Items = require(script.Parent.Items)
 local Packs = require(script.Parent.Packs)
 
 export type Bundle = {
+	Fragments: number?,
+	Celestial: {[string]:number}?,
+	Title: string?,
 	Shards: number?,
 	Potions: { [string]: number }?,
 	Artifacts: { [string]: number }?, -- relics (Items.Artifacts ids)
@@ -46,17 +49,26 @@ export type Quest = { Id: string, Text: string, Stat: string, Goal: number, Rewa
 
 local Meta = {}
 
+Meta.ShardExchange=20 -- retired general currency converts to the dedicated reroll currency
+function Meta.RetireShards(bundle: Bundle): Bundle
+	if not bundle.Shards or bundle.Shards<=0 then return bundle end
+	local converted=table.clone(bundle)
+	converted.TraitShards=(converted.TraitShards or 0)+math.ceil(bundle.Shards/Meta.ShardExchange)
+	converted.Shards=nil
+	return converted
+end
+
 Meta.Potions = {
 	{
 		Id = "luck",
-		Name = "Luck Potion",
+		Name = "Luck Potion I",
 		Icon = "🍀",
 		Color = Color3.fromRGB(86, 214, 138),
 		Kind = "Luck",
 		Amount = 1.5,
 		Seconds = 300,
 		Price = 40,
-		Text = "x1.5 luck for 5 min",
+		Text = "+0.5 luck for 5 min",
 	},
 	{
 		Id = "speed",
@@ -71,25 +83,25 @@ Meta.Potions = {
 	},
 	{
 		Id = "superluck",
-		Name = "Super Luck Potion",
+		Name = "Luck Potion II",
 		Icon = "🌟",
 		Color = Color3.fromRGB(255, 196, 46),
 		Kind = "Luck",
 		Amount = 2,
-		Seconds = 300,
+		Seconds = 600,
 		Price = 150,
-		Text = "x2 luck for 5 min",
+		Text = "+1 luck for 10 min",
 	},
 	{
 		Id = "mythic",
-		Name = "Mythic Elixir",
+		Name = "Luck Potion III",
 		Icon = "🔮",
 		Color = Color3.fromRGB(255, 58, 92),
 		Kind = "Luck",
 		Amount = 3,
-		Seconds = 120,
+		Seconds = 900,
 		Price = 600,
-		Text = "x3 luck for 2 min",
+		Text = "+2 luck for 15 min",
 	},
 } :: { Potion }
 
@@ -227,7 +239,7 @@ Meta.Stats = {
 	{ Id = "Luck", Name = "Luck", Icon = "🍀", Color = Color3.fromRGB(86, 214, 138), Per = 0.02, Max = 40, Text = "+0.02x base luck" },
 	{ Id = "RollSpeed", Name = "Roll Speed", Icon = "⚡", Color = Color3.fromRGB(80, 180, 255), Per = 0.01, Max = 30, Text = "-1% roll cooldown" },
 	{ Id = "Border", Name = "Border Chance", Icon = "🌈", Color = Color3.fromRGB(255, 120, 220), Per = 0.03, Max = 30, Text = "+3% Gold / Rainbow / Secret border chance" },
-	{ Id = "ShardGain", Name = "Shard Gain", Icon = "💎", Color = Color3.fromRGB(196, 140, 255), Per = 0.03, Max = 30, Text = "+3% Shards from everything" },
+	{ Id = "ShardGain", Name = "Trait Shard Gain", Icon = "💎", Color = Color3.fromRGB(196, 140, 255), Per = 0.03, Max = 30, Text = "+3% earned Trait Shards" },
 	{ Id = "XPGain", Name = "XP Gain", Icon = "⭐", Color = Color3.fromRGB(255, 196, 46), Per = 0.03, Max = 30, Text = "+3% XP from everything" },
 } :: { Stat }
 
@@ -412,10 +424,9 @@ function Meta.PotionLuck(active: { [string]: number }): number
 	return best
 end
 
--- Base x potion x the running event's luck (if any; server luck like Raid Luck and Totems multiplies
--- in here too), under the cap.
-function Meta.TotalLuck(base: number, potionLuck: number, eventLuck: number?): number
-	return math.min(Config.Roll.LuckCap, base * potionLuck * (eventLuck or 1))
+-- Potion and sky bonuses add to earned luck; server events, Raid Luck and Totems multiply it.
+function Meta.TotalLuck(base: number, potionLuck: number, eventLuck: number?, weatherLuck: number?): number
+	return math.max(1,(base+math.max(0,potionLuck-1)+(weatherLuck or 0))*(eventLuck or 1))
 end
 
 -- `boost`: extra speed from the Momentum chain (0.5 = 50% faster) and the Fast Roll pass's cut.
@@ -471,6 +482,7 @@ end
 
 -- "+25 Shards · 🍀x1" for labels.
 function Meta.Describe(bundle: Bundle): string
+	bundle=Meta.RetireShards(bundle)
 	local parts = {}
 	if bundle.Shards and bundle.Shards > 0 then
 		table.insert(parts, `💎{bundle.Shards}`)
@@ -499,6 +511,12 @@ function Meta.Describe(bundle: Bundle): string
 		table.insert(parts, `🧬{bundle.TraitShards}`)
 	end
 	local packs = Packs.Describe(bundle.Packs)
+	if bundle.Title then table.insert(parts,`Title: {bundle.Title}`) end
+	if bundle.Fragments and bundle.Fragments>0 then table.insert(parts,`{bundle.Fragments} Celestial Fragments`) end
+	for id,count in (bundle.Celestial or {}) :: {[string]:number} do
+		local name=if id=="orb" then "Celestial Orb" elseif id=="hourglass" then "Celestial Hourglass" else "Weather Sigil"
+		table.insert(parts,`{count}x {name}`)
+	end
 	if packs ~= "" then
 		table.insert(parts, packs)
 	end
@@ -526,4 +544,19 @@ function Meta.OfflineReward(seconds: number): OfflineReward?
 	}
 end
 
+-- Earned weather supplies, alongside existing rewards. There is no weather cash shop in v1.
+Meta.Daily[1].Fragments=3
+Meta.Daily[7].Celestial={hourglass=1,orb=1}
+Meta.Playtime[3].Reward.Celestial={orb=1}
+Meta.Milestones[2].Reward.Fragments=5
+Meta.Milestones[1].Reward.Title="First Light"
+Meta.QuestById.boss1.Reward.Fragments=2
+Meta.QuestById.hard.Reward.Fragments=5
+Meta.Wheel.Prizes[8].Reward.Fragments=3
+Meta.Wheel.Prizes[9].Reward.Celestial={orb=1}
+for _,prize in Meta.Wheel.Prizes do
+	if prize.Reward.Shards and prize.Label~="JACKPOT" then
+		prize.Label=`{math.ceil(prize.Reward.Shards/Meta.ShardExchange)} Trait Shards`
+	end
+end
 return Meta

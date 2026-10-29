@@ -17,6 +17,7 @@
 -- A new element, synergy or bond is one entry below (BattleEngine reads them as data).
 
 local Elements = {}
+Elements.CombatEnabled = false
 
 -- Presentation only: combat relationships and existing element ids stay unchanged.
 Elements.Visuals = {
@@ -162,6 +163,12 @@ Elements.Bonds = {
 	{ Id = "duskdawn", Name = "Cosmic Supremacy", Cards = { "raijen", "aurelia" }, Pct = 3, Text = "Pure instinct and the sealed flame: the two Secret sovereigns, finally on one side." },
 } :: { Bond }
 
+-- Familiar column pairs replace the older unrelated deck-wide combos.
+Elements.Bonds={}
+for _,def in require(script.Parent.ColumnBonds).List do
+	table.insert(Elements.Bonds,{Id=def.Support,Name=def.Name,Cards={def.Attack,def.Support},Pct=3,Text=def.Text})
+end
+
 Elements.BondById = {} :: { [string]: Bond }
 for _, bond in Elements.Bonds do
 	Elements.BondById[bond.Id] = bond
@@ -178,6 +185,7 @@ end
 
 -- The damage multiplier for a hit from element `attacker` into element `defender`.
 function Elements.Multiplier(attacker: string?, defender: string?): number
+	if not Elements.CombatEnabled then return 1 end
 	if attacker == nil or defender == nil then
 		return 1
 	end
@@ -211,6 +219,7 @@ export type ActiveSynergy = { Synergy: Synergy, Tier: SynergyTier, Count: number
 
 -- The synergies a deck's elements switch on (the best tier of each), plus the next one within reach.
 function Elements.ActiveSynergies(elements: { string }): { ActiveSynergy }
+	if not Elements.CombatEnabled then return {} end
 	local counts = Elements.Count(elements)
 	local active = {}
 	for _, synergy in Elements.Synergies do

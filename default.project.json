@@ -41,7 +41,10 @@
         "TraitMaster": { "$className": "RemoteFunction" },
         "PackAlchemy": { "$className": "RemoteFunction" },
         "Tutorial": { "$className": "RemoteFunction" },
-        "TutorialState": { "$className": "RemoteEvent" }
+        "TutorialState": { "$className": "RemoteEvent" },
+        "Collection": { "$className": "RemoteFunction" },
+        "Weather": { "$className": "RemoteFunction" },
+        "WeatherState": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {

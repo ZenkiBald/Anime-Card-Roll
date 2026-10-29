@@ -22,6 +22,8 @@ local TEMPLATE = {
 	-- node, retired), Mastery? (distinct boss challenge keys), Trait2Unlocked? (legacy access), Trait? (slot 1), Trait2? (slot 2), Pending? ({ Slot, Traits } an unchosen Trait Master roll) }
 	Cards = {},
 	TotalRolls = 0,
+	SelectedCollection = "normal",
+	Celestial = { Fragments=0, Inventory={} },
 	Shards = 0,
 	TraitShards = 0, -- the Trait Master's currency
 	Playtime = 0, -- seconds, saved when the player leaves
@@ -176,6 +178,7 @@ function DataService.Reset(player: Player)
 		return
 	end
 	local fresh = DataService.Template()
+	SaveMigration.Migrate(fresh)
 	for key in profile.Data do
 		profile.Data[key] = nil
 	end

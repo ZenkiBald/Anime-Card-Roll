@@ -32,6 +32,7 @@ local Remotes = ReplicatedStorage.Remotes
 local DataService = require(script.Parent.DataService)
 local DeckService = require(script.Parent.DeckService)
 local MetaService = require(script.Parent.MetaService)
+local WeatherService = require(script.Parent.WeatherService)
 local RateLimit = require(script.Parent.RateLimit)
 local RaidService = require(script.Parent.RaidService)
 local TutorialService = require(script.Parent.TutorialService)
@@ -58,7 +59,7 @@ end
 
 -- Pays boss and tower rewards; set by Main.server to RollService.RewardRolls / TowerRewards
 -- (RollService needs this module).
-local rewardRolls: ((player: Player, d: number, firstClear: boolean, costChallenge: boolean?) -> any)? = nil
+local rewardRolls: ((player: Player, d: number, firstClear: boolean, costChallenge: boolean?, corrupted: boolean?) -> any)? = nil
 local towerRewards: ((player: Player, floor: number, mode: string, record: boolean) -> any)? = nil
 
 function BattleService.SetRewardHandler(handler, towerHandler)
@@ -150,7 +151,15 @@ local function recordResult(player: Player, state)
 		return record
 	end
 	local key = Bosses.FightKey(battle.BossId, battle.Difficulty)
+	if state.Practice then
+		record.Practice=true
+		record.Progress=data.Progress
+		record.SpeedUnlocked=speedAllowed(data,2)
+		return record
+	end
 	if battle.Result == "Win" then
+		data.Progress.RewardAt=data.Progress.RewardAt or {}
+		data.Progress.RewardAt[key]=os.time()+300
 		record.FirstClear = data.Progress.Cleared[key] ~= true
 		data.Progress.Cleared[key] = true
 		record.Cards = {}
@@ -192,6 +201,8 @@ local function run(player: Player, state)
 		pending += dt * state.Speed
 		sinceFlush += dt
 		while pending >= B.Tick and not battle.Over do
+			local weatherId=WeatherService.State().Id
+			if weatherId~=battle.WeatherId then battle:SetWeather(weatherId) end
 			battle:Step(B.Tick)
 			pending -= B.Tick
 		end
@@ -222,12 +233,13 @@ local function run(player: Player, state)
 	active[player] = nil
 	setArenaFocus(player, nil)
 	local summary = battle:Summary()
-	if (summary.CounterStaggers or 0) > 0 then
+	if (summary.Staggers or 0) > 0 then
 		TutorialService.Note(player, "CounterStagger") -- Kenji's last quest
 	end
 	local record = recordResult(player, state)
 	if record then
 		summary.FirstClear = record.FirstClear
+		summary.Practice=record.Practice
 		summary.NewBest = record.NewBest
 		summary.Progress = record.Progress
 		summary.Cards = record.Cards
@@ -246,8 +258,8 @@ local function run(player: Player, state)
 			if battle.Result == "Win" and towerRewards then
 				summary.Rewards = towerRewards(player, state.Floor, state.Mode, record.FirstClear)
 			end
-		elseif battle.Result == "Win" and rewardRolls and boss then
-			summary.Rewards = rewardRolls(player, boss.Difficulties[battle.Difficulty].D, record.FirstClear, state.Cost)
+		elseif battle.Result == "Win" and not record.Practice and rewardRolls and boss then
+			summary.Rewards = rewardRolls(player, boss.Difficulties[battle.Difficulty].D, record.FirstClear, state.Cost,state.Corrupted)
 			summary.CostChallenge = state.Cost
 			-- A first Normal clear puts the boss's own card into this player's roll pool (Cards.Pool).
 			local bossCard = Cards.ForBoss(boss.Id)
@@ -398,6 +410,11 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	end
 
 	-- A raid run: the Colossus alone, sized to this deck, for Raid.FightSeconds.
+	local corrupted=not isTower and not isRaid and difficulty~="Normal" and WeatherService.State().Id~="clear"
+	if corrupted then
+		local base=boss.Difficulties[difficulty]
+		stats={HP=base.HP*1.2,ATK=base.ATK,WarnSeconds=base.WarnSeconds}
+	end
 	local raid = nil
 	if isRaid then
 		raid = RaidService.Join(player, deckPower)
@@ -407,6 +424,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	end
 
 	local battle = Engine.new({
+		WeatherId=WeatherService.State().Id,
 		Units = deckUnits(data, deck, mutator),
 		BossId = boss.Id,
 		Difficulty = difficulty,
@@ -418,6 +436,8 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	battle.AutoUlt = data.Settings.AutoUlt == true
 	local speed = if speedAllowed(data, data.Settings.BattleSpeed) then data.Settings.BattleSpeed else 1
 	local state = {
+		Corrupted=corrupted,
+		Practice=not isTower and not isRaid and ((data.Progress.RewardAt or {})[Bosses.FightKey(bossId,difficulty)] or 0)>os.time(),
 		Engine = battle,
 		Speed = speed,
 		Started = false,
@@ -449,6 +469,8 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		Swept = swept, -- floors won at once before this one: { Floor, NewBest, Rewards }
 		DeckPower = deckPower,
 		CostChallenge = cost or nil,
+		Corrupted=corrupted,
+		Practice=state.Practice,
 	}
 end
 

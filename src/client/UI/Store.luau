@@ -234,14 +234,7 @@ function draw()
 			request("Buy", pass.Key)
 		end, nil, `Store:{pass.Key}`)
 	end
-	section(40, "SHARDS & SERVER TOTEM", "Buy as often as you like")
-	for i, bundle in MonetizationConfig.ShardBundles do
-		row(40 + i, Color3.fromRGB(196, 140, 255), Kit.short(bundle.Shards), string.upper(bundle.Name), {
-			{ Text = `{Kit.commas(bundle.Shards)} Shards (spend them on potions and Shard upgrades)`, Random = true },
-		}, bundle.Price, false, function()
-			request("BuyShards", bundle.Key)
-		end, store.Restricted, `Store:{bundle.Key}`)
-	end
+	section(40,"SERVER TOTEM","Sky items are earned in game")
 	local totem = MonetizationConfig.Totem
 	local now = workspace:GetServerTimeNow()
 	local running = store.TotemEnds and store.TotemEnds > now

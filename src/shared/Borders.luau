@@ -12,6 +12,12 @@
 -- Shared so the odds panel shows exactly what the server rolls.
 
 local Borders = {}
+local Config = require(script.Parent.Config)
+function Borders.EffectiveLuck(luck: number): number
+	local value=math.max(1,luck)
+	local start,scale=Config.Roll.LuckSoftStart,Config.Roll.LuckSoftScale
+	return if value<=start then value else start+scale*math.log(1+(value-start)/scale)
+end
 
 export type Border = {
 	Id: string,
@@ -131,7 +137,7 @@ end
 function Borders.Chances(boost: number?, luck: number?): { [string]: number }
 	local chances = {}
 	local special = 0
-	local l = math.max(1, luck or 1)
+	local l = Borders.EffectiveLuck(luck or 1)
 	for _, border in Borders.List do
 		if border.OneIn > 0 then
 			chances[border.Id] = (1 / border.OneIn) * (1 + (boost or 0)) * l ^ border.LuckExponent

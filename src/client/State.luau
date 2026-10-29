@@ -11,8 +11,10 @@ local MonetizationConfig = require(ReplicatedStorage:WaitForChild("Shared"):Wait
 local State = {
 	Cards = {}, -- [cardId] = DataService.CardState: Copies, Stars, Fusion, Borders, Foils, Awaken, Trait, Trait2, Pending
 	Summary = {
+		SelectedCollection = "normal",
 		TotalRolls = 0,
 		Shards = 0,
+		Fragments = 0,
 		Luck = 1,
 		AutoActive = false,
 		Playtime = 0,
@@ -23,7 +25,7 @@ local State = {
 		IsSurgeRoll = false, -- the last roll was a surge
 	},
 	Decks = { Active = 1, Presets = {} }, -- presets: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
-	Progress = { Cleared = {}, BestTime = {} },
+	Progress = { Cleared = {}, BestTime = {}, RewardAt={} },
 	Tower = { Best = 0, Run = 0, Pagoda = 0 }, -- Infinite Tower best run and run now, Pagoda floors cleared
 	Packs = {}, -- Roll Packs held: Packs.luau id -> count
 	Battle = { AutoUlt = false, Speed = 1 },
@@ -32,6 +34,7 @@ local State = {
 	-- Long-term progression (MetaService.State): potions, upgrades, Index claims, daily, gifts, milestones,
 	-- daily quests ({ Day, ResetIn, List = { { Id, Progress, Claimed } } }), level and stat points.
 	Meta = {
+		Celestial = {Fragments=0,Inventory={}},
 		Quests = { Day = 0, ResetIn = 0, List = {} },
 		Level = { Level = 1, XP = 0, Need = 80 },
 		Wheel = { Spins = 0, Progress = 0 },
@@ -60,6 +63,7 @@ local State = {
 	},
 	MetaAt = os.clock(), -- when Meta arrived; timers count down from here
 	InBattle = false,
+	Weather = {Id="clear",Luck=0,Ends=0} :: any,
 	BattleHidden = false,
 	TestMode = false,
 	Dev = false, -- may use the DEV panel (DevAccess on the server)
@@ -68,6 +72,7 @@ local State = {
 
 local changed = Instance.new("BindableEvent")
 State.Changed = changed.Event -- fires (kind: "all" | "roll" | "decks" | "progress" | "meta", result?)
+function State.Notify(kind: string) changed:Fire(kind) end
 
 function State.ApplyFull(full)
 	State.Cards = full.Cards or {}
@@ -166,7 +171,7 @@ function State.Luck(): number
 	local event = State.Event()
 	local vip = if State.Perk("VIP", true) then MonetizationConfig.VipLuck else 1
 	local eventLuck = (event and event.Luck or 1) * State.RaidLuck() * State.TotemLuck() * vip
-	return Meta.TotalLuck(State.Meta.BaseLuck or 1, Meta.PotionLuck(liveActive()), eventLuck)
+	return Meta.TotalLuck(State.Meta.BaseLuck or 1, Meta.PotionLuck(liveActive()), eventLuck,State.Weather.Luck or 0)
 end
 
 -- Today's tower mutator (the test tools can pick one; same as the server).

@@ -9,6 +9,22 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- CELESTIAL REDESIGN COMPLETE (2026-10-29): selected collections / Card Packs keeper, 16 clothed event
+  Attacks across four single-anime skies, global schedule / local summons / BAG crafting, read-only sky
+  HUD, bottom-right potion / relic icons, neutral elements, familiar column bonds, slower skill / Ultimate
+  cadence, persisted five-minute boss reward cooldown / practice, retired Shard shop / compensation,
+  1-shard trait rolls, weather-aware Best Deck and closest-progress bars. Current rules are in CLAUDE.md;
+  implementation tracker is docs/CELESTIAL_REDESIGN.md. All required checks passed. Studio desktop and
+  iPhone 17 Pro landscape emulator checked; ordinary-play / live-server cases remain in checklist 5.
+  User unbanned and authorized clothed replacements; all 16 production portraits uploaded / visibly
+  loaded. Rejected shirtless originals and unused concept art remain locally, not shipped or reuploaded.
+  IMPORTANT: Studio Assistant's new tower-night mood was only in Studio; it is now preserved in ZoneFx.
+  Its separate Workspace.InfiniteTower (22 floor models, ~1,122 descendants) and Zone_InfiniteTower marker
+  remain PLACE-ONLY. Save the open place. This authored tower has no ProximityPrompt and is away from the
+  old Tower marker; the original runtime tower / entrance remain. Do not remove either unasked; resolve
+  the new tower's entrance integration with the user. No map / place / boss model was overwritten.
+  Unrelated .codex/ and five loose portrait PNGs remain untouched. Nothing published.
+
 - QUEST / GOAL FOLLOW-UP COMPLETE (2026-10-29): verified Claude's empty-panel click fix in desktop
   Studio; blank BAG / SQUAD / QUESTS stays open, outside QUESTS clicks close. RewardLine now replaces
   the remaining inline emoji rewards in quests / milestones / gift extras / Kenji / HUD notifications
@@ -111,6 +127,45 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-29 · Codex · this commit · Implemented the approved Celestial / collection / combat / economy
+  redesign; preserved existing 37 normal card identities, ownership, traits, mastery, purchased upgrades,
+  presets, BossKit and saved map. Collections select normal pools for ROLL / AUTO / all consumable packs;
+  unlocked bosses stay eligible. Server-validated keeper selection, exact content chances, starter pack,
+  unlock guidance / ACTIVE PACK HUD. Seeded global 15-minute sky slots / drifting starts / 150 s forecast,
+  16 event-only Attacks (four each Dragon Ball / Bleach / JJK / Demon Slayer), stronger base stats,
+  authored character kits / art / Codex, normalized bonus opportunities and +20% matching-sky battle
+  ATK / HP with HP-fraction preservation on transitions. WeatherService owns summons, Orb odds, Sigil
+  crafting, Fragments, one-use extension / server cooldown and banners; earned sources only. Illustrated
+  sky HUD / countdown / four portraits is read-only, all actions in BAG. Bottom-right illustrated potion
+  / worn-relic status with hover / tap facts; compact row clears jump / roll controls and progress bars.
+  SkyFx uses a separate camera grade and bounded motes, pauses for menus / fights, respects LOW.
+  Elements neutral; 11 familiar-column Support bonuses preserve revive / healing caps. Basics 2.5 s,
+  skills >=8 s, Ultimates >=22 s plus energy / 3 s team gap; incoming-hit energy throttled. Boss / tower
+  curves retuned: all 12 story fixtures 100% wins, ~74-76 s medians; starter 200 seeds median75.4/p9077.9.
+  Boss reward cooldown five minutes per difficulty persisted; practice pays no XP / mastery / rewards.
+  General Shard shop / purchases retired, balances and infusion costs compensated at 20:1 Trait Shards,
+  purchased permanent bonuses retained; trait roll1/lock2. Luck potions additive +0.5/1/2 for5/10/15m,
+  raw luck uncapped with diminishing border returns / exact displayed odds. First Light title at50rolls,
+  weather-aware Best Deck and nearest distinct mastery / fusion / collection / weather / milestone bars.
+  SaveMigration CelestialVersion1 / EconomyVersion1 + idempotency / inventory / cooldown / compensation
+  regressions. Modal reopening after emulator resize now refits before choosing its animation target.
+  Art: final clothed 2:3 portraits in celestial-clothed-20261029 with exact prompts / hashes / uploaded ids;
+  all16 actual ImageLabels visibly loaded. Two earlier shirtless uploads were moderated; user appealed,
+  reported unbanned and authorized clothing. Originals preserved locally, rejected ids not reused.
+  Studio runtime isolated-copy checks: 1,000 ten-card packs ->10,000 normal +8 eligible sky cards, five
+  highlights / full groups, all packs consumed, real profile restored, no test announcements. Craft10,
+  summon, Hourglass once / second rejected; malformed / locked / missing / too-far requests and both new
+  remote limiters rejected. Desktop sky / status tooltip, compact HUD, normal BAG SKY ITEMS with six loaded
+  images / crafting detail, CARD PACKS fit; SkyFx LOW 3 ->0 behind BAG ->3 after closing. Last clean Play
+  console had only the existing 203785492 sound asset-type warnings. Fresh source synced through Rojo.
+  User paused for Studio Assistant, then confirmed finished. Compared managed Studio / repo scripts:
+  only its ZoneFx InfiniteTower mood differed; copied it exactly into Git. Its authored 22-floor tower /
+  night marker stay place-only; no prompt on that new tower, old runtime entrance still exists (next-up).
+  Required final checks: type0errors (8 nonblocking lint warnings), props5,708/0problems, full headless
+  ALL CHECKS PASSED; git diff --check clean. Studio left Edit, temporary runtime verification scripts gone,
+  upload servers stopped; nothing published. Save the place to retain Assistant's map work. Real-device,
+  natural cross-server weather / ordinary reward pacing and tower entrance review remain in checklist5.
 
 - 2026-10-29 · Codex · this commit · Pulled c9df7b6 and kept Claude's Modal blocker / Skin fallback
   work. Real desktop clicks confirmed blank BAG / SQUAD / QUESTS stays open and outside QUESTS closes.

@@ -7,11 +7,15 @@ modules = [
     ("Config", root / "src" / "shared"),
     ("Rarity", root / "src" / "shared"),
     ("Borders", root / "src" / "shared"),
+    ("ColumnBonds", root / "src" / "shared"),
     ("Elements", root / "src" / "shared"),
     ("Awaken", root / "src" / "shared"),
     ("Foils", root / "src" / "shared"),
     ("RollBoost", root / "src" / "shared"),
     ("Odds", root / "src" / "shared"),
+    ("Weather", root / "src" / "shared"),
+    ("CelestialArt", root / "src" / "shared"),
+    ("CelestialCards", root / "src" / "shared"),
     ("Cards", root / "src" / "shared"),
     ("CardInfo", root / "src" / "shared"),
     ("Deck", root / "src" / "shared"),
@@ -22,6 +26,7 @@ modules = [
     ("Items", root / "src" / "shared"),
     ("Traits", root / "src" / "shared"),
     ("Meta", root / "src" / "shared"),
+    ("Collections", root / "src" / "shared"),
     ("Tower", root / "src" / "shared"),
     ("Raid", root / "src" / "shared"),
     ("Tutorial", root / "src" / "shared"),
@@ -30,7 +35,7 @@ modules = [
     ("BattleEngine", root / "src" / "server"),
     ("SaveMigration", root / "src" / "server"),
 ]
-test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau", "phase2_test.luau", "support_test.luau", "ftue_test.luau", "save_test.luau", "pack_batch_test.luau"]
+test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau", "phase2_test.luau", "support_test.luau", "ftue_test.luau", "save_test.luau", "pack_batch_test.luau", "celestial_test.luau"]
 
 out = [(tests / "stubs.luau").read_text(encoding="utf-8"), (tests / "harness.luau").read_text(encoding="utf-8"), "MODULES = {}"]
 for name, folder in modules:

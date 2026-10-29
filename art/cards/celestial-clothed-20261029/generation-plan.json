@@ -1,0 +1,72 @@
+[
+  {
+    "id": "celestial_rain_goku",
+    "slug": "goku",
+    "name": "Ultra Instinct Goku",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_rain_goku.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Dress Goku in an intact classic orange martial-arts gi over a solid dark-blue crew-neck undershirt, with blue wristbands and the existing blue waist sash. Fully cover his chest, abdomen, shoulders and hips in opaque, naturally folded cloth. Make the orange trousers intact. Preserve his silver Ultra Instinct hair and eyes. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_rain_vegeta",
+    "slug": "vegeta",
+    "name": "Ultra Ego Vegeta",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_rain_vegeta.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Dress Vegeta in an intact navy long-sleeved Saiyan combat bodysuit with white and gold chest armor, white gloves, and the existing trousers. Cover all chest, abdomen, shoulders and upper arms with opaque clothing and armor. Remove the tears and holes. Preserve his Ultra Ego purple hair, eyes, face and violet aura. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_rain_gogeta",
+    "slug": "gogeta",
+    "name": "Blue Gogeta",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_rain_gogeta.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Keep Gogeta's black fusion vest and orange padded shoulders, and add an intact opaque black high-neck short-sleeved martial-arts undershirt beneath it, fully covering his chest, abdomen and shoulders. Retain white loose trousers and blue sash. Cloth has folds and a normal relaxed fit, not painted-on skin. Preserve blue hair and stardust energy. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_rain_broly",
+    "slug": "broly",
+    "name": "Full Power Broly",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_rain_broly.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Dress Broly in substantial opaque black Saiyan battle clothing with long sleeves and green-and-dark-purple chest armor that fully covers his neck base, chest, abdomen, shoulders, upper arms and hips. Keep the green fur waist pelt and purple loose trousers. No exposed torso or fabric cutouts, no body-paint substitute. Preserve green hair, face, aura and powerful pose. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_blizzard_ichigo",
+    "slug": "ichigo",
+    "name": "Horn of Salvation Ichigo",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_blizzard_ichigo.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Add an intact opaque high-neck black Soul Reaper undershirt under Ichigo's existing black robe, covering his chest, abdomen and shoulders completely. Keep white shoulder cloth, black robe, sword, single horn, face marking, orange hair and pose unchanged. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_blizzard_aizen",
+    "slug": "aizen",
+    "name": "Hogyoku Aizen",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_blizzard_aizen.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Close Aizen's white high-collared robe over his entire chest and abdomen, with a solid opaque white undershirt behind the collar. Make the violet Hogyoku jewel a small gem mounted on the outside of the closed robe. Keep his face, slick brown hair, spiritual wings and pose unchanged. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_blizzard_yamamoto",
+    "slug": "yamamoto",
+    "name": "Bankai Yamamoto",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_blizzard_yamamoto.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Dress Yamamoto in an intact black high-neck long-sleeved Soul Reaper kimono beneath a white captain's haori with white sash and loose black trousers. Entire chest, abdomen, shoulders and arms covered in opaque fabric. Preserve the elderly face, long white beard, bald scarred head, sword, fiery scene and stoic pose. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_thunder_sukuna",
+    "slug": "sukuna",
+    "name": "True Form Sukuna",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_thunder_sukuna.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Dress Sukuna in an opaque dark charcoal high-neck four-sleeved battle tunic that fully covers his chest, abdomen and all four upper arms, with a cream waist sash and existing black trousers. Exactly FOUR arms and FOUR hands total: two raised and two lowered. Preserve the existing correct four-arm anatomy, face, extra eyes, curse markings on face/hands, pink hair and shrine. No extra limbs. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_eclipse_akaza",
+    "slug": "akaza",
+    "name": "Compass Needle Akaza",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_eclipse_akaza.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Dress Akaza in an intact opaque dark-indigo high-neck long-sleeved martial-arts uniform beneath his existing open magenta vest, fully covering chest, abdomen, shoulders and arms down to wrists, with white loose trousers and the existing waist belt. Keep blue stripe markings only on face/hands that remain exposed. Preserve pink hair, golden eyes, martial stance and cyan compass aura. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  },
+  {
+    "id": "celestial_eclipse_muzan",
+    "slug": "muzan",
+    "name": "Demon King Muzan",
+    "target": "C:/Users/Zenki/Documents/AnimeCardRoll/art/cards/celestial-anime-20261029/celestial_eclipse_muzan.png",
+    "prompt": "Use case: precise-object-edit. Edit the referenced portrait ONLY to add the following clothing. Dress Muzan in a fully buttoned opaque black high-collared long-sleeved combat coat with a dark-crimson lining and existing black trousers. Entire chest, abdomen, shoulders, arms and hips covered. Preserve white flowing hair, red eyes, composed face and red-black tendrils outside the coat, the pose and moonlit scene. No shirt openings or cutouts. Keep the same character identity, transformation, proportions, face, hair, expression, hands, action pose, camera, background, energy effects, colors, detailed clean anime linework, cel shading and dramatic lighting. Portrait 2:3 composition unchanged. Full opaque clothing with natural fabric folds, no exposed chest or abdomen and no torn torso clothing. No text, border, logos, watermark or UI. Do not redesign the face or energy effects."
+  }
+]

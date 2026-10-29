@@ -71,8 +71,8 @@ Traits.List = {
 	},
 } :: { Trait }
 
-Traits.RollCost = 10 -- Trait Shards for one roll at the Trait Master
-Traits.LockCost = 25 -- LOCK & ROLL: keep one slot, roll the other twice and pick
+Traits.RollCost = 1 -- one Trait Shard per normal reroll
+Traits.LockCost = 2 -- two candidates, one Trait Shard each
 Traits.Slot2Node = 4 -- Awakening node that opens trait slot 2
 Traits.BigTier = 3 -- Legendary and up: the roll button pauses and the screen flashes
 Traits.AutoMax = 100 -- AUTO ROLL: at most this many rolls (RollCost each) per server batch

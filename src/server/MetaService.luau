@@ -23,6 +23,8 @@ local NpcRange = require(script.Parent.NpcRange)
 local MonetizationService = require(script.Parent.MonetizationService)
 local Momentum = require(script.Parent.Momentum)
 local AvatarService = require(script.Parent.AvatarService)
+local WeatherService = require(script.Parent.WeatherService)
+local Weather = require(Shared.Weather)
 
 local MetaService = {}
 
@@ -35,17 +37,21 @@ local giftsClaimed = {} -- [Player] = { [index] = true } for this server session
 -- pass: Shards always, Trait Shards where paid random items are allowed). Returns the bundle actually
 -- given, so screens show the boosted amount.
 function MetaService.Grant(data, bundle: Meta.Bundle, player: Player?)
-	if bundle.Shards and bundle.Shards > 0 then
-		local gain = Meta.Bonus(data.Stats, data.Gear, "ShardGain") + MonetizationService.ShardBonus(player)
-		local shards = math.floor(bundle.Shards * (1 + gain) + 0.5)
-		data.Shards += shards
-		if shards ~= bundle.Shards then
-			bundle = table.clone(bundle)
-			bundle.Shards = shards
+	bundle=Meta.RetireShards(bundle)
+	if bundle.Title then
+		data.Titles=data.Titles or {}
+		data.Titles[bundle.Title]=true
+	end
+	data.Celestial=data.Celestial or {Fragments=0,Inventory={}}
+	if bundle.Fragments then data.Celestial.Fragments+=math.max(0,math.floor(bundle.Fragments)) end
+	for id,count in (bundle.Celestial or {}) :: {[string]:number} do
+		if id=="orb" or id=="hourglass" or Weather.SigilCost(string.match(id,"^sigil:(.+)$") or "") then
+			data.Celestial.Inventory[id]=(data.Celestial.Inventory[id] or 0)+math.max(0,math.floor(count))
 		end
 	end
+
 	if bundle.TraitShards and bundle.TraitShards > 0 then
-		local traitShards = math.floor(bundle.TraitShards * (1 + MonetizationService.TraitShardBonus(player)) + 0.5)
+		local traitShards = math.floor(bundle.TraitShards * (1 + Meta.Bonus(data.Stats,data.Gear,"ShardGain") + MonetizationService.ShardBonus(player) + MonetizationService.TraitShardBonus(player)) + 0.5)
 		data.TraitShards = (data.TraitShards or 0) + traitShards
 		if traitShards ~= bundle.TraitShards then
 			bundle = table.clone(bundle)
@@ -70,7 +76,7 @@ function MetaService.Grant(data, bundle: Meta.Bundle, player: Player?)
 				elseif level < Items.MaxLevel then
 					data.Gear.Artifacts[id] = level + 1
 				else
-					data.Shards += Items.MeltShards[artifact.Rarity] or 100
+					data.TraitShards += math.ceil((Items.MeltShards[artifact.Rarity] or 100)/Meta.ShardExchange)
 				end
 			end
 		end
@@ -209,7 +215,7 @@ end
 function MetaService.Luck(player: Player, data): number
 	local event = MetaService.Event()
 	local eventLuck = (event and event.Luck or 1) * MetaService.ServerLuck() * MonetizationService.VipLuck(player)
-	return Meta.TotalLuck(MetaService.BaseLuck(player, data), Meta.PotionLuck(data.Potions.Active), eventLuck)
+	return Meta.TotalLuck(MetaService.BaseLuck(player, data), Meta.PotionLuck(data.Potions.Active), eventLuck,WeatherService.Luck())
 end
 
 -- `player` (optional) adds the Momentum chain's speed and the Fast Roll pass.
@@ -225,7 +231,7 @@ end
 -- Every card (boss cards aside) found at `border` ("Normal" = owned at all).
 local function indexComplete(data, border: string): boolean
 	for _, card in Cards.List do
-		if card.Boss == nil then
+		if card.Boss == nil and card.Weather==nil then
 			local entry = data.Cards[card.Id]
 			if entry == nil or (border ~= "Normal" and not (entry.Borders and entry.Borders[border])) then
 				return false
@@ -249,6 +255,7 @@ function MetaService.State(player: Player, data)
 	end
 	return {
 		Shards = data.Shards,
+		Celestial = data.Celestial,
 		TotalRolls = data.TotalRolls,
 		Inventory = data.Potions.Inventory,
 		Active = data.Potions.Active,
@@ -288,6 +295,7 @@ local function validIndex(value: unknown, list): boolean
 end
 
 local function handle(player: Player, data, action: unknown, arg: unknown)
+	if action=="BuyPotion" or action=="BuyUpgrade" then return false,"Retired" end
 	if action == "UsePotion" then
 		local potion = type(arg) == "string" and Meta.PotionById[arg]
 		if not potion then
@@ -481,14 +489,14 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 		table.remove(data.Gear.Worn, index)
 		return true
 	elseif action == "ResetStats" then
-		local cost = Meta.StatResetCost(data.Stats)
+		local cost = math.ceil(Meta.StatResetCost(data.Stats)/Meta.ShardExchange)
 		if cost == 0 then
 			return false, "NothingToReset"
 		end
-		if data.Shards < cost then
-			return false, "NoShards"
+		if data.TraitShards < cost then
+			return false, "NoTraitShards"
 		end
-		data.Shards -= cost
+		data.TraitShards -= cost
 		data.Stats = {}
 		return true
 	end

@@ -3,6 +3,31 @@
 local SaveMigration = MODULES.SaveMigration
 
 do
+	local data={Cards={rook={Copies=1,Stars=0}},TotalRolls=100,Shards=1000,TraitShards=3,Upgrades={Luck=2,RollSpeed=1},Packs={["1000:Flame"]=2},Potions={Active={superluck=100,mythic=100}}}
+	SaveMigration.Migrate(data)
+	local count=data.TraitShards
+	check(data.Shards==0 and count==3+math.ceil(1000/MODULES.Meta.ShardExchange)+math.ceil(2*MODULES.Packs.InfuseCost/MODULES.Meta.ShardExchange),"retired balance and infused-pack spend are compensated as Trait Shards")
+	check(data.Packs["1000"]==2 and data.Packs["1000:Flame"]==nil and data.Upgrades.Luck==2 and data.Upgrades.RollSpeed==1,"infused packs retain every roll and bought permanent bonuses remain")
+	check(data.Potions.Active.superluck==200 and data.Potions.Active.mythic==750,"running higher-tier luck potions receive their longer replacement duration")
+	data.Progress.RewardAt["kurogane:Normal"]=123456
+	SaveMigration.Migrate(data)
+	check(data.TraitShards==count and data.Potions.Active.mythic==750 and data.Progress.RewardAt["kurogane:Normal"]==123456,"economy compensation and persisted reward cooldowns survive a second migration")
+end
+
+do
+	local data={Cards={},TotalRolls=0}
+	SaveMigration.Migrate(data)
+	local count=data.Packs["10"]
+	check(data.SelectedCollection=="normal" and data.Celestial.Fragments==0 and count==1,"new profile starts with one consumable card pack and normal collection")
+	SaveMigration.Migrate(data)
+	check(data.Packs["10"]==count,"starter pack and weather migration are idempotent")
+	data.SelectedCollection="chakra"
+	data.Celestial.Fragments=8
+	SaveMigration.Migrate(data)
+	check(data.SelectedCollection=="chakra" and data.Celestial.Fragments==8,"selected collection and earned weather items survive migration")
+end
+
+do
 	local entry = { Copies=120, Stars=5, Awaken=4, Trait2="swift", BorderCopies={Normal=119,Gold=1}, Borders={Normal=true,Gold=true} }
 	local data = { Cards={rook=entry} }
 	SaveMigration.Migrate(data)
@@ -100,7 +125,7 @@ for _, entry in c do
 end
 check(sumsOk, "every card's per-border piles add up to its total copies")
 
-check(data.Shards == 1000 + 4 * SaveMigration.AccessoryRefund and data.Gear.Accessories == nil and data.Gear.Cards == nil, "every accessory (bagged or worn) is refunded as Shards")
+check(data.Shards == 0 and data.TraitShards >= math.ceil((1000 + 4 * SaveMigration.AccessoryRefund)/MODULES.Meta.ShardExchange) and data.Gear.Accessories == nil and data.Gear.Cards == nil, "every accessory refund is preserved as Trait Shards after retiring the old currency")
 check(data.Pity == nil, "pity counters go")
 check(data.Settings.AutoStop == nil, "the Auto Roll stop setting goes (Auto Roll never stops)")
 check(data.RollBank == nil and data.Packs["10"] == 1 + 3, "21 bank tickets come back as 3 Roll Packs, on top of the packs held")

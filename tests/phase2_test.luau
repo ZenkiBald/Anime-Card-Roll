@@ -106,7 +106,7 @@ for _, prize in Meta.Wheel.Prizes do
 	anyWheel = anyWheel or (prize.Reward.TraitShards or 0) > 0
 end
 check(anyQuest and anyGift and anyWheel, "quests, playtime gifts and the Lucky Wheel pay Trait Shards")
-check(Traits.RollCost == 10 and Traits.LockCost == 25 and Traits.Slot2Node == 4, "a trait roll costs 10 Trait Shards, LOCK & ROLL 25, slot 2 opens at node 4")
+check(Traits.RollCost == 1 and Traits.LockCost == 2 and Traits.Slot2Node == 4, "a trait roll costs 1 Trait Shard, LOCK & ROLL 2, slot 2 opens at node 4")
 
 -- 6. Battle --------------------------------------------------------------------------------------------
 local owned = F.allOwned(0)
@@ -119,7 +119,7 @@ local function staggersWith(attackId)
 	end
 	return fill
 end
-check(near(staggersWith("mirai"), 2.5 * staggersWith("rook")), "counter-element hits fill the Stagger bar 2.5x faster")
+check(near(staggersWith("mirai"), staggersWith("rook")), "element themes do not change Stagger gain")
 
 do
 	local battle = Engine.new({ Units = F.units(F.deck({ "rook" }, {}), owned), BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(4), Guards = {} })
@@ -155,7 +155,7 @@ end
 do
 	-- Node 3 lifts the bond to 400%: compare the bond hit with and without it.
 	local function bondHit(node)
-		local units = F.units(F.deck({ "rook", "tomo" }, {}), owned)
+		local units = F.units(F.deck({ "hana" }, {"mitotic_seal"}), owned)
 		units[1].Awaken = node
 		local battle = Engine.new({ Units = units, BossId = "kurogane", Difficulty = "Normal", Rng = Random.new(8), Guards = {} })
 		battle:FireBonds()

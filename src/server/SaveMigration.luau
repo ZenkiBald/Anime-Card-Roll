@@ -20,6 +20,9 @@ local Shared = ReplicatedStorage.Shared
 local Borders = require(Shared.Borders)
 local Tower = require(Shared.Tower)
 local Cards = require(Shared.Cards)
+local Collections = require(Shared.Collections)
+local Meta = require(Shared.Meta)
+local Packs = require(Shared.Packs)
 
 local SaveMigration = {}
 
@@ -200,6 +203,40 @@ function SaveMigration.Migrate(data: any): { string }
 			tower.Run = 0
 			table.insert(done, "tower run ended (left mid-fight)")
 		end
+	end
+	if data.CelestialVersion ~= 1 then
+		data.SelectedCollection="normal"
+		data.Celestial={Fragments=0,Inventory={}}
+		data.Progress=data.Progress or {Cleared={},BestTime={}}
+		data.Progress.RewardAt={}
+		if (data.TotalRolls or 0)==0 and next(data.Cards or {})==nil then
+			data.Packs=data.Packs or {}
+			data.Packs["10"]=(data.Packs["10"] or 0)+1
+		end
+		data.CelestialVersion=1
+		table.insert(done,"Celestial collections, weather inventory and starter pack")
+	end
+	if type(data.SelectedCollection)~="string" or not Collections.Unlocked(data.SelectedCollection,data.Progress and data.Progress.Cleared or {}) then data.SelectedCollection="normal" end
+	if data.EconomyVersion~=1 then
+		-- Keep purchased permanent upgrade effects; convert the spendable balance to rerolls.
+		data.TraitShards=(data.TraitShards or 0)+math.ceil(math.max(0,data.Shards or 0)/Meta.ShardExchange)
+		data.Shards=0
+		data.Progress=data.Progress or {Cleared={},BestTime={}}
+		data.Progress.RewardAt=data.Progress.RewardAt or {}
+		for id,count in data.Packs or {} do
+			local pack=Packs.ById[id]
+			if pack and pack.Element and count>0 then
+				data.Packs["1000"]=(data.Packs["1000"] or 0)+count
+				data.TraitShards+=math.ceil(Packs.InfuseCost*count/Meta.ShardExchange)
+				data.Packs[id]=nil
+			end
+		end
+		local active=if data.Potions and type(data.Potions.Active)=="table" then data.Potions.Active else {}
+		for id,factor in {superluck=2,mythic=7.5} do
+			if type(active[id])=="number" and active[id]>0 then active[id]=math.min(Meta.MaxPotionSeconds,active[id]*factor) end
+		end
+		data.EconomyVersion=1
+		table.insert(done,"retired Shard balance and infused packs compensated; active luck potions extended")
 	end
 	return done
 end

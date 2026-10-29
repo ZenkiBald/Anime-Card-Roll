@@ -118,7 +118,7 @@ function draw()
 		order += 1
 		local held = State.Packs[pack.Id] or 0
 		local rule = Packs.Condense[pack.Id]
-		local infuse = pack.Id == "1000"
+		local infuse = false
 		local frame = row(order, pack, if infuse then 150 else 76)
 		if rule then
 			local to = Packs.ById[rule.To]
@@ -179,7 +179,7 @@ function draw()
 	order += 1
 	Kit.label({
 		LayoutOrder = order,
-		Text = "Open packs from your BAG. Condensed and infused packs roll at your luck when you open them.",
+		Text = "Open packs from your BAG. Condensed packs use your active collection and luck when opened.",
 		Font = Theme.Font.Bold,
 		TextColor3 = Theme.Color.Muted,
 		TextXAlignment = Enum.TextXAlignment.Left,

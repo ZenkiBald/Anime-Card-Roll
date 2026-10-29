@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-10-27). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-10-29). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -49,13 +49,13 @@ never draw over the world, and hide with player name tags while a panel,
 fight or reveal is up (`Modal.Changed`, `HubFx.SetWorldLabelsHidden`). TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
 double jump. Lighting: a bright town afternoon (`LightingSetup`); each world has its own theme (`ZoneFx` moods: Ember golden sunset, Frostfang snowy morning, Neon Abyss violet night, Stormspire grey storm with lightning) and zone music.
 
-**Rolling.** The server owns every roll. Each pull picks a card by its `Weight` from the pool (`Cards.Pool`; a boss's
+**Rolling.** The server owns every roll. Each pull picks a card by its `Weight` from the selected collection (`Collections.Pool`; a boss's
 own card joins after that boss's first Normal clear) and rolls its **border**, which is the tier: Base ("Normal" in
 saves) 1x / Gold 4x / Rainbow 16x / Secret 64x stats, base odds 1 in 200 / 5,000 / 500,000 (rare on purpose: story
 bosses are beaten with Base + Gold, Rainbow and Secret are the tower chase). Luck raises each special border by luck ^
-0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped at 50% together). Total luck = base
-(upgrades, stat points, level, Index rewards, Momentum, artifacts) x potion x event / Raid Luck / Totem / VIP, capped at
-25x (`Meta.TotalLuck`). Pure luck: no pity. Every card shows its **rarity number** per border (`Cards.Rarity`: 1 / (pull
+0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped at 50% together). Total luck = (earned base + strongest potion bonus + active sky bonus) x event / Raid Luck / Totem / VIP
+(`Meta.TotalLuck`), without a hard total-luck cap. Borders use raw luck through 5x, then
+`5 + 10 * log(1 + (luck - 5) / 10)`; the 50% combined special-border safety limit remains. ODDS uses the same formula. Pure luck: no pity. Every card shows its **rarity number** per border (`Cards.Rarity`: 1 / (pull
 chance x border chance) at 1x luck, snapped to a round number by `Odds.Round` like "7,500,000", never "1 in"; it is the
 big number on card tiles; `Odds.FormatRarity` for the ODDS panel). Every pull also rolls a foil (Aura / Golden Ki /
 Demon Seal, battle-only). ROLL (R), QUICK toggle (T: ROLL plays the short reveal, saved), AUTO (E; never stops by
@@ -66,7 +66,50 @@ Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET B
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
 
-**Cards.** 26 character Attack cards (including 4 boss cards) + 11 relic / technique Support cards (anime-style epithet names for the private prototype, see Rules). Attack cards sit on one stat line (ATK ~500 +-10%, HP = 2
+**Collections and Celestial Skies.** The CARD PACKS keeper near spawn selects a saved normal-card pool.
+Normal Collection includes every normal card; Chakra Legends is available immediately. Galactic Warriors,
+Cursed Spirits, Demon Hunters and Soul Reapers unlock from the displayed boss clears. ROLL, AUTO and every
+consumable Roll Pack use that selection; any unlocked boss card remains eligible. Existing cards stay owned
+and decks may mix collections. The selector shows contents and exact featured-adjusted card chances; ACTIVE
+PACK appears over ROLL. Selection requires the keeper's 24-stud server range. A brand-new empty save receives
+one ten-card Roll Pack once, and Kenji explains opening it / BEST DECK / the first boss.
+
+`Weather` hashes server time and seed 731947 into shared 15-minute slots. Events start at a varied offset
+inside each slot, with a 150-second forecast. Quiet Skies is the default. Limitbreak Skies (Dragon Ball),
+Soulfall (Bleach), Cursed Night (Jujutsu Kaisen) and Blood Moon (Demon Slayer) last 5 / 5 / 5 / 3 minutes and
+add +0.5 / +1 / +1 / +2 luck. Each has four separate Attack cards and cohesive clothed portrait art in
+`art/cards/celestial-clothed-20261029/` (prompts, source hashes and uploaded ids in its manifest).
+`CelestialArt` maps the assets; `Config.CelestialCardsReady=true`. These cards have named character kits,
+900 ATK / 1800 HP before rarity scaling, borders, 100:1 fusion, traits, mastery and their own Codex section;
+they do not count toward normal completion rewards. No event Supports or same-weather column sync.
+
+Normal pulls keep their usual rates. While a sky is active, every ten-card pack-equivalent independently
+rolls an extra event card at 1/100 / 1/150 / 1/150 / 1/500; ROLL / AUTO normalize that chance per individual
+pull. All eligible sky cards are equally likely within their sky. Bulk receipts include every normal and
+bonus card in the same rarest-first highlights / complete grouped summary. No out-of-weather event drops.
+Matching sky cards gain +20% ATK / max HP in every battle, reverting when it ends; transitions preserve HP
+percentage and never provide free healing. BEST DECK accounts for the active sky.
+
+`WeatherService` owns natural / local state and the rate-limited Weather remote. Celestial Orb summons a
+random sky locally for 3 minutes (45 / 25 / 25 / 5%). Sky Sigils summon their named sky and craft in BAG from
+10 Fragments (Blood Moon 25). Celestial Hourglass extends a sky once by 2 minutes. Summons cannot replace
+Blood Moon or another summon; cooldown is five minutes after a summoned sky ends. An extension moves that
+cooldown too. Expired overrides return to the shared schedule. A named banner announces summons.
+Fragments / supplies are earned through daily / streak / playtime / milestone / quest / wheel rewards,
+raids, new tower records and Corrupted Hard / Nightmare bosses (+20% leader HP during an active sky).
+The sky HUD is read-only: anime, luck, distinct remaining-time readout and four eligible portraits, or a
+forecast. Items / crafting stay in BAG > SKY ITEMS. Illustrated active-potion / worn-relic icons sit at
+bottom RIGHT with hover / tap details. Short screens use one compact icon row and separate progress bars.
+`SkyFx` adds subtle camera-local grading / bounded motes (12/s, 3/s on LOW), paused behind panels / fights;
+it never overwrites world or tower-night lighting. The tower-night `ZoneFx.InfiniteTower` mood from Studio
+Assistant is preserved in source; its `Map.Markers.Zone_InfiniteTower` remains place-only. Studio also has
+a separate authored `Workspace.InfiniteTower` (22 floor models), away from the existing Tower marker.
+It has no ProximityPrompt yet; the existing runtime tower / entrance remain. Do not delete either without
+the user's direction. Save the open Studio place to preserve that authored model / zone marker.
+
+**Cards.** 37 normal cards: 26 character Attacks (including 4 boss cards) + 11 relic / technique Supports.
+A separate event pool adds 16 Celestial Attack cards (53 cards total). Normal cards retain their anime-style
+epithet names for the private prototype (see Rules). Normal Attack cards sit on one stat line (ATK ~500 +-10%, HP = 2
 x ATK), scaled by rarity (`Cards.Scale`: a Weight 10 card 1x, Weight 1 about 1.41x, boss cards
 up to 1.53x), so the border decides power and rarer cards edge out common ones at the same border. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
@@ -101,14 +144,19 @@ name / "1 in" rarity, visible to 90 studs; Rainbow / Secret tags animate via the
 It uses the existing server-owned AvatarCard / AvatarBorder attributes; no new save field. Client visuals
 are culled at 120 studs and cleaned on unequip / respawn / leaving range.
 
-**Deck and battle.** 4 Attack + 4 Support, 3 presets (+2 VIP), AUTO-BUILD / COUNTER-BUILD. Each Support modifies the
+**Deck and battle.** 4 Attack + 4 Support, 3 saved presets (+2 VIP), weather-aware BEST DECK.
+Each Support works with any Attack in its numbered column. `ColumnBonds` adds one authored familiar bonus
+when its matching character occupies that column: +5 percentage points to healing / speed / shield / evade,
++10 points to counter / drain chance or opening charge, one extra curse / reflection activation, or +5% guard
+for the beast-seal pair. Fatal-blow return stays once; drain healing caps do not rise. BONDED chips and the
+BONDS & TACTICS guide show the real bonus. A familiar pair gets one 300% combo (350% at Mastery 3). Each Support modifies the
 Attack card with the matching slot number. Supports have no damage, HP, action bar, Skill or Ultimate; counters,
 reflected statuses and Black Flames belong to the supported Attack card. Original character ownership, ids, names and portraits remain. On first load, `SupportRelicsVersion = 1` grants each owned former Support's replacement relic an independent copy of its saved collection (copies / borders / traits / foil / Mastery / selected border), without overwriting an already-owned relic. All preset Support positions and the older single deck map to the replacement; Attack lineups stay as chosen. Compensation runs once, before deck cleanup; further rolls award only the card rolled.
 `Cards.Support` owns the trigger, effect, cost, chance, limits and authored text. `Cards.SupportValue` applies border
 strength (Base 1 / Gold 1.25 / Rainbow 1.5 / Secret 1.75x), then rounds the **actual server
 value** to the nearest 5 percentage points (positive minimum 5%, maximum 50%). Fixed effects use their authored value;
 Eight Trigrams Seal's Crimson Chakra Cloak always returns at 85% HP. Trigger counts, chances, penalties, secondary Burns and healing caps
-are fixed. Passive cards add no Attack rating; AUTO-BUILD ranks them separately by border / rarity. Support traits, foils and mastery affect the supported Attack
+are fixed. Passive cards add no Attack rating; BEST DECK ranks them separately by border / rarity. Support traits, foils and mastery affect the supported Attack
 card; they no longer sit unused on a passive unit.
 
 Support kits (base strengths; inspect the card for its rounded value at another border):
@@ -135,10 +183,11 @@ carry their authored costs. `Bleed` and `Burn` share the timed-damage scheduler 
 Healing locks apply to every HP-healing route (`HealingLock` effect, timed Support costs or permanent cloak cost),
 with a HEAL BLOCK badge (snapshot N). Reflected Freeze costs the enemy its next action (snapshot Z); Bleed is L.
 Posthumous damage cannot consume a healing activation or heal a defeated card.
-Elements: Flame > Frost > Storm > Flame, Light <> Void, Cosmic beats all (x1.3 /
-x0.85); 2 / 4 of an element switch on a synergy; 8 named bonds fire a Dual Ultimate once. Every fight is the leader +
-3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls. Stagger bar (counter
-elements fill it faster) -> 5 s Staggered. Rhythm and threat (`Config.Battle`): bars start part-filled (StartGauge) and one unit acts
+Elements are visual / ability themes only (`Elements.CombatEnabled=false`): neutral damage, no counter
+multiplier, elemental stagger bonus or element-count synergy. Familiar bonds use matching columns only. Every fight is the leader +
+3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls. Stagger bar -> 5 s Staggered. Rhythm and threat (`Config.Battle`): SPD 100 basics take 2.5 battle seconds; Skills have an 8 s minimum
+and Ultimates need both 100 energy and a 22 s minimum, with a 3 s team Ultimate gap. Incoming-hit energy is
+limited to one grant per 2 s. At 2x, simulation timers advance twice as fast. Bars start part-filled (StartGauge) and one unit acts
 per tick, one auto-Ultimate per tick; every enemy hit takes at least MinHit of the card's max HP (guard 1%, leader 2%,
 leader's warned move 6% and SkillPierce 40% through shields), so even an overpowered deck takes hits. Attack cards show their next action / Skill in seconds (server snapshot `NextIn`, `K`); blue bars are action progress,
 gold bars are Ultimate charge. Support chips show passive status / remaining uses, with no action or energy bar. Results show passive triggers / dodges
@@ -167,9 +216,9 @@ ModelView fits tails / wings to viewport width; arena ground rays ignore the wor
 is archived beside the new asset as `PreviousBossKit.rbxm`; the installer and manifest document provenance.
 
 **Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12; recommended Attack rating 25.4k ... 127.7k; fixtures use Base in
-World 1 and Gold later, zero stars and the mastery available from preceding distinct story challenges). Boss wins pay reward rolls (luck / floors by D), Shards,
-Roll Packs and Trait Shards (no gear); after a win AUTO-RETRY (opt-in, in the battle controls above SPEED and on
-the results screen) restarts the same fight; in the towers the same switch is AUTO CLIMB. With it on, a win shows a 1 s banner (no
+World 1 and Gold later, zero stars and the mastery available from preceding distinct story challenges). Boss wins pay Roll Packs, Trait Shards and potions (no gear). A rewarded win starts a persisted five-minute
+cooldown for that boss/difficulty. Fighting again during it is PRACTICE: no rewards, XP, mastery or clear
+progress. Losses do not start a cooldown. Story wins return to results; AUTO CLIMB remains opt-in for towers. With it on, a win shows a 1 s banner (no
 results panel unless it's a milestone, relic / artifact or boss-card unlock) and the next fight starts with a 0.3 s
 FIGHT! (BattleStart `{ Quick = true }`, `Config.Battle.QuickIntroSeconds`); in a tower it also sweeps: floors the deck
 overpowers by `Config.Battle.SweepPower` (3x) are won and paid at once, up to `SweepFloors` (5) per start (BattleService,
@@ -182,9 +231,9 @@ it; from floor 50 every win has a 0.1% relic drop (`Items.RelicFloor` / `RelicCh
 Hundred-Floor Pagoda: 100 kept floors (16.5k x 1.053^(floor-1), floor 100 is a full Secret deck's fight), each paid once,
 milestones at 25 / 50 / 75 (packs, Trait Shards) and 100 (the Pagoda's artifact, the Crown of the Hundred Floors, and
 the worn "Pagoda Master" title). Server raids every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared).
-Roll Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy condenses or
-infuses them. One OpenPack request consumes the selected packs and rolls count × pack size in one non-yielding
-server transaction (10,000-roll limit, excess packs remain). Luck / infused options are sampled once; XP and
+Roll Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy
+condenses them. Element infusion is retired; old infused packs retain their rolls and their infusion spend is refunded as Trait Shards. One OpenPack request consumes the selected packs and rolls count × pack size in one non-yielding
+server transaction (10,000-roll limit, excess packs remain). Luck and active sky are sampled once; XP and
 the best-pull announcement happen once. `Shared/PackBatch` ranks by actual card rarity and returns five compact
 highlights plus grouped quantities for every card / border, border counts and final ownership snapshots.
 `PackOpen.Open` applies those final snapshots once. The reveal animates the five best pulls from rarest to
@@ -192,14 +241,14 @@ commonest, then shows ALL N CARDS in scrollable quantity stacks, explicitly incl
 reapplies old per-roll copy counts. BAG blocks repeated clicks during the request and the reveal. OPEN ALL's
 label reflects the capped pack count; no hundreds-of-commons click-through. Reopening consumes only a new request.
 
-**Progression and retention.** Levels 1-100 with stat points; Shard Shop upgrades; potions; gear in two sets
+**Progression and retention.** Levels 1-100 with stat points; earned potions; gear in two sets
 (`Items.luau`): **relics** (the 10 wearable items, `Items.Artifacts` / `Gear.Artifacts` in code, wear 3, Infinite Tower
 drops only) and **artifacts** (`Items.TowerArtifacts`, one per finite tower's last floor, always on); daily streak,
-daily quests, playtime gifts, time-away rewards (`Meta.OfflineReward`: a Roll Pack per 30 min and 2 Shards a minute
+daily quests, playtime gifts, time-away rewards (`Meta.OfflineReward`: a Roll Pack per 30 min and a converted Trait Shard reward
 offline, after 10 min, up to 8 h; `LastSeen` in the save), roll milestones, Lucky Wheel, server events (LUCKY STORM /
-ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.client`): a SQUAD badge + hint when AUTO-BUILD would
-beat the active deck by 5%, and a hint when a card can fuse at Hoshi. The HUD's Next Goal pill (above Momentum,
-`Goals.Next`) shows the reward closest to landing (a fusion, a battle mastery rank, a roll milestone, a Shard upgrade). Social: server list with favourite cards, profiles, name
+ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.client`): a SQUAD badge + hint when BEST DECK would
+beat the active deck by 5%, and a hint when a card can fuse at Hoshi. `Goals.Closest` shows up to three nearest distinct progress bars: fusion, battle mastery, normal collection,
+roll milestone or next sky. The first 50-roll milestone also grants the First Light title. Social: server list with favourite cards, profiles, name
 tags, three town leaderboards.
 
 QUESTS opens on **GOALS** (`UI/Journey`, `Goals.Journey`): four live targets show the next unlocked story
@@ -209,7 +258,15 @@ Pagoda or SQUAD. Progress comes from existing server snapshots; viewing goals gr
 tracker still opens his path; DAILY & GIFTS remains its own tab. This is guidance for existing progression,
 not new rewards; reward pacing / a reliable early grind still needs a content pass (docs/PROGRESSION_PLAN.md).
 
-**Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches
+The general Shard shop and SQUAD upgrade purchase tab are retired; SQUAD TRAINING allocates earned stat
+points. `EconomyVersion=1` converts old balances at 20:1 (rounded up) to Trait Shards, retains every purchased
+permanent upgrade effect and compensates infused-pack spending. Authored legacy Shard reward bundles are
+converted by `Meta.RetireShards` before grant / display. A normal trait reroll costs 1 Trait Shard; locking costs 2.
+Luck Potion I / II / III add +0.5 / +1 / +2 luck for 5 / 10 / 15 minutes. Only the strongest active luck potion
+counts; same-kind uses add time up to an hour. Running old II / III timers are extended once on migration.
+
+**Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP) and Server Luck Totem. Shard bundle sales are hidden /
+rejected; receipts for old purchases still compensate the buyer. Weather items are earned only in v1. Every perk that touches
 odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`). Ids are 0 (placeholders) until launch.
 
 **Look.** Character artwork sits in glossy simulator-style vector controls. `UI/VectorStyle` supplies
@@ -225,7 +282,7 @@ The HUD has a vertical menu with 20 px FredokaOne labels and distinct saturated 
 royal-blue SQUAD, violet BAG, emerald QUESTS, cyan TRAVEL, gold STORE and orange DEV.
 Sidebar notification badges are plain crimson 26 px circles with a 1.2 px text outline and no inner bevel.
 It has an opaque currency group, a quiet Kenji tracker / claim seal,
-XP and Next Goal at bottom-left on desktop, and AUTO / ROLL / QUICK at bottom-centre with Momentum and Surge in one
+XP and nearest-progress bars at bottom-left on desktop, and AUTO / ROLL / QUICK at bottom-centre with Momentum and Surge in one
 band. The server list starts folded (tap to expand). RECENT PULLS shows up to three rows, two on short screens.
 Surge still charges spirit blue, shivers void purple for the last four rolls, and seals gold (UNLEASH SURGE!).
 AUTO / QUICK light their bezel when active. Short screens keep the earlier scaling / compact layout, with Next Goal
@@ -249,7 +306,7 @@ Search / dropdowns and formation trays are quiet sunken wells. SQUAD has separat
 selects its matching vault tab. Background rolling updates cached tiles in place; sorting / inserting tiles waits
 while a tooltip is open. Selection, filters, scrolling and inspected abilities survive routine rolls; panels mute
 automatic reveals. The deck screen retains spirit-blue Slot Links
-(gold for bonds), its Cost Challenge meter and synergy / bond tags, with a vermilion AUTO-BUILD. Border-filter chips
+(gold for bonds), its Cost Challenge meter and familiar bond tags, with a vermilion BEST DECK. Border-filter chips
 draw labels above their background gradient so they remain visible.
 
 `UITheme.BorderTiers` still identifies border tiers. Gold, Rainbow and Secret receive white 2.5 px strokes
@@ -264,7 +321,7 @@ names end at 82% height and gold / cyan rarity numbers end at 96%, in separate r
 to fit the smallest profile deck tiles; stats live in the inspector / tooltip. Vault tiles are
 larger; the phone inspector collapses until selection; deck thumbnails omit duplicate tiny name / rarity labels.
 DECK explains the two card types and numbered pairs. Attack slots show damage / HP; Support slots show their actual
-passive strength instead of generic power. The 26 characters belong to ATTACK; the 11 relics belong to SUPPORT. Only attackers contribute to ATTACK RATING. Tapping a
+passive strength instead of generic power. The 26 normal characters and 16 event characters belong to ATTACK; the 11 relics belong to SUPPORT. Only attackers contribute to ATTACK RATING. Tapping a
 vault card only selects it; EQUIP / REMOVE is explicit. The inspector prioritizes the authored passive effect or Attack Basic and action / Skill timing
 and fusion copy counts. VIEW SKILLS / MASTERY opens the scrollable Index detail sheet at the selected border, with a visible
 BACK TO CARDS button. `Shared/CardInfo` resolves authored ability templates from the same server data (`{pN}`, `{aN}`, `{tN}` read effect
@@ -282,15 +339,14 @@ through `UI/HudArt`; sources, exact built-in ImageGen prompts, hashes, ids and 3
 short save / luck hint and a separate three-line new-card announcement. Reward actions and payouts are unchanged.
 `Elements.Visuals` centrally maps Flame / Frost / Storm / Void / Cosmic / Light to six transparent illustrated
 assets and primary / accent colors. `ElementUi.Badge` renders the icon itself in card / formation / inspector /
-battle / reveal badges, without the old two-letter diamond tag. Element ids, combat colors / matchups / synergies
-stay unchanged. Exact built-in ImageGen prompts, originals, hashes, ids and 384 px upload copies are in
+battle / reveal badges, without the old two-letter diamond tag. Element ids and visual colors remain; combat matchups / synergies are disabled. Exact built-in ImageGen prompts, originals, hashes, ids and 384 px upload copies are in
 `art/ui/elements-20261027/`.
 BAG uses 17 individual transparent AI illustrations for the requested packs, potions, relics and Pagoda crown
 in both tiles and details, with separate names / counts / status lines. `UI/BagArt` maps item keys to uploaded
 images; infused Mega Packs reuse Mega art. Sources, exact built-in imagegen prompts, hashes, uploaded ids
 and 512 px RGBA upload copies are in `art/ui/bag-20261027/`. Unmapped items retain the existing marker fallback.
 Relic-rarity frames remain (bronze / purple / gold / crimson); packs keep their roll counts. BOSS SCOUT retains its unit trays and
-counter / synergy / bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
+neutral matchup and familiar-column bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
 controls, enemy target panels and result frames. The current triggered ability kits are described above.
 
 `JuicyButton` still supplies sheen, spring and sounds; `IconBadge` carries element / role crests.
@@ -308,17 +364,17 @@ The character artwork pass did not change identities. The later character-to-Att
   `TestMode`, dev access lists, deck and battle rules), `Cards` (card data + `Pool`, `PullChances`, `Stat`, `Power`,
   `Cost`), `Borders` (the tiers: odds, multipliers, cost, colours), `Odds`, `Rarity` (relic / trait tiers only),
   `CardInfo` (readable effect facts), `Elements`, `Foils`, `Awaken`, `RollBoost` (Momentum + Surge), `Deck`, `Bosses`, `Rewards`, `Tower`, `Raid`, `Packs`, `PackBatch` (bulk receipt / sort / limits), `Goals`,
-  `Items` (relics + artifacts), `Traits`, `Meta` (potions, upgrades, Index rewards, daily, gifts, milestones, quests, levels,
+  `Collections`, `ColumnBonds`, `Weather`, `CelestialCards`, `CelestialArt`, `Items` (relics + artifacts), `Traits`, `Meta` (potions, upgrades, Index rewards, daily, gifts, milestones, quests, levels,
   stats, events, wheel, luck / cooldown formulas), `Tutorial`, `Mounts`, `BossModels`, `MonetizationConfig`.
 - `src/server` -> ServerScriptService.Server: `Main.server`, `DataService` (ProfileStore saves), `SaveMigration` (old
   saves brought up to date on load; pure, tested), `DevAccess` (who may use test tools), `RollService` (rolls, Auto Roll,
   packs, alchemy, rewards, dev tools), `BattleService` + `BattleEngine`, `DeckService`, `FusionService`, `TraitService`,
   `MetaService` (progression actions, luck / cooldown), `RaidService`, `Momentum`, `MonetizationService`, `AvatarService`,
   `NameTagService`, `LeaderboardService`, `ProfileService`, `TravelService`, `MountService`, `TutorialService`,
-  `CodeService` + `Codes`, `GlobalAnnounce` (Secret pulls to every server), `NpcRange`, `World` (markers / arena spots),
+  `CollectionService`, `WeatherService`, `CodeService` + `Codes`, `GlobalAnnounce` (Secret pulls to every server), `NpcRange`, `World` (markers / arena spots),
   `WorldSigns` (NPC plates / gate plaques), `TownModels` (four service figures), `TownServices` (stations / pagoda), `RateLimit`, `ProfileStore` (vendored).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient`, `LightingSetup`, `ZoneFx`, `HubFx`,
-  `Followers`, `Avatars`, `Dash`, and `UI/*` (Kit helpers incl. `Kit.glyph` / `Kit.statsText` / `Kit.short`, Theme,
+  `Followers`, `Avatars`, `Dash`, `SkyFx`, and `UI/*` (Kit helpers incl. `Kit.glyph` / `Kit.statsText` / `Kit.short`, Theme,
   Components/JuicyButton + IconBadge, Modal (+ `Modal.Tabbed`), Controls, Hud, Reveal, CardView, CardTile, CardTooltip,
   ElementUi, DeckBuilder, Index, OddsPanel, Bag, PackOpen, Fusion, Alchemy, TraitMaster, BossScreen, Battle, Arena,
   RewardReveal, Store, Gifts, Tutorial, Stats, Shop, Wheel, Pets, Travel, Settings, PlayerList, Profile, Title, DevPanel,
@@ -342,7 +398,7 @@ The character artwork pass did not change identities. The later character-to-Att
 - The server owns every roll, stat and result; the client only requests and animates. Validate every remote argument on
   the server, rate-limit it (`RateLimit`), and check ownership / NPC range where it applies.
 - Attack borders always win: Base 1x / Gold 4x / Rainbow 16x / Secret 64x; base stats within +-10% of one line (HP = 2 x ATK),
-  then rarer cards scale up (`Cards.Scale`: (10 / Weight) ^ 0.15, boss cards up to about 1.5x, the user's call);
+  then rarer cards scale up (`Cards.Scale`: (10 / Weight) ^ 0.15, boss cards up to about 1.5x, the user's call; event Attacks start at 900 ATK / 1800 HP before rarity scaling);
   duplicates grant no stats; mastery never multiplies ATK / HP. A card on one border never reaches the next
   through mastery (odds_test checks). Traits stay
   small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border fusion only: 100 copies at one border -> 1 at the next.
@@ -350,7 +406,7 @@ The character artwork pass did not change identities. The later character-to-Att
   boss or difficulty one entry in `Bosses.luau`; a relic or artifact in `Items.luau`; a trait in `Traits.luau`; a potion / gift /
   milestone / quest in `Meta.luau`. Support entries use generic `Support.Kind` handlers; Attack passives / Auras / Signatures use generic trigger bundles.
 - Save format changes need a step in `SaveMigration` (safe to run twice) and a case in `tests/save_test.luau`.
-- Potions, upgrades and gifts are earned in game only (Shard bundles are gated like random items because Shards buy luck).
+- Potions, sky items and gifts are earned in game only; the retired Shard shop / bundle sales stay closed.
   Robux sales live only in MonetizationConfig / MonetizationService; any perk that changes odds or gives random rewards
   is gated by PolicyService, with all outcomes and live odds summing to 100% shown.
 - Boss HP / ATK per difficulty are tuned so each fixture deck in `tests/fixtures.luau` wins its fight in 60-90 s
@@ -360,7 +416,8 @@ Secret chase decks). Re-run after changing
 - Original characters only: no real anime characters, names or trademarked terms.
   Prototype exception (the user's call, 2026-10-25, confirmed 2026-10-26): card and boss names are anime-style
   epithets that nod to well-known series (card ids unchanged). Keep them: don't rename them unless the user asks in
-  their own words. This is for private testing: rename to fully original names before any publish.
+  their own words. The user additionally authorized named anime Celestial forms on 2026-10-29. Preserve that private-prototype
+  roster; public-release asset / identity review is tracked in the launch checklist.
 - Cheap on phones: UI-first, plain Frames + tweens, no textures or 3D particles in reveals, at most one 3D model per
   ViewportFrame; few CanvasGroups; StreamingEnabled, map under ~15k parts, few lights.
 - Town services stay at their NPCs (Hoshi, Kenshin, Fortuna): no HUD shortcut, and the server checks `NpcRange.Near`.

@@ -15,14 +15,17 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
+local Items = require(Shared.Items)
 local Borders = require(Shared.Borders)
 local Foils = require(Shared.Foils)
 local RollBoost = require(Shared.RollBoost)
 local Goals = require(Shared.Goals)
+local Collections = require(Shared.Collections)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local HudArt = require(script.Parent.HudArt)
+local BagArt = require(script.Parent.BagArt)
 local RewardLine = require(script.Parent.RewardLine)
 local Skin = require(script.Parent.Skin)
 local Effects = require(script.Parent.Effects)
@@ -36,6 +39,7 @@ local ready = false -- StoreState can arrive while Init is still building the cu
 
 local gui: ScreenGui
 local dock: Frame
+local activeCollection: TextLabel
 local menu: Frame
 local rollButton: any -- children are read by name
 local autoButton: any
@@ -45,7 +49,10 @@ local topBar: any -- children read by name
 local currency = {} -- [key] = chip (children read by name)
 local shownValues = {} -- [key] = last number shown, to pop the chip when it changes
 local hiddenBy = { Battle = false, Reveal = false }
+local progressRows={}
 local boostRow: Frame
+local boostTip, boostTipTitle, boostTipText
+local hoveredBoost: string? = nil
 local hintLabel: TextLabel
 local feed: Frame
 local feedHeader: TextLabel
@@ -306,7 +313,9 @@ local function applyHidden()
 	menu.Visible = not hidden
 	questSlot.Visible = questActive and not hidden
 	topBar.Visible = not hidden
+	for _,bar in progressRows do bar.Visible=not hidden and bar:GetAttribute("HasGoal")==true end
 	boostRow.Visible = not hidden
+	if hidden and boostTip then boostTip.Visible=false; hoveredBoost=nil end
 	levelBar.Visible = not hidden
 	eventPill.Visible = not hidden
 	raidPill.Visible = raidWanted and not hidden
@@ -327,18 +336,15 @@ local function placeFeed()
 	if feed == nil or gui == nil then
 		return
 	end
-	if compactHud() then
-		feed.AnchorPoint = Vector2.new(1, 0)
-		feed.Position = UDim2.new(1, -12, 0.3, 0)
-		feed.Size = UDim2.fromScale(0.2, 0.18)
-	else
-		feed.AnchorPoint = Vector2.new(1, 0)
-		feed.Position = UDim2.new(1, -12, 0.3, 0)
-		feed.Size = UDim2.new(0.2, 0, 0, 88)
-	end
-	if feedHeader then
-		feedHeader.Position = UDim2.new(1, -18, 0.3, -20)
-	end
+	local sky=State.Weather
+	local preview=Config.CelestialCardsReady and (sky.Id~="clear" or sky.Forecast)
+	local short=compactHud()
+	local skyBottom=if preview then (if short then 188 else 52+238*math.min(1,gui.AbsoluteSize.X*.25/330)) else (if short then 128 else 156)
+	local top=math.max(gui.AbsoluteSize.Y*.3,skyBottom+28)
+	feed.AnchorPoint=Vector2.new(1,0)
+	feed.Position=UDim2.new(1,-12,0,top)
+	feed.Size=UDim2.new(.2,0,0,if short then 32 else 70)
+	if feedHeader then feedHeader.Position=UDim2.new(1,-18,0,top-19) end
 end
 
 export type Handlers = {
@@ -372,6 +378,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	}, {
 		Kit.new("UISizeConstraint", { MinSize = Vector2.new(300, 64), MaxSize = Vector2.new(620, 112) }),
 	})
+	activeCollection=Kit.label({Name="ActiveCollection",Text="",AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,-52),Size=UDim2.new(1,0,0,18),Parent=dock},13)
 	local bar = Kit.new("Frame", {
 		Name = "Buttons",
 		Size = UDim2.fromScale(1, 1),
@@ -608,27 +615,33 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTopBar)
 	fitTopBar()
 
-	-- Running potions: square tiles (icon + time left) in the bottom-right corner, filling right to
-	-- left, above the jump button on touch screens.
-	local touch = game:GetService("UserInputService").TouchEnabled
+	-- Active potions and worn gear: inspect here, use items in BAG.
 	boostRow = Kit.new("Frame", {
-		Name = "Boosts",
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -12, 1, if touch then -130 else -12),
-		Size = UDim2.fromOffset(4 * 70, 2 * 70),
-		BackgroundTransparency = 1,
-		Parent = gui,
-	}, {
-		Kit.new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(64, 64),
-			CellPadding = UDim2.fromOffset(6, 6),
-			FillDirectionMaxCells = 4,
-			HorizontalAlignment = Enum.HorizontalAlignment.Right,
-			VerticalAlignment = Enum.VerticalAlignment.Bottom,
-			StartCorner = Enum.StartCorner.BottomRight,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	})
+		Name="Boosts",AnchorPoint=Vector2.new(1,1),Position=UDim2.new(1,-18,1,-18),
+		Size=UDim2.fromOffset(216,104),BackgroundTransparency=1,Parent=gui,
+	},{Kit.new("UIGridLayout",{CellSize=UDim2.fromOffset(48,48),CellPadding=UDim2.fromOffset(6,6),FillDirectionMaxCells=4,
+		HorizontalAlignment=Enum.HorizontalAlignment.Right,VerticalAlignment=Enum.VerticalAlignment.Bottom,
+		StartCorner=Enum.StartCorner.BottomRight,SortOrder=Enum.SortOrder.LayoutOrder})})
+	local boostScale=Kit.new("UIScale",{Parent=boostRow})
+	local boostGrid=boostRow:FindFirstChildOfClass("UIGridLayout")
+	boostTip=Kit.new("Frame",{Name="BoostTooltip",AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-18,0,16),Size=UDim2.fromOffset(270,112),
+		Visible=false,BackgroundColor3=Theme.Color.Panel,ZIndex=45,Parent=gui},{Kit.corner(),Kit.stroke(Theme.Color.Line,2,0)})
+	boostTipTitle=Kit.label({Text="",Position=UDim2.fromOffset(10,6),Size=UDim2.new(1,-20,0,25),TextXAlignment=Enum.TextXAlignment.Left,ZIndex=46,Parent=boostTip},18)
+	boostTipText=Kit.label({Text="",Position=UDim2.fromOffset(10,34),Size=UDim2.new(1,-20,1,-40),TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=46,Parent=boostTip},15)
+	local function fitBoosts()
+		local short=gui.AbsoluteSize.Y<540
+		boostScale.Scale=1
+		boostRow.Position=UDim2.new(1,if short then -112 else -18,1,if short then -92 else -18)
+		boostRow.Size=UDim2.fromOffset(if short then 284 else 216,if short then 32 else 104)
+		boostGrid.FillDirectionMaxCells=if short then 8 else 4
+		boostGrid.CellSize=UDim2.fromOffset(if short then 32 else 48,if short then 32 else 48)
+		boostGrid.CellPadding=UDim2.fromOffset(if short then 4 else 6,if short then 4 else 6)
+		local bottom=if short then 92 else 18
+		local top=gui.AbsoluteSize.Y-bottom-(if short then 32 else 104)
+		boostTip.Position=UDim2.new(1,if short then -112 else -18,0,math.max(8,top-120))
+	end
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBoosts)
+	fitBoosts()
 
 	hintLabel = Kit.label({
 		Name = "Hint",
@@ -968,8 +981,22 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		momentumHeader.Size = UDim2.new(0.36, 0, 0, if compact then 16 else 22)
 		goalPill.Position = if compact then UDim2.new(0.5, -150, 1, -102) else UDim2.new(0, 18, 1, -76)
 		goalPill.Size = UDim2.fromOffset(if compact then 300 else 300, if compact then 18 else 26)
+		if compact then
+			goalPill.Position=UDim2.new(0,146,1,-104)
+			goalPill.Size=UDim2.fromOffset(math.clamp(gui.AbsoluteSize.X-550,120,220),18)
+		end
+		for i,bar in progressRows do
+			bar.Position=goalPill.Position+UDim2.fromOffset(0,-23*i)
+			bar.Size=UDim2.fromOffset(goalPill.Size.X.Offset,20)
+		end
 		petsButton.Size = UDim2.fromOffset(if compact then 44 else 58, if compact then 44 else 58)
 		Hud.RefreshEvent()
+	end
+	for i=1,2 do
+		local bar=Kit.new("Frame",{Name=`NearGoal{i}`,Position=UDim2.new(0,18,1,-76-i*23),Size=UDim2.fromOffset(300,20),BackgroundColor3=Theme.Color.Panel,Parent=gui},{Kit.corner()})
+		Kit.new("Frame",{Name="Fill",Size=UDim2.fromScale(0,1),BackgroundColor3=Theme.Color.Quick,BackgroundTransparency=.35,Parent=bar},{Kit.corner()})
+		Kit.label({Name="Text",Text="",Size=UDim2.fromScale(1,1),Parent=bar},13)
+		progressRows[i]=bar
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBars)
 	fitBars()
@@ -979,6 +1006,8 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		while true do
 			task.wait(1)
 			Hud.RefreshBoosts()
+			Hud.RefreshGoal()
+			placeFeed()
 			Hud.RefreshBadges()
 			Hud.RefreshEvent()
 			Hud.RefreshRaid()
@@ -1009,12 +1038,16 @@ local lastEventId = nil
 function Hud.RefreshEvent()
 	local event, left, untilNext = State.Event()
 	local text = eventPill.Text
+	local compact=compactHud()
+	local compactWidth=math.clamp(gui.AbsoluteSize.X-510,190,250)
+	eventPill.Position=if compact then UDim2.new(0,146,0,48) else UDim2.new(.5,0,0,62)
+	eventPill.AnchorPoint=Vector2.new(if compact then 0 else .5,0)
 	if event then
 		text.Text = `{event.Icon} <b>{event.Name}</b> · {event.Text} · {string.format("%d:%02d", left // 60, math.floor(left % 60))}`
 		eventPill.UIStroke.Color = event.Color
 		eventPill.UIStroke.Transparency = 0
 		eventPill.BackgroundColor3 = event.Color:Lerp(Color3.new(0, 0, 0), 0.55)
-		eventPill.Size = UDim2.fromOffset(if compactHud() then 330 else 440, if compactHud() then 30 else 28)
+		eventPill.Size = UDim2.fromOffset(if compact then compactWidth else 440, if compact then 30 else 28)
 	else
 		local index = math.floor(workspace:GetServerTimeNow() / Meta.EventEvery) % #Meta.Events + 1
 		local nextEvent = Meta.Events[index]
@@ -1025,7 +1058,7 @@ function Hud.RefreshEvent()
 		eventPill.UIStroke.Color = UITheme.Colors.TamahaganeSlate
 		eventPill.UIStroke.Transparency = 0
 		eventPill.BackgroundColor3 = UITheme.Colors.UrushiBase
-		eventPill.Size = UDim2.fromOffset(if compactHud() then 330 elseif featured then 470 else 320, if compactHud() then 30 else 26)
+		eventPill.Size = UDim2.fromOffset(if compact then compactWidth elseif featured then 470 else 320, if compact then 30 else 26)
 	end
 	-- An event just started: pop the pill and say so.
 	local id = event and event.Id
@@ -1120,10 +1153,11 @@ function Hud.LevelUp(ups)
 	}, 44)
 	Kit.textStroke(Color3.fromRGB(15, 19, 30), 3, 0).Parent = level
 	-- Everything those levels paid, added up into one line.
-	local total = { Shards = 0, Potions = {} }
+	local total = { Shards = 0, TraitShards=0, Potions = {} }
 	local luckUps = 0
 	for _, up in ups do
 		total.Shards += up.Reward.Shards or 0
+		total.TraitShards += up.Reward.TraitShards or 0
 		for id, count in up.Reward.Potions or {} do
 			total.Potions[id] = (total.Potions[id] or 0) + count
 		end
@@ -1163,13 +1197,14 @@ function Hud.RefreshGoal()
 	if goalPill == nil then
 		return
 	end
-	local goal = Goals.Next({
-		Cards = State.Cards,
-		Rolls = State.Rolls(),
-		Claimed = State.Meta.Milestones,
-		Shards = State.Summary.Shards or 0,
-		Upgrades = State.Meta.Upgrades,
-	})
+	local nearest=Goals.Closest({Cards=State.Cards,Rolls=State.Rolls(),Claimed=State.Meta.Milestones,Shards=0,Weather=State.Weather,Now=workspace:GetServerTimeNow()})
+	local goal=nearest[1]
+	for i,bar in progressRows do
+		local item=nearest[i+1]
+		bar:SetAttribute("HasGoal",item~=nil)
+		bar.Visible=item~=nil and not hiddenBy.Battle and not hiddenBy.Reveal
+		if item then bar.Text.Text=item.Text;bar.Fill.Size=UDim2.fromScale(item.Progress,1) end
+	end
 	goalWanted = goal ~= nil
 	goalPill.Visible = goalWanted and not hiddenBy.Battle and not hiddenBy.Reveal
 	if goal == nil then
@@ -1192,7 +1227,9 @@ end
 function Hud.Refresh()
 	if not ready then return end
 	local s = State.Summary
-	setCurrency("Shards", Kit.commas(s.Shards or 0), s.Shards or 0)
+	activeCollection.Text="ACTIVE PACK: " .. (Collections.ById[s.SelectedCollection or "normal"] or Collections.ById.normal).Name
+	local fragments=State.Meta.Celestial and State.Meta.Celestial.Fragments or s.Fragments or 0
+	setCurrency("Shards", Kit.commas(fragments), fragments)
 	local traitShards = s.TraitShards or State.Meta.TraitShards or 0
 	setCurrency("TraitShards", Kit.commas(traitShards), traitShards)
 	Hud.RefreshMomentum()
@@ -1220,60 +1257,61 @@ function Hud.Refresh()
 	Hud.RefreshBadges()
 end
 
--- Tiles for running potions: the potion's icon and its time left.
+-- Keep tiles stable while timers tick so a hover is never interrupted by a roll.
 function Hud.RefreshBoosts()
-	local wanted = {}
-	for i, potion in Meta.Potions do
-		local left = State.PotionLeft(potion.Id)
-		if left > 0 then
-			wanted[potion.Id] = { Potion = potion, Left = left, Order = i }
+	if not boostRow then return end
+	local wanted={}
+	for i,potion in Meta.Potions do
+		local left=State.PotionLeft(potion.Id)
+		if left>0 then
+			local key=`Potion:{potion.Id}`
+			wanted[key]={Name=potion.Name,Text=potion.Text.."\nLuck potions: the strongest active tier counts.",Color=potion.Color,Left=left,Order=i,
+				Image=BagArt.Get(key) or BagArt.Get("Artifact:hourglass")}
 		end
 	end
-	for _, tile in boostRow:GetChildren() do
-		if tile:IsA("GuiObject") and wanted[tile.Name] == nil then
+	local gear=State.Meta.Gear or Items.Empty()
+	for i,id in gear.Worn or {} do
+		local item=Items.ArtifactById[id]
+		if item then
+			wanted[`Artifact:{id}`]={Name=item.Name,Text=Items.ArtifactText(item,(gear.Artifacts or {})[id] or 1).."\nWorn relic · remove in BAG",Color=Theme.Color.Gold,Order=10+i,Image=BagArt.Get(`Artifact:{id}`)}
+		end
+	end
+	for i,item in Items.TowerArtifacts do
+		if (gear.TowerArtifacts or {})[item.Id] then
+			wanted[`TowerArtifact:{item.Id}`]={Name=item.Name,Text=Items.TowerArtifactText(item).."\nAlways active",Color=Theme.Color.Gold,Order=20+i,Image=BagArt.Get(`TowerArtifact:{item.Id}`)}
+		end
+	end
+	for _,tile in boostRow:GetChildren() do
+		if tile:IsA("GuiObject") and not wanted[tile.Name] then
+			if hoveredBoost==tile.Name then hoveredBoost=nil;boostTip.Visible=false end
 			tile:Destroy()
 		end
 	end
-	for id, info in wanted do
-		local tile = boostRow:FindFirstChild(id)
-		if tile == nil then
-			tile = Kit.new("Frame", {
-				Name = id,
-				LayoutOrder = info.Order,
-				BackgroundColor3 = Color3.new(1, 1, 1),
-				Parent = boostRow,
-			}, {
-				Kit.corner(UDim.new(0.2, 0)),
-				Kit.gradient(ColorSequence.new(info.Potion.Color:Lerp(Theme.Color.Panel, 0.5), Theme.Color.Panel), 90),
-				Kit.stroke(info.Potion.Color, 2, 0),
-			})
-			Kit.label({
-				Name = "Icon",
-				Text = info.Potion.Icon,
-				Font = Theme.Font.Heavy,
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.fromScale(0.5, 0.06),
-				Size = UDim2.fromScale(0.7, 0.55),
-				Parent = tile,
-			}, 32)
-			local text = Kit.label({
-				Name = "Text",
-				Text = "",
-				Font = Theme.Font.Display,
-				AnchorPoint = Vector2.new(0.5, 1),
-				Position = UDim2.fromScale(0.5, 0.96),
-				Size = UDim2.fromScale(0.92, 0.32),
-				Parent = tile,
-			}, 16)
-			Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = text
-			local scale = Kit.new("UIScale", { Scale = 0.3, Parent = tile })
-			Kit.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
+	for id,info in wanted do
+		local tile=boostRow:FindFirstChild(id)
+		if not tile then
+			tile=Kit.new("TextButton",{Name=id,Text="",LayoutOrder=info.Order,BackgroundColor3=Theme.Color.Panel,Parent=boostRow},
+				{Kit.corner(),Kit.stroke(info.Color,2,0),Kit.gradient(ColorSequence.new(info.Color:Lerp(Theme.Color.Panel,.5),Theme.Color.Panel),90)})
+			Kit.new("ImageLabel",{Name="Icon",Image=info.Image or "",BackgroundTransparency=1,ScaleType=Enum.ScaleType.Fit,Position=UDim2.fromScale(.08,.02),Size=UDim2.fromScale(.84,.78),Parent=tile})
+			Kit.label({Name="Caption",Text="",Font=Theme.Font.Display,Position=UDim2.fromScale(.02,.71),Size=UDim2.fromScale(.96,.27),Parent=tile},13)
+			local function inspect()
+				hoveredBoost=id;boostTip.Visible=boostRow.Visible
+				boostTipTitle.Text=tile:GetAttribute("ItemName") or ""
+				boostTipText.Text=tile:GetAttribute("Details") or ""
+			end
+			tile.MouseEnter:Connect(inspect)
+			tile.MouseLeave:Connect(function() if hoveredBoost==id then hoveredBoost=nil;boostTip.Visible=false end end)
+			tile.Activated:Connect(function() if hoveredBoost==id and boostTip.Visible then hoveredBoost=nil;boostTip.Visible=false else inspect() end end)
 		end
-		local seconds = math.ceil(info.Left)
-		tile.Text.Text = if seconds >= 3600
-			then string.format("%dh %dm", seconds // 3600, (seconds % 3600) // 60)
-			else string.format("%d:%02d", seconds // 60, seconds % 60)
-		tile.Text.TextColor3 = if seconds <= 15 then Theme.Color.Danger else Theme.Color.Text
+		local caption="WORN"
+		if info.Left then
+			local seconds=math.ceil(info.Left)
+			caption=string.format("%d:%02d",seconds//60,seconds%60)
+		end
+		tile.Caption.Text=caption
+		tile:SetAttribute("ItemName",info.Name)
+		tile:SetAttribute("Details",info.Text..(if info.Left then `\n{caption} remaining` else ""))
+		if hoveredBoost==id then boostTipText.Text=tile:GetAttribute("Details") end
 	end
 end
 

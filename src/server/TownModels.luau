@@ -5,6 +5,7 @@ local SKIN = Color3.fromRGB(225,183,146)
 local DARK = Color3.fromRGB(34,29,36)
 local GOLD = Color3.fromRGB(208,169,83)
 local LOOKS = {
+	collector = { Coat = Color3.fromRGB(67,54,125), Trim = Color3.fromRGB(230,190,95), Hair = Color3.fromRGB(42,34,62) },
 	sage = { Coat = Color3.fromRGB(57,113,89), Trim = Color3.fromRGB(221,208,164), Hair = Color3.fromRGB(205,206,194) },
 	fuser = { Coat = Color3.fromRGB(53,70,93), Trim = Color3.fromRGB(180,112,62), Hair = Color3.fromRGB(50,34,33) },
 	traitmaster = { Coat = Color3.fromRGB(31,93,101), Trim = Color3.fromRGB(185,211,204), Hair = Color3.fromRGB(27,36,46) },

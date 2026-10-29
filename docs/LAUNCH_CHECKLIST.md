@@ -27,7 +27,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   - hides the DEV panel and makes the server refuse every dev tool and mock purchase (`DevAccess`).
 - [ ] **code** `src/shared/MonetizationConfig.luau`: paste the real ids from the Creator Dashboard over the 0s:
   `FAST_ROLL_PASS_ID`, `AUTO_ROLL_PASS_ID`, `TRIPLE_ROLL_PASS_ID`, `VIP_PASS_ID`, `SERVER_TOTEM_PRODUCT_ID`, and the
-  three `ShardBundles` `ProductId`s. Set every `Price` to the dashboard price. Set `MockPurchases = false`.
+  active product prices. Retired `ShardBundles` stay unavailable; preserve old receipt ids for compensation.
+  Set every active `Price` to the dashboard price. Set `MockPurchases = false`.
 - [ ] **code** `src/server/Codes.luau`: review the codes (`RELEASE`, `LUCKY`, `TOWER`, `SQUAD`, `TRAITS`, `AWAKEN` are
   the test set). Keep the launch ones, give time-limited ones an `Expires` (unix time).
 - [ ] **code** `Config.DevUserIds`: empty it (it only matters while TestMode is on).
@@ -36,9 +37,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 ## 3. Creator Dashboard
 
 - [ ] Create the 4 game passes (Fast Roll, Auto Roll+, Triple Roll, VIP) with icons and prices.
-- [ ] Create the developer products: Server Luck Totem and the 3 Shard bundles.
+- [ ] Create the active developer product: Server Luck Totem. Do not reopen retired Shard bundle sales.
 - [ ] **Experience Questionnaire / maturity**: answer the **paid random items** questions truthfully (VIP luck, Auto Roll+
-  perfect surges, Triple Roll, the Totem and Shard bundles all change odds). The game already hides those perks where
+  perfect surges, Triple Roll and the Totem change odds). The game already hides those perks where
   `ArePaidRandomItemsRestricted` is true and shows every outcome with live odds in the ODDS panel.
 - [ ] Game icon, thumbnails, description (original characters only; no real anime names or trademarked terms).
 - [ ] Server size and genre.
@@ -52,6 +53,31 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 - [ ] Publish to Roblox from Studio (never `rojo build` over the place: a built place has no map).
 
 ## 5. Things still to check in Studio (never seen there yet)
+
+- [x] Celestial / collection redesign (2026-10-29): all 16 clothed event portraits loaded visibly through
+  actual ImageLabels; desktop sky panel shows the anime, luck, four eligible portraits and countdown.
+  iPhone 17 Pro landscape emulator (750 x 323 usable): read-only sky panel and bottom-right relic row
+  clear the event / progress controls; BAG and CARD PACKS fit. SKY ITEMS shows six loaded illustrations,
+  Orb odds and sigil crafting cost. Desktop worn-relic hover shows the actual bonus. Modal pop animation
+  now refits after a device resize, fixing a full-size panel clipping outside the phone screen.
+  Isolated-profile runtime checks: 1,000 ten-card packs consumed once -> 10,000 normal + 8 eligible sky
+  cards, complete grouped receipt / five highlights; crafting spends 10 fragments, summon / one extension
+  succeed, a second extension is rejected. Collection unlock / malformed / distance checks and both new
+  remote rate limits reject invalid calls. Real profile restored; no fake rewards saved or announced.
+  Preserved Studio Assistant's InfiniteTower night mood in source; its tower / zone marker remain in the place.
+  SkyFx active LOW rate 3 -> 0 with BAG open -> 3 after close, checked on the actual client.
+- [ ] Ordinary-play review after reconnecting Rojo: Card Packs keeper prompt / selecting and rejoining;
+  roll / AUTO / packs use that pool, unlocked bosses stay eligible; all four natural sky transitions and
+  forecasts across live servers; clothed art availability / crops; BAG summon / craft / Hourglass cooldown
+  / banner; real-phone tapping status icons and long tooltips; LOW / crowded-server performance.
+- [ ] Battle / progression review: familiar-column BONDED bonuses; ~8 s skills / 22 s minimum Ultimates
+  at 1x; five-minute boss reward cooldown / PRACTICE with no XP, mastery or rewards; new-player starter pack,
+  First Light title, neutral elements, 1-shard traits, old purchased bonuses / balance compensation on rejoin.
+  Headless story fixtures win in ~74-76 s; player-deck / Corrupted boss feel still needs ordinary play.
+- [ ] Studio Assistant tower integration: the place has `Workspace.InfiniteTower` with 22 floor models
+  at a different position from the old Tower marker, without a ProximityPrompt. Existing runtime tower
+  / entrance remain intact. Save the place, then decide which entrance should serve the new model before
+  replacing / removing either tower. This pass preserved both and copied the new night mood into Git.
 
 - [x] Quest / input follow-up (2026-10-29): verified Claude's Modal blocker with real desktop clicks:
   blank space in BAG, SQUAD and QUESTS stays open; QUESTS outside click closes it. Daily reward art,

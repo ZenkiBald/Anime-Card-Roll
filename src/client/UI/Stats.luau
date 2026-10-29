@@ -49,7 +49,7 @@ local function effectText(stat, points: number): string
 	elseif stat.Id == "Border" then
 		return string.format("+%d%% border chance", math.floor(value * 100 + 0.5))
 	elseif stat.Id == "ShardGain" then
-		return string.format("+%d%% Shards", math.floor(value * 100 + 0.5))
+		return string.format("+%d%% Trait Shards", math.floor(value * 100 + 0.5))
 	end
 	return string.format("+%d%% XP", math.floor(value * 100 + 0.5))
 end
@@ -72,8 +72,8 @@ function StatsPanel.Refresh()
 		refs.Add.Label.Text = if maxed then "MAX" else "+1"
 		Kit.dim(refs.Add, maxed or free <= 0)
 	end
-	local cost = Meta.StatResetCost(stats)
-	resetButton.Label.Text = if cost == 0 then "RESET" elseif resetArmed then "TAP AGAIN" else `RESET  💎{Kit.commas(cost)}`
+	local cost = math.ceil(Meta.StatResetCost(stats)/Meta.ShardExchange)
+	resetButton.Label.Text = if cost == 0 then "RESET" elseif resetArmed then "TAP AGAIN" else `RESET  {Kit.commas(cost)} Trait Shards`
 	Kit.dim(resetButton, cost == 0)
 end
 
@@ -162,7 +162,7 @@ end
 
 -- `host`: the SQUAD panel (Modal.Tabbed); stat points are the left half of its UPGRADES tab.
 function StatsPanel.Init(playerGui: Instance, host: any?)
-	modal = if host then host:Page("UPGRADES", "Left", "Stat points") else Modal.new(playerGui, "StatsGui", "STATS", Vector2.new(0.7, 0.84), Vector2.new(780, 620))
+	modal = if host then host:Page("UPGRADES") else Modal.new(playerGui, "StatsGui", "STATS", Vector2.new(0.7, 0.84), Vector2.new(780, 620))
 
 	pointsLabel = Kit.label({
 		Text = "",
@@ -201,7 +201,7 @@ function StatsPanel.Init(playerGui: Instance, host: any?)
 		Parent = modal.Body,
 	})
 	resetButton.Activated:Connect(function()
-		local cost = Meta.StatResetCost(State.Meta.Stats)
+		local cost = math.ceil(Meta.StatResetCost(State.Meta.Stats)/Meta.ShardExchange)
 		if cost == 0 then
 			hint(MetaClient.Message({ Reason = "NothingToReset" }))
 			return
@@ -210,7 +210,7 @@ function StatsPanel.Init(playerGui: Instance, host: any?)
 			resetArmed = true
 			armToken += 1
 			local token = armToken
-			hint(`Takes every point back for 💎{Kit.commas(cost)}. Tap again!`)
+			hint(`Takes every point back for {Kit.commas(cost)} Trait Shards. Tap again!`)
 			StatsPanel.Refresh()
 			task.delay(3, function()
 				if token == armToken then -- an older tap's timer mustn't disarm a newer one

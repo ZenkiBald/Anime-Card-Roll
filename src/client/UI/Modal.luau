@@ -196,6 +196,7 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		if view.X < 1 or view.Y < 1 then
 			return
 		end
+		if self.ScaleTween then self.ScaleTween:Cancel();self.ScaleTween=nil end
 		local scale = Modal.FitScale(view)
 		local compact = scale < 0.85
 		local width = if compact then math.max(size.X, 0.97) else size.X
@@ -206,6 +207,7 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		self.Panel.Limit.MaxSize = if compact then Vector2.new(maxSize.X * 1.25, maxSize.Y) else maxSize
 		self.Scale.Scale = scale
 	end
+	self.Refit=fit
 	self.Gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	fit()
 
@@ -245,10 +247,12 @@ function Modal:Open()
 	end
 	self.IsOpen = true
 	self.Gui.Enabled = true
+	-- Disabled ScreenGuis can keep their old viewport until opened. Fit before choosing the pop target.
+	self.Refit()
 	-- Pop in: the panel rises and grows a little while the backdrop fades in.
 	local rest = if self.Fit < 0.85 then 0.5 else 0.52
 	self.Scale.Scale = 0.88 * self.Fit
-	Kit.tween(self.Scale, 0.25, { Scale = self.Fit }, Enum.EasingStyle.Back)
+	self.ScaleTween=Kit.tween(self.Scale, 0.25, { Scale = self.Fit }, Enum.EasingStyle.Back)
 	self.Panel.Position = UDim2.fromScale(0.5, rest + 0.05)
 	Kit.tween(self.Panel, 0.25, { Position = UDim2.fromScale(0.5, rest) }, Enum.EasingStyle.Back)
 	local backdrop = self.Gui:FindFirstChild("Backdrop")
