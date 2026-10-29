@@ -713,7 +713,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Kit.stroke(Theme.Color.Line, 1.2, 0),
 	})
 	local mountIcon = Kit.label({
-		Text = "",
+		Text = "🐎", -- kept when there's no MOUNT illustration
 		Font = Theme.Font.Heavy,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.06),
@@ -1470,7 +1470,7 @@ function Hud.Reward(text: string)
 	end
 	toastToken += 1
 	local token = toastToken
-	toast.Text.Text = `🎁 {text}`
+	toast.Text.Text = text
 	toast.Visible = true
 	toast.Scale.Scale = 0.4
 	Kit.tween(toast.Scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)

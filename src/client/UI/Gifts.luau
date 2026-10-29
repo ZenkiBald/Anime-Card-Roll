@@ -110,7 +110,7 @@ local function rewardFace(frame: GuiObject, bundle, iconTop: number, iconKey: st
 		Size = UDim2.fromOffset(46, 46),
 		Parent = frame,
 	}, 42)
-	local key = iconKey or (if shards > 0 then "Shard" else nil)
+	local key = iconKey or (if shards > 0 then "Shard" elseif firstPotion then `Potion:{firstPotion.Id}` else nil)
 	local art = if key then Skin.Icon(icon, key) else nil
 	local amount = Kit.label({
 		Text = if shards > 0 then `+{Kit.commas(shards)}` elseif firstPotion then `x{potionCount}` else "",

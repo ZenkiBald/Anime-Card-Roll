@@ -175,6 +175,17 @@ function Modal.new(playerGui: Instance, name: string, title: string, size: Vecto
 		Kit.new("UISizeConstraint", { Name = "Limit", MaxSize = maxSize, MinSize = Vector2.new(280, 220) }),
 	})
 	self.Scale = Kit.new("UIScale", { Scale = 1, Parent = self.Panel })
+	-- Taps on the panel's empty space land here, not on the backdrop behind it (only a tap outside the
+	-- panel closes it). Created first, so every later child draws and takes taps above it.
+	Kit.new("TextButton", {
+		Name = "Blocker",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Text = "",
+		Selectable = false,
+		Parent = self.Panel,
+	})
 	Kit.surface(self.Panel, Color3.fromRGB(78, 76, 137), Color3.fromRGB(27, 26, 59), "Window")
 	-- Phones: the panel is laid out at desktop size and scaled down to the screen (Modal.FitScale), so a
 	-- short landscape screen shows the same layout smaller instead of squashing rows to nothing. It

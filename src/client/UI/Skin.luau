@@ -10,6 +10,8 @@
 
 local Skin = {}
 local UIArt = require(script.Parent.UIArt)
+local HudArt = require(script.Parent.HudArt)
+local BagArt = require(script.Parent.BagArt)
 
 -- Archived cartoon card frames stay off: card borders must continue to convey their border tier.
 -- The current UIArt panel / button kit is independent of this legacy switch.
@@ -263,10 +265,25 @@ end
 -- Replaces an emoji icon label with the uploaded icon image, if there is one.
 function Skin.Icon(label: TextLabel, key: string): ImageLabel?
 	if not UIArt.Enabled then
-		local marks = { Shard = "SH", Shards = "SH", TraitShards = "TS", Rolls = "#", MOUNT = "G", AUTO = "A", QUICK = "Q" }
-		label.Text = marks[key] or string.sub(key:match(":([^:]+)$") or key, 1, 2):upper()
-		label.TextColor3 = Color3.fromRGB(207, 217, 214)
-		return nil
+		-- The current HUD / BAG illustrations stand in for the archived atlas; anything without one keeps
+		-- the label's own text (an emoji), never a two-letter placeholder like "GI".
+		local aliases = { Shard = "Shards", GIFTS = "QUESTS", Gift = "QUESTS" }
+		local image = HudArt.Get(aliases[key] or key) or BagArt.Get(key)
+		if image == nil then
+			return nil
+		end
+		local art = Instance.new("ImageLabel")
+		art.Name = label.Name
+		art.BackgroundTransparency = 1
+		art.AnchorPoint = label.AnchorPoint
+		art.Position = label.Position
+		art.Size = label.Size
+		art.ZIndex = label.ZIndex
+		art.Image = image
+		art.ScaleType = Enum.ScaleType.Fit
+		art.Parent = label.Parent
+		label:Destroy()
+		return art
 	end
 	if UIArt.HasIcon(key) then
 		return UIArt.Replace(label, key)

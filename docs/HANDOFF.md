@@ -103,6 +103,14 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Log (newest first)
 
+- 2026-10-29 · Claude Code · this commit · From the user's QUESTS screenshot: tapping empty space inside any
+  panel closed it (the Active panel didn't stop the backdrop's Activated); `Modal` now puts an invisible
+  Blocker button under every panel's contents, so only taps outside close it. With UIArt off, `Skin.Icon`
+  wrote two-letter placeholders ("GI", "SH"); it now uses HudArt / BagArt illustrations (Shards, gifts ->
+  QUESTS art, potions) and otherwise keeps the label's emoji. The reward toast lost its 🎁 prefix; MOUNT shows
+  🐎 when it has no art. Type check 0 errors, props 0 problems; not seen in Studio. The user also said the
+  game has nothing to grind for: see the chat for the proposal, nothing built yet.
+
 - 2026-10-29 · Claude Code · this commit · Reviewed the Codex passes since 3fb35b6 and re-ran every check:
   type 0 errors, props 0 problems, headless ALL CHECKS PASSED. Scanned both committed BossKit .rbxm files
   chunk by chunk: no Script / LocalScript / ModuleScript / remotes / GUI / sounds and no require / loadstring
