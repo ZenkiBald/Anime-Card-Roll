@@ -54,6 +54,20 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Tower / UI / DEV pass (2026-10-29): existing 22-floor Studio Assistant tower refined and exported,
+  original backed up; 52.7-stud base / curved roofs / timber / windows / gables / embers inspected in Studio.
+  All parts anchored; named foundation-to-roof gaps <0.00002 studs. Entrance approach pathfinding succeeds
+  with jumping allowed; actual F prompt opens the tower panel. Lobby ClockTime 14 -> entrance 0 -> lobby 14;
+  radius 46, six nearby lantern lights, embers active. No old runtime duplicate tower. Exported Rojo template
+  round-trip preserves sizes / colors / lanterns / prompt / particles. Real Tab expands and folds SERVER;
+  expanded list moves the sky panel below it. TRAINING illustrations and expanded DEV controls inspected.
+  Isolated-profile server checks: exact Gold copies, resources / packs, level / XP, timer reset, invalid ids /
+  NaN, burst limit and TestMode-disabled rejection; original profile restored. Required checks all pass.
+- [ ] User review: tower from ground level / long distance, steps / nearby trees, night boundary, streamed
+  floors and mobile performance; restart / rejoin with the exported template in an older place. Review
+  card labels, absence of element filters / diamond HUD, Tab while typing, DEV searching / scrolling /
+  sky preview and ordinary grants. Save the open place for its scenery / original-model backups.
+
 - [x] Celestial / collection redesign (2026-10-29): all 16 clothed event portraits loaded visibly through
   actual ImageLabels; desktop sky panel shows the anime, luck, four eligible portraits and countdown.
   iPhone 17 Pro landscape emulator (750 x 323 usable): read-only sky panel and bottom-right relic row

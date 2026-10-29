@@ -8,6 +8,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
+local ContextActionService = game:GetService("ContextActionService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
@@ -20,6 +22,8 @@ local Skin = require(script.Parent.Skin)
 local UIArt = require(script.Parent.UIArt)
 
 local PlayerList = {}
+local changed=Instance.new("BindableEvent")
+PlayerList.Changed=changed.Event
 
 local ROW_HEIGHT = 58
 local MAX_ROWS = 5
@@ -33,6 +37,15 @@ local rows = {} -- [Player] = { Frame, Portrait, Fav, Name, Power, Rolls }
 local folded = false
 local hiddenBy = {}
 local onPick: ((Player) -> ())? = nil
+
+function PlayerList.Toggle()
+	if not gui or not gui.Enabled or UserInputService:GetFocusedTextBox() then return end
+	folded=not folded
+	PlayerList.Refresh()
+end
+function PlayerList.Bounds()
+	return gui~=nil and gui.Enabled and not folded,if panel then panel.AbsolutePosition.Y+panel.AbsoluteSize.Y else 0
+end
 
 local function short(n: number): string
 	if n >= 1e9 then
@@ -173,6 +186,7 @@ function PlayerList.Refresh()
 	panel.Size = UDim2.new(0, panel.Size.X.Offset, 0, 32 + (if folded then 0 else shown * ROW_HEIGHT + 4))
 	local fold: any = foldButton
 	fold.Label.Text = if folded then "‹" else "›"
+	changed:Fire()
 end
 
 local function applyHidden()
@@ -283,7 +297,7 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSetti
 		end)
 		Kit.pressable(gear)
 		gear.Activated:Connect(openSettings)
-		cog.Visible = false
+		cog.Visible = true
 		UIArt.Icon(gear, "SETTINGS", { Position = UDim2.fromScale(0.15, 0.15), Size = UDim2.fromScale(0.7, 0.7), ZIndex = 3 })
 	end
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = countLabel
@@ -294,10 +308,12 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSetti
 		Size = UDim2.fromOffset(38, 26),
 		Parent = panel,
 	})
-	foldButton.Activated:Connect(function()
-		folded = not folded
-		PlayerList.Refresh()
-	end)
+	foldButton.Activated:Connect(PlayerList.Toggle)
+	ContextActionService:BindActionAtPriority("ToggleServerList",function(_,state)
+		if not gui.Enabled or UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
+		if state==Enum.UserInputState.Begin then PlayerList.Toggle() end
+		return Enum.ContextActionResult.Sink
+	end,false,2100,Enum.KeyCode.Tab)
 	list = Kit.new("ScrollingFrame", {
 		Name = "Players",
 		Position = UDim2.new(0, 6, 0, 32),

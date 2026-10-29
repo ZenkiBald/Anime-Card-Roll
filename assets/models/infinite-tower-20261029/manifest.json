@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-29",
+  "source": "Existing Workspace.InfiniteTower made by Studio Assistant; refined in place from user reference",
+  "floors": 22,
+  "site": [
+    -135,
+    7.4,
+    -95
+  ],
+  "nightRadius": 46,
+  "baseWidth": 52.7,
+  "height": 232.750776,
+  "files": {
+    "InfiniteTower.rbxmx": {
+      "sha256": "cca416266d393dec4741f89043f0a90871d698394bb56ab41d25fc611e2b016c",
+      "bytes": 2865955,
+      "classes": {
+        "Model": 23,
+        "Folder": 23,
+        "Part": 2910,
+        "PointLight": 88,
+        "ProximityPrompt": 1,
+        "ParticleEmitter": 2
+      }
+    },
+    "PreviousInfiniteTower.rbxmx": {
+      "sha256": "c60992901506578d3916c6758f486fc387973e0225a6a63857f66125b79065d9",
+      "bytes": 920594,
+      "classes": {
+        "Model": 23,
+        "Part": 1012,
+        "PointLight": 88
+      }
+    }
+  }
+}

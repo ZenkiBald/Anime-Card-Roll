@@ -350,7 +350,7 @@ function Kit.statsText(card, stars: number, border: string?, awaken: number?, lo
 	local main = fmt(Cards.Stat(card, card.Main, stars, border, awaken))
 	if card.Type == "Attack" then
 		local hp = fmt(Cards.Stat(card, card.HP or 0, stars, border, awaken))
-		return `<font color="#FF7A5C">⚔ DMG <b>{main}</b></font>   <font color="#5CE6A0">❤ HP <b>{hp}</b></font>`
+		return `<font color="#FF7A5C">DMG <b>{main}</b></font>   <font color="#5CE6A0">HP <b>{hp}</b></font>`
 	end
 	local CardInfo = require(game:GetService("ReplicatedStorage").Shared.CardInfo)
 	return `<font color="#8BDDB1"><b>{CardInfo.Headline(card, stars, border, awaken)}</b></font>`

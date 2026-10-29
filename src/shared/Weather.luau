@@ -30,7 +30,7 @@ function Weather.At(now: number, override: any?): any
 	local event=Weather.Event(slot)
 	local active=event.Id~="clear" and now>=event.Starts and now<event.Ends
 	local state: any=if active then table.clone(event) else {Id="clear",Key=`clear:{slot}`,Starts=slot*900,Ends=(slot+1)*900, Summoned=false}
-	if override and Weather.ById[override.Id] and override.Id~="clear" and now>=override.Starts and now<override.Ends then state=table.clone(override) end
+	if override and Weather.ById[override.Id] and now>=override.Starts and now<override.Ends then state=table.clone(override) end
 	state.Luck=Weather.ById[state.Id].Luck
 	for nextSlot=slot,slot+16 do
 		local nextEvent=Weather.Event(nextSlot)

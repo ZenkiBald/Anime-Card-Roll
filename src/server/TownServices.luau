@@ -92,6 +92,17 @@ function Services.WheelCanopy(booth,ground)
 end
 
 function Services.Tower(parent,ground)
+	local authored=workspace:FindFirstChild("InfiniteTower")
+	local entrance=authored and authored:FindFirstChild("Entrance",true)
+	if authored and authored:GetAttribute("ReferencePolishVersion")==1 and entrance and entrance:IsA("BasePart") then
+		-- The saved Studio model supplies geometry / prompt; keep the existing UI / board contracts.
+		local gate=model(parent,"TowerGate")
+		gate:SetAttribute("AuthoredTower",true)
+		Signs.Plaque(gate,"SignAnchor",entrance.CFrame*CFrame.new(0,6,0),Vector3.new(12,2.2,.4),"INFINITE TOWER","Endless floors · rare relics",Color3.fromRGB(240,177,104))
+		local board=part(gate,"BoardSpot",Vector3.one,ground*CFrame.new(13,0,4),STONE)
+		board.Transparency=1
+		return gate
+	end
 	local gate=model(parent,"TowerGate")
 	local function p(name,size,x,y,z,color,material,class)
 		return part(gate,name,size,ground*CFrame.new(x,y,z),color,material,class)

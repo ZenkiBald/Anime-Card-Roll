@@ -53,6 +53,13 @@
         "$path": "src/server"
       }
     },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "$ignoreUnknownInstances": true,
+      "InfiniteTowerTemplate": {
+        "$path": "assets/models/infinite-tower-20261029/InfiniteTower.rbxmx"
+      }
+    },
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {

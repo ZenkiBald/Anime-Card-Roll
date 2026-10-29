@@ -11,6 +11,7 @@ local Modal=require(script.Parent.Modal)
 local State=require(script.Parent.Parent.State)
 local Hud=require(script.Parent.Hud)
 local Title=require(script.Parent.Title)
+local PlayerList=require(script.Parent.PlayerList)
 local Ui={}
 local current=Weather.At(0)
 local gui,pane,kicker,title,timer,timeLabel,subtitle,bonus,caption,strip,footer,fill,edge,fit
@@ -21,7 +22,9 @@ local function clock(seconds)
 end
 local function refresh()
 	if not pane then return end
-	pane.Visible=not Title.IsOpen() and not Modal.AnyOpen() and (not State.InBattle or State.BattleHidden)
+	local short=gui.AbsoluteSize.Y<540
+	local expanded,listBottom=PlayerList.Bounds()
+	pane.Visible=not Title.IsOpen() and not Modal.AnyOpen() and (not State.InBattle or State.BattleHidden) and not (short and expanded)
 	local now=workspace:GetServerTimeNow()
 	local active=current.Id~="clear" and current.Ends>now
 	local forecast=not active and current.Forecast and current.Next
@@ -61,10 +64,9 @@ local function refresh()
 			end
 		end
 	end
-	local short=gui.AbsoluteSize.Y<540
 	fit.Scale=if short then 1 else math.min(1,gui.AbsoluteSize.X*.25/330)
 	pane.Size=UDim2.fromOffset(if short then 236 else 330,if hasCards then (if short then 146 else 238) else (if short then 86 else 104))
-	pane.Position=UDim2.new(1,-14,0,if short then 42 else 52)
+	pane.Position=UDim2.new(1,-14,0,if expanded then math.max(52,listBottom+8) elseif short then 42 else 52)
 	kicker.Position=UDim2.fromOffset(if short then 10 else 12,if short then 5 else 7)
 	kicker.Size=UDim2.fromOffset(if short then 150 else 210,if short then 10 else 13)
 	kicker.TextSize=if short then 8 else 11
@@ -127,6 +129,7 @@ function Ui.Init(playerGui)
 		refresh()
 	end)
 	Modal.Changed:Connect(refresh)
+	PlayerList.Changed:Connect(refresh)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refresh)
 	task.spawn(function() while true do refresh();task.wait(1) end end)
 end

@@ -21,6 +21,7 @@ end
 
 -- Transparent illustrated element art, kept square without a text tag or surrounding diamond.
 function ElementUi.Badge(id: string?, props: { [string]: any }): Frame?
+	if not Elements.CombatEnabled then return nil end
 	local element = Elements.Get(id)
 	if element == nil then
 		return nil
@@ -64,6 +65,7 @@ end
 
 -- Rich text: "<font color=...>🔥 Flame</font>".
 function ElementUi.Rich(id: string?): string
+	if not Elements.CombatEnabled then return "" end
 	local element = Elements.Get(id)
 	if element == nil then
 		return ""

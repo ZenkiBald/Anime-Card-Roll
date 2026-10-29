@@ -88,7 +88,7 @@ local function traitText(id: string?): string
 	if trait == nil then
 		return '<font color="#8C88A8">empty</font>'
 	end
-	return `<font color="#{Rarity.Get(trait.Tier).Color:ToHex()}"><b>{trait.Icon} {string.upper(trait.Name)}</b></font> ({trait.Tier}): {Traits.Text(trait.Id)}`
+	return `<font color="#{Rarity.Get(trait.Tier).Color:ToHex()}"><b>{string.upper(trait.Name)}</b></font> ({trait.Tier}): {Traits.Text(trait.Id)}`
 end
 
 local function slotOpen(entry, slot: number): boolean
@@ -177,7 +177,7 @@ local function playRoll(stage: Frame, rolled: { string }, done: () -> ())
 		for i, id in rolled do
 			local trait = Traits.Get(id)
 			if trait then
-				labels[i].Text = `{trait.Icon} {string.upper(trait.Name)}`
+				labels[i].Text = `{string.upper(trait.Name)}`
 				labels[i].TextColor3 = Rarity.Get(trait.Tier).Color
 				best = math.max(best, Traits.TierIndex(id))
 			end
@@ -221,7 +221,7 @@ local function playAuto(stage: Frame, result, done: () -> ())
 		for i = from, #rolled do
 			local trait = Traits.Get(rolled[i])
 			if trait then
-				label.Text = `{trait.Icon} {string.upper(trait.Name)}`
+				label.Text = `{string.upper(trait.Name)}`
 				label.TextColor3 = Rarity.Get(trait.Tier).Color
 			end
 			count.Text = `BATCH ROLL {i} / {#rolled}`
@@ -344,7 +344,7 @@ local function drawDetail()
 			local trait = Traits.Get(rolledId)
 			if trait then
 				local label = Kit.label({
-					Text = `{trait.Icon} {string.upper(trait.Name)} · {Traits.Text(trait.Id)}`,
+					Text = `{string.upper(trait.Name)} · {Traits.Text(trait.Id)}`,
 					Font = Theme.Font.Display,
 					TextColor3 = Rarity.Get(trait.Tier).Color,
 					Position = UDim2.fromScale(0, (i - 1) / #pending.Traits),
@@ -713,7 +713,7 @@ function drawGrid()
 		tile.Parent = grid
 		local trait = Traits.Get(entry.Trait)
 		local tag = Kit.label({
-			Text = if entry.Pending then "CHOOSE!" elseif trait then `{trait.Icon} {trait.Name}` else "no trait",
+			Text = if entry.Pending then "CHOOSE!" elseif trait then `{trait.Name}` else "no trait",
 			Font = Theme.Font.Heavy,
 			TextColor3 = if entry.Pending then Theme.Color.Gold elseif trait then Rarity.Get(trait.Tier).Color else Theme.Color.Muted,
 			AnchorPoint = Vector2.new(0.5, 1),

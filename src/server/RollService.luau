@@ -43,6 +43,7 @@ local TutorialService = require(script.Parent.TutorialService)
 local NpcRange = require(script.Parent.NpcRange)
 local AvatarService = require(script.Parent.AvatarService)
 local DevAccess = require(script.Parent.DevAccess)
+local DevCommands = require(Shared.DevCommands)
 
 local RollService = {}
 
@@ -57,6 +58,7 @@ local alchemyLimiter = RateLimit.new(4, 8)
 local BIG_OPEN = 1000
 local bigOpenLimiter = RateLimit.new(0.25, 1)
 local stateLimiter = RateLimit.new(0.5, 3) -- GetState builds the whole save's state
+local devLimiter = RateLimit.new(3,8)
 local autoGeneration = {} -- [Player] = number; bumping it stops the running Auto Roll loop
 local autoActive = {} -- [Player] = true while Auto Roll is running
 
@@ -631,17 +633,45 @@ function RollService.Start()
 	end)
 
 	-- Test-phase tools: only for DevAccess (TestMode on, and Studio / the owner / a listed tester).
-	Remotes.Dev.OnServerInvoke = function(player: Player, action: unknown, value: unknown)
+	RollService.HandleDev = function(player: Player, action: unknown, value: unknown)
 		if not DevAccess.Allowed(player) then
 			return { Ok = false, Reason = "Disabled" }
 		end
+		if not devLimiter:Allow(player) then return {Ok=false,Reason="TooFast"} end
 		local profile = DataService.Get(player)
 		if profile == nil then
 			return { Ok = false, Reason = "Loading" }
 		end
 		if action == "SetLuck" then
-			local luck = tonumber(value) or 1
-			MetaService.SetDevLuck(player, math.clamp(luck, 1, Config.Roll.DevLuckMax))
+			local checked=DevCommands.Validate(action,value)
+			if not checked then return {Ok=false,Reason="BadRequest"} end
+			MetaService.SetDevLuck(player,checked.Luck)
+		elseif action=="ClearDevLuck" then
+			MetaService.SetDevLuck(player,nil)
+		elseif action=="GrantCard" or action=="GrantResource" or action=="GrantPack" or action=="SetWeather" or action=="SetLevel" then
+			local checked=DevCommands.Validate(action,value)
+			if not checked then return {Ok=false,Reason="BadRequest"} end
+			local data=profile.Data
+			if action=="GrantCard" then
+				local entry=data.Cards[checked.CardId]
+				if not entry then entry={Copies=0,Stars=0,BorderCopies={},Borders={}};data.Cards[checked.CardId]=entry end
+				for _=1,checked.Count do addCopy(entry,checked.Border) end
+				entry.Copies+=checked.Count
+			elseif action=="GrantResource" then
+				MetaService.Grant(data,{[checked.Kind]=checked.Amount})
+			elseif action=="GrantPack" then
+				MetaService.Grant(data,{Packs={[checked.Id]=checked.Count}})
+			elseif action=="SetWeather" then
+				WeatherService.DevSet(checked.Id,checked.Seconds)
+			elseif action=="SetLevel" then
+				data.Level=checked.Level;data.XP=0
+			end
+		elseif action=="GiveSkyItems" then
+			local stock={orb=10,hourglass=10}
+			for _,sky in Weather.List do if sky.Id~="clear" then stock[`sigil:{sky.Id}`]=10 end end
+			MetaService.Grant(profile.Data,{Fragments=100,Celestial=stock})
+		elseif action=="ClearBossCooldowns" then
+			profile.Data.Progress.RewardAt={}
 		elseif action == "GrantAll" or action == "GrantStarter" then
 			-- GrantStarter: just the most common cards (Weight 8+), a first deck; GrantAll: the whole pool.
 			for _, card in Cards.Pool(profile.Data.Progress.Cleared) do
@@ -784,6 +814,7 @@ function RollService.Start()
 		return fullState(player, profile.Data)
 	end
 
+	Remotes.Dev.OnServerInvoke=RollService.HandleDev
 	Players.PlayerRemoving:Connect(function(player: Player)
 		stopAuto(player)
 		lastRoll[player] = nil

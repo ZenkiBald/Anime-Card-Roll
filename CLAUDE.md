@@ -28,14 +28,19 @@ tower gate and leaderboards. The spawn plaza has a thin stone fountain border, s
 wooden benches with flower planters. Stalls / services sit around the edge; an explicit Tower marker puts the
 an endless jade-roofed pagoda northwest of the fountain. `tools/studio/town-polish.luau` applies the plaza's place-only edits once
 and keeps a reversible backup in ServerStorage. The local saved place is under `studio-local/` (ignored by Git).
-The service figures / workbenches / wheel canopy / pagoda are runtime parts built by `World`, `TownModels` and
-`TownServices`, so those changes travel through Git / Rojo. The tower's visual contract is an unseeable top:
-80 repeating pagoda stories, about 1,600 studs high, tapering every ten stories, cream walls / dark timber /
-teal roofs / golden windows. A local cloud bank / mist surrounds it around Y=320; no cap or finial. Its upper
-stories stream in five-story groups; the lower skyline through the clouds and the cloud bank stay Persistent
-so player streaming focus cannot expose a cut-off top. The entrance keeps the Tower prompt / BoardSpot,
-with Torii posts, cyan floor runes and a rising portal vortex. HubFx distance-culls the two tower emitters,
-pauses them behind panels and reduces their rates to 25% on LOW. No extra tower floors are saved or awarded.
+The service figures / workbenches / wheel canopy are runtime parts built by `World`, `TownModels` and
+`TownServices`, so those changes travel through Git / Rojo. Infinite Tower uses the user's existing 22-floor
+Studio Assistant model, refined in place: a 52.7-stud grand first hall, floor two at 60% width, then 0.94x
+taper; named foundation / roof stacking, curved Slate eaves, corner ridges, base gables, recessed amber
+windows, timber framing, lanterns, entrance steps and embers. An upper mist bank obscures the skyline.
+It stands outside the lobby at (-135, 7.4, -95), with a 46-stud local night zone and the existing tower
+prompt / BoardSpot. No global Lighting settings are changed. The anchored model and untouched original
+are versioned in `assets/models/infinite-tower-20261029`; Rojo loads a ServerStorage template. World keeps
+an existing refined workspace model or restores the template in floor-sized chunks, reconnects its
+entrance / zone and moves intersecting trees. TownServices skips the older generated tower when this
+model is active; the older builder remains a fallback. Floors stream atomically. HubFx distance-culls
+the two emitters, pauses them behind panels and reduces rates to 25% on LOW; only the closest six
+lantern lights within 75 studs run, with none on LOW. Tower progression / rewards are unchanged.
 Four original R15 service rigs have colored outfits / welded themed tools and Roblox idle animation 507766666
 (played locally by HubFx); only their root is anchored. Hoshi has a card workbench, Kenshin scrolls / crystals,
 and Kenji a lectern. Avatar-service failure retains the old procedural figure so prompts still exist. Boss models
@@ -102,10 +107,9 @@ forecast. Items / crafting stay in BAG > SKY ITEMS. Illustrated active-potion / 
 bottom RIGHT with hover / tap details. Short screens use one compact icon row and separate progress bars.
 `SkyFx` adds subtle camera-local grading / bounded motes (12/s, 3/s on LOW), paused behind panels / fights;
 it never overwrites world or tower-night lighting. The tower-night `ZoneFx.InfiniteTower` mood from Studio
-Assistant is preserved in source; its `Map.Markers.Zone_InfiniteTower` remains place-only. Studio also has
-a separate authored `Workspace.InfiniteTower` (22 floor models), away from the existing Tower marker.
-It has no ProximityPrompt yet; the existing runtime tower / entrance remain. Do not delete either without
-the user's direction. Save the open Studio place to preserve that authored model / zone marker.
+Assistant is preserved in source. World reconnects its marker / radius to the refined tower entrance;
+the lobby stays outside that zone. Save the open Studio place to preserve the original-model / marker /
+scenery backups in ServerStorage; the exported tower itself travels through Git / Rojo.
 
 **Cards.** 37 normal cards: 26 character Attacks (including 4 boss cards) + 11 relic / technique Supports.
 A separate event pool adds 16 Celestial Attack cards (53 cards total). Normal cards retain their anime-style
@@ -183,7 +187,7 @@ carry their authored costs. `Bleed` and `Burn` share the timed-damage scheduler 
 Healing locks apply to every HP-healing route (`HealingLock` effect, timed Support costs or permanent cloak cost),
 with a HEAL BLOCK badge (snapshot N). Reflected Freeze costs the enemy its next action (snapshot Z); Bleed is L.
 Posthumous damage cannot consume a healing activation or heal a defeated card.
-Elements are visual / ability themes only (`Elements.CombatEnabled=false`): neutral damage, no counter
+Elements are internal visual / ability themes only (`Elements.CombatEnabled=false`): neutral damage, no counter
 multiplier, elemental stagger bonus or element-count synergy. Familiar bonds use matching columns only. Every fight is the leader +
 3 guards (Striker / Hexer / Mender / Warder); tap an enemy to focus it; win when the leader falls. Stagger bar -> 5 s Staggered. Rhythm and threat (`Config.Battle`): SPD 100 basics take 2.5 battle seconds; Skills have an 8 s minimum
 and Ultimates need both 100 energy and a 22 s minimum, with a 3 s team Ultimate gap. Incoming-hit energy is
@@ -429,6 +433,20 @@ Secret chase decks). Re-run after changing
   admins, `Config.DevUserIds`) can use the DEV panel or mock purchases. `TestMode = false` at launch (see the checklist).
 
 ## Commands
+
+The server list opens / closes with Tab or its fold button; Tab passes through while typing and while
+the list is hidden. The desktop sky panel moves below the expanded list; compact screens hide that panel
+until the list folds. The HUD shows Trait Shards and rolls; retired diamond Shards are absent, while
+Celestial Fragments remain in BAG. Card sheets use plain DMG / HP, trait / foil / type tags and ability
+names without emoji. Element badges / filters / matchup guides are hidden; internal themes still color
+art effects. TRAINING uses the existing illustrated clover, hourglass, prism, Trait Shard and tome assets.
+
+DEV has a searchable card picker with exact border / copies, custom luck / earned-luck reset, Trait
+Shard / Fragment and pack grants, local sky / duration previews, level edits, sky supplies and boss
+reward-timer reset. Existing tools remain below. Every request retains DevAccess / TestMode gating and
+a 3-per-second, burst-8 limiter; new targets / amounts reject unknown ids, NaN, infinity and invalid
+ranges (`DevCommands`). Level edits grant no XP / level-up rewards. Sky previews affect this server only;
+card / supply grants edit the developer's existing test save. No new save fields are introduced.
 
 - Workflow: open the published place in Studio, `rojo serve`, press Connect in the Rojo plugin (reconnect after new
   folders or remotes). Rojo only touches the folders in `default.project.json`, never the map. Save / publish from Studio.

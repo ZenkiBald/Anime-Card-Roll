@@ -14,6 +14,8 @@ local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
+local BagArt = require(script.Parent.BagArt)
+local HudArt = require(script.Parent.HudArt)
 
 local StatsPanel = {}
 
@@ -90,14 +92,14 @@ local function statRow(parent: Instance, stat, order: number)
 		Kit.gradient(ColorSequence.new(stat.Color:Lerp(Color3.new(1, 1, 1), 0.25), stat.Color:Lerp(Color3.new(0, 0, 0), 0.35)), 90),
 		Kit.stroke(Color3.new(1, 1, 1), 2.5, 0.2),
 	})
-	Kit.label({
-		Text = stat.Icon,
-		Font = Theme.Font.Heavy,
+	local art={Luck=BagArt.Get("Artifact:clover"),RollSpeed=BagArt.Get("Potion:speed"),Border=BagArt.Get("Artifact:prism"),ShardGain=HudArt.Get("TraitShards"),XPGain=BagArt.Get("Artifact:tome")}
+	Kit.new("ImageLabel",{
+		Name="StatArt",Image=art[stat.Id] or "",BackgroundTransparency=1,ScaleType=Enum.ScaleType.Fit,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(0.72, 0.72),
 		Parent = bubble,
-	}, 40)
+	})
 	local name = Kit.label({
 		Text = string.upper(stat.Name),
 		Font = Theme.Font.Display,

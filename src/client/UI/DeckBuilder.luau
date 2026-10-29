@@ -1129,14 +1129,6 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		sortBy = value
 		refresh()
 	end)
-	local elementNames = { "Any" }
-	for _, element in Elements.List do
-		table.insert(elementNames, element.Id)
-	end
-	Controls.Option(dropdowns, "Element", elementNames, 3, function(value)
-		elementBy = value
-		refresh()
-	end)
 	local chipRow = Kit.new("Frame", {
 		Position = UDim2.fromOffset(0, 80),
 		Size = UDim2.new(1, 0, 0, 26),

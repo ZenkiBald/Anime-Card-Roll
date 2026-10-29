@@ -32,6 +32,11 @@ Edit-mode scripts that built the world saved in the place (`workspace.Map`, Terr
   pass: `studio-local/AnimeCardRoll-TownPolish-20261026.rbxl` (ignored by Git). Not published.
 - `sync.luau` - stopgap for when Rojo isn't connected: pulls `src/` from `python -m http.server 34875
   --directory src` into the open place (only the Shared / Server / Client script folders).
+- `refine-infinite-tower.luau` - Edit-only, idempotent refinement of the existing 22-floor Assistant tower:
+  wide base, named-surface stacking, curved roof sections, timber / windows / gables / steps / embers,
+  an outer clearing and smaller night zone. Keeps a per-floor / marker / scenery backup in ServerStorage.
+  Already applied on 2026-10-29. Exported current / previous models are in assets/models/infinite-tower-20261029.
+- `export-tower.py` + `export-tower.luau` - temporary localhost-only model exporter; see the asset README.
 
 Markers (in `workspace.Map.Markers`): `Spawn`, `Sage`, `Wheel` (Madame Fortuna's Lucky Wheel booth; she stands
 on its left, the wheel behind; facing -Z towards players), `Fusion` (Hoshi the Fusion Master; the altar goes

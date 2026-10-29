@@ -11,7 +11,7 @@ local Cards = require(Shared.Cards)
 local CardInfo = require(Shared.CardInfo)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
-local Elements = require(Shared.Elements)
+local ColumnBonds = require(Shared.ColumnBonds)
 local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
 local Config = require(Shared.Config)
@@ -27,7 +27,6 @@ local CardTile = require(script.Parent.CardTile)
 local Controls = require(script.Parent.Controls)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
-local ElementUi = require(script.Parent.ElementUi)
 local State = require(script.Parent.Parent.State)
 local MetaClient = require(script.Parent.Parent.MetaClient)
 
@@ -218,29 +217,11 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 			20,
 			16
 		)
-		-- Element: what it beats and what beats it; and its bonds (a Dual Ultimate with a named partner).
-		local element = Elements.Get(card.Element)
-		if element then
-			local beats = if #element.Beats > 0 then ElementUi.RichList(element.Beats) else "nothing"
-			local weakTo = {}
-			for _, other in Elements.List do
-				if other.Id ~= "Cosmic" and table.find(other.Beats, element.Id) then
-					table.insert(weakTo, other.Id)
-				end
+		for _,bond in ColumnBonds.List do
+			if card.Id==bond.Attack or card.Id==bond.Support then
+				local partner=Cards.Get(if card.Id==bond.Attack then bond.Support else bond.Attack)
+				line(`Bond: {bond.Name} · pair with {if partner then partner.Name else "its companion"} in the same numbered column. {bond.Text}`,Theme.Font.Bold,Color3.fromRGB(255,190,120),38,15)
 			end
-			local weakText = if element.Id == "Cosmic" or #weakTo == 0 then "nothing" else ElementUi.RichList(weakTo)
-			line(`Element  <b>{ElementUi.Rich(element.Id)}</b>   strong vs {beats}   weak vs {weakText}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)
-		end
-		for _, bond in Elements.BondsOf(card.Id) do
-			local partner = Cards.Get(bond.Partner)
-			local have = State.Cards[bond.Partner] ~= nil
-			line(
-				`🤝 Bond <b>{string.upper(bond.Bond.Name)}</b> with <b>{if partner then partner.Name else bond.Partner}</b>{if have then "" else " (not found yet)"}: both in a deck fire a Dual Ultimate ({math.floor(bond.Bond.Pct * 100)}% of both cards' power) once a fight`,
-				Theme.Font.Bold,
-				Color3.fromRGB(255, 190, 120),
-				18,
-				15
-			)
 		end
 		-- Borders found for this card: each one lit or still to find, with its odds.
 		local found = entry.Borders or {}
@@ -263,7 +244,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 			if i > 1 then
 				local has = foundFoils[foil.Id] == true
 				local color = if has then foil.Color:ToHex() else "6E6A88"
-				table.insert(foilParts, `<font color="#{color}">{if has then foil.Icon else "◇"} <b>{string.upper(foil.Name)}</b></font>`)
+				table.insert(foilParts, `<font color="#{color}">{if has then "FOUND" else "MISSING"} <b>{string.upper(foil.Name)}</b></font>`)
 			end
 		end
 		line(`Foils  {table.concat(foilParts, "   ")}`, Theme.Font.Heavy, Theme.Color.Text, 20, 17)
@@ -280,7 +261,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		local function traitLineText(id: string?): string
 			local trait = Traits.Get(id)
 			return if trait
-				then `<font color="#{Rarity.Get(trait.Tier).Color:ToHex()}"><b>{trait.Icon} {string.upper(trait.Name)}</b></font> ({trait.Tier}): {Traits.Text(trait.Id)}`
+				then `<font color="#{Rarity.Get(trait.Tier).Color:ToHex()}"><b>{string.upper(trait.Name)}</b></font> ({trait.Tier}): {Traits.Text(trait.Id)}`
 				else "none yet"
 		end
 		line(`Trait 1  {traitLineText(entry.Trait)}`, Theme.Font.Heavy, Theme.Color.Text, 20, 16)

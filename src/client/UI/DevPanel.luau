@@ -16,6 +16,7 @@ local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
 local Reveal = require(script.Parent.Reveal)
 local State = require(script.Parent.Parent.State)
+local CustomTools = require(script.Parent.DevToolsPane)
 
 local DevPanel = {}
 
@@ -35,7 +36,7 @@ local function section(parent: Instance, order: number, title: string): Frame
 	}, 15)
 	return Kit.new("Frame", {
 		LayoutOrder = order + 1,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 0),AutomaticSize=Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		Parent = parent,
 	}, {
@@ -56,11 +57,12 @@ local function devCall(action: string, value: any?)
 		State.ApplyFull(result)
 		return true
 	end
+	if modal then modal.TitleLabel.Text="TEST TOOLS · "..(if ok and type(result)=="table" then tostring(result.Reason or "TRY AGAIN") else "REQUEST FAILED") end
 	return false
 end
 
 function DevPanel.Init(playerGui: Instance)
-	modal = Modal.new(playerGui, "DevGui", "TEST TOOLS", Vector2.new(0.62, 0.8), Vector2.new(640, 560))
+	modal = Modal.new(playerGui, "DevGui", "TEST TOOLS", Vector2.new(0.86, 0.88), Vector2.new(1000, 760))
 
 	local list = Kit.new("ScrollingFrame", {
 		Size = UDim2.fromScale(1, 1),
@@ -74,6 +76,10 @@ function DevPanel.Init(playerGui: Instance)
 		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) }),
 	})
 
+	CustomTools.Build(list,function(action,value)
+		local ok=devCall(action,value)
+		if ok then modal.TitleLabel.Text="TEST TOOLS · DONE" end
+	end)
 	-- Luck
 	local luckRow = section(list, 1, "LUCK (server-side, this session only)")
 	for i, luck in { 1, 2, 3, 100 } do

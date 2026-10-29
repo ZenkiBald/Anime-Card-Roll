@@ -247,7 +247,7 @@ function OddsPanel.Init(playerGui: Instance)
 			Parent = scroll,
 		}, { Kit.corner(UDim.new(0, 10)) })
 		Kit.label({
-			Text = `{foil.Icon} {string.upper(foil.Name)}  <font color="#A8A2C8">{foil.Text}</font>`,
+			Text = `{string.upper(foil.Name)}  <font color="#A8A2C8">{foil.Text}</font>`,
 			RichText = true,
 			Font = Theme.Font.Heavy,
 			TextColor3 = foil.Color,
@@ -290,7 +290,7 @@ function OddsPanel.Init(playerGui: Instance)
 			Parent = scroll,
 		}, { Kit.corner(UDim.new(0, 10)) })
 		Kit.label({
-			Text = `{trait.Icon} {string.upper(trait.Name)}  <font color="#A8A2C8">{Traits.Text(trait.Id)}</font>`,
+			Text = `{string.upper(trait.Name)}  <font color="#A8A2C8">{Traits.Text(trait.Id)}</font>`,
 			RichText = true,
 			Font = Theme.Font.Heavy,
 			TextColor3 = tier.Color,

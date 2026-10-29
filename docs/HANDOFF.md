@@ -9,6 +9,18 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- TOWER / UI / DEV COMPLETE (2026-10-29): Tab folds / expands SERVER, sky panel clears the list;
+  card sheets use clean DMG / HP / trait / foil labels, element badges / filters / matchup text removed.
+  Retired diamond HUD counter removed; Trait Shards remain, Celestial Fragments stay in BAG. TRAINING
+  uses existing illustrated art. DEV adds exact card / border / copies, luck / resources / packs, sky /
+  duration / supplies, level and boss-timer tools; authorization, bounded validation and rate limit remain.
+  Existing Studio Assistant tower refined in place (wide base, curved roofs, warm windows / framing /
+  gables / steps / embers), moved outside the lobby to (-135,7.4,-95), night radius 46. F opens tower UI.
+  Both refined and untouched tower assets are now in Git / Rojo; World uses the refined one and skips
+  the old generated duplicate. Save the open place for original-model / marker / scenery backups.
+  Required checks and desktop Studio checks passed; user visual review, mobile / streaming and template
+  restoration in an older place remain in checklist 5. Studio Edit, helper stopped, nothing published.
+
 - CELESTIAL REDESIGN COMPLETE (2026-10-29): selected collections / Card Packs keeper, 16 clothed event
   Attacks across four single-anime skies, global schedule / local summons / BAG crafting, read-only sky
   HUD, bottom-right potion / relic icons, neutral elements, familiar column bonds, slower skill / Ultimate
@@ -18,11 +30,9 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
   iPhone 17 Pro landscape emulator checked; ordinary-play / live-server cases remain in checklist 5.
   User unbanned and authorized clothed replacements; all 16 production portraits uploaded / visibly
   loaded. Rejected shirtless originals and unused concept art remain locally, not shipped or reuploaded.
-  IMPORTANT: Studio Assistant's new tower-night mood was only in Studio; it is now preserved in ZoneFx.
-  Its separate Workspace.InfiniteTower (22 floor models, ~1,122 descendants) and Zone_InfiniteTower marker
-  remain PLACE-ONLY. Save the open place. This authored tower has no ProximityPrompt and is away from the
-  old Tower marker; the original runtime tower / entrance remain. Do not remove either unasked; resolve
-  the new tower's entrance integration with the user. No map / place / boss model was overwritten.
+  Studio Assistant's tower-night mood is preserved in ZoneFx. The following tower / UI pass integrated
+  its entrance, refined / relocated the authored model and exported it with an untouched backup; see above.
+  No full map / place / boss model was overwritten.
   Unrelated .codex/ and five loose portrait PNGs remain untouched. Nothing published.
 
 - QUEST / GOAL FOLLOW-UP COMPLETE (2026-10-29): verified Claude's empty-panel click fix in desktop
@@ -127,6 +137,32 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-29 · Codex · this commit · Refined the user's existing 22-floor tower in place from the pagoda
+  reference, preserving untouched geometry / markers / moved trees in ServerStorage. 1.7x base hall,
+  floor two 60% / upper 0.94x taper, named foundation-to-roof stacking (<0.00002-stud gaps), four-section
+  curved Slate eaves / ridges / tips, recessed amber windows / timber, base gables, approach steps,
+  embers / upper mist. All anchored; small decor noncolliding / shadowless. Moved outside lobby,
+  46-stud night zone. Exported refined / original RBXMX + hashes / whitelist exporter / reproducible
+  refinement tool. Rojo ServerStorage template preserves unknown instances; World keeps a refined
+  workspace model or restores per floor, reconnects prompt / zone, tags FX / lights and moves conflicting
+  trees. TownServices skips old tower while authored one is active. Closest six lanterns only, none on
+  LOW; emitters distance / menu culled. No Lighting edits or combat / progression changes.
+  Tab / fold toggles custom SERVER; sky panel moves below expanded desktop list, hides on compact.
+  Plain DMG / HP / trait / foil / ability tags; hidden neutral-element badges / vault filter / outdated
+  Index matchup block, familiar-bond facts instead. Removed retired diamond HUD chip (was showing
+  Fragments with old Shard art); existing Fragments remain BAG. Illustrated TRAINING assets reused.
+  DEV searchable card / border / quantity grants, finite custom luck / earned reset, resources / packs,
+  local sky / duration / supply kit, level / XP reset and boss reward-timer clear. Server DevAccess /
+  TestMode gating, 3/s burst8 rate limit, pure validated ranges / ids; no new save fields.
+  Checks: luau-lsp exit0 / zero errors, check_props 5,765 names / zero problems, bundle + Luau ALL CHECKS
+  PASSED including new DEV rejection / sky-preview cases. Studio: exported template properties round-trip,
+  pathfinding to approach succeeds with jumping, F opens tower panel, lobby14 -> tower0 -> lobby14,
+  embers / six lights active; real Tab both ways, TRAINING / clean full card / expanded DEV inspected.
+  Isolated profile checks cover grants / exact copies / level / cooldown / bad id / NaN / burst limit /
+  TestMode false; original restored. Existing console asset-type warning for 203785492 remains; no new
+  script errors. Unsure: user visual preference, real phone / crowded streaming, older-place restoration
+  and ordinary sky / DEV interactions. Studio Edit; localhost export helper stopped; no publishing.
 
 - 2026-10-29 · Codex · this commit · Implemented the approved Celestial / collection / combat / economy
   redesign; preserved existing 37 normal card identities, ownership, traits, mastery, purchased upgrades,

@@ -19,6 +19,17 @@ function Service.State()
 	return state
 end
 function Service.Luck(): number return Service.State().Luck end
+-- Called only by the authorized, rate-limited Dev remote; never a player weather action.
+function Service.DevSet(id: string,seconds: number)
+	local now=workspace:GetServerTimeNow()
+	if id=="clear" then
+		-- Suppress a natural event too, so Quiet Skies can actually be previewed.
+		override={Id="clear",Key=`dev:{now}`,Starts=now,Ends=now+seconds,Summoned=false}
+	else
+		override={Id=id,Key=`dev:{now}`,Starts=now,Ends=now+seconds,Summoned=false}
+	end
+	cooldownEnds=0
+end
 function Service.Inventory(data)
 	return {Fragments=data.Celestial.Fragments,Inventory=table.clone(data.Celestial.Inventory)}
 end

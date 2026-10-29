@@ -52,11 +52,13 @@ local animated = {} -- [Model] = { Base, Phase }
 local spinners = {} -- [BasePart] = { Base, Phase }
 local turners = {} -- [Model] = { Base, Speed }: Madame Fortuna's wheel, turning about its face
 local townFx = {} -- the two new tower emitters; bounded independently of the skyline parts
+local townLights={}
 local tipIndex = 0
 local bubble: any = nil -- Kenji's speech bubble (children read by name)
 local bubbleToken = 0
 
 local function track(inst: Instance)
+	if inst:IsA("PointLight") and inst:GetAttribute("TownLightRange") then townLights[inst]={Brightness=inst.Brightness,Range=inst:GetAttribute("TownLightRange")} end
 	if inst:IsA("ParticleEmitter") and inst:GetAttribute("TownFxRange") then
 		townFx[inst]={Rate=inst.Rate,Range=inst:GetAttribute("TownFxRange")}
 	end
@@ -213,6 +215,16 @@ local function fadeSigns()
 	local camera=Workspace.CurrentCamera
 	if not camera then return end
 	local hide=worldHidden()
+	local lights={}
+	for light,info in townLights do
+		if not light.Parent then townLights[light]=nil;continue end
+		local anchor=light.Parent
+		local distance=if anchor:IsA("BasePart") then (anchor.Position-camera.CFrame.Position).Magnitude else math.huge
+		light.Enabled=false
+		if not hide and not Theme.FxLow and distance<info.Range then table.insert(lights,{Light=light,Distance=distance}) end
+	end
+	table.sort(lights,function(a,b) return a.Distance<b.Distance end)
+	for i=1,math.min(6,#lights) do lights[i].Light.Enabled=true end
 	for emitter,info in townFx do
 		if not emitter.Parent then townFx[emitter]=nil; continue end
 		local anchor=emitter.Parent
@@ -292,6 +304,8 @@ function HubFx.Start()
 		if hub == nil then
 			return
 		end
+		for _,inst in CollectionService:GetTagged("TownAmbientFx") do track(inst) end
+		CollectionService:GetInstanceAddedSignal("TownAmbientFx"):Connect(track)
 		for _, inst in hub:GetDescendants() do
 			track(inst)
 		end

@@ -576,7 +576,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Name = "TopBar",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.new(0, 460, 0, 44),
+		Size = UDim2.new(0, 270, 0, 44),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
@@ -589,7 +589,6 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 			VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 12),
 		}),
 	})
-	currencyChip("Shards", 1, "Shard", "💎", Theme.Color.Gold, 140)
 	currencyChip("TraitShards", 2, nil, "🧬", Theme.Color.Gold, 110)
 	local luckChip = currencyChip("Rolls", 3, nil, "🎲", Theme.Color.Gold, 120)
 	Kit.label({
@@ -1228,8 +1227,6 @@ function Hud.Refresh()
 	if not ready then return end
 	local s = State.Summary
 	activeCollection.Text="ACTIVE PACK: " .. (Collections.ById[s.SelectedCollection or "normal"] or Collections.ById.normal).Name
-	local fragments=State.Meta.Celestial and State.Meta.Celestial.Fragments or s.Fragments or 0
-	setCurrency("Shards", Kit.commas(fragments), fragments)
 	local traitShards = s.TraitShards or State.Meta.TraitShards or 0
 	setCurrency("TraitShards", Kit.commas(traitShards), traitShards)
 	Hud.RefreshMomentum()

@@ -57,8 +57,8 @@ local function draw()
 	add("BATTLE RHYTHM",Theme.Color.Gold,22,Theme.Font.Display)
 	add("Basic attacks follow the blue action bar. Skills wait at least 8 seconds. Ultimates need full charge and a 22-second cooldown; changing speed accelerates the whole simulation.",Theme.Color.Text,17)
 	add("Focus a Warder to break its protection or a Mender to stop enemy healing. The leader falling wins the fight. Familiar column combos fire once as the leader weakens.",Theme.Color.Text,17)
-	add("CARD THEMES",Theme.Color.Gold,22,Theme.Font.Display)
-	add("Flame, Frost and the other icons describe artwork and techniques. They do not multiply damage, grant counters or create team-count bonuses. Status effects still work as written.",Theme.Color.Muted,16)
+	add("STATUS EFFECTS",Theme.Color.Gold,22,Theme.Font.Display)
+	add("Burn, Bleed, Freeze, Stun and Weaken work exactly as the card's technique describes. Inspect the ability and its activation-limit pills before choosing your four columns.",Theme.Color.Muted,16)
 
 end
 

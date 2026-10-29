@@ -348,7 +348,6 @@ local function headline(card)
 	return Cards.Ability(card, "Ultimate") or Cards.Ability(card, "Skill") or Cards.Ability(card, "Basic") or Cards.Ability(card, "Passive")
 end
 
-local SLOT_ICON = { Ultimate = "💥", Skill = "⚡", Basic = "🗡️", Passive = "🍃", Aura = "✨", Signature = "👑" }
 
 -- A small rounded chip (rarity, border, stars, tags): `width` is a share of the row.
 local function chip(parent: Instance, order: number, text: string, color: Color3, width: number, textColor: Color3?)
@@ -597,20 +596,12 @@ function CardView.new(cardId: string, opts: Options?): Frame
 				ZIndex = 5,
 				Parent = frame,
 			}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(tier.Color:Lerp(Color3.new(1, 1, 1), 0.3), 1.5, 0.45) })
-			Kit.label({
-				Text = SLOT_ICON[ability.Slot] or "✦",
-				Font = Theme.Font.Heavy,
-				Position = UDim2.fromScale(0.03, 0.12),
-				Size = UDim2.fromScale(0.12, 0.76),
-				ZIndex = 6,
-				Parent = bar,
-			}, 28)
 			local abilityName = Kit.label({
 				Text = ability.Name,
 				Font = Theme.Font.Display,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				Position = UDim2.fromScale(0.17, 0.14),
-				Size = UDim2.fromScale(0.78, 0.72),
+				Position = UDim2.fromScale(0.05, 0.14),
+				Size = UDim2.fromScale(0.9, 0.72),
 				ZIndex = 6,
 				Parent = bar,
 			}, 30)
@@ -621,19 +612,16 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			local tagList = {}
 			local trait = Traits.Get(options.Trait)
 			if trait then
-				table.insert(tagList, { `{trait.Icon} {trait.Name}`, Rarity.Get(trait.Tier).Color })
+				table.insert(tagList, { trait.Name, Rarity.Get(trait.Tier).Color })
 			end
 			local foil = Foils.Get(options.Foil)
 			if options.Foil and options.Foil ~= "standard" then
-				table.insert(tagList, { `{foil.Icon} {foil.Name}`, foil.Color })
+				table.insert(tagList, { foil.Name, foil.Color })
 			end
-			if element then
-				table.insert(tagList, { `{element.Icon} {element.Name}`, element.Color })
-			end
-			table.insert(tagList, { if card.Type == "Attack" then "⚔️ Attack" else "✨ Support", Color3.fromRGB(218, 230, 253) })
+			table.insert(tagList, { if card.Type == "Attack" then "Attack" else "Support", Color3.fromRGB(218, 230, 253) })
 			for _, a in card.Abilities do
 				if (a.Slot == "Passive" or a.Slot == "Aura" or a.Slot == "Signature") and #tagList < 4 then
-					table.insert(tagList, { `{SLOT_ICON[a.Slot]} {a.Name}`, Color3.fromRGB(218, 230, 253) })
+					table.insert(tagList, { a.Name, Color3.fromRGB(218, 230, 253) })
 				end
 			end
 			for i, tagInfo in tagList do

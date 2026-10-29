@@ -611,10 +611,63 @@ local function buildFromMap(map: Instance, markers: Instance)
 	-- Lighting, sky and terrain colours are saved with the map; zones re-tint them on the client.
 end
 
+local function prepareAuthoredTower(markers)
+	local tower=workspace:FindFirstChild("InfiniteTower")
+	local template=game:GetService("ServerStorage"):FindFirstChild("InfiniteTowerTemplate")
+	if not tower and template then
+		tower=Instance.new("Model");tower.Name="InfiniteTower";tower.Parent=workspace
+		-- Restore the saved model in floor-sized chunks, without a single giant parenting stall.
+		for _,child in template:GetChildren() do child:Clone().Parent=tower;task.wait() end
+		tower:SetAttribute("ReferencePolishVersion",1)
+	end
+	if not tower or tower:GetAttribute("ReferencePolishVersion")~=1 then return end
+	local entrance=tower:FindFirstChild("Entrance",true)
+	local first=tower:FindFirstChild("TowerFloor1") or tower:FindFirstChild("TowerFloor_1")
+	if not entrance or not entrance:IsA("BasePart") or not first then return end
+	local foundation=first:FindFirstChild("Foundation")
+	if not foundation or not foundation:IsA("BasePart") then return end
+	tower:SetAttribute("EntranceCFrame",entrance.CFrame)
+	local prompt=entrance:FindFirstChildOfClass("ProximityPrompt")
+	if prompt then prompt:SetAttribute("Npc","tower") end
+	local gateMarker=markers:FindFirstChild("Tower")
+	if gateMarker and gateMarker:IsA("BasePart") then gateMarker.CFrame=entrance.CFrame*CFrame.new(0,-entrance.Size.Y/2,0) end
+	local zone: any=markers:FindFirstChild("Zone_InfiniteTower")
+	if not zone then
+		zone=Instance.new("Part");zone.Name="Zone_InfiniteTower";zone.Size=Vector3.one;zone.Anchored=true
+		zone.Transparency=1;zone.CanCollide=false;zone.CanQuery=false;zone.CanTouch=false;zone.Parent=markers
+	end
+	if zone:IsA("BasePart") then
+		zone.CFrame=CFrame.new(foundation.Position.X,foundation.Position.Y-foundation.Size.Y/2,foundation.Position.Z)
+		zone:SetAttribute("Radius",46)
+	end
+	local tags=game:GetService("CollectionService")
+	-- A template restored into an older place must not leave its original trees inside the hall.
+	local town=workspace.Map:FindFirstChild("Town")
+	local trees={}
+	if town then
+		for _,part in workspace:GetPartBoundsInBox(foundation.CFrame*CFrame.new(0,12,0),Vector3.new(foundation.Size.X+6,30,foundation.Size.Z+6)) do
+			local tree=part:FindFirstAncestorOfClass("Model")
+			if tree and tree:IsDescendantOf(town) and tree.Name:match("^Tree") then trees[tree]=true end
+		end
+	end
+	local moved=0
+	for tree in trees do moved+=1;tree:PivotTo(tree:GetPivot()+Vector3.new(-45,0,if moved%2==0 then -40 else 40)) end
+	for _,child in tower:GetChildren() do if child:IsA("Model") then child.ModelStreamingMode=Enum.ModelStreamingMode.Atomic end end
+	for _,inst in tower:GetDescendants() do
+		if inst:IsA("ParticleEmitter") then
+			inst:SetAttribute("TownFxRange",if inst.Name=="TowerMist" then 550 else 100)
+			tags:AddTag(inst,"TownAmbientFx")
+		elseif inst:IsA("PointLight") then
+			inst:SetAttribute("TownLightRange",75);inst.Enabled=false;tags:AddTag(inst,"TownAmbientFx")
+		end
+	end
+end
+
 function World.Build()
 	local map = workspace:FindFirstChild("Map")
 	local markers = map and map:FindFirstChild("Markers")
 	if map and markers then
+		prepareAuthoredTower(markers)
 		buildFromMap(map, markers)
 		return
 	end

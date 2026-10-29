@@ -52,7 +52,7 @@ local function outcomeText(result): string
 	-- A foil found for the first time, and an Awakening node this pull opened.
 	if result.NewFoil and result.Foil and result.Foil ~= "standard" then
 		local foil = Foils.Get(result.Foil)
-		text ..= `   ·   {foil.Icon} {string.upper(foil.Name)}!`
+		text ..= `   ·   {string.upper(foil.Name)}!`
 	end
 	if result.NewNode then
 		local node = Awaken.Nodes[result.NewNode]
