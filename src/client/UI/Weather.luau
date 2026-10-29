@@ -38,7 +38,7 @@ local function refresh()
 	bonus.TextColor3=Theme.Color.Luck
 	timer.Text=if active then clock(current.Ends-now) elseif current.Next then clock(current.Next.Starts-now) else "--:--"
 	timeLabel.Text=if active then "TIME LEFT" else "NEXT SKY"
-	footer.Text=if hasCards then (if active then "Roll / AUTO / packs · 1 sky search / sec" else "Available when this sky arrives") else "Sky items and potions are in BAG"
+	footer.Text=if hasCards then (if active then "Every pull searches the sky · luck helps a little" else "Available when this sky arrives") else "Sky items and potions are in BAG"
 	caption.Text=if active then "EXCLUSIVE ATTACK CARDS · ROLLABLE NOW" else "UPCOMING EXCLUSIVE CARDS"
 	caption.Visible=hasCards;strip.Visible=hasCards
 	edge.Color=def.Color
@@ -112,7 +112,7 @@ local function refresh()
 	footer.Position=UDim2.new(0,if short then 10 else 12,1,if short then -18 else -26)
 	footer.Size=UDim2.fromOffset(if short then 216 else 306,if short then 12 else 17)
 	footer.TextSize=if short then 10 else 12
-	if short and hasCards then footer.Text=if active then "Rare sky finds · 1 search / sec" else "Available when this sky starts" end
+	if short and hasCards then footer.Text=if active then "Every pull searches the sky" else "Available when this sky starts" end
 
 end
 function Ui.Init(playerGui)

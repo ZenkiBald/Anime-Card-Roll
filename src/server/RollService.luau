@@ -21,6 +21,7 @@ local Collections = require(Shared.Collections)
 local Weather = require(Shared.Weather)
 local WeatherService = require(script.Parent.WeatherService)
 local CelestialRolls=require(Shared.CelestialRolls)
+local BulkRoll = require(Shared.BulkRoll)
 local RevealPolicy=require(Shared.RevealPolicy)
 
 
@@ -51,14 +52,13 @@ local DevCommands = require(Shared.DevCommands)
 local RollService = {}
 
 local rng = Random.new()
-local skySearches={}
-local function skyFind(player)
-	if not Config.CelestialCardsReady then return nil end
-	local state=WeatherService.State()
-	if state.Id=="clear" then return nil end
-	local gate=skySearches[player] or {};skySearches[player]=gate
-	if not CelestialRolls.Take(gate,state.Key,workspace:GetServerTimeNow()) then return nil end
-	return CelestialRolls.Pick(Cards.WeatherPool(state.Id),rng:NextNumber())
+-- While a sky is active, every normal pull searches it once (CelestialRolls): `searches` at once, with
+-- the player's luck lifting the chance a little. Returns { [card] = finds }; empty in Quiet Skies.
+local function skyFinds(luck: number, searches: number): { [any]: number }
+	if not Config.CelestialCardsReady or searches <= 0 then return {} end
+	local state = WeatherService.State()
+	if state.Id == "clear" then return {} end
+	return CelestialRolls.Search(Cards.WeatherPool(state.Id), searches, luck, rng)
 end
 
 local lastRoll = {} -- [Player] = os.clock() of their last roll
@@ -290,9 +290,12 @@ local function rollClick(player: Player, profile, perfect: boolean, click: boole
 	for _ = 2, count do
 		table.insert(extra, doRoll(player, profile, nil, nil, { BorderMult = mult, FoilMult = foilMult }))
 	end
-	-- A single paced search is shared by every roll source; Triple Roll cannot multiply it.
-	local found=skyFind(player)
-	if found then table.insert(extra,doRoll(player,profile,nil,nil,{CelestialId=found.Id})) end
+	-- Every card of the click (Triple Roll included) searches the active sky once.
+	for card, n in skyFinds(luckFor(player, data), count) do
+		for _ = 1, n do
+			table.insert(extra, doRoll(player, profile, nil, nil, { CelestialId = card.Id }))
+		end
+	end
 
 	main.Extra = if #extra > 0 then extra else nil
 
@@ -334,39 +337,136 @@ local function payWin(player: Player, profile, packs: { [string]: number }?, sha
 	}
 end
 
--- One non-yielding transaction for the entire selection. Luck is sampled once, XP paid once,
--- and only bounded receipts / grouped counts leave the server.
+-- Adds `n` pulls of one card at once (bulk pack opening): splits them over borders and foils with one
+-- multinomial draw each, applies copies / found borders / foils to the save and records one receipt group
+-- per border. Returns how many were new cards (0 or 1) and how many rolled a special border.
+local function addBulk(player: Player, profile, card, n: number, borderChances, batch, xp)
+	local data = profile.Data
+	local entry = data.Cards[card.Id]
+	local isNew = entry == nil
+	if isNew then
+		entry = { Copies = 0, Stars = 0 }
+		data.Cards[card.Id] = entry
+	end
+	entry.Copies += n
+	entry.Stars = 0
+	-- Borders, rarest first; whatever's left is Base.
+	local order, probs = {}, {}
+	for i = #Borders.List, 2, -1 do
+		table.insert(order, Borders.List[i].Id)
+		table.insert(probs, borderChances[Borders.List[i].Id] or 0)
+	end
+	local split = BulkRoll.Multinomial(rng, n, probs)
+	local counts, special = {}, 0
+	for i, id in order do
+		if split[i] > 0 then counts[id] = split[i]; special += split[i] end
+	end
+	if n - special > 0 then counts.Normal = n - special end
+	-- Foils: only whether each one turned up matters (the card keeps every foil it has found).
+	local foilProbs = {}
+	for i, foil in Foils.List do foilProbs[i] = foil.Chance end
+	local bestFoil, newFoil = nil, false
+	for i, got in BulkRoll.Multinomial(rng, n, foilProbs) do
+		local foil = Foils.List[i].Id
+		if got > 0 and foil ~= "standard" then
+			entry.Foils = entry.Foils or {}
+			newFoil = newFoil or entry.Foils[foil] ~= true
+			entry.Foils[foil] = true
+			bestFoil = foil
+		end
+	end
+	local first = true
+	for i = #Borders.List, 1, -1 do
+		local id = Borders.List[i].Id
+		local got = counts[id]
+		if got then
+			entry.BorderCopies = entry.BorderCopies or {}
+			entry.BorderCopies[id] = (entry.BorderCopies[id] or 0) + got
+			local newBorder = false
+			if id ~= "Normal" then
+				entry.Borders = entry.Borders or {}
+				newBorder = entry.Borders[id] ~= true
+				entry.Borders[id] = true
+			end
+			if newBorder and data.Settings.Avatar == card.Id then
+				AvatarService.Apply(player)
+			end
+			PackBatch.AddGroup(batch, card.Id, id, got, if isNew then "New" else "Copy", newBorder,
+				if first then bestFoil else nil, if first then newFoil else nil)
+			first = false
+		end
+	end
+	xp.XP += Meta.XP.Roll * n + (if isNew then Meta.XP.NewCard else 0)
+	return special
+end
+
+-- One non-yielding pass for the whole selection, however big: the pool's card counts come from one
+-- multinomial draw over the total (packs x rolls), then each card's borders / foils. Luck is sampled
+-- once, XP paid once, and while a sky is active every pull also searches it (the same bulk draw).
 local function openPack(player: Player, profile, pack: Packs.Pack, count: number)
 	local data = profile.Data
 	local xp = { XP = 0 }
 	local luck = luckFor(player, data)
-	local opts = nil
+	local borderMult = nil
 	if pack.Element then
 		local event = MetaService.Event()
 		local boosted = (event ~= nil and event.Luck ~= nil) or MetaService.ServerLuck() > 1
-		opts = { Element = pack.Element, BorderMult = if boosted then Packs.InfuseBorderMult else nil }
+		borderMult = if boosted then Packs.InfuseBorderMult else nil
 	end
+	local total = count * pack.Rolls
+	local pool = Collections.Pool(data.SelectedCollection, data.Progress.Cleared)
+	local chances = Cards.PullChances(pool, pack.Element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()))
+	local probs, commonest = {}, 1
+	for i, card in pool do
+		probs[i] = chances[card.Id]
+		if probs[i] > probs[commonest] then commonest = i end
+	end
+	local split = BulkRoll.Multinomial(rng, total, probs)
+	local assigned = 0
+	for _, n in split do assigned += n end
+	split[commonest] += total - assigned -- float rounding: every pull lands somewhere
+	local borderBoost = (1 + Meta.Bonus(data.Stats, data.Gear, "Border")) * (borderMult or 1) - 1
+	local borderChances = Borders.Chances(borderBoost, luck)
 	local batch = PackBatch.New()
 	local touched = {}
-	local found=skyFind(player)
-	for index = 1, count * pack.Rolls do
-		local result = doRoll(player, profile, luck, xp, opts)
-		PackBatch.Add(batch, result)
-		touched[result.CardId] = true
+	local special = 0
+	for i, card in pool do
+		if split[i] > 0 then
+			special += addBulk(player, profile, card, split[i], borderChances, batch, xp)
+			touched[card.Id] = true
+		end
 	end
-	if found then
-		local bonus=doRoll(player,profile,luck,xp,{CelestialId=found.Id})
-		PackBatch.Add(batch,bonus);touched[bonus.CardId]=true
+	-- Sky finds are bonus cards on top of the pack's pulls.
+	local skyBorders = Borders.Chances(Meta.Bonus(data.Stats, data.Gear, "Border"), luck)
+	for card, n in skyFinds(luck, total) do
+		special += addBulk(player, profile, card, n, skyBorders, batch, xp)
+		touched[card.Id] = true
 	end
+	data.TotalRolls += batch.Rolls
+	MetaService.Track(player, "Rolls", batch.Rolls)
+	if special > 0 then MetaService.Track(player, "EpicPulls", special) end
 	MetaService.AddXP(player, data, xp.XP)
 	PackBatch.Finish(batch)
-	local best = batch.Results[1]
-	if best and Borders.Index(best.Border) >= Borders.Index(Config.AnnounceFrom) then
-		GlobalAnnounce.Pull(player, best.CardId, best.Border)
-	end
+	RollService.AnnounceBatch(player, batch)
 	local cards = {}
 	for id in touched do cards[id] = DataService.CardState(data.Cards[id]) end
 	return batch, cards, luck
+end
+
+-- A bulk opening's announcements: every highlight at or past Config.ChatAnnounceFrom (1 in 10,000,000),
+-- at most three, else its best pull if that border is announced anyway (Rainbow+).
+function RollService.AnnounceBatch(player: Player, batch)
+	local said = 0
+	for _, pull in batch.Results do
+		if said < 3 and (pull.Rarity or 0) >= Config.ChatAnnounceFrom then
+			GlobalAnnounce.Pull(player, pull.CardId, pull.Border, pull.Foil)
+			said += 1
+		end
+	end
+	local best = batch.Results[1]
+	if said == 0 and best and Borders.Index(best.Border) >= Borders.Index(Config.AnnounceFrom) then
+		GlobalAnnounce.Pull(player, best.CardId, best.Border)
+	end
 end
 
 function RollService.RewardRolls(player: Player, d: number, firstClear: boolean, costChallenge: boolean?, corrupted: boolean?)
@@ -532,7 +632,6 @@ function RollService.OpenPacks(player: Player, packId: unknown, count: unknown)
 end
 
 function RollService.Start()
-	Players.PlayerRemoving:Connect(function(player) skySearches[player]=nil end)
 	Remotes.GetState.OnServerInvoke = function(player: Player)
 		if not stateLimiter:Allow(player) then
 			return { Ok = false, Reason = "Loading" } -- the client asks again
@@ -546,8 +645,7 @@ function RollService.Start()
 
 	-- OpenPack(packId, count?): opens `count` of the player's Roll Packs of that kind (1 by default; a number,
 	-- or "all"). Works while Auto Roll runs: a pack opens in one go, with no yield an Auto Roll pull could
-	-- land in. One call rolls at most PackBatch.MaxRolls cards, so "all" on a pile of Mega
-	-- Packs stays fast; the rest stay in the bag.
+	-- land in. "all" opens the whole pile in one bulk draw, however many packs it holds.
 	Remotes.OpenPack.OnServerInvoke = RollService.OpenPacks
 
 	Remotes.Roll.OnServerInvoke = function(player: Player, mode: unknown, early: unknown)
@@ -677,9 +775,9 @@ function RollService.Start()
 		elseif action=="ClearBossCooldowns" then
 			profile.Data.Progress.RewardAt={}
 		elseif action == "GrantAll" or action == "GrantStarter" then
-			-- GrantStarter: just the most common cards (Weight 8+), a first deck; GrantAll: the whole pool.
+			-- GrantStarter: just the most common cards (1 in 60 or commoner), a first deck; GrantAll: the whole pool.
 			for _, card in Cards.Pool(profile.Data.Progress.Cleared) do
-				local include = action == "GrantAll" or card.Weight >= 8
+				local include = action == "GrantAll" or card.Weight >= Cards.WeightTotal / 60
 				if include and profile.Data.Cards[card.Id] == nil then
 					profile.Data.Cards[card.Id] = { Copies = 1, Stars = 0, BorderCopies = { Normal = 1 } }
 				end

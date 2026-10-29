@@ -83,13 +83,24 @@ check(infused.rook > pc.rook and infused.kaede < pc.kaede, "an infused pack lean
 local bandOk = true
 for _, card in Cards.List do
 	if card.Type == "Attack" then
-		bandOk = bandOk and card.Main >= 450 and card.Main <= (if card.Weather then 1600 else 600) and card.HP == 2 * card.Main
+		bandOk = bandOk and card.Main >= 450 and card.Main <= 6000 and card.HP == 2 * card.Main
 	else
 		bandOk = bandOk and card.HP == nil and card.Main == 0 and card.SPD == 0 and card.Support ~= nil
 	end
 	bandOk = bandOk and card.Weight > 0
 end
-check(bandOk, "ATK 450-600 with HP = 2 x ATK; Support passives with no damage, HP or speed; every card has a Weight")
+check(bandOk, "ATK 450-6,000 with HP = 2 x ATK; Support passives with no damage, HP or speed; every card has a Weight")
+-- Rarer is stronger (2026-10-30): among normal / boss Attack cards, a strictly rarer card never has less ATK.
+local rarerOk = true
+for _, a in Cards.List do
+	for _, b in Cards.List do
+		if a.Type == "Attack" and b.Type == "Attack" and not a.Weather and not b.Weather and a.Weight < b.Weight and a.Main < b.Main then
+			rarerOk = false
+			print(`   {a.Id} (Weight {a.Weight}) has less ATK than the commoner {b.Id}`)
+		end
+	end
+end
+check(rarerOk, "a rarer card never has less base ATK than a commoner one")
 local ROLES = { Striker = true, Hexer = true, Mender = true, Warder = true }
 local rolesOk = true
 for _, card in Cards.List do
@@ -100,27 +111,26 @@ for _, card in Cards.List do
 end
 check(rolesOk, "every card declares its Role: Striker / Hexer / Mender / Warder")
 
--- 7. The border always wins: 4x steps, and the best card at max stars and Awakening node 4 on one border
--- never reaches the weakest 0-star card on the next.
+-- 7. Borders multiply by 4 each step, and for the same card nothing (stars, mastery) on one border reaches the
+-- next. Across cards rarity matters too now: an apex Gold card (2,700 x 4) outdoes a starter Rainbow (450 x 16).
 check(Borders.Multiplier("Normal") == 1 and Borders.Multiplier("Gold") == 4 and Borders.Multiplier("Rainbow") == 16 and Borders.Multiplier("Secret") == 64, "border multipliers 1 / 4 / 16 / 64")
 local winsOk = true
 for _, typ in { "Attack" } do
 	for i = 1, #Borders.Order - 1 do
-		local lowBest, highWorst = 0, math.huge
 		for _, card in Cards.List do
 			if card.Type == typ then
-				lowBest = math.max(lowBest, Cards.Power(card, Config.MaxStars, Borders.Order[i], 4))
-				highWorst = math.min(highWorst, Cards.Power(card, 0, Borders.Order[i + 1]))
+				local lowBest = Cards.Power(card, Config.MaxStars, Borders.Order[i], 4)
+				local highWorst = Cards.Power(card, 0, Borders.Order[i + 1])
+				if lowBest >= highWorst then
+					winsOk = false
+					print(`   {card.Id}: maxed {Borders.Order[i]} {lowBest} >= plain {Borders.Order[i + 1]} {highWorst}`)
+				end
 			end
-		end
-		if lowBest >= highWorst then
-			winsOk = false
-			print(`   {typ}: best {Borders.Order[i]} {lowBest} >= weakest {Borders.Order[i + 1]} {highWorst}`)
 		end
 	end
 end
-check(winsOk, "a maxed card on one border never out-powers a 0-star card on the next")
-local kaede = Cards.Get("kaede") :: any -- a Weight 10 card, so the rarity scale is 1
+check(winsOk, "a maxed card on one border never out-powers the same card, unmaxed, on the next")
+local kaede = Cards.Get("kaede") :: any
 check(Cards.Stat(kaede, kaede.Main, 0, "Gold") == 4 * kaede.Main and Cards.Stat(kaede, kaede.HP, 0, "Secret") == 64 * kaede.HP, "a Gold card has 4x, a Secret card 64x the base stats")
 
 -- 8. Borders: helpers.

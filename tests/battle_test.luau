@@ -1,6 +1,6 @@
 -- Deck rules, the battle engine, boss mechanics, rewards, and the tuning targets:
--- the first all-Base deck (about 25.4k Deck Power) beats Kurogane Normal in 60-90 s,
--- and a deck at each fight's recommended power wins it in 60-90 s.
+-- the first all-Base deck (about 31.5k Deck Power) is too weak for Kurogane Normal (it needs Gold borders,
+-- tests/fixtures.luau), and a deck at each fight's recommended power wins it in 60-90 s.
 local Config = MODULES.Config
 local Deck = MODULES.Deck
 local Cards = MODULES.Cards
@@ -15,9 +15,9 @@ local starterOwned = F.own(starterIds)
 local starter = Deck.AutoBuild(starterOwned)
 local starterPower = Deck.Power(starter, starterOwned)
 print(`   starter deck: {table.concat(starter.Attack, ",")} / {table.concat(starter.Support, ",")} = {starterPower} power`)
-check(math.abs(starterPower - 25400) <= 600, `the first all-Base deck is about 25.4k power ({starterPower})`)
+check(math.abs(starterPower - 31500) <= 600, `the first all-Base deck is about 31.5k power ({starterPower})`)
 check(Deck.Count(starter, "Attack") == 4 and Deck.Count(starter, "Support") == 4, "auto-build fills 4 Attack + 4 Support")
-check(starter.Attack[1] == "rook" and starter.Support[1] == "heavenly_pact", "auto-build puts the strongest card on the left")
+check(starter.Attack[1] == "noa" and starter.Support[1] == "heavenly_pact", "auto-build puts the strongest card on the left")
 
 local ok = Deck.Validate({ Attack = { "rook", "", "", "" }, Support = { "", "", "", "" } }, starterOwned)
 check(ok ~= nil, "a deck with empty slots is valid")
@@ -46,7 +46,7 @@ check(allBad, "malformed decks are refused")
 
 -- 2. Engine rules ----------------------------------------------------------------------
 do
-	-- Damage formula: Rook's first hit = his ATK (550 x the rarity scale) x 100% x (1 - target DEF), or x1.5 on a
+	-- Damage formula: Rook's first hit = his ATK x 100% x (1 - target DEF), or x1.5 on a
 	-- crit. His first target is Kurogane's Warder (the Ironclad taunts, 15% DEF).
 	local deck = F.deck({ "rook" }, {})
 	local battle, events = F.fight("kurogane", "Normal", deck, starterOwned, 3)
@@ -58,7 +58,8 @@ do
 		end
 	end
 	local def = first and battle.ById[first.T].DEF or 0
-	local rookAtk = Cards.Stat(Cards.Get("rook") :: any, 550, 0, "Normal") -- 550 x the rarity scale
+	local rook = Cards.Get("rook") :: any
+	local rookAtk = Cards.Stat(rook, rook.Main, 0, "Normal")
 	local plain, crit = math.floor(rookAtk * (1 - def) + 0.5), math.floor(rookAtk * 1.5 * (1 - def) + 0.5)
 	check(first ~= nil and first.T == "G3" and (first.A == plain or (first.C and first.A == crit)), `damage formula (Rook's first hit {first and first.A} on {first and first.T})`)
 end
@@ -263,31 +264,17 @@ end
 check(dOk, "every world has Normal / Hard / Nightmare with D in order (World 1 Normal = 1)")
 
 -- 5. Tuning -------------------------------------------------------------------------------------
-local rate, times, kos = F.campaign("kurogane", "Normal", starter, starterOwned, 200)
-local inWindow = 0
-for _, t in times do
-	if t >= 60 and t <= 90 then
-		inWindow += 1
-	end
-end
-print(
-	string.format(
-		"   25.4k all-Base starter vs Kurogane Normal: %d%% wins, p10 %.1fs / median %.1fs / p90 %.1fs, %.2f KOs",
-		rate * 100,
-		F.percentile(times, 0.1),
-		F.percentile(times, 0.5),
-		F.percentile(times, 0.9),
-		kos
-	)
-)
-check(rate >= 0.95, `the all-Base starter deck wins at least 95% of fights ({math.floor(rate * 100)}%)`)
-check(#times > 0 and inWindow / #times >= 0.9, `90%+ of its wins take 60-90 s ({inWindow}/{#times})`)
+-- Kurogane Normal is 250,000 HP (the user's 2026-10-30 call): the first all-Base deck runs out of time,
+-- and the Gold World 1 fixture is the first deck that clears it.
+local rate = F.campaign("kurogane", "Normal", starter, starterOwned, 30)
+print(string.format("   31.5k all-Base starter vs Kurogane Normal: %d%% wins", rate * 100))
+check(rate == 0, `the all-Base starter deck can't beat Kurogane Normal yet ({math.floor(rate * 100)}%)`)
 
 for _, fx in F.FIGHTS do
 	local deck, owned = F.fixtureDeck(fx)
 	local power = Deck.Power(deck, owned)
 	local recommended = Bosses.Get(fx.Boss).Difficulties[fx.Difficulty].Recommended
-	local r, t, k = F.campaign(fx.Boss, fx.Difficulty, deck, owned, 100)
+	local r, t, k = F.campaign(fx.Boss, fx.Difficulty, deck, owned, if fx.Unwinnable then 20 else 100)
 	local median = F.percentile(t, 0.5)
 	print(
 		string.format(
@@ -301,10 +288,16 @@ for _, fx in F.FIGHTS do
 			k
 		)
 	)
-	check(
-		math.abs(power - recommended) / recommended <= 0.1 and r >= 0.9 and median >= 60 and median <= 90,
-		`{fx.Boss} {fx.Difficulty}: a deck at the recommended power wins in 60-90 s`
-	)
+	if fx.Unwinnable then
+		-- Reported, not required: no deck in the game wins it (docs/LAUNCH_CHECKLIST.md).
+		print(`   NOTE {fx.Boss} {fx.Difficulty}: the strongest possible deck wins {math.floor(r * 100)}% (out of reach)`)
+	else
+		local top = if fx.Chase then 100 else 90
+		check(
+			math.abs(power - recommended) / recommended <= 0.1 and r >= 0.9 and median >= 60 and median <= top,
+			`{fx.Boss} {fx.Difficulty}: a deck at the recommended power wins in 60-{top} s`
+		)
+	end
 end
 
 local lone = F.campaign("kurogane", "Normal", F.deck({ "rook" }, {}), starterOwned, 20)

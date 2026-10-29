@@ -16,6 +16,13 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   Before any public release, replace all three: original names, original art and original boss models. Roblox
   removes infringing games and assets, and repeat strikes can cost the account.
 
+- [ ] **World 4 Nightmare is unwinnable (decide).** At 250,000,000 HP (2026-10-30) the strongest deck in the game,
+  four Secret Blood Moon cards, deals about 169M in the 180 s limit (~203M with the Blood Moon +20%). Pick one: lower
+  its HP to ~120M (that deck wins in ~2 min), raise `Config.Battle.TimeLimit` for it, or keep it as an aspiration.
+- [ ] **New players can't clear World 1 Normal (decide).** The all-Base starter deck (31.5k) loses Kurogane Normal
+  (250,000 HP) on time; the first clear needs about four Gold cards (115.7k). Kenji's path and the first boss-card
+  unlock wait behind that. Consider ~60k HP for World 1 Normal or a starter Gold card.
+
 ## 2. Code switches
 
 - [ ] **code** `src/shared/Config.luau`: `Config.TestMode = false`. This one switch:
@@ -324,6 +331,10 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   tabs fit, no HUD shows through or over an open panel (no DUPE pops on top), the top bar clears Kenji's tracker and
   the server list, and the Auto Roll feed sits above the DASH / jump buttons.
 - [ ] A save from the old rarity era loads correctly (covered by `tests/save_test.luau`, but worth one real look).
+
+- [ ] Rarity / bulk-pack / boss pass (2026-10-30): USE ALL on 100 Mega Packs finishes in about a second with one
+  summary; during a sky, opening packs gives sky cards in proportion; chat shows a line for a 1-in-10M+ pull and the
+  BILLION PULL line for 1-in-1B+; the new card stats, Eight Trigrams 55-100%, and each boss at its recommended deck.
 
 ## 6. Smoke test on the live game (first hour)
 

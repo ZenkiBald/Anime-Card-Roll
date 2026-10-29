@@ -4,7 +4,9 @@ local Cards = require(script.Parent.Cards)
 local Packs = require(script.Parent.Packs)
 local Batch = {}
 Batch.HighlightCount = Packs.ShowCards
-Batch.MaxRolls = 10000
+-- One request opens the whole selection in a single bulk draw (RollService), so this is only a sanity
+-- ceiling on pulls per request, far above any real pile; the work doesn't grow with the count.
+Batch.MaxRolls = 1e12
 
 function Batch.OpenCount(packId, requested, held)
 	local pack = Packs.ById[packId]
@@ -43,6 +45,30 @@ function Batch.Add(batch, result)
 	group.Outcome = if group.Outcome == "New" or result.Outcome == "New" then "New" else "Copy"
 	local receipt = { CardId = result.CardId, Border = border, Foil = result.Foil,
 		Outcome = result.Outcome, NewBorder = result.NewBorder, Rarity = group.Rarity }
+	local shown = batch.Results
+	if #shown < Batch.HighlightCount or Batch.Rarer(receipt, shown[#shown]) then
+		table.insert(shown, receipt)
+		table.sort(shown, Batch.Rarer)
+		if #shown > Batch.HighlightCount then table.remove(shown) end
+	end
+end
+
+-- `count` pulls of one card at one border at once (bulk pack opening): one group, one highlight receipt.
+function Batch.AddGroup(batch, cardId, border, count, outcome, newBorder, foil, newFoil)
+	batch.Rolls += count
+	batch.Counts[border] = (batch.Counts[border] or 0) + count
+	if outcome == "New" then batch.New += 1 end
+	local key = cardId .. ":" .. border
+	local group = batch.Groups[key]
+	if not group then
+		group = { CardId = cardId, Border = border, Count = 0, Rarity = Cards.Rarity(cardId, border), Foil = foil }
+		batch.Groups[key] = group
+	end
+	group.Count += count
+	group.NewBorder = group.NewBorder or newBorder == true
+	group.Outcome = if group.Outcome == "New" or outcome == "New" then "New" else "Copy"
+	local receipt = { CardId = cardId, Border = border, Foil = foil, NewFoil = newFoil,
+		Outcome = outcome, NewBorder = newBorder, Rarity = group.Rarity, Count = count }
 	local shown = batch.Results
 	if #shown < Batch.HighlightCount or Batch.Rarer(receipt, shown[#shown]) then
 		table.insert(shown, receipt)

@@ -149,7 +149,7 @@ function Deck.CardPower(id: string, owned: Owned): number
 		else Cards.Power(card, 0)
 end
 
--- The player's "rarest" card: the best border worn, then the least likely card (lowest Weight).
+-- The player's "rarest" card: the best border worn, then the least likely card (Cards.RarityRank).
 -- A score for leaderboards too: border index x 1000 + how rare the card is (0-999).
 function Deck.Rarest(owned: Owned): (string?, string, number)
 	local bestId, bestBorder, bestScore = nil, "Normal", -1
@@ -157,7 +157,7 @@ function Deck.Rarest(owned: Owned): (string?, string, number)
 		local card = Cards.Get(id)
 		if card then
 			local border = Borders.Best(entry.Borders)
-			local score = Borders.Index(border) * 1000 + math.clamp(math.floor(999 - card.Weight * 50), 0, 999)
+			local score = Borders.Index(border) * 1000 + math.clamp(math.floor(Cards.RarityRank(card) * 60), 0, 999)
 			if score > bestScore then
 				bestId, bestBorder, bestScore = id, border, score
 			end

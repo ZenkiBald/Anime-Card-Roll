@@ -162,7 +162,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 	if card.SkyOneIn then
 		local sky=require(Shared.Weather).ById[card.Weather]
 		line(sky.Name.." only · "..Odds.FormatPercent(100*chance).." per sky search",Theme.Font.Medium,Theme.Color.Muted,20,15)
-		line("ROLL / AUTO / packs share one sky search per second. Luck improves borders.",Theme.Font.Medium,Theme.Color.Muted,20,14)
+		line("Every ROLL / AUTO / pack pull searches the active sky. Luck adds 15% of its bonus to the chance.",Theme.Font.Medium,Theme.Color.Muted,20,14)
 	elseif chance then
 		line(Odds.FormatPercent(chance*100).." card chance · any border",Theme.Font.Medium,Theme.Color.Muted,20,15)
 	elseif card.Boss then

@@ -5,16 +5,20 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
+local TextChatService = game:GetService("TextChatService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Borders = require(Shared.Borders)
+local Cards = require(Shared.Cards)
+local Odds = require(Shared.Odds)
 local Deck = require(Shared.Deck)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local UI = script.Parent:WaitForChild("UI")
 local Theme = require(UI.Theme)
+local Kit = require(UI.Kit)
 local Skin = require(UI.Skin)
 local Hud = require(UI.Hud)
 local Reveal = require(UI.Reveal)
@@ -233,8 +237,32 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 	Reveal.Quick(result)
 end)
 
+-- Pulls rarer than 1 in 10,000,000 (card x border, Cards.Rarity) also get a system line in the chat;
+-- 1 in a billion and rarer get the highlighted BILLION-tier line.
+local function chatAnnounce(playerName: string, cardId: string, borderId: string?, global: boolean?)
+	local card = Cards.Get(cardId)
+	local rarity = if card then Cards.Rarity(cardId, borderId) else 0
+	if card == nil or rarity < Config.ChatAnnounceFrom then
+		return
+	end
+	local border = Borders.Get(borderId)
+	local name = string.gsub(playerName, "[<>&]", "")
+	local where = if global then "[GLOBAL] " else "[SERVER] "
+	local text = if rarity >= Config.ChatBillionFrom
+		then `<font color="#FF4FD8"><b>{where}BILLION PULL! {name} rolled {string.upper(border.Name)} {card.Name} (1 in {Kit.commas(Odds.Round(rarity))})!</b></font>`
+		else `<font color="#{border.Color:ToHex()}">{where}{name} rolled {border.Name} {card.Name} (1 in {Kit.commas(Odds.Round(rarity))})!</font>`
+	pcall(function()
+		local channels = TextChatService:FindFirstChild("TextChannels")
+		local general = channels and channels:FindFirstChild("RBXGeneral")
+		if general and general:IsA("TextChannel") then
+			general:DisplaySystemMessage(text)
+		end
+	end)
+end
+
 Remotes.Announce.OnClientEvent:Connect(function(playerName: string, cardId: string, borderId: string?, foilId: string?, global: boolean?)
 	Hud.Announce(playerName, cardId, borderId, foilId, global)
+	chatAnnounce(playerName, cardId, borderId, global)
 end)
 
 -- STORE: pass ownership and the Luck Totem (MonetizationService).

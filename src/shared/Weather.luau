@@ -1,15 +1,16 @@
 --!strict
--- Pure global schedule. Slot hashes vary both the weather and its start within each 15-minute slot.
+-- Pure global schedule. Slot hashes vary both the weather and its start within each 15-minute slot:
+-- Limitbreak 30% / Soulfall 20% / Cursed Night 20% / Blood Moon 5% / Quiet Skies 25%, each sky 5 minutes.
 local Weather = {}
 Weather.SlotSeconds = 900
 Weather.ForecastSeconds = 150
 Weather.Seed = 731947
 Weather.List = {
 	{ Id="clear", Name="Quiet Skies", Luck=0, Seconds=0, Color=Color3.fromRGB(130,210,255) },
-	{ Id="rain", BaseATK=1250, MinRarity=600, MaxRarity=1000, Name="Limitbreak Skies", Series="Dragon Ball", Luck=0.5, Seconds=300, Color=Color3.fromRGB(75,170,255) },
-	{ Id="blizzard", BaseATK=1450, MinRarity=1200, MaxRarity=2500, Name="Soulfall", Series="Bleach", Luck=1, Seconds=300, Color=Color3.fromRGB(160,235,255) },
-	{ Id="thunder", BaseATK=1350, MinRarity=1500, MaxRarity=3000, Name="Cursed Night", Series="Jujutsu Kaisen", Luck=1, Seconds=300, Color=Color3.fromRGB(175,120,255) },
-	{ Id="eclipse", BaseATK=1600, MinRarity=4000, MaxRarity=8000, Name="Blood Moon", Series="Demon Slayer", Luck=2, Seconds=180, Color=Color3.fromRGB(255,80,115) },
+	{ Id="rain", Name="Limitbreak Skies", Series="Dragon Ball", Luck=0.5, Seconds=300, Color=Color3.fromRGB(75,170,255) },
+	{ Id="blizzard", Name="Soulfall", Series="Bleach", Luck=1, Seconds=300, Color=Color3.fromRGB(160,235,255) },
+	{ Id="thunder", Name="Cursed Night", Series="Jujutsu Kaisen", Luck=1, Seconds=300, Color=Color3.fromRGB(175,120,255) },
+	{ Id="eclipse", Name="Blood Moon", Series="Demon Slayer", Luck=2, Seconds=300, Color=Color3.fromRGB(255,80,115) },
 }
 Weather.ById = {} :: {[string]: any}
 for _, def in Weather.List do Weather.ById[def.Id]=def end
@@ -21,7 +22,7 @@ local function randomAt(slot: number, salt: number): number
 end
 function Weather.Event(slot: number): any
 	local roll=randomAt(slot,1)
-	local id=if roll<0.30 then "rain" elseif roll<0.50 then "blizzard" elseif roll<0.70 then "thunder" elseif roll<0.73 then "eclipse" else "clear"
+	local id=if roll<0.30 then "rain" elseif roll<0.50 then "blizzard" elseif roll<0.70 then "thunder" elseif roll<0.75 then "eclipse" else "clear"
 	local start=slot*Weather.SlotSeconds+150+math.floor(randomAt(slot,2)*360)
 	return { Id=id, Key=`natural:{slot}`, Starts=start, Ends=start+Weather.ById[id].Seconds, Summoned=false }
 end

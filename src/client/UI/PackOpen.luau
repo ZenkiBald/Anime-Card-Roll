@@ -9,7 +9,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Packs = require(Shared.Packs)
 local Borders = require(Shared.Borders)
 local Cards = require(Shared.Cards)
-local PackBatch=require(Shared.PackBatch)
 local RevealPolicy=require(Shared.RevealPolicy)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
@@ -52,26 +51,19 @@ function PackOpen.Open(packId: string, count: (number | string)?): (any, string?
 	return result, nil
 end
 
--- The server keeps its per-request work bounded; USE ALL drains a captured pile over safe chunks.
+-- USE ALL: the server opens the whole pile in one instant bulk draw, whatever its size (one request,
+-- retried once if it lands inside the open limiter). `onProgress` / `cancelled` are kept for BAG.
 function PackOpen.UseAll(packId,onProgress,cancelled)
-	local remaining=State.Packs[packId] or 0
-	local wanted=remaining
-	local total=PackBatch.New()
-	local message=nil
-	while remaining>0 and not cancelled() do
-		local result,why,reason=PackOpen.Open(packId,remaining)
-		if result then
-			PackBatch.Accumulate(total,result)
-			remaining-=result.Opened
-			onProgress(wanted-remaining,wanted)
-			if remaining>0 then task.wait(.15) end
-		elseif reason=="TooFast" then task.wait(.5)
-		else message=why;break end
+	local wanted=State.Packs[packId] or 0
+	local result,why,reason=PackOpen.Open(packId,"all")
+	if not result and reason=="TooFast" and not cancelled() then
+		task.wait(1)
+		result,why=PackOpen.Open(packId,"all")
 	end
-	if total.Opened==nil then return nil,message or "Opening stopped" end
-	total.Stopped=remaining>0
-	PackBatch.Finish(total)
-	return total,message
+	if not result then return nil,why or "Opening stopped" end
+	onProgress(result.Opened,wanted)
+	result.Stopped=(State.Packs[packId] or 0)>0 and result.Opened<wanted
+	return result,nil
 end
 
 -- "100 rolls at 2.40x luck · 3 NEW · Legendary 2 · Epic 9 · Rare 30 ..." (rarest first).

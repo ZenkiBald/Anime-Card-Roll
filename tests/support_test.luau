@@ -25,8 +25,10 @@ do
 		check(casts and a.HasHP and a.SPD > 0, characterId .. " has real HP, speed and damaging Basic / Skill / Ultimate without Support")
 	end
 	local converted = { "hana", "suzu", "ibuki", "tetsu" }
-	local rate, times = F.campaign("kurogane", "Normal", F.deck(converted, {}), F.own(converted), 20)
-	print(string.format("   converted all-Base Attack-only team: %d%% wins, %.1fs median", rate * 100, F.percentile(times, .5)))
+	local gold = {}
+	for _, id in converted do gold[id] = "Gold" end
+	local rate, times = F.campaign("kurogane", "Normal", F.deck(converted, {}), F.own(converted, 0, gold), 20)
+	print(string.format("   converted all-Gold Attack-only team: %d%% wins, %.1fs median", rate * 100, F.percentile(times, .5)))
 	check(rate >= .9 and F.percentile(times, .5) <= 100, "converted characters can win a starter fight together without relic healing")
 	local invalid = MODULES.Deck.Empty(); invalid.Support[1] = "hana"
 	check(MODULES.Deck.Clean(invalid, F.allOwned(0)).Support[1] == "", "stale client Support slots cannot keep a converted Attack card")
@@ -124,7 +126,9 @@ do
 	local b = setup("beast_seal")
 	local a, support = b.ById.A1, b.ById.S1
 	b:DamageAlly(a, a.MaxHP * 2, "Hit", "Boss")
-	check(a.Alive and a.HP == math.floor(a.MaxHP * .85 + .5) and a.Invuln == 0 and near(a.Buffs["Cost:S1"].Amount, -.25), "Crimson Chakra Cloak returns at 85% HP and costs 25% DMG")
+	check(a.Alive and a.HP == math.floor(a.MaxHP * .55 + .5) and a.Invuln == 0 and near(a.Buffs["Cost:S1"].Amount, -.25), "Crimson Chakra Cloak returns at 55% HP (Base) and costs 25% DMG")
+	local seal = Cards.Get("beast_seal") :: any
+	check(Cards.SupportValue(seal, 0, "Gold") == .7 and Cards.SupportValue(seal, 0, "Rainbow") == .85 and Cards.SupportValue(seal, 0, "Secret") == 1, "the cloak returns at 70% / 85% / 100% on Gold / Rainbow / Secret")
 	check(b:SupportHeal(support.Modifier, a, 100) == 0 and a.HealingLock == math.huge and b:Snapshot().U.A1.F:find("N"), "the cloak permanently prevents healing and exposes its status")
 	b:DamageAlly(a, a.MaxHP * 2, "Hit", "Boss")
 	check(not a.Alive and support.Modifier.Used == 1 and b.ById.A2.Alive, "a second fatal hit defeats the supported card without reviving again")

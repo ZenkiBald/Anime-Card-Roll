@@ -429,17 +429,15 @@ openPack=function(pack, count: (number | string)?)
 		return
 	end
 	local frame,close=cover()
-	local stopped=false
+	-- One instant server pass however many packs: just a short "opening" line while it answers.
 	local progress=Kit.label({Name="OpeningProgress",Text="Opening packs...",Size=UDim2.new(1,-24,0,50),Position=UDim2.fromOffset(12,40),ZIndex=32,Parent=frame},24)
-	local stop=Kit.button("STOP AFTER THIS BATCH",Theme.Color.Danger,Theme.Color.AttackDeep,{Name="StopOpening",Position=UDim2.new(.25,0,.45,0),Size=UDim2.new(.5,0,0,44),ZIndex=33,Parent=frame})
-	stop.Activated:Connect(function() stopped=true;stop.Label.Text="STOPPING..." end)
 	local result,message
 	if count=="all" then
-		result,message=PackOpen.UseAll(pack.Id,function(done,total) progress.Text="Opened "..Kit.commas(done).." / "..Kit.commas(total).." packs" end,function() return stopped or not modal.IsOpen or not frame.Parent end)
+		result,message=PackOpen.UseAll(pack.Id,function(done) progress.Text="Opened "..Kit.commas(done).." packs" end,function() return not modal.IsOpen or not frame.Parent end)
 	else result,message=PackOpen.Open(pack.Id,count) end
 	if not result then close();hint(message or "Opening stopped");return end
 	if not modal.IsOpen then close();return end
-	progress:Destroy();stop:Destroy()
+	progress:Destroy()
 	if message then hint(message) end
 	Sfx.Play("Whoosh",.9)
 
@@ -536,7 +534,7 @@ local function showDetail(entry)
 				15
 			)
 		end
-		-- USE ALL drains the captured pile in safe server chunks, with progress / Stop.
+		-- USE ALL opens the whole pile in one instant server pass (PackOpen.UseAll).
 		local function opener(row: Frame, label: string, count: number | string, order: number)
 			local enough = if count == "all" then entry.Count > 0 else entry.Count >= (count :: number)
 			action(row, label, UITheme.Colors.VermilionHover, UITheme.Colors.VermilionWax, order, enough, function()

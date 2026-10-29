@@ -47,6 +47,10 @@ Config.VolumeSteps = { 0, 0.25, 0.5, 0.75, 1 }
 
 -- Pulls of this rarity or better are announced to the whole server.
 Config.AnnounceFrom = "Rainbow" -- borders this good are announced to the server
+-- Pulls this rare (combined card x border rarity, Cards.Rarity) also post a server chat line; from
+-- ChatBillionFrom it's the highlighted BILLION-tier line.
+Config.ChatAnnounceFrom = 10000000
+Config.ChatBillionFrom = 1000000000
 
 Config.Deck = {
 	Slots = 4, -- per row: 4 Attack (front) + 4 Support (back)

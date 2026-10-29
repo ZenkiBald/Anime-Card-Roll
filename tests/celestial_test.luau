@@ -35,15 +35,11 @@ do
 
 end
 
--- Sky finds are distinct authored probabilities, shared across all roll sources at a real-time pace.
+-- Sky finds: every pull searches the active sky once, at each card's authored 1 / SkyOneIn chance (luck
+-- lifts it by 15% of its bonus); a bulk draw over N searches matches N single searches.
 do
 	local C,R,W=MODULES.Cards,MODULES.CelestialRolls,MODULES.Weather
-	local gate={}
-	check(R.Take(gate,"sky",100) and not R.Take(gate,"sky",100) and not R.Take(gate,"sky",100.99),"manual / AUTO / pack requests cannot duplicate a sky search")
-	check(R.Take(gate,"sky",101) and R.Take(gate,"sky",10000) and not R.Take(gate,"sky",10000),"sky searches refill once per second and never bank idle attempts")
 	local normal=C.Pool({["kurogane:Normal"]=true,["rimeveil:Normal"]=true,["vex:Normal"]=true,["tenrai:Normal"]=true})
-	local total=0
-	for _,card in normal do total+=card.Weight end
 	local minBlood,maxLimit=math.huge,0
 	for _,sky in W.List do
 		if sky.Id=="clear" then continue end
@@ -54,25 +50,34 @@ do
 			local atk=C.Stat(card,card.Main,0,"Normal")
 			check(not seen[card.SkyOneIn] and card.SkyOneIn>last and atk>stats,"rarer sky cards have unique odds and stronger stats: "..card.Name)
 			seen[card.SkyOneIn]=true;last=card.SkyOneIn;stats=atk
+			-- Against every normal / boss Attack card that is no rarer than it.
 			local stronger=true
 			for _,other in normal do
-				if other.Type~="Attack" then continue end
-				local matched=table.clone(other);matched.Weight=total/card.SkyOneIn
-				stronger=stronger and atk>C.Stat(matched,matched.Main,0,"Normal")
+				if other.Type=="Attack" and C.WeightTotal/other.Weight<=card.SkyOneIn then
+					stronger=stronger and atk>C.Stat(other,other.Main,0,"Normal")
+				end
 			end
-			check(stronger,"sky card outstats a normal / boss card at the same rarity: "..card.Name)
+			check(stronger,"sky card outstats every normal / boss card that is no rarer: "..card.Name)
 			mass+=1/card.SkyOneIn
 			if sky.Id=="rain" then maxLimit=math.max(maxLimit,card.SkyOneIn) end
 			if sky.Id=="eclipse" then minBlood=math.min(minBlood,card.SkyOneIn) end
 		end
-		check(mass<.01 and R.Pick(pool,.99999)==nil,"most eligible sky searches remain ordinary rolls: "..sky.Name)
+		check(mass<.01 and R.Pick(pool,.99999)==nil,"most sky searches remain ordinary rolls: "..sky.Name)
+		local chances1,chances25=R.Chances(pool,1),R.Chances(pool,25)
+		check(math.abs(chances1[1]-1/pool[1].SkyOneIn)<1e-12 and math.abs(chances25[1]/chances1[1]-(1+24*.15))<1e-9,"luck lifts sky odds by 15% of its bonus: "..sky.Name)
 		local counts={};local rng=Random.new(429);local n=500000
 		for _=1,n do local found=R.Pick(pool,rng:NextNumber());if found then counts[found.Id]=(counts[found.Id] or 0)+1 end end
+		local bulk=R.Search(pool,n,1,Random.new(77))
 		local matches=true
-		for _,card in pool do local chance=1/card.SkyOneIn;matches=matches and math.abs((counts[card.Id] or 0)-n*chance)<5*math.sqrt(n*chance*(1-chance)) end
-		check(matches,"sampled per-card sky odds match their displayed rarity: "..sky.Name)
+		for _,card in pool do
+			local chance=1/card.SkyOneIn
+			local sd=5*math.sqrt(n*chance*(1-chance))
+			matches=matches and math.abs((counts[card.Id] or 0)-n*chance)<sd and math.abs((bulk[card] or 0)-n*chance)<sd
+		end
+		check(matches,"single and bulk sky searches both match the displayed odds: "..sky.Name)
 	end
-	check(maxLimit==1000 and minBlood==4000,"Blood Moon is a rarer chase than the 600-1000 Limitbreak range")
+	check(maxLimit==3000 and minBlood==10000,"Blood Moon (1 in 10,000+) is a rarer chase than Limitbreak (1,500-3,000)")
+	check(R.Chances(C.WeatherPool("eclipse"),1e9)[1]<.5,"absurd luck still can't make every search a find")
 end
 
 do
@@ -106,8 +111,16 @@ end
 
 do
  local C=MODULES.Cards
- local gojo,yhwach=C.Get("celestial_thunder_gojo"),C.Get("celestial_blizzard_yhwach")
- check(C.Rarity(gojo.Id)==C.Rarity(yhwach.Id) and C.Stat(yhwach,yhwach.Main,0,"Normal")>C.Stat(gojo,gojo.Main,0,"Normal"),"Soulfall Almighty outstats Cursed Night Gojo even at equal rarity")
+ local sukuna,yhwach=C.Get("celestial_thunder_sukuna"),C.Get("celestial_blizzard_yhwach")
+ check(C.Rarity(sukuna.Id)==C.Rarity(yhwach.Id) and yhwach.Main==sukuna.Main and yhwach.Main==4300,"the two 1 in 8,000 sky cards (Yhwach, Sukuna) share 4,300 base ATK")
+ for _,card in C.List do
+ 	if card.Weather and card.Weather~="rain" then
+ 		local skill,ult=C.Ability(card,"Skill"),C.Ability(card,"Ultimate")
+ 		local total=0
+ 		for _,e in ult.Effects do if e.Kind=="Damage" then total+=(e.Pct or 0)*(e.Hits or 1) end end
+ 		check(skill.Every==3 and total>=5-1e-9 and total<=6.5+1e-9,"sky Skills every 3 actions, Ultimates 500-650%: "..card.Name)
+ 	end
+ end
  local high=C.Get("celestial_eclipse_akaza")
  check(C.Stat(high,high.Main,0,"Normal")>C.Stat(yhwach,yhwach.Main,0,"Normal"),"Blood Moon starts above Soulfall's strongest card")
 end

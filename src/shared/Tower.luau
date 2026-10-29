@@ -102,24 +102,27 @@ Tower.GuardianPower = 1.15 -- its recommended power over the floor's
 
 -- The curve: recommended Deck Power at floor 1 and its growth per floor, without end. HP and ATK come
 -- from Points: the leader HP / ATK (guards are shares of it) that a deck of that power beats in about 70 s
--- (measured with the battle simulator against the fixture decks and the floor's guards, then smoothed so
+-- (re-measured 2026-10-30 with the battle simulator: each fixture deck at its floor beats every enemy
+-- within ~72 s at 95%+, then smoothed so
 -- neither ever drops as power grows), joined in
 -- log space between points and carried on past the last one by the Beyond exponents.
 Tower.Curve = {
 	Power = 16500,
-	Growth = 1.068, -- about 2x every 10 floors; floor 37 is about Tenrai Nightmare
+	Growth = 1.068, -- about 2x every 10 floors; floor 31 is about a World 1 Normal deck, 106 World 4 Hard
 	Points = {
-		{ Power = 16500, HP = 35100, ATK = 11 },
-		{ Power = 25400, HP = 58500, ATK = 20 },
-		{ Power = 31700, HP = 72000, ATK = 24 },
-		{ Power = 47800, HP = 135000, ATK = 38 },
-		{ Power = 64300, HP = 144000, ATK = 46 },
-		{ Power = 98100, HP = 360000, ATK = 56 },
-		{ Power = 117200, HP = 409500, ATK = 70 },
-		{ Power = 151900, HP = 855000, ATK = 94 },
-		{ Power = 175600, HP = 1260000, ATK = 115 },
-		{ Power = 697700, HP = 5400000, ATK = 455 },
-		{ Power = 2790700, HP = 21000000, ATK = 1190 },
+		{ Power = 16500, HP = 42500, ATK = 29 },
+		{ Power = 22900, HP = 58900, ATK = 34 },
+		{ Power = 115700, HP = 219000, ATK = 66 },
+		{ Power = 295900, HP = 560000, ATK = 105 },
+		{ Power = 504000, HP = 972000, ATK = 138 },
+		{ Power = 801600, HP = 1738000, ATK = 185 },
+		{ Power = 1108800, HP = 3100000, ATK = 246 },
+		{ Power = 1920000, HP = 5000000, ATK = 313 },
+		{ Power = 2284800, HP = 5635000, ATK = 332 },
+		{ Power = 5318400, HP = 18440000, ATK = 601 },
+		{ Power = 5721600, HP = 21070000, ATK = 643 },
+		{ Power = 12787200, HP = 43200000, ATK = 920 },
+		{ Power = 16512000, HP = 58360000, ATK = 1070 },
 	},
 	Beyond = { HP = 1, ATK = 1 }, -- past the last point: linear stats; full Secret chase decks remain playable
 }

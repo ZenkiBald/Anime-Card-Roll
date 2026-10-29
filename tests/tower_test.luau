@@ -176,8 +176,8 @@ end
 -- A deck far below a floor's power doesn't walk through it.
 do
 	local deck, owned = F.fixtureDeck(F.FIGHTS[1])
-	local rate = campaign(Tower.FloorAt(30, Tower.Enemies[1], false), deck, owned, 10)
-	check(rate == 0, "a World 1 deck can't climb to floor 30")
+	local rate = campaign(Tower.FloorAt(50, Tower.Enemies[1], false), deck, owned, 10)
+	check(rate == 0, "a World 1 Normal deck can't climb to floor 50")
 end
 
 -- Runs: every floor of an Infinite Tower run pays its Shards, Trait Shards, artifact roll and packs; a

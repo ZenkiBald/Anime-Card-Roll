@@ -26,7 +26,7 @@ end)
 
 test("bulk open validates requests, ownership and a bounded roll budget", function()
 	equal(Batch.OpenCount("10","all",62),62)
-	equal(Batch.OpenCount("1000","all",100),10)
+	equal(Batch.OpenCount("1000","all",100),100) -- one bulk draw opens the whole pile
 	equal(Batch.OpenCount("10",100,7),7)
 	equal(Batch.OpenCount("10",-1,100),nil)
 	equal(Batch.OpenCount("10",0/0,100),nil)

@@ -70,7 +70,7 @@ export type Card = {
 	Accent: Color3, -- portrait background colour
 	Image: string?, -- the card's 2D illustration ("rbxassetid://..."); cards without one show their glyph
 	Abilities: { Ability },
-	Support: { Name: string, Kind: string, Amount: number, Uses: number?, Threshold: number?, Stat: string?, Trigger: string, Text: string, Chance: number?, Penalty: number?, Turns: number?, Burn: number?, Fixed: boolean? }?,
+	Support: { Name: string, Kind: string, Amount: number, Values: { number }?, Uses: number?, Threshold: number?, Stat: string?, Trigger: string, Text: string, Chance: number?, Penalty: number?, Turns: number?, Burn: number?, Fixed: boolean? }?,
 	-- Support cards: the Slot Link passive given to the Attack card in the matching front slot (Support
 	-- slot 1 links to Attack slot 1, ...). Stat is a trait stat (Traits.luau); BattleEngine applies it.
 	Link: { Name: string, Stat: string, Amount: number, Text: string }?,
@@ -80,7 +80,6 @@ export type Card = {
 }
 
 local Config = require(script.Parent.Config)
-local Weather=require(script.Parent.Weather)
 local Borders = require(script.Parent.Borders)
 local Awaken = require(script.Parent.Awaken)
 local Odds = require(script.Parent.Odds)
@@ -100,10 +99,10 @@ local list: { Card } = {
 		Title = "Armored Colossus",
 		Type = "Attack",
 		Role = "Warder",
-		Weight = 8,
+		Weight = 222.2222,
 		Element = "Flame",
-		Main = 550,
-		HP = 1100,
+		Main = 725,
+		HP = 1450,
 		SPD = 95,
 		Glyph = "RK",
 		Accent = Color3.fromRGB(196, 120, 72),
@@ -130,10 +129,10 @@ local list: { Card } = {
 		Title = "Soul-Thread Medic",
 		Type = "Attack",
 		Role = "Mender",
-		Weight = 10,
+		Weight = 1333.3333,
 		Element = "Void",
-		Main = 475,
-		HP = 950,
+		Main = 450,
+		HP = 900,
 		SPD = 115,
 		Glyph = "KD",
 		Accent = Color3.fromRGB(120, 140, 170),
@@ -156,10 +155,10 @@ local list: { Card } = {
 		Title = "Dawn Swordsman",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 8,
+		Weight = 250,
 		Element = "Flame",
-		Main = 516,
-		HP = 1032,
+		Main = 700,
+		HP = 1400,
 		SPD = 100,
 		Glyph = "TM",
 		Accent = Color3.fromRGB(255, 160, 70),
@@ -185,10 +184,10 @@ local list: { Card } = {
 		Title = "The Untouchable",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 1.5,
+		Weight = 6.6667,
 		Element = "Storm",
-		Main = 469,
-		HP = 938,
+		Main = 2300,
+		HP = 4600,
 		SPD = 110,
 		Glyph = "MR",
 		Accent = Color3.fromRGB(255, 220, 90),
@@ -200,7 +199,7 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 1, Hits = 4, Target = "RandomEnemy" },
 			}, 3),
 			ability("Ultimate", "Void Convergence", "Collapse the void for {p1} DMG. The enemy takes {a2} more DMG for {t2} turns.", {
-				{ Kind = "Damage", Pct = 9 },
+				{ Kind = "Damage", Pct = 5 },
 				{ Kind = "Debuff", Stat = "Vuln", Amount = 0.25, Turns = 3 },
 			}),
 			ability("Aura", "Infinite Pressure", "On entry, grant every ally {a1} DMG. Maintaining the field costs this card {a2} attack speed.", {
@@ -215,10 +214,10 @@ local list: { Card } = {
 		Title = "Shadow Familiar Tamer",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 4,
+		Weight = 26.3158,
 		Element = "Storm",
-		Main = 519,
-		HP = 1038,
+		Main = 1525,
+		HP = 3050,
 		SPD = 120,
 		Glyph = "SI",
 		Accent = Color3.fromRGB(90, 180, 255),
@@ -244,10 +243,10 @@ local list: { Card } = {
 		Title = "King of Malice",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 1.5,
+		Weight = 6.6667,
 		Element = "Flame",
-		Main = 512,
-		HP = 1024,
+		Main = 2400,
+		HP = 4800,
 		SPD = 105,
 		Glyph = "AK",
 		Accent = Color3.fromRGB(230, 60, 70),
@@ -277,10 +276,10 @@ local list: { Card } = {
 		Title = "Prince of Pride",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 2.5,
+		Weight = 10,
 		Element = "Frost",
-		Main = 514,
-		HP = 1028,
+		Main = 2050,
+		HP = 4100,
 		SPD = 110,
 		Glyph = "KR",
 		Accent = Color3.fromRGB(255, 200, 70),
@@ -306,10 +305,10 @@ local list: { Card } = {
 		Title = "Mistress of Hounds",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 8,
+		Weight = 200,
 		Element = "Void",
-		Main = 521,
-		HP = 1042,
+		Main = 750,
+		HP = 1500,
 		SPD = 100,
 		Glyph = "NO",
 		Accent = Color3.fromRGB(150, 110, 255),
@@ -335,10 +334,10 @@ local list: { Card } = {
 		Title = "The Silver Instinct",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 1,
+		Weight = 5,
 		Element = "Cosmic",
-		Main = 512,
-		HP = 1024,
+		Main = 2600,
+		HP = 5200,
 		SPD = 115,
 		Glyph = "RJ",
 		Accent = Color3.fromRGB(40, 30, 70),
@@ -347,10 +346,10 @@ local list: { Card } = {
 				{ Kind = "Damage", Pct = 1.2 },
 			}),
 			ability("Skill", "Afterimage Assault", "Disappear beyond sight, then strike for {p1} DMG.", {
-				{ Kind = "Damage", Pct = 4 },
+				{ Kind = "Damage", Pct = 3 },
 			}, 3),
 			ability("Ultimate", "Limit-Breaking Fist", "Break through defense and protection with a {p1} DMG strike.", {
-				{ Kind = "Damage", Pct = 15, IgnoreDef = true },
+				{ Kind = "Damage", Pct = 5.5, IgnoreDef = true },
 			}),
 			ability("Signature", "Perfect Instinct", "After every 5 attacks, a {chance} chance to land a {p1} DMG afterimage strike and evade the next enemy hit.", {
 				{ Kind = "Damage", Pct = 1.25 },
@@ -366,10 +365,10 @@ local list: { Card } = {
 		Title = "Hundred-Healing Medic",
 		Type = "Attack",
 		Role = "Mender",
-		Weight = 10,
+		Weight = 1333.3333,
 		Element = "Light",
-		Main = 485,
-		HP = 970,
+		Main = 455,
+		HP = 910,
 		SPD = 105,
 		Glyph = "HN",
 		Accent = Color3.fromRGB(120, 200, 110),
@@ -398,10 +397,10 @@ local list: { Card } = {
 		Title = "Blood-Pact Brawler",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 4,
+		Weight = 33.3333,
 		Element = "Light",
-		Main = 525,
-		HP = 1050,
+		Main = 1450,
+		HP = 2900,
 		SPD = 110,
 		Glyph = "GR",
 		Accent = Color3.fromRGB(200, 170, 110),
@@ -429,10 +428,10 @@ local list: { Card } = {
 		Title = "Sleeping Lightning",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 10,
+		Weight = 1250,
 		Element = "Storm",
-		Main = 485,
-		HP = 970,
+		Main = 470,
+		HP = 940,
 		SPD = 130,
 		Glyph = "SZ",
 		Accent = Color3.fromRGB(255, 210, 70),
@@ -460,10 +459,10 @@ local list: { Card } = {
 		Title = "Cloud-Step Assassin",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 8,
+		Weight = 166.6667,
 		Element = "Frost",
-		Main = 540,
-		HP = 1080,
+		Main = 800,
+		HP = 1600,
 		SPD = 120,
 		Glyph = "IB",
 		Accent = Color3.fromRGB(150, 170, 200),
@@ -490,10 +489,10 @@ local list: { Card } = {
 		Title = "Mirror of Hypnosis",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 1.5,
+		Weight = 6.6667,
 		Element = "Frost",
-		Main = 490,
-		HP = 980,
+		Main = 2200,
+		HP = 4400,
 		SPD = 110,
 		Glyph = "YA",
 		Accent = Color3.fromRGB(150, 200, 255),
@@ -521,10 +520,10 @@ local list: { Card } = {
 		Title = "Living Sand Fortress",
 		Type = "Attack",
 		Role = "Warder",
-		Weight = 6,
+		Weight = 62.5,
 		Element = "Void",
-		Main = 550,
-		HP = 1100,
+		Main = 1200,
+		HP = 2400,
 		SPD = 85,
 		Glyph = "TS",
 		Accent = Color3.fromRGB(140, 150, 165),
@@ -553,10 +552,10 @@ local list: { Card } = {
 		Title = "Wisteria Tactician",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 10,
+		Weight = 833.3333,
 		Element = "Light",
-		Main = 460,
-		HP = 920,
+		Main = 500,
+		HP = 1000,
 		SPD = 125,
 		Glyph = "LM",
 		Accent = Color3.fromRGB(110, 140, 255),
@@ -583,10 +582,10 @@ local list: { Card } = {
 		Title = "Keeper of Hours",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 2.5,
+		Weight = 13.3333,
 		Element = "Void",
-		Main = 500,
-		HP = 1000,
+		Main = 1850,
+		HP = 3700,
 		SPD = 135,
 		Glyph = "OR",
 		Accent = Color3.fromRGB(90, 220, 220),
@@ -614,10 +613,10 @@ local list: { Card } = {
 		Title = "Vessel of the Nine Tails",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 1,
+		Weight = 5,
 		Element = "Cosmic",
-		Main = 530,
-		HP = 1060,
+		Main = 2700,
+		HP = 5400,
 		SPD = 115,
 		Glyph = "AU",
 		Accent = Color3.fromRGB(255, 214, 140),
@@ -647,10 +646,10 @@ local list: { Card } = {
 		Title = "Purgatory Flamekeeper",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 6,
+		Weight = 71.4286,
 		Element = "Flame",
-		Main = 490,
-		HP = 980,
+		Main = 1125,
+		HP = 2250,
 		SPD = 128,
 		Glyph = "HY",
 		Accent = Color3.fromRGB(255, 110, 50),
@@ -678,10 +677,10 @@ local list: { Card } = {
 		Title = "Mistress of Strings",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 6,
+		Weight = 83.3333,
 		Element = "Storm",
-		Main = 480,
-		HP = 960,
+		Main = 1050,
+		HP = 2100,
 		SPD = 110,
 		Glyph = "AM",
 		Accent = Color3.fromRGB(100, 160, 240),
@@ -709,10 +708,10 @@ local list: { Card } = {
 		Title = "Crescent Soul Blade",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 2.5,
+		Weight = 11.7647,
 		Element = "Light",
-		Main = 500,
-		HP = 1000,
+		Main = 1950,
+		HP = 3900,
 		SPD = 112,
 		Glyph = "TB",
 		Accent = Color3.fromRGB(250, 210, 90),
@@ -738,10 +737,10 @@ local list: { Card } = {
 		Title = "Voice of the Storm",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 4,
+		Weight = 22.2222,
 		Element = "Storm",
-		Main = 540,
-		HP = 1080,
+		Main = 1600,
+		HP = 3200,
 		SPD = 120,
 		Glyph = "AY",
 		Accent = Color3.fromRGB(255, 220, 80),
@@ -770,11 +769,11 @@ local list: { Card } = {
 		Title = "The Ember Fox",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 0.9,
+		Weight = 5,
 		Boss = "kurogane",
 		Element = "Flame",
-		Main = 550,
-		HP = 1100,
+		Main = 2650,
+		HP = 5300,
 		SPD = 102,
 		Glyph = "KG",
 		Accent = Color3.fromRGB(230, 90, 40),
@@ -801,11 +800,11 @@ local list: { Card } = {
 		Title = "The Frost Tyrant",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 0.85,
+		Weight = 4,
 		Boss = "rimeveil",
 		Element = "Frost",
-		Main = 540,
-		HP = 1080,
+		Main = 2800,
+		HP = 5600,
 		SPD = 98,
 		Glyph = "RV",
 		Accent = Color3.fromRGB(110, 190, 255),
@@ -832,11 +831,11 @@ local list: { Card } = {
 		Title = "The Hollow Betrayer",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 0.8,
+		Weight = 3.125,
 		Boss = "vex",
 		Element = "Void",
-		Main = 555,
-		HP = 1110,
+		Main = 3000,
+		HP = 6000,
 		SPD = 104,
 		Glyph = "VX",
 		Accent = Color3.fromRGB(150, 70, 230),
@@ -864,11 +863,11 @@ local list: { Card } = {
 		Title = "The Thousand-Year Storm",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 0.6,
+		Weight = 2.5,
 		Boss = "tenrai",
 		Element = "Storm",
-		Main = 560,
-		HP = 1120,
+		Main = 3250,
+		HP = 6500,
 		SPD = 110,
 		Glyph = "TR",
 		Accent = Color3.fromRGB(255, 220, 80),
@@ -900,7 +899,7 @@ local list: { Card } = {
 		Title = "Forbidden Medical Crest",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 10,
+		Weight = 1333.3333,
 		Element = "Light",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -926,7 +925,7 @@ local list: { Card } = {
 		Title = "Cursed Counter-Pact",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 4,
+		Weight = 23.8095,
 		Element = "Light",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -951,7 +950,7 @@ local list: { Card } = {
 		Title = "Lightning Draw Stance",
 		Type = "Support",
 		Role = "Striker",
-		Weight = 10,
+		Weight = 1000,
 		Element = "Storm",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -977,7 +976,7 @@ local list: { Card } = {
 		Title = "Assassin's Physical Pact",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 8,
+		Weight = 181.8182,
 		Element = "Frost",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1003,7 +1002,7 @@ local list: { Card } = {
 		Title = "Hypnotic Crow Crest",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 1.5,
+		Weight = 6.6667,
 		Element = "Frost",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1030,7 +1029,7 @@ local list: { Card } = {
 		Title = "Desert Seal Vessel",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 6,
+		Weight = 66.6667,
 		Element = "Void",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1056,7 +1055,7 @@ local list: { Card } = {
 		Title = "Butterfly Medical Extract",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 10,
+		Weight = 1250,
 		Element = "Light",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1082,7 +1081,7 @@ local list: { Card } = {
 		Title = "Marked Space-Time Blade",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 2.5,
+		Weight = 10.5263,
 		Element = "Void",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1108,7 +1107,7 @@ local list: { Card } = {
 		Title = "Caged Beast Talisman",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 1,
+		Weight = 5,
 		Element = "Cosmic",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1118,10 +1117,10 @@ local list: { Card } = {
 			Name = "Crimson Chakra Cloak",
 			Kind = "LastStand",
 			Trigger = "OnFatal",
-			Amount = 0.85,
+			Amount = 0.55,
+			Values = { 0.55, 0.7, 0.85, 1 }, -- return HP by border (Base / Gold / Rainbow / Secret)
 			Penalty = 0.25,
 			Uses = 1,
-			Fixed = true,
 			Text = "Upon a fatal blow, the supported card releases its sealed Chakra and returns at {amount} HP. The Crimson Cloak costs {penalty} DMG and prevents further healing.",
 		},
 		Abilities = {
@@ -1134,7 +1133,7 @@ local list: { Card } = {
 		Title = "Reversal String Technique",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 6,
+		Weight = 76.9231,
 		Element = "Storm",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1158,7 +1157,7 @@ local list: { Card } = {
 		Title = "Siphoning Lightning Armor",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 4,
+		Weight = 29.4118,
 		Element = "Storm",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1264,20 +1263,19 @@ function Cards.Get(id: string): Card?
 	return Cards.ById[id]
 end
 
--- Rarer cards hit harder at the same border (the user's call, 2026-10-24): a card's stats scale by
--- (CommonWeight / its Weight) ^ Exponent, so a common card (Weight 10) is 1x, a Weight 1 card about
--- 1.41x and the boss cards (Weight 0.6-1) up to 1.53x. Still far under the next border's 4x, with
--- no duplicate stat bonus; battle mastery adds no base ATK or HP, so borders always win.
-Cards.RarityScale = { CommonWeight = 10, Exponent = 0.15 }
+-- Rarer cards are much stronger (the user's call, 2026-10-30): every card's base ATK is authored in its
+-- entry (450 for the commonest up to 3,250 for World 4's boss card, 6,000 for Blood Moon's Muzan), so
+-- Scale is 1. Weights are pull chances out of Cards.WeightTotal (10,000): Weight 5 = 1 in 2,000.
+Cards.WeightTotal = 10000
 
-function Cards.Scale(card: Card): number
-	if card.SkyOneIn and card.Weather then
-		local sky=Weather.ById[card.Weather]
-		local progress=math.clamp(math.log(card.SkyOneIn/sky.MinRarity)/math.log(sky.MaxRarity/sky.MinRarity),0,1)
-		return 1+.1*progress
-	end
-	local s = Cards.RarityScale
-	return (s.CommonWeight / math.max(0.01, card.Weight)) ^ s.Exponent
+function Cards.Scale(_card: Card): number
+	return 1
+end
+
+-- How rare a card is, for ranking only (Support picks, leaderboards): 1 for the commonest, higher rarer.
+function Cards.RarityRank(card: Card): number
+	local chance = if card.SkyOneIn then 1 / card.SkyOneIn else card.Weight / Cards.WeightTotal
+	return math.log(1 / math.max(chance, 1e-9))
 end
 
 -- The roll pool: every card, except boss cards whose boss hasn't been beaten on Normal yet
@@ -1296,7 +1294,7 @@ end
 -- weighs x FeaturedBoost for a week (Monday 00:00 UTC to Monday), the same on every server: picked by a
 -- seeded hash of the week number. Its border odds don't change, so it's simply easier to pull.
 Cards.FeaturedBoost = 3
-Cards.FeaturedMaxWeight = 2
+Cards.FeaturedMaxWeight = 14 -- 1 in about 715 or rarer
 local WEEK = 604800
 local MONDAY = 345600 -- the Unix epoch was a Thursday; +4 days is the first Monday 00:00 UTC
 
@@ -1418,15 +1416,24 @@ function Cards.RoundPercent(value: number): number
 	return math.max(0.05, math.floor(math.abs(value) * 20 + 0.5) / 20) * (if value < 0 then -1 else 1)
 end
 
+-- A Support's strength at each border: authored Values, else the base x SupportBoost rounded to 5 points,
+-- always at least 5 points above the border below it (so Gold / Rainbow / Secret are never a repeat).
 function Cards.SupportValue(card: Card, stars: number, border: string?, awaken: number?): number
-	if not card.Support then return 0 end
-	if card.Support.Fixed then return card.Support.Amount end
-	return Cards.RoundPercent(math.min(0.5, card.Support.Amount * Cards.SupportBoost(card, border)
-		* Awaken.StatMultiplier(awaken)))
+	local support = card.Support
+	if not support then return 0 end
+	local index = math.clamp(Borders.Index(border or "Normal"), 1, 4)
+	if support.Values then return support.Values[index] or support.Values[#support.Values] end
+	if support.Fixed then return support.Amount end
+	local value = 0
+	for i = 1, index do
+		local raw = Cards.RoundPercent(math.min(0.5, support.Amount * (1 + 0.25 * (i - 1)) * Awaken.StatMultiplier(awaken)))
+		value = if i == 1 then raw else math.max(raw, value + 0.05)
+	end
+	return value
 end
 
 function Cards.SupportScore(card: Card, stars: number, border: string?, awaken: number?): number
-	return if card.Support then Borders.Multiplier(border) * Cards.Scale(card) * Awaken.StatMultiplier(awaken) else 0
+	return if card.Support then Borders.Multiplier(border) * (1 + 0.05 * Cards.RarityRank(card)) * Awaken.StatMultiplier(awaken) else 0
 end
 
 -- Base stats scale only with border and rarity. Legacy stars / awaken arguments remain compatible.

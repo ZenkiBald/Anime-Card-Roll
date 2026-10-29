@@ -168,6 +168,24 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Log (newest first)
 
+- 2026-10-30 · Claude Code · this commit · The user's 6-part brief:
+  - Instant bulk packs: new `Shared/BulkRoll` (binomial / multinomial). `RollService.openPack` splits packs x rolls
+    over the pool, then borders and foils, in one pass at any size; `PackBatch.AddGroup`; USE ALL is one request.
+  - Sky searches: no 1 s throttle. Every pull searches (`CelestialRolls.Search`), luck x (1 + (luck - 1) x 0.15).
+    Blood Moon 5 min and 5% of slots (none 25%).
+  - Rarities / stats: Weight = chance out of 10,000; authored ATK per tier; `Cards.Scale` = 1, `Cards.RarityRank`
+    for ranking. Sky cards 1 in 1,500-25,000 with 2,750-6,000 ATK, Skills every 3 at 280-320%, Ultimates 500-650%
+    (not Limitbreak). Autonomous God State Skill 300% / Ultimate 550%, Limitless Sage Ultimate 500%. Supports never
+    repeat a value between borders; Eight Trigrams `Values` 55 / 70 / 85 / 100%.
+  - Bosses: the user's HP table, ATK ~4% of fixture card HP, Recommended = new fixture powers. `Tower.Curve.Points`
+    re-measured.
+  - Chat lines for 1 in 10M+ pulls and BILLION PULL for 1 in 1B+.
+  - Checks: type 0 errors (old warnings only), props 0 problems, headless ALL CHECKS PASSED (new bulk_test; 11
+    fixtures 63-91 s).
+  - Open decisions in the checklist: World 4 Nightmare is out of reach of every deck; the starter deck can't clear
+    World 1 Normal. Starters land at 1 in 7.5-12 because the pool must total 100%.
+  - Not seen in Studio.
+
 - 2026-10-30 · Codex · this commit · Fixed user screenshot follow-up. Sky-specific1250/1350/1450/1600
   base ATK and twice HP, a shared normalized logarithmic rarity curve giving1-1.1x within each sky,
   independent of normal weights. Explicit regression: equal-rarity Almighty Yhwach1595 exceeds Gojo1449;

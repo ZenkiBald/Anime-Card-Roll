@@ -14,8 +14,8 @@ local F = FIXTURES
 local valid = true
 for _, card in Cards.List do
 	valid = valid and Elements.Get(card.Element) ~= nil
-	-- Cosmic is the chase cards' element only (the lowest Weight, 1).
-	valid = valid and (card.Element ~= "Cosmic" or (card.Weight <= 1 and card.Boss == nil))
+	-- Cosmic is the chase cards' element only (1 in 2,000 or rarer, or a sky card; never a boss card).
+	valid = valid and (card.Element ~= "Cosmic" or ((card.Weather ~= nil or card.Weight <= 5) and card.Boss == nil))
 end
 for _, boss in Bosses.List do
 	valid = valid and Elements.Get(boss.Element) ~= nil and boss.Element ~= "Cosmic"
@@ -38,7 +38,8 @@ for _,bond in Bonds.List do
 end
 check(#Bonds.Active(F.deck({"hana"},{"mitotic_seal"}))==1 and #Bonds.Active(F.deck({"hana","rook"},{"","mitotic_seal"}))==0,"familiar bonds require the matching column")
 do
- local owned=F.allOwned(0)
+ -- Gold, so the squad lives long enough against Kurogane Normal's 250,000 HP for both combos.
+ local owned=F.own({"hana","suzu","rook","tomo","mitotic_seal","thunderclap_form"},0,{hana="Gold",suzu="Gold",rook="Gold",tomo="Gold"})
  local battle,events=F.fight("kurogane","Normal",F.deck({"hana","suzu","rook","tomo"},{"mitotic_seal","thunderclap_form","",""}),owned,9)
  local seen,fired={},0
  local once=true
