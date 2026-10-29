@@ -23,6 +23,7 @@ local Goals = require(Shared.Goals)
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local HudArt = require(script.Parent.HudArt)
+local RewardLine = require(script.Parent.RewardLine)
 local Skin = require(script.Parent.Skin)
 local Effects = require(script.Parent.Effects)
 local State = require(script.Parent.Parent.State)
@@ -815,16 +816,11 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		Kit.new("UISizeConstraint", { MinSize = Vector2.new(240, 36), MaxSize = Vector2.new(520, 56) }),
 	})
 	Kit.new("UIScale", { Name = "Scale", Scale = 1, Parent = toast })
-	Kit.label({
-		Name = "Text",
-		Text = "",
-		Font = Theme.Font.Heavy,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.9, 0.62),
-		ZIndex = 21,
-		Parent = toast,
-	}, 24)
+	RewardLine.new({
+		Name = "Text", AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.9, 0.72),
+		ZIndex = 21, Parent = toast,
+	}, "", 24)
 
 	-- Level bar under the top bar: LV badge + XP fill + numbers -------------------------------------
 	levelBar = Kit.new("Frame", {
@@ -1470,7 +1466,7 @@ function Hud.Reward(text: string)
 	end
 	toastToken += 1
 	local token = toastToken
-	toast.Text.Text = text
+	RewardLine.Set(toast.Text, text)
 	toast.Visible = true
 	toast.Scale.Scale = 0.4
 	Kit.tween(toast.Scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)

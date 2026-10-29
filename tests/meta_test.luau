@@ -219,3 +219,23 @@ do
 	local top = Goals.Next({ Cards = { luna = { Copies = 1, Stars = 0, BorderCopies = { Secret = 1 } } }, Rolls = 0, Shards = 0 })
 	check(top == nil or top.Kind ~= "Fusion", "a Secret pile has no fusion goal (no border above)")
 end
+
+-- Goals must route to eligible fights and distinguish an unlocked drop from a granted card.
+do
+	local Goals, Bosses = MODULES.Goals, MODULES.Bosses
+	local fresh = Goals.Journey({})
+	check(#fresh == 4 and fresh[1].Boss == "kurogane" and fresh[1].Difficulty == "Normal", "fresh journey starts with the first eligible boss")
+	check(string.find(fresh[1].Reward, "Then roll", 1, true) ~= nil, "boss clear goal describes a pool unlock, not a guaranteed card")
+	local cleared = {}
+	for _, boss in Bosses.List do cleared[Bosses.FightKey(boss.Id, "Normal")] = true end
+	local afterStory = Goals.Journey({ Cleared = cleared, Tower = { Pagoda = 25, Best = 50 },
+		Cards = { luna = { Mastery = { ["kurogane:Normal"] = true } } }, Attack = { "luna" } })
+	check(afterStory[1].Difficulty == "Hard" and Bosses.IsUnlocked(cleared, afterStory[1].Boss, "Hard"), "journey advances to a legally unlocked harder challenge")
+	check(afterStory[2].Count == "1/3 wins" and string.find(afterStory[2].Reward, "+10%", 1, true) ~= nil, "mastery target uses the equipped card's next real reward")
+	check(string.find(afterStory[3].Text, "floor 50", 1, true) ~= nil and afterStory[4].Count == "Best floor 50", "tower goals use saved progress and the next unearned Pagoda milestone")
+	for _, difficulty in Bosses.DifficultyOrder do
+		for _, boss in Bosses.List do cleared[Bosses.FightKey(boss.Id, difficulty)] = true end
+	end
+	local done = Goals.Journey({ Cleared = cleared, Tower = { Pagoda = 100 } })
+	check(done[1].Boss == nil and done[1].Progress == 1 and done[3].Progress == 1, "completed journeys stay complete rather than promising another crown")
+end

@@ -18,6 +18,7 @@ local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
 local Skin = require(script.Parent.Skin)
+local RewardLine = require(script.Parent.RewardLine)
 
 local TutorialUi = {}
 
@@ -155,7 +156,7 @@ function drawList()
 		if open then
 			line(2, `"{quest.Kenji}"`, Theme.Color.Text, 16)
 			line(3, `👉 {quest.Hint}   ·   progress <b>{state and state.Count or 0}/{quest.Goal}</b>`, TEAL, 15, Theme.Font.Heavy)
-			line(4, `Reward: {rewardText(quest)}`, Theme.Color.Gold, 15, Theme.Font.Heavy)
+			RewardLine.new({ LayoutOrder = 4, Size = UDim2.new(1, 0, 0, 26), Parent = tile }, `Reward: {rewardText(quest)}`, 15)
 			if state and state.Ready then
 				local button = Kit.button("CLAIM", Theme.Color.Gold, Color3.fromRGB(150, 100, 10), {
 					LayoutOrder = 5,
@@ -165,7 +166,7 @@ function drawList()
 				button.Activated:Connect(claim)
 			end
 		elseif not done then
-			line(2, `Reward: {rewardText(quest)}`, Theme.Color.Muted, 14)
+			RewardLine.new({ LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 24), Parent = tile }, `Reward: {rewardText(quest)}`, 14)
 		end
 	end
 end

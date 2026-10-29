@@ -13,6 +13,7 @@ local Meta = require(Shared.Meta)
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Skin = require(script.Parent.Skin)
+local RewardLine = require(script.Parent.RewardLine)
 local Modal = require(script.Parent.Modal)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
@@ -123,15 +124,12 @@ local function rewardFace(frame: GuiObject, bundle, iconTop: number, iconKey: st
 	Kit.textStroke(Color3.fromRGB(13, 17, 27), 2, 0).Parent = amount
 	local extra = if shards > 0 and bundle.Potions then Meta.Describe({ Potions = bundle.Potions }) else ""
 	if extra ~= "" then
-		Kit.label({
-			Text = `+ {extra}`,
-			Font = Theme.Font.Heavy,
-			TextColor3 = Theme.Color.Gold,
+		RewardLine.new({
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0, iconTop + 74),
 			Size = UDim2.new(0.92, 0, 0, 18),
 			Parent = frame,
-		}, 17)
+		}, extra, 17)
 	end
 	return art or icon
 end
@@ -181,18 +179,14 @@ local function buildQuests()
 			Font = Theme.Font.Display,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Position = UDim2.new(0, 14, 0, 8),
-			Size = UDim2.new(0.62, 0, 0, 24),
+			Size = UDim2.new(0.49, 0, 0, 24),
 			Parent = row,
 		}, 24)
-		Kit.label({
-			Text = Meta.Describe(quest.Reward),
-			Font = Theme.Font.Heavy,
-			TextColor3 = Theme.Color.Gold,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			Position = UDim2.new(0.62, 0, 0, 10),
-			Size = UDim2.new(0.12, 0, 0, 20),
+		RewardLine.new({
+			Position = UDim2.new(0.5, 0, 0, 10),
+			Size = UDim2.new(0.24, -8, 0, 24),
 			Parent = row,
-		}, 19)
+		}, Meta.Describe(quest.Reward), 19)
 		local track = Kit.new("Frame", {
 			Position = UDim2.new(0, 14, 0, 42),
 			Size = UDim2.new(0.74, -14, 0, 14),
@@ -248,7 +242,7 @@ local function build()
 		Parent = list,
 	})
 	local questTitle = Kit.label({
-		Text = "📜 DAILY QUESTS",
+		Text = "DAILY QUESTS",
 		Font = Theme.Font.Display,
 		TextColor3 = Theme.Color.Gold,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -358,15 +352,11 @@ local function build()
 			Size = UDim2.new(0.3, 0, 0, 26),
 			Parent = row,
 		}, 26)
-		Kit.label({
-			Text = Meta.Describe(milestone.Reward),
-			Font = Theme.Font.Heavy,
-			TextColor3 = Theme.Color.Gold,
-			TextXAlignment = Enum.TextXAlignment.Left,
+		RewardLine.new({
 			Position = UDim2.new(0.31, 0, 0, 9),
 			Size = UDim2.new(0.33, 0, 0, 22),
 			Parent = row,
-		}, 21)
+		}, Meta.Describe(milestone.Reward), 21)
 		local track = Kit.new("Frame", {
 			Position = UDim2.new(0, 14, 0, 40),
 			Size = UDim2.new(0.64, -14, 0, 12),

@@ -1290,6 +1290,19 @@ function BossScreen.OpenTower()
 	modal:Open()
 end
 
+-- Navigation from QUESTS > GOALS selects the exact challenge; the server still validates starting it.
+function BossScreen.OpenGoal(action: string, id: string?, level: string?)
+	costChallenge = false
+	if action == "Pagoda" then mode = "pagoda"
+	elseif action == "Tower" then mode = "tower"
+	else
+		mode = "boss"
+		if id and Bosses.Get(id) then bossId = id end
+		difficulty = if level and table.find(Bosses.DifficultyOrder, level) then level else "Normal"
+	end
+	modal:Open()
+end
+
 function BossScreen.Open(id: string?)
 	if id then
 		mode = "boss"

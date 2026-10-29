@@ -53,6 +53,19 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Quest / input follow-up (2026-10-29): verified Claude's Modal blocker with real desktop clicks:
+  blank space in BAG, SQUAD and QUESTS stays open; QUESTS outside click closes it. Daily reward art,
+  scrolled milestones (potions / hourglass / packs), GOALS page portraits / crown / live counts and
+  a mixed HUD notification rendered in Studio. GOALS opens from the sidebar; its story button opens
+  BATTLE and closes QUESTS. No real reward granted for the notification preview. Source synced by Rojo;
+  temporary click probe / notification preview disappeared on Stop. Studio left Edit, no publish.
+  Type 0 errors (four existing warnings), props 5,513 / 0 problems; full headless ALL CHECKS PASSED,
+  including journey progression / legal challenge / completed milestone regressions.
+- [ ] Ordinary-play touch review: blank-space taps, scroll / controls / close / outside taps, Kenji
+  reward rows, long mixed notifications, all GOALS destinations and live progression updates. Desktop
+  checks do not count as a real-phone pass. New content / guaranteed grind rewards are only proposed
+  in docs/PROGRESSION_PLAN.md; this pass changes guidance and reward presentation, not payouts.
+
 - [x] User-selected boss models (2026-10-27): all four actual ModelView portraits and Arena previews
   checked with existing guards: Kurama / Frieza / Susanoo / Muzan. Susanoo shell shading corrected;
   Muzan ground ray ignores the hidden world NPC, feet match terrain within idle bob. One real Kurama

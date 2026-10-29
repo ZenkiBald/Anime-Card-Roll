@@ -269,6 +269,7 @@ function Skin.Icon(label: TextLabel, key: string): ImageLabel?
 		-- the label's own text (an emoji), never a two-letter placeholder like "GI".
 		local aliases = { Shard = "Shards", GIFTS = "QUESTS", Gift = "QUESTS" }
 		local image = HudArt.Get(aliases[key] or key) or BagArt.Get(key)
+		if not image and key == "Potion:speed" then image = BagArt.Get("Artifact:hourglass") end
 		if image == nil then
 			return nil
 		end

@@ -23,6 +23,7 @@ local Bag = require(UI.Bag)
 local StatsPanel = require(UI.Stats)
 local Shop = require(UI.Shop)
 local Gifts = require(UI.Gifts)
+local Journey = require(UI.Journey)
 local Travel = require(UI.Travel)
 local Settings = require(UI.Settings)
 local Fusion = require(UI.Fusion)
@@ -260,7 +261,7 @@ end)
 -- Tabbed panels: SQUAD (deck, Index, upgrades = stat points + Shard upgrades), QUESTS (Kenji's path,
 -- daily quests and gifts) and Hoshi's (fusion, pack alchemy: only from Hoshi in town).
 local squadPanel = Modal.Tabbed(playerGui, "SquadGui", "SQUAD", Vector2.new(0.96, 0.92), Vector2.new(1300, 820), { "DECK", "INDEX", "UPGRADES" })
-local questsPanel = Modal.Tabbed(playerGui, "QuestsGui", "QUESTS", Vector2.new(0.86, 0.88), Vector2.new(980, 740), { "KENJI'S PATH", "DAILY & GIFTS" })
+local questsPanel = Modal.Tabbed(playerGui, "QuestsGui", "QUESTS", Vector2.new(0.86, 0.88), Vector2.new(980, 740), { "GOALS", "KENJI'S PATH", "DAILY & GIFTS" })
 local hoshiPanel = Modal.Tabbed(playerGui, "HoshiGui", "HOSHI · FUSION MASTER", Vector2.new(0.88, 0.88), Vector2.new(1040, 720), { "FUSION", "PACK ALCHEMY" })
 Reveal.Init(playerGui)
 OddsPanel.Init(playerGui)
@@ -269,6 +270,13 @@ Bag.Init(playerGui)
 StatsPanel.Init(playerGui, squadPanel)
 Shop.Init(playerGui, squadPanel)
 Gifts.Init(playerGui, questsPanel)
+Journey.Init(questsPanel, function(goal)
+	if goal.Action == "Squad" then
+		squadPanel:Show("DECK")
+	else
+		BossScreen.OpenGoal(goal.Action, goal.Boss, goal.Difficulty)
+	end
+end)
 Travel.Init(playerGui, function(text)
 	Hud.Hint(text)
 end)
@@ -393,8 +401,8 @@ Hud.Init(playerGui, {
 		if questsPanel.IsOpen then
 			questsPanel:Close()
 		else
-			-- Kenji's path first while it runs, else the daily quests and gifts.
-			questsPanel:Show(if TutorialUi.Active() then "KENJI'S PATH" else "DAILY & GIFTS")
+			-- Keep the reason to build a team visible; Kenji's tracker still opens his own path.
+			questsPanel:Show("GOALS")
 		end
 	end,
 	OnTravel = Travel.Toggle,

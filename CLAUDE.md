@@ -202,6 +202,13 @@ beat the active deck by 5%, and a hint when a card can fuse at Hoshi. The HUD's 
 `Goals.Next`) shows the reward closest to landing (a fusion, a battle mastery rank, a roll milestone, a Shard upgrade). Social: server list with favourite cards, profiles, name
 tags, three town leaderboards.
 
+QUESTS opens on **GOALS** (`UI/Journey`, `Goals.Journey`): four live targets show the next unlocked story
+challenge / boss-card pool unlock, an equipped Attack card's next mastery rank, the next Pagoda milestone
+and crown / title, and the Infinite Tower relic hunt. Buttons open the selected story difficulty, tower /
+Pagoda or SQUAD. Progress comes from existing server snapshots; viewing goals grants nothing. Kenji's
+tracker still opens his path; DAILY & GIFTS remains its own tab. This is guidance for existing progression,
+not new rewards; reward pacing / a reliable early grind still needs a content pass (docs/PROGRESSION_PLAN.md).
+
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP), Server Luck Totem, Shard bundles. Every perk that touches
 odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`). Ids are 0 (placeholders) until launch.
 
@@ -230,7 +237,12 @@ DUPE / COPY badge or border ribbon covers the art. Only a new card or newly disc
 first-clear bonuses retain their own footer ribbon. Collection / inspector layouts stay separate.
 Automatic roll reveals stay muted while panels or fights are open; away rewards use one compact toast.
 
-Panels (`Modal`) use navy gradients, glossy purple headers and rounded selected tabs.
+Panels (`Modal`) use navy gradients, glossy purple headers and rounded selected tabs. An invisible button
+behind their contents catches empty-space clicks; outside clicks and the close button still dismiss them.
+`UI/RewardLine` replaces emoji reward tokens with the current HUD / BAG illustrations in daily quests,
+milestones, gift extras, Kenji reward rows and HUD reward notifications. It fits the complete inline row
+to its available logical size, including scaled panels. Speed rewards reuse the hourglass illustration
+until dedicated speed-potion art exists. Reward descriptions / server payouts are unchanged.
 On phones, `Modal.FitScale` lays out the panel at desktop size and scales it down (~0.6 sideways); turn
 measured sizes back into offsets with `Kit.logicalSize`. The HUD, server list and quick pops hide behind panels.
 Search / dropdowns and formation trays are quiet sunken wells. SQUAD has separate ATTACK / SUPPORT tabs above CARD VAULT, without an All-type tab. Clicking a formation slot

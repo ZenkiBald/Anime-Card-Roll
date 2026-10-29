@@ -9,6 +9,15 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- QUEST / GOAL FOLLOW-UP COMPLETE (2026-10-29): verified Claude's empty-panel click fix in desktop
+  Studio; blank BAG / SQUAD / QUESTS stays open, outside QUESTS clicks close. RewardLine now replaces
+  the remaining inline emoji rewards in quests / milestones / gift extras / Kenji / HUD notifications
+  with the current art. Speed uses the existing hourglass until dedicated art exists. QUESTS > GOALS
+  shows live story / mastery / Pagoda crown / relic targets with screen navigation, using existing
+  rewards and saves. User's boredom feedback still needs a content pass; docs/PROGRESSION_PLAN.md
+  proposes earlier permanent rewards, reliable tower checkpoints and build challenges, not implemented
+  new rewards. Checks passed; desktop visuals checked, real phone / ordinary play remain in section 5.
+
 - BOSS MODEL REPLACEMENTS COMPLETE (2026-10-27): user's Kurama / Frieza / Susanoo / Muzan models
   replace kurogane / rimeveil / vex / tenrai respectively. Boss names / ids / combat / rewards / saves
   retained. Sanitized BossKit now travels through Git / Rojo from assets/models/bosses-20261027;
@@ -102,6 +111,30 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-29 · Codex · this commit · Pulled c9df7b6 and kept Claude's Modal blocker / Skin fallback
+  work. Real desktop clicks confirmed blank BAG / SQUAD / QUESTS stays open and outside QUESTS closes.
+  Added UI/RewardLine: uses current HudArt / BagArt for reward tokens, preserves named relic text,
+  fits the complete inline row with Kit.logicalSize (including Modal / toast scaling), and disposes
+  its resize connection when rebuilt. Daily quests / milestones / gift extras / Kenji reward rows /
+  Hud.Reward now use it; Speed Potion uses the existing hourglass in RewardLine and Skin.Icon.
+  No new art, reward amounts or remote changes. Added shared Goals.Journey and UI/Journey; QUESTS
+  opens GOALS, with live next legal story challenge / boss-pool unlock (explicitly roll to find it),
+  equipped Attack's next mastery reward, next Pagoda milestone / crown / title, and relic hunt.
+  BossScreen.OpenGoal routes story difficulty / Pagoda / Infinite Tower; SQUAD route opens DECK.
+  Existing Kenji tracker still opens the path. Background rolls do not rebuild the goal cards.
+  New headless cases cover legal next fights, mastery reward / progress, advancing milestones and
+  completed story / crown. Studio saw actual goal portraits / crown / counts / button labels, story
+  button opening BATTLE and closing QUESTS, daily illustrations, scrolled milestones and a mixed
+  Shards / speed / pack toast through the real cached Hud module (visual preview only, no grant).
+  Existing sound-asset-type warnings were logged at startup, no new errors.
+  All required checks: type 0 errors / four preexisting lint warnings; props 5,513 / 0 problems;
+  full headless ALL CHECKS PASSED. Rojo synced source, Studio left Edit, temporary runtime probe /
+  toast preview gone on Stop, no publish. Real touch / all navigation routes / long notifications /
+  Kenji row review remain in checklist 5. User's boredom is not solved by a goals screen alone:
+  docs/PROGRESSION_PLAN.md records the sparse early reward problem (relics floor 50 / base 0.1%)
+  and proposed permanent early rewards / reliable checkpoints / team challenges; no new progression
+  grants / save format / combat / balance / names changed. Unrelated art and .codex files untouched.
 
 - 2026-10-29 · Claude Code · this commit · From the user's QUESTS screenshot: tapping empty space inside any
   panel closed it (the Active panel didn't stop the backdrop's Activated); `Modal` now puts an invisible

@@ -15,6 +15,9 @@ local Borders = require(script.Parent.Borders)
 local Cards = require(script.Parent.Cards)
 local Awaken = require(script.Parent.Awaken)
 local Meta = require(script.Parent.Meta)
+local Bosses = require(script.Parent.Bosses)
+local Tower = require(script.Parent.Tower)
+local Items = require(script.Parent.Items)
 
 local Goals = {}
 
@@ -127,6 +130,69 @@ function Goals.Next(info: Info): Goal?
 		end
 	end
 	return best
+end
+
+-- Visible long-term targets, derived from existing server snapshots; this page awards nothing.
+function Goals.Journey(info: any): { any }
+	local cleared = info.Cleared or {}
+	local tower = info.Tower or {}
+	local rows: { any } = {}
+	local count, targetBoss, targetDifficulty = 0, nil, nil
+	for _, difficulty in Bosses.DifficultyOrder do
+		for _, boss in Bosses.List do
+			if cleared[Bosses.FightKey(boss.Id, difficulty)] then
+				count += 1
+			elseif not targetBoss and Bosses.IsUnlocked(cleared, boss.Id, difficulty) then
+				targetBoss, targetDifficulty = boss, difficulty
+			end
+		end
+	end
+	local total = #Bosses.List * #Bosses.DifficultyOrder
+	local bossCard = targetBoss and Cards.ForBoss(targetBoss.Id)
+	table.insert(rows, {
+		Title = "CONQUER THE WORLDS", Count = `{count}/{total} challenges`, Progress = count / total,
+		Text = if targetBoss then `Next: {targetBoss.Name} · {targetDifficulty}` else "Every story challenge cleared. Try new cards to build their mastery.",
+		Reward = if targetDifficulty == "Normal" and bossCard then `Unlock {bossCard.Name} in the roll pool. Then roll to find it.` else "Earn packs and Trait Shards; each new challenge also trains the cards you bring.",
+		Action = "Story", Boss = targetBoss and targetBoss.Id, Difficulty = targetDifficulty,
+		Image = bossCard and bossCard.Image, ArtKey = "BATTLE",
+	})
+	local cards = info.Cards or {}
+	local chosen, entry, node
+	for _, id in info.Attack or {} do
+		local card = Cards.Get(id)
+		local owned = cards[id]
+		local nextNode = owned and Awaken.Next(owned)
+		if card and nextNode then chosen, entry, node = card, owned, nextNode; break end
+	end
+	table.insert(rows, {
+		Title = "TRAIN YOUR TEAM", Count = if node then `{Awaken.Count(entry)}/{node.Challenges} wins` else "Choose your team",
+		Progress = if node then Awaken.Count(entry) / node.Challenges else 0,
+		Text = if chosen then `Next: {chosen.Name} · {node.Name}` else "Equip Attack cards in SQUAD and try different story challenges.",
+		Reward = if node then `{node.Text}. Win different boss/difficulty fights with this card equipped; repeats do not count.` else "Mastery gives attack speed, stronger skills, a better bond combo and trait slot 2.",
+		Action = "Squad", Image = chosen and chosen.Image, ArtKey = "SQUAD",
+	})
+	local pagoda = tower.Pagoda or 0
+	local nextFloor = Tower.Pagoda.Floors
+	for _, floor in { 25, 50, 75, Tower.Pagoda.Floors } do
+		if pagoda < floor then nextFloor = floor; break end
+	end
+	local milestone = Tower.PagodaMilestones[nextFloor]
+	table.insert(rows, {
+		Title = "EARN THE PAGODA CROWN", Count = `{pagoda}/{Tower.Pagoda.Floors} floors`,
+		Progress = math.clamp(pagoda / Tower.Pagoda.Floors, 0, 1),
+		Text = if pagoda < Tower.Pagoda.Floors then `Next milestone: floor {nextFloor}. Cleared floors stay cleared.` else "Crown earned. Your Pagoda progress is complete.",
+		Reward = if pagoda < Tower.Pagoda.Floors then `Floor {nextFloor}: {milestone.Shards} Shards, {milestone.TraitShards} Trait Shards and packs. Crown + Pagoda Master title at floor {Tower.Pagoda.Floors}.` else "The Crown of the Hundred Floors is always active; no relic slot needed.",
+		Action = "Pagoda", ArtKey = "TowerArtifact:hundredcrown",
+	})
+	local best = tower.Best or 0
+	table.insert(rows, {
+		Title = "HUNT TOWER RELICS", Count = `Best floor {best}`,
+		Progress = math.clamp(best / Items.RelicFloor, 0, 1),
+		Text = `Reach floor {Items.RelicFloor}, then fight eligible floors for wearable relics. Wear up to {Items.ArtifactSlots}.`,
+		Reward = "Packs every 5 floors; Big Packs every 25. Relics are rare random drops, not guaranteed at floor 50. Losing ends the run.",
+		Action = "Tower", ArtKey = "Artifact:voideye",
+	})
+	return rows
 end
 
 return Goals
