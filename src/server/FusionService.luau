@@ -1,5 +1,5 @@
 --!strict
--- Hoshi's border fusion: Cards.FusionCost (50, or 25 for rare cards) copies of one card at one border fuse into 1 copy of
+-- Hoshi's border fusion: Cards.FusionCost (100) copies of one card at one border fuse into 1 copy of
 -- it at the next border (Base -> Gold -> Rainbow -> Secret). The card wears its best border, so Deck
 -- Power, the battle engine and every screen pick the new tier up from the save (Cards[id].BorderCopies /
 -- Borders). Fusing is Awakening node 5 (Awaken.luau); every fusion is counted in Cards[id].Fusion. The card

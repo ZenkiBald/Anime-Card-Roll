@@ -2,12 +2,12 @@
 -- Card borders ARE the tiers. Every pull rolls a card (Cards.Pool / Weight) and, on its own, a border:
 -- Base 99.48%, Gold 0.5% (1/200), Rainbow 0.02% (1/5,000), Secret 0.0002% (1/500,000) at 1x luck: rare
 -- on purpose (user's call 2026-10-24). Story bosses are beatable with Base + Gold (Gold also comes from
--- fusing 50 / 25 copies); Rainbow and Secret are the chase for the towers. The border multiplies the card's stats by its Multiplier (1x / 4x / 16x / 64x: constant 4x
+-- fusing 100 copies); Rainbow and Secret are the chase for the towers. The border multiplies the card's stats by its Multiplier (1x / 4x / 16x / 64x: constant 4x
 -- steps), so a better border always wins (5 stars + Awakening node 1 are only 1.375x).
 -- Luck raises the special borders by luck ^ LuckExponent, and the Border Chance stat / artifacts, surges
 -- and infused packs multiply them; Base takes what's left.
 -- A card keeps a copy count per border (Cards[id].BorderCopies) and wears its best. Hoshi fuses
--- Cards.FusionCost (50, or 25 for rare cards) copies at one border into 1 copy at the next (FusionService).
+-- Cards.FusionCost (100) copies at one border into 1 copy at the next (FusionService).
 -- Id "Normal" is the save key of the Base border (its name on screen is "Base").
 -- Shared so the odds panel shows exactly what the server rolls.
 

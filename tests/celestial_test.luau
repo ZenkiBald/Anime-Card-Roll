@@ -105,8 +105,8 @@ do
 	check(math.abs(unit.HP/unit.MaxHP-ratio)<.002,"a sky transition preserves HP percentage instead of healing the card")
 	battle:SetWeather("clear")
 	check(unit.Main==main and unit.MaxHP==hp,"event battle stats return to normal when the sky ends")
-	local near=MODULES.Goals.Closest({Cards={rook={Copies=49,Stars=0,BorderCopies={Normal=49}}},Rolls=45,Shards=0,Weather={Id="clear",Next={Starts=120}},Now=0})
-	check(#near==3 and near[1].Kind=="Fusion" and near[1].Progress==.98,"HUD selects the nearest three distinct progress targets")
+	local near=MODULES.Goals.Closest({Cards={rook={Copies=99,Stars=0,BorderCopies={Normal=99}}},Rolls=45,Shards=0,Weather={Id="clear",Next={Starts=120}},Now=0})
+	check(#near==3 and near[1].Kind=="Fusion" and near[1].Progress==.99,"HUD selects the nearest three distinct progress targets")
 end
 
 do

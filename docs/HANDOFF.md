@@ -13,7 +13,7 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
   (Border 1% a point) and Luck buff (0.05x), relics +0.75x / 15% to +2.5x / 35%, Crown +3x / +50% / +15% squad ATK,
   new Infinite Tower floor-100 artifact (+2x luck, 15% faster rolls), potions +1.5 / +3 / +6x, luck soft start 35x,
   luck tilts rare cards up to 5x, sky luck weight 0.35, the user's base odds and sky odds, the user's boss HP table
-  (all 12 winnable), fusion 50 / 25 copies, duplicates +0.5% ATK / HP (max 25%), cinematic reveal DMG / HP pill +
+  (all 12 winnable), fusion back to a flat 100 copies (user's call), duplicates +0.5% ATK / HP (max 25%), cinematic reveal DMG / HP pill +
   SKIP ALL, Clash jump hold. Open: W1 Normal clears in ~57 s even with four Base starters (window widened to 50-90);
   W3 Nightmare takes ~98 s with the best 1 Secret + 3 Rainbow squad; starters can't reach 1 in 7-10 (pool must
   total 100%). Needs a Studio check of the reveal pill / SKIP ALL and the Clash Space hold. See checklist 5.
@@ -184,6 +184,10 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-30 · Claude Code · this commit · The user found 50 / 25-copy fusion confusing: back to a flat 100 copies
+  at every border for every card (`Config.FusionCopies = 100`; `Cards.FusionCost` stays as the one reader). The
+  duplicate bonus (+0.5% ATK / HP, max 25%) stays. Tests / docs updated; all checks pass.
 
 - 2026-10-30 · Claude Code · this commit · The user's luck / odds / boss brief (6 parts + reveal asks):
   - Gear: `Meta.Stats` Luck 0.05 / Border 0.01 per point; `Items.Artifacts` now carry fixed `Luck` / `Border` by tier

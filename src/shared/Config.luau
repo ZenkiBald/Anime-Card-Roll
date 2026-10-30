@@ -37,9 +37,8 @@ Config.MaxStars = 5
 Config.StarBonus = 0 -- legacy save field; duplicates grant no combat stats
 
 -- Fusion (Hoshi in town): this many copies of one card at one border fuse into 1 copy at the next
--- border (Base -> Gold -> Rainbow -> Secret). Common: starter / lower-mid / mid cards; Rare: everything
--- from upper-mid up, boss and sky cards (Cards.FusionCost).
-Config.FusionCopies = { Common = 50, Rare = 25 }
+-- border (Base -> Gold -> Rainbow -> Secret), the same for every card and every step (the user's call).
+Config.FusionCopies = 100
 
 -- Auto Roll never stops by itself (user's call, 2026-10-24: players want to pull every second). A
 -- Rainbow / Secret border or a Demon Seal pulled on Auto holds the next roll this long, so its full reveal

@@ -4,7 +4,7 @@
 -- tests/meta_test.luau runs it headless.
 --
 -- Candidates, each with a progress 0-1 from the previous step to the next one:
---   Fusion     a card's pile at one border toward Cards.FusionCost (50 or 25 -> 1 at the next border)
+--   Fusion     a card's pile at one border toward Cards.FusionCost (100 -> 1 at the next border)
 --   Mastery    different story boss challenges completed with a card (1 / 3 / 6 / 10)
 --   Milestone  total rolls toward the next unclaimed roll milestone (Meta.Milestones)
 --   Upgrade    Shards toward the next Shard Shop level (Meta.Upgrades)

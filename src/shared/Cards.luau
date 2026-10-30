@@ -1260,15 +1260,9 @@ function Cards.RarityRank(card: Card): number
 	return math.log(1 / math.max(chance, 1e-9))
 end
 
--- Hoshi's fusion cost (2026-10-30): Config.FusionCopies.Common copies for starter / lower-mid / mid cards
--- (1 in under 100), Config.FusionCopies.Rare for upper-mid and rarer, boss and sky cards.
-function Cards.FusionCost(card: Card?): number
-	local cost = Config.FusionCopies
-	if card == nil then
-		return cost.Rare
-	end
-	local rare = card.Boss ~= nil or card.Weather ~= nil or Cards.WeightTotal / math.max(card.Weight, 1e-9) >= 100
-	return if rare then cost.Rare else cost.Common
+-- Hoshi's fusion cost: Config.FusionCopies (100) copies at any border, for every card.
+function Cards.FusionCost(_card: Card?): number
+	return Config.FusionCopies
 end
 
 -- The roll pool: every card, except boss cards whose boss hasn't been beaten on Normal yet

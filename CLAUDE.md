@@ -157,9 +157,9 @@ past the first at the border a card fights at adds +0.5% ATK / HP, up to +25% (`
 `Power` take `copies`; BattleService sends `Copies` per unit; Deck Power, the inspector, tooltips and reveals show
 it). Stars remain a legacy save field, always zero on normal rolls, and copy-based Awakening is retired.
 Copies pile up per border (`BorderCopies`); each owned border has its own tile, and the deck fights at the chosen
-border (`Deck.PlayBorder`, save `Play`). **Border fusion** at Hoshi costs `Cards.FusionCost`: 50 copies of one border
-for starter / lower-mid / mid cards, 25 for upper-mid and rarer, boss and sky cards (`Config.FusionCopies`), for one
-copy at the next border, with no extra reward.
+border (`Deck.PlayBorder`, save `Play`). **Border fusion** at Hoshi costs 100 copies of one border (`Config.FusionCopies`,
+read through `Cards.FusionCost`; the same for every card and step, the user's call after a short 50 / 25 try) for
+one copy at the next border, with no extra reward.
 
 **Battle Mastery** replaces copy upgrades (`Awaken.luau` retains its old module name). Each participating Attack
 and paired Support earns one mark for winning each distinct story boss/difficulty, even if previously cleared
@@ -496,7 +496,7 @@ The character artwork pass did not change identities. The later character-to-Att
   Gold may outdo a common Rainbow. Duplicates add +0.5% ATK / HP each up to +25% (the user's call, 2026-10-30);
   mastery never multiplies ATK / HP. The same card on one border never reaches itself on the next through mastery
   (odds_test checks). Traits stay small (never ATK / HP). Rolls are pure luck: no pity (luck only tilts odds).
-  Fusion is border fusion only: 50 / 25 copies at one border -> 1 at the next.
+  Fusion is border fusion only: 100 copies at one border -> 1 at the next, for every card.
 - Content is data: a new card is one entry in `Cards.luau` (stats, abilities, `Role`, `Weight`, `Element`, `Image`); a
   boss or difficulty one entry in `Bosses.luau`; a relic or artifact in `Items.luau`; a trait in `Traits.luau`; a potion / gift /
   milestone / quest in `Meta.luau`. Support entries use generic `Support.Kind` handlers; Attack passives / Auras / Signatures use generic trigger bundles.

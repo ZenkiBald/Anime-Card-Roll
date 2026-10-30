@@ -1,5 +1,5 @@
 --!nonstrict
--- FUSION (talk to Hoshi the Fusion Master in town): border fusion only. Cards.FusionCost (50, or 25 rare) copies of
+-- FUSION (talk to Hoshi the Fusion Master in town): border fusion only. Cards.FusionCost (100) copies of
 -- one card at one border fuse into 1 copy at the next border (Base -> Gold -> Rainbow -> Secret; Awakening
 -- node 5; the card at the next border is the whole reward). Left: your cards with their copy progress, ready ones first.
 -- Right: the picked card at its fusing border and at the next, and the FUSE button. FUSE ALL (above the
@@ -320,7 +320,7 @@ local function drawDetail()
 	local card = selectedId and Cards.Get(selectedId)
 	if entry == nil or card == nil then
 		Kit.label({
-			Text = `Pick a card on the left.\n{Config.FusionCopies.Common} copies of a card at one border ({Config.FusionCopies.Rare} for upper-mid and rarer, boss and sky cards) fuse into 1 copy at the next border (4x the stats).`,
+			Text = `Pick a card on the left.\n{Config.FusionCopies} copies of a card at one border fuse into 1 copy at the next border (4x the stats).`,
 			Font = Theme.Font.Heavy,
 			TextColor3 = Theme.Color.Muted,
 			AnchorPoint = Vector2.new(0.5, 0.5),

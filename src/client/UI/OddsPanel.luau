@@ -325,7 +325,7 @@ function OddsPanel.Init(playerGui: Instance)
 			.. `Base 1x / Gold 4x / Rainbow 16x / Secret 64x stats). Luck raises the rarer borders most, with diminishing returns above {Config.Roll.LuckSoftStart} luck; Base `
 			.. "always keeps at least half. An infused Mega Pack weighs its element x1.5. Every pull also rolls a foil on its own; a card "
 			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (5x border odds; 3 cards at 6x when hit perfectly). Luck also tilts "
-			.. "the pool toward rare cards (up to 5x at endgame luck). 50 copies (25 for upper-mid and rarer) at one border fuse "
+			.. "the pool toward rare cards (up to 5x at endgame luck). 100 copies at one border fuse "
 			.. "into 1 at the next (Hoshi); each duplicate held adds +0.5% ATK / HP (max +25%). Traits are rolled at the Trait Master. Probabilities are rounded, so the "
 			.. "displayed values may not add up to exactly 100%.",
 		Parent = scroll,

@@ -66,7 +66,7 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
     summary (and a queued AUTO reveal run also clears).
   - In a fight, the Clash ring takes Space without the character jumping; jump works again after.
   - ODDS shows the luck-tilted card chances; BAG relic details show Luck + Border (+ specialty levels).
-  - Hoshi shows 50 / 25-copy piles; the inspector / tooltip shows the duplicate bonus.
+  - Hoshi shows 100-copy piles; the inspector / tooltip shows the duplicate bonus.
   - Balance calls for the user: W1 Normal ~57 s with four Base starters; W3 Nightmare ~98 s with the best
     1 Secret + 3 Rainbow squad; starters land at 1 in 10-16 (the pool must total 100%).
 

@@ -54,9 +54,8 @@ end
 
 -- 4. Fusion costs and the duplicate bonus.
 do
-	check(Cards.FusionCost(Cards.Get("hana")) == 50 and Cards.FusionCost(Cards.Get("tetsu")) == 50 and Cards.FusionCost(Cards.Get("goro")) == 25
-		and Cards.FusionCost(Cards.Get("kurogane_card")) == 25 and Cards.FusionCost(Cards.Get("celestial_rain_broly")) == 25,
-		"fusing takes 50 copies for starter / lower-mid / mid cards and 25 for upper-mid and rarer, boss and sky cards")
+	check(Cards.FusionCost(Cards.Get("hana")) == 100 and Cards.FusionCost(Cards.Get("kurogane_card")) == 100 and Cards.FusionCost(Cards.Get("celestial_rain_broly")) == 100,
+		"fusing takes 100 copies at every border, for every card")
 	check(Cards.DupeBonus(1) == 0 and math.abs(Cards.DupeBonus(11) - 0.05) < 1e-9 and Cards.DupeBonus(51) == 0.25 and Cards.DupeBonus(500) == 0.25,
 		"every duplicate adds +0.5% ATK / HP, capped at +25%")
 	local hana = Cards.Get("hana") :: any

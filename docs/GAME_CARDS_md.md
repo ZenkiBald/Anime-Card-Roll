@@ -38,8 +38,7 @@ Lucky Storm) reaches about 54x effective luck.
 
 ## Duplicates and fusion
 - Every copy past the first at the border a card fights at adds **+0.5% ATK / HP**, up to **+25%** (51 copies).
-- Hoshi fuses **50 copies** (starter, lower-mid and mid cards) or **25 copies** (upper-mid and rarer, boss and
-  sky cards) of one border into 1 copy at the next border.
+- Hoshi fuses **100 copies** of one border into 1 copy at the next border, for every card and every step.
 
 ## Roll Packs
 - Opening any number of packs is one instant server pass, whether that's 100 x 1,000-roll packs (100,000 pulls)
