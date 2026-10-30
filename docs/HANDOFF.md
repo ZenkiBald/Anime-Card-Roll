@@ -9,6 +9,18 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- CELESTIAL ART / NAMES COMPLETE (2026-10-30): seven background-only edits (Soulfall Ichigo / Yamamoto /
+  Yhwach; Cursed Night Sukuna / Toji; Blood Moon Akaza / Doma) uploaded and wired. Nine originals retained.
+  User rejected zoomed busts: preserve the old pulled-back 2:3 poses / body framing; those rejected variants
+  are not shipped. CardView top-aligns sky thumbnail cover images so heads survive square crops; sky HUD
+  reuses it and shows actual display names. Sixteen shortened epithet names + technique labels are in
+  CelestialCards, old ids / copies / borders / grouping / mechanical data untouched. Manifest / prompts /
+  hashes / old-new IDs / name mapping: art/cards/celestial-reframed-20261030. All16 loaded in desktop Studio
+  grid; three tall cards and actual Limitbreak HUD inspected. Type0, props5870/0, full suite passed incl.
+  all16 save identities / copy piles / selected borders. Phone / user aesthetic review remains checklist5.
+  User confirmed Claude finished before source edits; based on ac5c209. Studio Edit, helper stopped,
+  temporary review UI discarded, no place published. Pull / reconnect Rojo / restart Play.
+
 - LUCK / ODDS / BOSS HP / FUSION PASS COMPLETE (2026-10-30, headless only): the user's 6-part brief. Training nerf
   (Border 1% a point) and Luck buff (0.05x), relics +0.75x / 15% to +2.5x / 35%, Crown +3x / +50% / +15% squad ATK,
   new Infinite Tower floor-100 artifact (+2x luck, 15% faster rolls), potions +1.5 / +3 / +6x, luck soft start 35x,
@@ -184,6 +196,27 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-30 · Codex · this commit · Celestial art / display naming only, after user confirmed Claude's
+  latest pass finished (ac5c209 retained). Generated seven weather-only edits with built-in imagegen,
+  preserving existing full 2:3 compositions / faces / poses / clothing and character-specific powers.
+  Crimson Blood Moon for Akaza / Doma; spectral Soulfall for Ichigo / Yamamoto / Yhwach; violet Cursed Night
+  for Sukuna / Toji. Nine already-fitting assets unchanged. User rejected initial zoomed portraits; none
+  included in project or uploaded. New finals / exact prompts / hashes / IDs / old-new name mapping in
+  art/cards/celestial-reframed-20261030; original sources untouched. CardView.Art uses top-aligned aspect-
+  preserving cover for sky images only. Weather HUD shares renderer / new data names (no id-suffix aliases).
+  Sixteen shorter epithet display names and requested technique-name direction applied; source comparison
+  confirmed only Name / Basic / Skill / Ultimate / Passive strings changed, all combat data identical.
+  Original internal ids / series / odds / stats / effects / copies / saves retained; no save-format change.
+  Save regression migrates twice and preserves all16 old card keys / copy piles / selected Gold borders.
+  Required checks ran: luau-lsp0 errors, props5870 names /0 problems, bundle + luau ALL CHECKS PASSED,
+  including existing story / tower fixtures. Studio all16 images loaded; all16 thumbnail aspect ratios
+  preserved / faces visible, names fit. Three tall card examples kept wider body framing. Actual Limitbreak
+  HUD names / portraits visible. A temporary sky-preview script called a nonexistent test-only Update;
+  removed and Play stopped, discarding its client-only copy (no server card grants / persistent changes).
+  No production runtime errors; existing203785492 asset mismatch remains. Upload helper stopped. No place
+  edits / publishing. User / phone / ordinary discovery / reveal review remains checklist5; reconnect Rojo
+  and restart Play. Existing unrelated .codex/ and loose / older untracked artwork left alone.
 
 - 2026-10-30 · Claude Code · this commit · The user found 50 / 25-copy fusion confusing: back to a flat 100 copies
   at every border for every card (`Config.FusionCopies = 100`; `Cards.FusionCost` stays as the one reader). The

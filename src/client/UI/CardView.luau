@@ -47,6 +47,25 @@ function CardView.Art(cardId: string, owned: boolean, _animate: boolean?): GuiOb
 	if card == nil or card.Image == nil then
 		return nil
 	end
+	if card.Weather then
+		-- Tall sky art puts faces near the top. Cover thumbnails from the top, not the waist.
+		local holder = Kit.new("Frame", { Name = "Art", Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 2 })
+		local picture = Kit.new("ImageLabel", { Name = "Illustration", BackgroundTransparency = 1,
+			Image = card.Image, ScaleType = Enum.ScaleType.Stretch,
+			AnchorPoint = Vector2.new(.5, 0), Position = UDim2.fromScale(.5, 0),
+			ImageColor3 = if owned then Color3.new(1, 1, 1) else SILHOUETTE,
+			ZIndex = 2, Parent = holder })
+		local function fit()
+			local size = holder.AbsoluteSize
+			if size.X <= 0 or size.Y <= 0 then return end
+			local ratio = size.X / size.Y
+			picture.Size = UDim2.fromScale(math.max(1, (2/3) / ratio), math.max(1, ratio / (2/3)))
+		end
+		holder:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+		task.defer(fit)
+		return holder
+	end
 	return Kit.new("ImageLabel", {
 		Name = "Art",
 		Size = UDim2.fromScale(1, 1),

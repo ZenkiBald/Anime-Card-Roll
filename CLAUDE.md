@@ -93,9 +93,20 @@ one ten-card Roll Pack once, and Kenji explains opening it / BEST DECK / the fir
 inside each slot, with a 150-second forecast. Quiet Skies is the default. Limitbreak Skies (Dragon Ball),
 Soulfall (Bleach), Cursed Night (Jujutsu Kaisen) and Blood Moon (Demon Slayer) each last 5 minutes and
 add +0.5 / +1 / +1 / +2 luck; per slot Limitbreak 30% / Soulfall 20% / Cursed Night 20% / Blood Moon 5% / none 25%. Each has four separate Attack cards and cohesive clothed portrait art in
-`art/cards/celestial-clothed-20261029/` (prompts, source hashes and uploaded ids in its manifest).
-`CelestialArt` maps the assets; `Config.CelestialCardsReady=true`. These cards have named character kits,
-authored base ATK (`ATK` in each `CelestialCards` spec) and twice that HP, from Broly's 2,750 to Muzan's 6,000.
+`art/cards/celestial-clothed-20261029/`. Seven background / atmosphere edits live in
+`art/cards/celestial-reframed-20261030/` (exact built-in imagegen prompts, hashes, old / new asset ids);
+the other nine original portraits stay unchanged. All retain the original pulled-back 2:3 composition,
+poses and covered outfits: no zoomed bust replacements. Blood Moon has crimson moons, Soulfall spectral
+silver-blue skies, Cursed Night violet storms; each character keeps its own power colors. `CardView.Art`
+covers sky thumbnails from the top at the original aspect ratio, preserving heads without changing the
+source artwork; full portrait cards retain the wider original composition. The sky HUD uses that same
+renderer and actual display names, never names derived from internal ids. `CelestialArt` maps the assets;
+`Config.CelestialCardsReady=true`. All sixteen Celestial display names and technique labels use the user's
+approved epithet direction (short names such as Silver Sovereign / All-Seeing Emperor / Crescent Demon).
+Their original ids, series grouping, ownership and mechanical kits remain intact. No save-format migration
+is required for display renames; save_test checks all sixteen saved copy piles / selected borders survive.
+Authored base ATK (`ATK` in each `CelestialCards` spec) and twice that HP range from Emerald Titan's 2,750
+to Immortal Progenitor's 6,000.
 Their Basic / Skill / Ultimate damage and timers follow their archetype band like every Attack card (see Deck
 and battle; the rarest sky cards sit at the top of their band). They retain
 borders, 100:1 fusion, traits, mastery and their own Codex section;
@@ -105,10 +116,12 @@ Normal pulls keep their usual rates / quantities. While a sky is active, every n
 Triple Roll card, every pack pull) also searches it once; there is no time throttle. `CelestialRolls.Search`
 draws all of a click's or a pack's searches at once (BulkRoll multinomial), with disjoint per-card chances
 `1 / SkyOneIn x (1 + (luck - 1) x 0.35)` (`CelestialRolls.LuckWeight`, 2026-10-30) and a no-find remainder (capped
-at 50% a search for absurd luck). The user's 2026-10-30 odds: Limitbreak: Broly 300 / Gogeta 400 / Vegeta 500 /
-Goku 650; Soulfall: Ichigo 600 / Aizen 800 / Yamamoto 1,000 / Yhwach 1,250; Cursed Night: Toji 600 / Yuta 800 /
-Gojo 1,000 / Sukuna 1,250; Blood Moon: Akaza 1,200 / Doma 1,500 / Kokushibo 2,000 / Muzan 2,500. Displayed border
-rarity uses that base chance and border odds (Kokushibo Secret 1 in 1 billion, Muzan 1 in 1.25 billion). Rarer sky cards have greater actual stats, and each outstats every
+at 50% a search for absurd luck). The user's 2026-10-30 odds: Limitbreak: Emerald Titan 300 / Azure Fusion 400 /
+Ego Sovereign 500 / Silver Sovereign 650; Soulfall: Hollow Ascendant 600 / Chrysalis Overlord 800 /
+Sunblade Patriarch 1,000 / All-Seeing Emperor 1,250; Cursed Night: Nullborn Hunter 600 / Bound Prodigy 800 /
+Honored Anomaly 1,000 / Four-Armed Calamity 1,250; Blood Moon: Shattering Compass 1,200 / Crimson Frost
+Sovereign 1,500 / Crescent Demon 2,000 / Immortal Progenitor 2,500. Displayed border rarity uses that base
+chance and border odds (Crescent Demon Secret 1 in 1 billion, Immortal Progenitor 1 in 1.25 billion). Rarer sky cards have greater actual stats, and each outstats every
 normal / boss card that is no rarer. Bulk receipts include every normal and
 bonus card in the same rarest-first highlights / complete grouped summary. No out-of-weather event drops.
 Matching sky cards gain +20% ATK / max HP in every battle, reverting when it ends; transitions preserve HP
@@ -511,8 +524,9 @@ Secret chase decks). Re-run after changing
 - Original characters only: no real anime characters, names or trademarked terms.
   Prototype exception (the user's call, 2026-10-25, confirmed 2026-10-26): card and boss names are anime-style
   epithets that nod to well-known series (card ids unchanged). Keep them: don't rename them unless the user asks in
-  their own words. The user additionally authorized named anime Celestial forms on 2026-10-29. Preserve that private-prototype
-  roster; public-release asset / identity review is tracked in the launch checklist.
+  their own words. The user authorized named anime Celestial forms on 2026-10-29, then explicitly requested
+  epithet display / technique names for those sixteen on 2026-10-30. Preserve the current names / original ids;
+  recognizable portraits and series labels still require the public-release review tracked in the launch checklist.
 - Cheap on phones: UI-first, plain Frames + tweens, no textures or 3D particles in reveals, at most one 3D model per
   ViewportFrame; few CanvasGroups; StreamingEnabled, map under ~15k parts, few lights.
 - Town services stay at their NPCs (Hoshi, Kenshin, Fortuna): no HUD shortcut, and the server checks `NpcRange.Near`.

@@ -61,6 +61,17 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Celestial art / naming pass (2026-10-30): seven weather-only portrait edits uploaded, nine existing
+  portraits retained. Desktop review loaded all16 images; square grid faces and top-aligned source aspect
+  confirmed, all16 new names visible. Three full cards checked (Crimson Frost Sovereign, All-Seeing Emperor,
+  Four-Armed Calamity), original body framing retained. Actual Limitbreak HUD showed the four new display
+  names / portraits. Type check0 errors, props5870 /0 problems, full suite ALL CHECKS PASSED including all16
+  renamed save keys / copy piles / selected borders. No gameplay data changed. Play stopped, upload helper
+  stopped, temporary preview UI / client-only state discarded. Existing203785492 asset warning remains.
+- [ ] User review: revised red Blood Moon / spectral Soulfall / violet Cursed Night atmosphere, names on
+  actual SQUAD / profile grids and manual reveals, longest sky HUD names on phone, mystery-slot discovery.
+  No place published. Display renames do not clear the existing public-release art / model review above.
+
 - [ ] Luck / odds / fusion pass (2026-10-30, headless only):
   - Open a big pile with the Cinematic style: the DMG / HP pill sits under each card and SKIP ALL jumps to the
     summary (and a queued AUTO reveal run also clears).

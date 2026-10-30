@@ -6,6 +6,7 @@ local Weather=require(Shared.Weather)
 local Cards=require(Shared.Cards)
 local Config=require(Shared.Config)
 local Kit=require(script.Parent.Kit)
+local CardView=require(script.Parent.CardView)
 local Theme=require(script.Parent.Theme)
 local Modal=require(script.Parent.Modal)
 local State=require(script.Parent.Parent.State)
@@ -65,13 +66,16 @@ local function refresh()
 				local cell=Kit.new("Frame",{Name=card.Id,LayoutOrder=i,Size=UDim2.fromOffset(71,104),BackgroundColor3=Color3.fromRGB(17,21,38),Parent=strip},{Kit.corner(),Kit.stroke(def.Color,1.5,.15)})
 				Kit.surface(cell,Color3.fromRGB(18,26,40),Color3.fromRGB(5,9,17))
 				cell:SetAttribute("Discovered",discovered==true)
-				Kit.new("ImageLabel",{Name="Portrait",Image=if discovered then card.Image or "" else "",ScaleType=Enum.ScaleType.Crop,Size=UDim2.new(1,-4,1,-22),Position=UDim2.fromOffset(2,2),BackgroundTransparency=1,Parent=cell},{Kit.corner()})
+				local portrait = if discovered then CardView.Art(card.Id, true) else nil
+				portrait = portrait or Kit.new("Frame", { BackgroundTransparency = 1 })
+				portrait.Name = "Portrait"
+				portrait.Size = UDim2.new(1,-4,1,-22)
+				portrait.Position = UDim2.fromOffset(2,2)
+				Kit.corner().Parent = portrait
+				portrait.Parent = cell
 				Kit.label({Name="Mystery",Text="?",Visible=not discovered,TextColor3=Theme.Color.Muted,Position=UDim2.fromScale(.2,.15),Size=UDim2.fromScale(.6,.52),Parent=cell},38)
 				Kit.label({Name="Rarity",Text=Kit.commas(card.SkyOneIn),TextColor3=Theme.Color.Gold,Position=UDim2.fromScale(.05,.64),Size=UDim2.fromScale(.9,.16),ZIndex=4,Parent=cell},13)
-				local name=string.match(card.Id,"_([^_]+)$") or card.Name
-				name=string.upper(string.sub(name,1,1))..string.sub(name,2)
-				if name=="Yuta" then name="Yuta & Rika" end
-				Kit.label({Name="CharacterName",Text=if discovered then name else "???",Position=UDim2.new(0,2,1,-21),Size=UDim2.new(1,-4,0,19),Parent=cell},12)
+				Kit.label({Name="CharacterName",Text=if discovered then card.Name else "???",TextWrapped=true,Position=UDim2.new(0,2,1,-21),Size=UDim2.new(1,-4,0,19),Parent=cell},12)
 			end
 		end
 	end

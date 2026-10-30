@@ -2,6 +2,27 @@
 -- the per-border copy piles add up to the card's total, and running it twice changes nothing.
 local SaveMigration = MODULES.SaveMigration
 
+-- Celestial display-name / art revisions keep the original collection keys and border piles.
+do
+	local data = { Cards = {} }
+	for _, card in MODULES.Cards.List do
+		if card.Weather then
+			data.Cards[card.Id] = { Copies = 101, Stars = 0, Borders = { Normal = true, Gold = true },
+				BorderCopies = { Normal = 100, Gold = 1 }, Play = "Gold" }
+		end
+	end
+	SaveMigration.Migrate(data)
+	SaveMigration.Migrate(data)
+	local count, kept = 0, true
+	for id, entry in data.Cards do
+		count += 1
+		kept = kept and MODULES.Cards.Get(id) ~= nil and entry.Copies == 101
+			and entry.BorderCopies.Normal == 100 and entry.BorderCopies.Gold == 1 and entry.Play == "Gold"
+	end
+	check(count == 16 and kept and MODULES.Cards.Get("celestial_rain_goku").Name == "Silver Sovereign",
+		"all 16 renamed sky cards keep their saved IDs, copies and selected borders")
+end
+
 do
 	local data={Cards={rook={Copies=1,Stars=0}},TotalRolls=100,Shards=1000,TraitShards=3,Upgrades={Luck=2,RollSpeed=1},Packs={["1000:Flame"]=2},Potions={Active={superluck=100,mythic=100}}}
 	SaveMigration.Migrate(data)
