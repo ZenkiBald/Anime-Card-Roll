@@ -54,11 +54,13 @@ function Fixtures.units(deck, owned)
 				-- Awakening as the server applies it: stats and bonds by node, and the node's battle effects.
 				local node = Awaken.Level(owned[id])
 				local effects = Awaken.Effects(node)
+				local border = Deck.PlayBorder(owned[id])
 				table.insert(list, {
 					Id = `{string.sub(row, 1, 1)}{i}`,
 					CardId = id,
 					Stars = owned[id].Stars,
-					Border = Deck.PlayBorder(owned[id]),
+					Border = border,
+					Copies = (owned[id].BorderCopies or {})[border], -- the duplicate bonus, as BattleService sends it
 					Awaken = node,
 					Trait = if #effects > 0 then effects else nil,
 				})
@@ -113,10 +115,10 @@ function Fixtures.campaign(bossId, difficulty, deck, owned, n)
 	return wins / n, times, kos / n
 end
 
--- A deck at about the recommended power for each fight (the 2026-10-30 rarity / boss HP pass): World 1
--- on Gold / Rainbow commons, World 2 on Rainbow, World 3 on Secret, its Nightmare and World 4 Hard on
--- Secret sky cards. World 4 Nightmare (250M HP) is beyond every deck in the game: its entry is the
--- strongest possible squad, and battle_test reports it instead of requiring a win (see the checklist).
+-- The intended squad for each fight (the user's 2026-10-30 progression): World 1 Normal four Base starters,
+-- Hard 2 Gold + 2 Base, Nightmare 4 Gold; World 2 Normal 4 Gold, Hard 2 Rainbow + 2 Gold, Nightmare 4 Rainbow;
+-- World 3 Normal 2 Rainbow + 2 Gold, Hard 4 Rainbow, Nightmare 1 Secret + 3 Rainbow; World 4 Normal 4 Rainbow,
+-- Hard 2 Secret + 2 Rainbow, Nightmare 4 Secret.
 -- `Borders` maps card ids to their border (the rest are Base).
 local S1 = { "heavenly_pact", "mitotic_seal", "wisteria_vial", "thunderclap_form" }
 local S2 = { "sand_gourd", "puppet_threads", "storm_mantle", "blood_vow" }
@@ -134,23 +136,24 @@ local function fight(boss, difficulty, attack, support, border, supportBorder, e
 		Borders = wear(border, attack, support, supportBorder, extra) }
 end
 Fixtures.FIGHTS = {
-	fight("kurogane", "Normal", { "tomo", "rook", "hana", "luna" }, S1, "Gold", "Normal", { rook = "Normal", luna = "Normal" }),
-	fight("kurogane", "Hard", { "hana", "kaede", "suzu", "luna" }, S1, "Rainbow", "Normal", { luna = "Gold", kaede = "Gold" }),
-	fight("kurogane", "Nightmare", { "amane", "hayate", "tetsu", "ibuki" }, S2, "Rainbow", "Gold", { hayate = "Gold", ibuki = "Gold" }),
-	fight("rimeveil", "Normal", { "tomo", "rook", "noa", "kaede" }, S2, "Rainbow", "Normal", { tomo = "Gold", rook = "Gold" }),
-	fight("rimeveil", "Hard", { "goro", "sora", "amaya", "tetsu" }, S2, "Rainbow", nil, { amaya = "Gold" }),
-	fight("rimeveil", "Nightmare", { "raijen", "aurelia", "akane", "mirai" }, S3, "Rainbow"),
-	fight("vex", "Normal", { "tomo", "rook", "noa", "ibuki" }, S1, "Secret", "Normal", { tomo = "Rainbow", noa = "Rainbow" }),
-	fight("vex", "Hard", { "orin", "tsubasa", "kaito", "amaya" }, S2, "Secret", nil, { orin = "Rainbow" }),
-	fight("vex", "Nightmare", { "celestial_blizzard_yhwach", "celestial_thunder_sukuna", "celestial_thunder_gojo", "celestial_eclipse_akaza" }, S3, "Secret"),
-	fight("tenrai", "Normal", { "orin", "tsubasa", "sora", "amaya" }, S2, "Secret"),
-	fight("tenrai", "Hard", BLOOD_MOON, S3, "Secret"),
+	fight("kurogane", "Normal", { "kaede", "hana", "suzu", "luna" }, S1, "Normal"),
+	fight("kurogane", "Hard", { "kaede", "hana", "amane", "hayate" }, S1, "Gold", "Normal", { amane = "Normal", hayate = "Normal" }),
+	fight("kurogane", "Nightmare", { "tomo", "rook", "noa", "ibuki" }, S2, "Gold"),
+	fight("rimeveil", "Normal", { "amane", "hayate", "tetsu", "ibuki" }, S2, "Gold"),
+	fight("rimeveil", "Hard", { "goro", "sora", "amaya", "orin" }, S2, "Rainbow", "Gold", { amaya = "Gold", orin = "Gold" }),
+	fight("rimeveil", "Nightmare", { "orin", "tsubasa", "kaito", "yume" }, S3, "Rainbow"),
+	fight("vex", "Normal", { "kaito", "celestial_rain_broly", "celestial_rain_gogeta", "celestial_rain_goku" }, S3, "Rainbow", "Gold", { celestial_rain_gogeta = "Gold", celestial_rain_goku = "Gold" }),
+	fight("vex", "Hard", { "celestial_rain_goku", "celestial_rain_vegeta", "celestial_rain_gogeta", "celestial_thunder_toji" }, S3, "Rainbow"),
+	fight("vex", "Nightmare", BLOOD_MOON, S3, "Rainbow", nil, { celestial_eclipse_muzan = "Secret" }),
+	fight("tenrai", "Normal", { "raijen", "aurelia", "vex_card", "tenrai_card" }, S3, "Rainbow"),
+	fight("tenrai", "Hard", { "celestial_blizzard_yhwach", "celestial_thunder_sukuna", "celestial_blizzard_yamamoto", "celestial_thunder_gojo" }, S3, "Secret", nil, { celestial_blizzard_yamamoto = "Rainbow", celestial_thunder_gojo = "Rainbow" }),
 	fight("tenrai", "Nightmare", BLOOD_MOON, S3, "Secret"),
 }
--- World 4 Hard needs the strongest deck in the game (four Secret Blood Moon cards): a chase fight, so its
--- window is 60-100 s; World 4 Nightmare is out of reach of every deck.
-Fixtures.FIGHTS[11].Chase = true
-Fixtures.FIGHTS[12].Unwinnable = true
+-- Windows (the user's 2026-10-30 boss HP): 60-90 s by default. World 3 Nightmare (32M) takes the strongest
+-- 1 Secret + 3 Rainbow squad about 95-100 s; World 4 Nightmare (125M) is the 110-140 s four-Secret chase.
+Fixtures.FIGHTS[1].Window = { 50, 90 } -- four Base starters, the weakest squad there is, clear 60,000 HP in ~57 s
+Fixtures.FIGHTS[9].Window = { 60, 100 }
+Fixtures.FIGHTS[12].Window = { 110, 140 }
 
 function Fixtures.fixtureDeck(fixture)
 	local ids = table.clone(fixture.Attack)

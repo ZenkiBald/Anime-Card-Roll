@@ -65,10 +65,10 @@ Meta.Potions = {
 		Icon = "🍀",
 		Color = Color3.fromRGB(86, 214, 138),
 		Kind = "Luck",
-		Amount = 1.5,
+		Amount = 2.5,
 		Seconds = 300,
 		Price = 40,
-		Text = "+0.5 luck for 5 min",
+		Text = "+1.5x luck for 5 min",
 	},
 	{
 		Id = "speed",
@@ -87,10 +87,10 @@ Meta.Potions = {
 		Icon = "🌟",
 		Color = Color3.fromRGB(255, 196, 46),
 		Kind = "Luck",
-		Amount = 2,
+		Amount = 4,
 		Seconds = 600,
 		Price = 150,
-		Text = "+1 luck for 10 min",
+		Text = "+3x luck for 10 min",
 	},
 	{
 		Id = "mythic",
@@ -98,10 +98,10 @@ Meta.Potions = {
 		Icon = "🔮",
 		Color = Color3.fromRGB(255, 58, 92),
 		Kind = "Luck",
-		Amount = 3,
+		Amount = 7,
 		Seconds = 900,
 		Price = 600,
-		Text = "+2 luck for 15 min",
+		Text = "+6x luck for 15 min",
 	},
 } :: { Potion }
 
@@ -236,9 +236,11 @@ end
 export type Stat = { Id: string, Name: string, Icon: string, Color: Color3, Per: number, Max: number, Text: string }
 
 Meta.Stats = {
-	{ Id = "Luck", Name = "Luck", Icon = "🍀", Color = Color3.fromRGB(86, 214, 138), Per = 0.02, Max = 40, Text = "+0.02x base luck" },
+	{ Id = "Luck", Name = "Luck", Icon = "🍀", Color = Color3.fromRGB(86, 214, 138), Per = 0.05, Max = 40, Text = "+0.05x base luck" },
 	{ Id = "RollSpeed", Name = "Roll Speed", Icon = "⚡", Color = Color3.fromRGB(80, 180, 255), Per = 0.01, Max = 30, Text = "-1% roll cooldown" },
-	{ Id = "Border", Name = "Border Chance", Icon = "🌈", Color = Color3.fromRGB(255, 120, 220), Per = 0.03, Max = 30, Text = "+3% Gold / Rainbow / Secret border chance" },
+	-- 2026-10-30: Training is the floor, relics / artifacts the endgame: Border Chance 1% a point (30% max),
+	-- Luck 0.05x a point (2x max).
+	{ Id = "Border", Name = "Border Chance", Icon = "🌈", Color = Color3.fromRGB(255, 120, 220), Per = 0.01, Max = 30, Text = "+1% Gold / Rainbow / Secret border chance" },
 	{ Id = "ShardGain", Name = "Trait Shard Gain", Icon = "💎", Color = Color3.fromRGB(196, 140, 255), Per = 0.03, Max = 30, Text = "+3% earned Trait Shards" },
 	{ Id = "XPGain", Name = "XP Gain", Icon = "⭐", Color = Color3.fromRGB(255, 196, 46), Per = 0.03, Max = 30, Text = "+3% XP from everything" },
 } :: { Stat }

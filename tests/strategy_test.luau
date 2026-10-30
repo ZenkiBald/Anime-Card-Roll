@@ -14,8 +14,8 @@ local F = FIXTURES
 local valid = true
 for _, card in Cards.List do
 	valid = valid and Elements.Get(card.Element) ~= nil
-	-- Cosmic is the chase cards' element only (1 in 2,000 or rarer, or a sky card; never a boss card).
-	valid = valid and (card.Element ~= "Cosmic" or ((card.Weather ~= nil or card.Weight <= 5) and card.Boss == nil))
+	-- Cosmic is the chase cards' element only (1 in 200 or rarer, or a sky card; never a boss card).
+	valid = valid and (card.Element ~= "Cosmic" or ((card.Weather ~= nil or card.Weight <= 50) and card.Boss == nil))
 end
 for _, boss in Bosses.List do
 	valid = valid and Elements.Get(boss.Element) ~= nil and boss.Element ~= "Cosmic"

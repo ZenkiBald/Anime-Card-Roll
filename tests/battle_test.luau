@@ -284,17 +284,17 @@ end
 check(dOk, "every world has Normal / Hard / Nightmare with D in order (World 1 Normal = 1)")
 
 -- 5. Tuning -------------------------------------------------------------------------------------
--- Kurogane Normal is 250,000 HP (the user's 2026-10-30 call): the first all-Base deck runs out of time,
--- and the Gold World 1 fixture is the first deck that clears it.
+-- The user's 2026-10-30 boss HP: every fight is winnable. Kurogane Normal (60,000 HP) falls to a squad of
+-- Base commons; each fixture squad (tests/fixtures.luau) wins its fight inside its window.
 local rate = F.campaign("kurogane", "Normal", starter, starterOwned, 30)
 print(string.format("   31.5k all-Base starter vs Kurogane Normal: %d%% wins", rate * 100))
-check(rate == 0, `the all-Base starter deck can't beat Kurogane Normal yet ({math.floor(rate * 100)}%)`)
+check(rate >= 0.9, `an all-Base starter deck beats Kurogane Normal ({math.floor(rate * 100)}%)`)
 
 for _, fx in F.FIGHTS do
 	local deck, owned = F.fixtureDeck(fx)
 	local power = Deck.Power(deck, owned)
 	local recommended = Bosses.Get(fx.Boss).Difficulties[fx.Difficulty].Recommended
-	local r, t, k = F.campaign(fx.Boss, fx.Difficulty, deck, owned, if fx.Unwinnable then 20 else 100)
+	local r, t, k = F.campaign(fx.Boss, fx.Difficulty, deck, owned, 100)
 	local median = F.percentile(t, 0.5)
 	print(
 		string.format(
@@ -308,16 +308,11 @@ for _, fx in F.FIGHTS do
 			k
 		)
 	)
-	if fx.Unwinnable then
-		-- Reported, not required: no deck in the game wins it (docs/LAUNCH_CHECKLIST.md).
-		print(`   NOTE {fx.Boss} {fx.Difficulty}: the strongest possible deck wins {math.floor(r * 100)}% (out of reach)`)
-	else
-		local top = if fx.Chase then 100 else 90
-		check(
-			math.abs(power - recommended) / recommended <= 0.1 and r >= 0.9 and median >= 60 and median <= top,
-			`{fx.Boss} {fx.Difficulty}: a deck at the recommended power wins in 60-{top} s`
-		)
-	end
+	local window = fx.Window or { 60, 90 }
+	check(
+		math.abs(power - recommended) / recommended <= 0.1 and r >= 0.9 and median >= window[1] and median <= window[2],
+		`{fx.Boss} {fx.Difficulty}: a deck at the recommended power wins in {window[1]}-{window[2]} s`
+	)
 end
 
 local lone = F.campaign("kurogane", "Normal", F.deck({ "rook" }, {}), starterOwned, 20)

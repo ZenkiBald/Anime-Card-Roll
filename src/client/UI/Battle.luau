@@ -54,6 +54,7 @@ local battleHidden = false
 local returnGui: ScreenGui
 local returnButton: any
 local setHidden
+local releaseJump: () -> () -- the Clash ring's jump hold (holdJump below)
 
 export type Hooks = {
 	OnStart: () -> (), -- battle screen opened (hide the roll HUD)
@@ -109,6 +110,7 @@ setHidden = function(on: boolean)
 	if on and clashRing then
 		clashRing.Visible = false
 		ContextActionService:UnbindAction("BattleClash") -- never take Space from the world while exploring
+		releaseJump()
 	end
 	State.BattleHidden = on
 	gui.Enabled = not on
@@ -1376,6 +1378,7 @@ local function applySnapshot(snap)
 			if clashRing and clashRing.Visible and (s.Cl == nil or staggered) and os.clock() - (clashRing:GetAttribute("OpenedAt") or 0) > 0.3 then
 				clashRing.Visible = false -- the window closed on the server (struck, broken or used)
 				ContextActionService:UnbindAction("BattleClash")
+				releaseJump()
 			end
 			if staggerBanner.Visible ~= staggered then
 				staggerBanner.Visible = staggered
@@ -1648,12 +1651,34 @@ end
 -- Boss Clash -----------------------------------------------------------------------------------------
 
 local clashToken = 0
+local savedJump: { Humanoid: Humanoid, Height: number, Power: number }? = nil
+
+-- While the ring is up, Space belongs to the Clash: the binding below sinks it, and the character's jump is
+-- zeroed too (a custom control script can't make it hop), then restored when the ring closes.
+local function holdJump(on: boolean)
+	if on and savedJump == nil then
+		local character = game:GetService("Players").LocalPlayer.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			savedJump = { Humanoid = humanoid, Height = humanoid.JumpHeight, Power = humanoid.JumpPower }
+			humanoid.JumpHeight, humanoid.JumpPower = 0, 0
+		end
+	elseif not on and savedJump then
+		local saved = savedJump
+		savedJump = nil
+		if saved.Humanoid.Parent then
+			saved.Humanoid.JumpHeight, saved.Humanoid.JumpPower = saved.Height, saved.Power
+		end
+	end
+end
+
 local function closeClash()
 	clashToken += 1
 	if clashRing then
 		clashRing.Visible = false
 	end
 	ContextActionService:UnbindAction("BattleClash")
+	holdJump(false)
 end
 
 local function doClash()
@@ -1684,6 +1709,7 @@ local function openClash(seconds: number)
 		Kit.tween(scale, 0.18, { Scale = 1 }, Enum.EasingStyle.Back)
 	end
 	Sfx.Play("Whoosh", 1.5)
+	holdJump(true)
 	ContextActionService:BindActionAtPriority("BattleClash", function(_, inputState)
 		if inputState == Enum.UserInputState.Begin then
 			doClash()
@@ -1695,6 +1721,11 @@ local function openClash(seconds: number)
 			closeClash()
 		end
 	end)
+end
+
+-- applySnapshot / setHidden are defined before holdJump; they release the jump through this.
+releaseJump = function()
+	holdJump(false)
 end
 
 local SHIELDED_COLOR = Color3.fromRGB(150, 165, 190)

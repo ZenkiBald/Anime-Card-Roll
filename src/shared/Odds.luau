@@ -36,7 +36,7 @@ function Odds.FormatPercent(pct: number): string
 end
 
 -- The round numbers rarity numbers snap to: these mantissas times a power of ten (12, 125, 2,500, 7,500,000).
-Odds.RoundSteps = { 1, 1.2, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 8, 10 }
+Odds.RoundSteps = { 1, 1.2, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 3, 3.25, 4, 5, 6, 6.25, 6.5, 7.5, 8, 10 }
 
 -- `n` snapped to the nearest round number (nearest in ratio, so 48 -> 50 and 9,950,000 -> 10,000,000).
 function Odds.Round(n: number): number

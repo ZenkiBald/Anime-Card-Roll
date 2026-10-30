@@ -104,7 +104,7 @@ local list: { Card } = {
 		Title = "Armored Colossus",
 		Type = "Attack",
 		Role = "Warder",
-		Weight = 222.2222,
+		Weight = 10000 / 22,
 		Element = "Flame",
 		Main = 725,
 		HP = 1450,
@@ -133,7 +133,7 @@ local list: { Card } = {
 		Title = "Soul-Thread Medic",
 		Type = "Attack",
 		Role = "Mender",
-		Weight = 1333.3333,
+		Weight = 994.9248,
 		Element = "Void",
 		Main = 450,
 		HP = 900,
@@ -159,7 +159,7 @@ local list: { Card } = {
 		Title = "Dawn Swordsman",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 250,
+		Weight = 10000 / 20,
 		Element = "Flame",
 		Main = 700,
 		HP = 1400,
@@ -188,7 +188,7 @@ local list: { Card } = {
 		Title = "The Untouchable",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 6.6667,
+		Weight = 10000 / 350,
 		Element = "Storm",
 		Main = 2300,
 		HP = 4600,
@@ -217,7 +217,7 @@ local list: { Card } = {
 		Title = "Shadow Familiar Tamer",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 26.3158,
+		Weight = 10000 / 120,
 		Element = "Storm",
 		Main = 1525,
 		HP = 3050,
@@ -245,7 +245,7 @@ local list: { Card } = {
 		Title = "King of Malice",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 6.6667,
+		Weight = 10000 / 350,
 		Element = "Flame",
 		Main = 2400,
 		HP = 4800,
@@ -277,7 +277,7 @@ local list: { Card } = {
 		Title = "Prince of Pride",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 10,
+		Weight = 10000 / 250,
 		Element = "Frost",
 		Main = 2050,
 		HP = 4100,
@@ -305,7 +305,7 @@ local list: { Card } = {
 		Title = "Mistress of Hounds",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 200,
+		Weight = 10000 / 25,
 		Element = "Void",
 		Main = 750,
 		HP = 1500,
@@ -334,7 +334,7 @@ local list: { Card } = {
 		Title = "The Silver Instinct",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 5,
+		Weight = 10000 / 500,
 		Element = "Cosmic",
 		Main = 2600,
 		HP = 5200,
@@ -365,7 +365,7 @@ local list: { Card } = {
 		Title = "Hundred-Healing Medic",
 		Type = "Attack",
 		Role = "Mender",
-		Weight = 1333.3333,
+		Weight = 994.9248,
 		Element = "Light",
 		Main = 455,
 		HP = 910,
@@ -396,7 +396,7 @@ local list: { Card } = {
 		Title = "Blood-Pact Brawler",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 33.3333,
+		Weight = 10000 / 100,
 		Element = "Light",
 		Main = 1450,
 		HP = 2900,
@@ -427,7 +427,7 @@ local list: { Card } = {
 		Title = "Sleeping Lightning",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 1250,
+		Weight = 932.742,
 		Element = "Storm",
 		Main = 470,
 		HP = 940,
@@ -457,7 +457,7 @@ local list: { Card } = {
 		Title = "Cloud-Step Assassin",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 166.6667,
+		Weight = 10000 / 30,
 		Element = "Frost",
 		Main = 800,
 		HP = 1600,
@@ -486,7 +486,7 @@ local list: { Card } = {
 		Title = "Mirror of Hypnosis",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 6.6667,
+		Weight = 10000 / 350,
 		Element = "Frost",
 		Main = 2200,
 		HP = 4400,
@@ -517,7 +517,7 @@ local list: { Card } = {
 		Title = "Living Sand Fortress",
 		Type = "Attack",
 		Role = "Warder",
-		Weight = 62.5,
+		Weight = 10000 / 70,
 		Element = "Void",
 		Main = 1200,
 		HP = 2400,
@@ -548,7 +548,7 @@ local list: { Card } = {
 		Title = "Wisteria Tactician",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 833.3333,
+		Weight = 621.828,
 		Element = "Light",
 		Main = 500,
 		HP = 1000,
@@ -578,7 +578,7 @@ local list: { Card } = {
 		Title = "Keeper of Hours",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 13.3333,
+		Weight = 10000 / 200,
 		Element = "Void",
 		Main = 1850,
 		HP = 3700,
@@ -608,7 +608,7 @@ local list: { Card } = {
 		Title = "Vessel of the Nine Tails",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 5,
+		Weight = 10000 / 500,
 		Element = "Cosmic",
 		Main = 2700,
 		HP = 5400,
@@ -640,7 +640,7 @@ local list: { Card } = {
 		Title = "Purgatory Flamekeeper",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 71.4286,
+		Weight = 10000 / 60,
 		Element = "Flame",
 		Main = 1125,
 		HP = 2250,
@@ -671,7 +671,7 @@ local list: { Card } = {
 		Title = "Mistress of Strings",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 83.3333,
+		Weight = 10000 / 50,
 		Element = "Storm",
 		Main = 1050,
 		HP = 2100,
@@ -701,7 +701,7 @@ local list: { Card } = {
 		Title = "Crescent Soul Blade",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 11.7647,
+		Weight = 10000 / 225,
 		Element = "Light",
 		Main = 1950,
 		HP = 3900,
@@ -730,7 +730,7 @@ local list: { Card } = {
 		Title = "Voice of the Storm",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 22.2222,
+		Weight = 10000 / 140,
 		Element = "Storm",
 		Main = 1600,
 		HP = 3200,
@@ -761,7 +761,7 @@ local list: { Card } = {
 		Title = "The Ember Fox",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 5,
+		Weight = 10000 / 400,
 		Boss = "kurogane",
 		Element = "Flame",
 		Main = 2650,
@@ -791,7 +791,7 @@ local list: { Card } = {
 		Title = "The Frost Tyrant",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 4,
+		Weight = 10000 / 500,
 		Boss = "rimeveil",
 		Element = "Frost",
 		Main = 2800,
@@ -821,7 +821,7 @@ local list: { Card } = {
 		Title = "The Hollow Betrayer",
 		Type = "Attack",
 		Role = "Hexer",
-		Weight = 3.125,
+		Weight = 10000 / 650,
 		Boss = "vex",
 		Element = "Void",
 		Main = 3000,
@@ -852,7 +852,7 @@ local list: { Card } = {
 		Title = "The Thousand-Year Storm",
 		Type = "Attack",
 		Role = "Striker",
-		Weight = 2.5,
+		Weight = 10000 / 800,
 		Boss = "tenrai",
 		Element = "Storm",
 		Main = 3250,
@@ -886,7 +886,7 @@ local list: { Card } = {
 		Title = "Forbidden Medical Crest",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 1333.3333,
+		Weight = 994.9248,
 		Element = "Light",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -912,7 +912,7 @@ local list: { Card } = {
 		Title = "Cursed Counter-Pact",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 23.8095,
+		Weight = 10000 / 130,
 		Element = "Light",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -937,7 +937,7 @@ local list: { Card } = {
 		Title = "Lightning Draw Stance",
 		Type = "Support",
 		Role = "Striker",
-		Weight = 1000,
+		Weight = 746.1936,
 		Element = "Storm",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -962,7 +962,7 @@ local list: { Card } = {
 		Title = "Assassin's Physical Pact",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 181.8182,
+		Weight = 10000 / 25,
 		Element = "Frost",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -988,7 +988,7 @@ local list: { Card } = {
 		Title = "Hypnotic Crow Crest",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 6.6667,
+		Weight = 10000 / 350,
 		Element = "Frost",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1015,7 +1015,7 @@ local list: { Card } = {
 		Title = "Desert Seal Vessel",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 66.6667,
+		Weight = 10000 / 65,
 		Element = "Void",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1040,7 +1040,7 @@ local list: { Card } = {
 		Title = "Butterfly Medical Extract",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 1250,
+		Weight = 932.742,
 		Element = "Light",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1065,7 +1065,7 @@ local list: { Card } = {
 		Title = "Marked Space-Time Blade",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 10.5263,
+		Weight = 10000 / 225,
 		Element = "Void",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1090,7 +1090,7 @@ local list: { Card } = {
 		Title = "Caged Beast Talisman",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 5,
+		Weight = 10000 / 500,
 		Element = "Cosmic",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1115,7 +1115,7 @@ local list: { Card } = {
 		Title = "Reversal String Technique",
 		Type = "Support",
 		Role = "Mender",
-		Weight = 76.9231,
+		Weight = 10000 / 55,
 		Element = "Storm",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1139,7 +1139,7 @@ local list: { Card } = {
 		Title = "Siphoning Lightning Armor",
 		Type = "Support",
 		Role = "Warder",
-		Weight = 29.4118,
+		Weight = 10000 / 110,
 		Element = "Storm",
 		Main = 0, -- passive: no damage stat
 		SPD = 0, -- passive: no action bar
@@ -1260,6 +1260,17 @@ function Cards.RarityRank(card: Card): number
 	return math.log(1 / math.max(chance, 1e-9))
 end
 
+-- Hoshi's fusion cost (2026-10-30): Config.FusionCopies.Common copies for starter / lower-mid / mid cards
+-- (1 in under 100), Config.FusionCopies.Rare for upper-mid and rarer, boss and sky cards.
+function Cards.FusionCost(card: Card?): number
+	local cost = Config.FusionCopies
+	if card == nil then
+		return cost.Rare
+	end
+	local rare = card.Boss ~= nil or card.Weather ~= nil or Cards.WeightTotal / math.max(card.Weight, 1e-9) >= 100
+	return if rare then cost.Rare else cost.Common
+end
+
 -- The roll pool: every card, except boss cards whose boss hasn't been beaten on Normal yet
 -- (`cleared` = Progress.Cleared, keyed "boss:Normal").
 function Cards.Pool(cleared: { [string]: boolean }?): { Card }
@@ -1276,7 +1287,7 @@ end
 -- weighs x FeaturedBoost for a week (Monday 00:00 UTC to Monday), the same on every server: picked by a
 -- seeded hash of the week number. Its border odds don't change, so it's simply easier to pull.
 Cards.FeaturedBoost = 3
-Cards.FeaturedMaxWeight = 14 -- 1 in about 715 or rarer
+Cards.FeaturedMaxWeight = 50 -- 1 in 200 or rarer (high, elite, apex)
 local WEEK = 604800
 local MONDAY = 345600 -- the Unix epoch was a Thursday; +4 days is the first Monday 00:00 UTC
 
@@ -1305,11 +1316,32 @@ end
 
 -- Each card's chance (0-1) to be the card of a pull, in `pool`. `element` (infused packs) weighs that
 -- element's cards x `elementWeight`; `featured` (the week's Featured Card) weighs x FeaturedBoost.
-function Cards.PullChances(pool: { Card }, element: string?, elementWeight: number?, featured: string?): { [string]: number }
+-- Luck tilts the pool toward rare cards (2026-10-30): a card of 1 in Tilt.From or rarer weighs up to
+-- 1 + (effective luck - 1) x Tilt.PerLuck x its rareness (0 at 1 in From, 1 at 1 in To and beyond),
+-- at most Tilt.Max times. At endgame luck (35x+) the high / elite / apex / boss cards come 2.5-5x as
+-- often; commoner cards take what's left. Effective luck has the same diminishing returns as borders.
+Cards.Tilt = { From = 100, To = 800, PerLuck = 0.12, Max = 5 }
+function Cards.LuckTilt(card: Card, luck: number?): number
+	local l = Borders.EffectiveLuck(luck or 1)
+	if l <= 1 or card.Weight <= 0 then
+		return 1
+	end
+	local t = Cards.Tilt
+	local oneIn = Cards.WeightTotal / card.Weight
+	if oneIn < t.From then
+		return 1
+	end
+	local rare = math.clamp(math.log(oneIn / t.From) / math.log(t.To / t.From), 0, 1)
+	return math.min(t.Max, 1 + (l - 1) * t.PerLuck * rare)
+end
+
+-- `luck` (optional): the roller's total luck, tilting the pool toward rare cards (Cards.LuckTilt).
+function Cards.PullChances(pool: { Card }, element: string?, elementWeight: number?, featured: string?, luck: number?): { [string]: number }
 	local function weight(card: Card): number
 		return card.Weight
 			* (if element and card.Element == element then elementWeight or 1 else 1)
 			* (if featured and card.Id == featured then Cards.FeaturedBoost else 1)
+			* Cards.LuckTilt(card, luck)
 	end
 	local total = 0
 	for _, card in pool do
@@ -1369,7 +1401,20 @@ end
 
 -- Legacy function signature retained; duplicate counts no longer multiply stats.
 function Cards.StatWithStars(base: number, stars: number): number
-	return math.floor(base + 0.5) -- duplicate counts never affect stats
+	return math.floor(base + 0.5) -- legacy stars never affect stats
+end
+
+-- Duplicates (2026-10-30): every copy past the first at the border a card fights at adds DupeStep to its
+-- ATK / HP, up to DupeCap (+25% at 51 copies). Fusing moves the pile on to the next border's single copy.
+Cards.DupeStep = 0.005
+Cards.DupeCap = 0.25
+function Cards.DupeBonus(copies: number?): number
+	return math.min(Cards.DupeCap, Cards.DupeStep * math.max(0, math.floor(copies or 1) - 1))
+end
+
+-- Copies of an owned card held at a border.
+function Cards.CopiesAt(entry: any, border: string?): number
+	return if entry and entry.BorderCopies then entry.BorderCopies[border or "Normal"] or 0 else 0
 end
 
 -- Percentage support effects grow gently; multiplying a 25% shield buff by 64 would break combat.
@@ -1498,15 +1543,16 @@ for _, card in list do
 	card.Abilities = abilities
 end
 
-function Cards.Stat(card: Card, base: number, stars: number, border: string?, awaken: number?): number
-	return Cards.StatWithStars(base * Borders.Multiplier(border) * Cards.Scale(card) * Awaken.StatMultiplier(awaken), stars)
+-- `copies`: copies held at `border` (the duplicate bonus); nil = none.
+function Cards.Stat(card: Card, base: number, stars: number, border: string?, awaken: number?, copies: number?): number
+	return Cards.StatWithStars(base * Borders.Multiplier(border) * Cards.Scale(card) * Awaken.StatMultiplier(awaken) * (1 + Cards.DupeBonus(copies)), stars)
 end
 
 -- Attack rating used for boss recommendations: ATK x 10 + HP. Passive supports add no rating.
-function Cards.Power(card: Card, stars: number, border: string?, awaken: number?): number
-	local main = Cards.Stat(card, card.Main, stars, border, awaken)
+function Cards.Power(card: Card, stars: number, border: string?, awaken: number?, copies: number?): number
+	local main = Cards.Stat(card, card.Main, stars, border, awaken, copies)
 	if card.Type == "Attack" then
-		return main * Config.Power.PerATK + Cards.Stat(card, card.HP or 0, stars, border, awaken)
+		return main * Config.Power.PerATK + Cards.Stat(card, card.HP or 0, stars, border, awaken, copies)
 	end
 	return 0 -- passive supports have no combat stats; team rating measures the Attack row
 end

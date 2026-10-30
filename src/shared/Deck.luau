@@ -125,7 +125,7 @@ function Deck.PlayBorder(entry: any): string
 	return Borders.Best(entry.Borders)
 end
 
--- A card's power at a border (default: the one it fights at), with the owner's stars and Awakening.
+-- A card's power at a border (default: the one it fights at), with the owner's Awakening and duplicate bonus.
 function Deck.PowerAt(id: string, owned: Owned, border: string?): number
 	local card = Cards.Get(id)
 	if card == nil then
@@ -133,7 +133,7 @@ function Deck.PowerAt(id: string, owned: Owned, border: string?): number
 	end
 	local entry = owned[id]
 	return if entry
-		then Cards.Power(card, entry.Stars, border or Deck.PlayBorder(entry), Awaken.Level(entry :: any))
+		then Cards.Power(card, entry.Stars, border or Deck.PlayBorder(entry), Awaken.Level(entry :: any), Cards.CopiesAt(entry, border or Deck.PlayBorder(entry)))
 		else Cards.Power(card, 0)
 end
 
@@ -145,7 +145,7 @@ function Deck.CardPower(id: string, owned: Owned): number
 	end
 	local entry = owned[id]
 	return if entry
-		then Cards.Power(card, entry.Stars, Deck.PlayBorder(entry), Awaken.Level(entry :: any))
+		then Cards.Power(card, entry.Stars, Deck.PlayBorder(entry), Awaken.Level(entry :: any), Cards.CopiesAt(entry, Deck.PlayBorder(entry)))
 		else Cards.Power(card, 0)
 end
 

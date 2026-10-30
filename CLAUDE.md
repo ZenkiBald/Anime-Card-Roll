@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-10-30, after the real-time battle pass). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-10-30, after the luck / odds / boss HP / fusion pass). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -21,7 +21,8 @@ The updated layout still needs a real iPhone check; per-world transitions remain
 The subsequent illustrated UI kit was implemented and checked in desktop Studio (HUD, SQUAD, BAG, battle controls /
 intro): the uploaded textures loaded, names and filter chips fit, and there were no new runtime errors.
 The 2026-10-30 real-time battle pass (archetype timers, Boss Shield, Clash ring, HOLD ULT, guard links, card
-animations) was built headless only: its battle screen and Arena beams are unseen in Studio.
+animations) was built headless only: its battle screen and Arena beams are unseen in Studio. So is the following
+luck / odds / boss HP / fusion pass (cinematic reveal DMG / HP pill and SKIP ALL, Clash jump hold).
 
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and
@@ -61,8 +62,13 @@ own card joins after that boss's first Normal clear) and rolls its **border**, w
 saves) 1x / Gold 4x / Rainbow 16x / Secret 64x stats, base odds 1 in 200 / 5,000 / 500,000 (rare on purpose: story
 bosses are beaten with Base + Gold, Rainbow and Secret are the tower chase). Luck raises each special border by luck ^
 0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped at 50% together). Total luck = (earned base + strongest potion bonus + active sky bonus) x event / Raid Luck / Totem / VIP
-(`Meta.TotalLuck`), without a hard total-luck cap. Borders use raw luck through 5x, then
-`5 + 10 * log(1 + (luck - 5) / 10)`; the 50% combined special-border safety limit remains. ODDS uses the same formula. Pure luck: no pity. Every card shows its **rarity number** per border (`Cards.Rarity`: 1 / (pull
+(`Meta.TotalLuck`), without a hard total-luck cap. Borders use raw luck through 35x (`Config.Roll.LuckSoftStart`), then
+`35 + 10 * log(1 + (luck - 35) / 10)`; the 50% combined special-border safety limit remains. ODDS uses the same formula.
+**Luck also tilts the card pick** (`Cards.LuckTilt`, `Cards.Tilt`): a card of 1 in 100 or rarer weighs
+`1 + (effective luck - 1) x 0.12 x rareness` (rareness 0 at 1 in 100, 1 at 1 in 800+; at most 5x), so at 35-40x
+high cards come ~2.5x as often, elite ~3.5x, apex ~4x, the W4 boss card ~4.5x; `PullChances(..., luck)` in
+RollService single / bulk pulls and the ODDS panel. A maxed player (Training + 3 best relics + both artifacts +
+Potion III + Blood Moon x Raid Luck x Lucky Storm) reaches ~54x effective luck (meta_test). Pure luck: no pity. Every card shows its **rarity number** per border (`Cards.Rarity`: 1 / (pull
 chance x border chance) at 1x luck, snapped to a round number by `Odds.Round` like "7,500,000", never "1 in"; it is the
 big number on card tiles; `Odds.FormatRarity` for the ODDS panel). Every pull also rolls a foil (Aura / Golden Ki /
 Demon Seal, battle-only). ROLL (R), QUICK toggle (T: ROLL plays the short reveal, saved), AUTO (E; never stops by
@@ -98,11 +104,11 @@ they do not count toward normal completion rewards. No event Supports or same-we
 Normal pulls keep their usual rates / quantities. While a sky is active, every normal pull (a click, each
 Triple Roll card, every pack pull) also searches it once; there is no time throttle. `CelestialRolls.Search`
 draws all of a click's or a pack's searches at once (BulkRoll multinomial), with disjoint per-card chances
-`1 / SkyOneIn x (1 + (luck - 1) x 0.15)` and a no-find remainder (capped at 50% a search for absurd luck).
-Limitbreak: Broly 1,500 / Gogeta 2,000 / Vegeta 2,500 / Goku 3,000; Soulfall: Ichigo 3,500 / Aizen 4,500 /
-Yamamoto 6,000 / Yhwach 8,000; Cursed Night: Toji 3,500 / Yuta 4,500 / Gojo 6,500 / Sukuna 8,000; Blood Moon:
-Akaza 10,000 / Doma 14,000 / Kokushibo 18,000 / Muzan 25,000. Displayed border rarity uses that base chance and
-border odds (Muzan Secret 1 in 12.5 billion). Rarer sky cards have greater actual stats, and each outstats every
+`1 / SkyOneIn x (1 + (luck - 1) x 0.35)` (`CelestialRolls.LuckWeight`, 2026-10-30) and a no-find remainder (capped
+at 50% a search for absurd luck). The user's 2026-10-30 odds: Limitbreak: Broly 300 / Gogeta 400 / Vegeta 500 /
+Goku 650; Soulfall: Ichigo 600 / Aizen 800 / Yamamoto 1,000 / Yhwach 1,250; Cursed Night: Toji 600 / Yuta 800 /
+Gojo 1,000 / Sukuna 1,250; Blood Moon: Akaza 1,200 / Doma 1,500 / Kokushibo 2,000 / Muzan 2,500. Displayed border
+rarity uses that base chance and border odds (Kokushibo Secret 1 in 1 billion, Muzan 1 in 1.25 billion). Rarer sky cards have greater actual stats, and each outstats every
 normal / boss card that is no rarer. Bulk receipts include every normal and
 bonus card in the same rarest-first highlights / complete grouped summary. No out-of-weather event drops.
 Matching sky cards gain +20% ATK / max HP in every battle, reverting when it ends; transitions preserve HP
@@ -130,13 +136,14 @@ scenery backups in ServerStorage; the exported tower itself travels through Git 
 **Cards.** 37 normal cards: 26 character Attacks (including 4 boss cards) + 11 relic / technique Supports.
 A separate event pool adds 16 Celestial Attack cards (53 cards total). Normal cards retain their anime-style
 epithet names for the private prototype (see Rules). **Rarity tiers (2026-10-30):** `Weight` is a pull chance out of
-`Cards.WeightTotal` (10,000; Weight 5 = 1 in 2,000), and every card's base ATK is authored (HP = 2 x ATK,
-`Cards.Scale` = 1): starters 1 in 7.5-12 / 450-500 ATK (Lotus Blossom, Spirit Weaver, Thunder Flash, Celestial
-Strategist + Wisteria Vial, Thunderclap, Mitotic Seal), lower-mid 1 in 40-60 / 700-800, mid 1 in 120-160 /
-1,050-1,200, upper-mid 1 in 300-450 / 1,450-1,600, high 1 in 750-1,000 / 1,850-2,050, elite 1 in 1,500 /
-2,200-2,400, apex 1 in 2,000 / 2,600-2,700 (Secret 1 in 1,000,000,000), boss cards 1 in 2,000-4,000 /
-2,650-3,250. The starters take what's left of the pool, so they land at 1 in 7.5-12 rather than 10-20. A rarer
-card never has less ATK than a commoner one, and a rare Gold can outdo a common Rainbow. Each has an
+`Cards.WeightTotal` (10,000; weights are written `10000 / N`), and every card's base ATK is authored (HP = 2 x ATK,
+`Cards.Scale` = 1). The user's 2026-10-30 odds: starters 1 in 10-16 / 450-500 ATK (Lotus Blossom, Spirit Weaver,
+Thunder Flash, Celestial Strategist + Wisteria Vial, Thunderclap, Mitotic Seal: they take what's left of the pool,
+so they can't reach the asked 7-10), lower-mid 1 in 20-30 / 700-800, mid 1 in 50-70 / 1,050-1,200, upper-mid
+1 in 100-140 / 1,450-1,600, high 1 in 200-250 / 1,850-2,050, elite 1 in 350 / 2,200-2,400 (Secret 1 in 175M), apex
+1 in 500 / 2,600-2,700 (Secret 1 in 250M), boss cards W1-W4 1 in 400 / 500 / 650 / 800 (Secret 200M-400M) /
+2,650-3,250. Among normal cards a rarer card never has less ATK; boss cards are ranked among themselves (W1's
+1 in 400 / 2,650 sits beside the 1 in 500 apex cards). A rare Gold can outdo a common Rainbow. Each has an
 `Element`, a `Role` (Striker / Hexer / Mender / Warder) and abilities built from the effect library at the top of
 `Cards.luau`; All 11 former character Supports now have a damaging Basic / Skill / Ultimate and a triggered Passive, keeping their ids, names and character art. The other Attack kits retain their previous abilities. **Archetypes (2026-10-30):** `Cards.Archetype` sorts every Attack card by SPD into
 Fast (120-135) / Balanced (105-119) / Heavy (85-104); a post-build pass in `Cards.luau` sets `BasicInterval`,
@@ -145,10 +152,13 @@ Basic / Skill / Ultimate's per-cast damage into its band (Fast 65-75 / 240-270 /
 280-320 / 580-650%, Heavy 150-180 / 340-400 / 750-900%), keeping hit counts, every per-hit % a multiple of 5;
 faster cards get the shorter timers and rarer cards the higher damage. Skills no longer count actions
 (`Ability.Every` is only an OnAct passive interval). Support relics have one passive definition
-and its subtitle (`Title`) and colour (`Accent`) fit its name and element. Duplicate pulls grant **no combat
-bonus**: Stars remain a legacy save field, always zero on normal rolls, and copy-based Awakening is retired.
+and its subtitle (`Title`) and colour (`Accent`) fit its name and element. **Duplicates (2026-10-30):** every copy
+past the first at the border a card fights at adds +0.5% ATK / HP, up to +25% (`Cards.DupeBonus`, `Cards.Stat` /
+`Power` take `copies`; BattleService sends `Copies` per unit; Deck Power, the inspector, tooltips and reveals show
+it). Stars remain a legacy save field, always zero on normal rolls, and copy-based Awakening is retired.
 Copies pile up per border (`BorderCopies`); each owned border has its own tile, and the deck fights at the chosen
-border (`Deck.PlayBorder`, save `Play`). **Border fusion** at Hoshi still costs 100 copies of one border for one
+border (`Deck.PlayBorder`, save `Play`). **Border fusion** at Hoshi costs `Cards.FusionCost`: 50 copies of one border
+for starter / lower-mid / mid cards, 25 for upper-mid and rarer, boss and sky cards (`Config.FusionCopies`), for one
 copy at the next border, with no extra reward.
 
 **Battle Mastery** replaces copy upgrades (`Awaken.luau` retains its old module name). Each participating Attack
@@ -232,7 +242,8 @@ numbers, event Sd) and 1.5x once broken (big gold numbers, Bk). Hits fill it by 
 Skill 0.8%, Heavy Skills x2, Ultimate 0.4% per 100%), a guard KO adds 25%, a standing Warder absorbs 30% of hit
 fill; full = glass-shatter break, 6 s stun, its warned move cancelled. **Boss Clash:** a leader's warned move that
 hits the squad opens a 1.2 s window (event ClashOpen, snapshot Cl) when its warning runs out; the CLICK / SPACE TO
-CLASH! ring (Space / gamepad A / X via ContextActionService, never bound while hidden) sends BattleInput Clash
+CLASH! ring (Space / gamepad A / X via ContextActionService at High priority, sunk, never bound while hidden; the
+character's JumpHeight / JumpPower are zeroed while it shows and restored after) sends BattleInput Clash
 (own 2/s limiter). In time, the strongest standing card dashes in: 200% ATK back at the leader, the move's damage
 -75%, +30% Shield. Ignored, it lands as normal. **Guards link to the leader** (Arena beams in role colours): a
 Warder's Protect cuts its damage taken 40%; a Mender mends it 3% max HP every 8 s and wipes its debuffs / burns
@@ -270,14 +281,13 @@ state evaluation disabled. Templates face -Z; Susanoo's shell uses shaded blue r
 ModelView fits tails / wings to viewport width; arena ground rays ignore the world boss NPC. The former kit
 is archived beside the new asset as `PreviousBossKit.rbxm`; the installer and manifest document provenance.
 
-**Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12). Boss HP (the user's 2026-10-30 call): World 1
-250k / 800k / 2.5M, World 2 1.2M / 4M / 12M, World 3 5.5M / 18M / 55M, World 4 25M / 85M / 250M; ATK ~4% of
-the fixture deck's average card HP. Recommended Attack rating 70.1k ... 16.5M = each fixture deck's power
-(`tests/fixtures.luau`, re-picked for the real-time rules): World 1 on Gold / Base commons, World 2 Rainbow with
-a Gold card or two, World 3 Secret (its Nightmare on
-Secret Soulfall / Cursed Night sky cards), World 4 Normal Secret high cards, Hard four Secret Blood Moon cards.
-The all-Base starter deck (31.5k) can't clear World 1 Normal. **World 4 Nightmare (250M) is out of reach of
-every deck in the game** (the best, four Secret Blood Moon cards, deals ~183M in the 180 s limit); see the checklist. Boss wins pay Roll Packs, Trait Shards and potions (no gear). A rewarded win starts a persisted five-minute
+**Content.** 4 worlds x Normal / Hard / Nightmare (D 1-12). Boss HP (the user's second 2026-10-30 table, every
+fight winnable): World 1 60k / 220k / 750k, World 2 900k / 2.8M / 7.5M, World 3 4.5M / 12M / 32M, World 4 14M / 45M
+/ 125M; ATK = 4% of the fixture squad's average card HP. Recommended Attack rating 22.5k ... 16.5M = each fixture
+squad's power (`tests/fixtures.luau`): W1 four Base starters (~57 s, window 50-90), 2 Gold + 2 Base, 4 Gold; W2
+4 Gold, 2 Rainbow + 2 Gold, 4 Rainbow; W3 2 Rainbow + 2 Gold, 4 Rainbow, 1 Secret + 3 Rainbow (~98 s with the
+strongest such squad, window 60-100); W4 4 Rainbow apex / boss, 2 Secret + 2 Rainbow, 4 Secret Blood Moon (~119 s,
+window 110-140). Any all-Base starter squad clears World 1 Normal. Boss wins pay Roll Packs, Trait Shards and potions (no gear). A rewarded win starts a persisted five-minute
 cooldown for that boss/difficulty. Fighting again during it is PRACTICE: no rewards, XP, mastery or clear
 progress. Losses do not start a cooldown. Story wins return to results; AUTO CLIMB remains opt-in for towers. With it on, a win shows a 1 s banner (no
 results panel unless it's a milestone, relic / artifact or boss-card unlock) and the next fight starts with a 0.3 s
@@ -286,7 +296,7 @@ overpowers by `Config.Battle.SweepPower` (3x) are won and paid at once, up to `S
 same recordResult + towerRewards as a fought win; never the Pagoda's floor 100). Results show a pack progress bar and
 the streak's totals when no pack dropped. SCOUT is four unit cards (leader + guards: crests, role, big move, affix). Two towers (BATTLE > TOWER / PAGODA), each floor an echo of a world boss with
 affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 16.5k x 1.068^(floor-1); `Tower.Curve.Points`
-re-measured for the real-time battle pass, floor 23 is a World 1 Normal deck, floor 106 World 4 Hard); every floor
+re-measured for the new boss HP, floor 6 is a World 1 Normal squad, floor 23 World 1 Hard, floor 106 World 4 Nightmare); every floor
 pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
 SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past
 it; from floor 50 every win has a 0.1% relic drop (`Items.RelicFloor` / `RelicChance`), the only relic source.
@@ -306,13 +316,20 @@ Saved SETTINGS: full reveal minimum All / Gold+ / Rainbow+ / Secret+ / Off; pack
 the existing manual Cinematic; duplicates New Only or Include Copies. Defaults Rainbow+ / Pack / New Only.
 Pack reveals are unique per card / border, use discovery flags from the server and skip directly to
 the complete quantity summary when nothing qualifies. Repeated copies in later chunks preserve a real
-discovery's one reveal. Manual / AUTO obey the same threshold / duplicate choice; filtered pulls still
+discovery's one reveal. The cinematic reveal shows the card's DMG / HP (sword / heart StatLine pill under it, with
+the duplicate bonus) and, while more reveals wait (queued, or the rest of a pack's batch), a SKIP ALL button that
+ends the run and drops straight to the pack summary (`Reveal.SkipQueue`, `Reveal.Full(..., batch)`). Manual / AUTO obey the same threshold / duplicate choice; filtered pulls still
 get their cards / feed. AUTO holds only for eligible reveals. Preferences migrate / validate on the server.
 BAG blocks repeated clicks during requests / animation; reveals never reapply old per-roll ownership.
 
 **Progression and retention.** Levels 1-100 with stat points; earned potions; gear in two sets
 (`Items.luau`): **relics** (the 10 wearable items, `Items.Artifacts` / `Gear.Artifacts` in code, wear 3, Infinite Tower
-drops only) and **artifacts** (`Items.TowerArtifacts`, one per finite tower's last floor, always on); daily streak,
+drops only; each adds fixed Luck and Border Chance by tier, Rare +0.75x / +15% up to Void Eye +2.5x / +35%, the
+best three +6.5x / +90%; Hourglass / Coin / Tome / Frost Sigil keep a specialty that duplicates level, others melt)
+and **artifacts** (`Items.TowerArtifacts`, always on: the Pagoda's floor-100 Crown, +3x luck / +50% border chance /
++15% squad ATK as a whole-fight ATK buff on every Attack card; the Infinite Tower's Heart of the Endless Spire,
++2x luck / 15% faster rolls, for the first record run to floor `Items.InfiniteArtifactFloor` 100). TRAINING: Luck
++0.05x a point (2x at 40), Border Chance +1% a point (30% at 30); daily streak,
 daily quests, playtime gifts, time-away rewards (`Meta.OfflineReward`: a Roll Pack per 30 min and a converted Trait Shard reward
 offline, after 10 min, up to 8 h; `LastSeen` in the save), roll milestones, Lucky Wheel, server events (LUCKY STORM /
 ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.client`): a SQUAD badge + hint when BEST DECK would
@@ -331,7 +348,7 @@ The general Shard shop and SQUAD upgrade purchase tab are retired; SQUAD TRAININ
 points. `EconomyVersion=1` converts old balances at 20:1 (rounded up) to Trait Shards, retains every purchased
 permanent upgrade effect and compensates infused-pack spending. Authored legacy Shard reward bundles are
 converted by `Meta.RetireShards` before grant / display. A normal trait reroll costs 1 Trait Shard; locking costs 2.
-Luck Potion I / II / III add +0.5 / +1 / +2 luck for 5 / 10 / 15 minutes. Only the strongest active luck potion
+Luck Potion I / II / III add +1.5 / +3 / +6 luck for 5 / 10 / 15 minutes (2026-10-30). Only the strongest active luck potion
 counts; same-kind uses add time up to an hour. Running old II / III timers are extended once on migration.
 
 CLAIM ALL on DAILY & GIFTS pays every ready daily streak, playtime gift, roll milestone, daily quest and
@@ -475,10 +492,11 @@ The character artwork pass did not change identities. The later character-to-Att
 - The server owns every roll, stat and result; the client only requests and animates. Validate every remote argument on
   the server, rate-limit it (`RateLimit`), and check ownership / NPC range where it applies.
 - Borders multiply by Base 1x / Gold 4x / Rainbow 16x / Secret 64x; base ATK is authored per card and grows with
-  rarity (the 2026-10-30 tiers above, HP = 2 x ATK; a rarer card never has less ATK, odds_test checks), so a rare
-  Gold may outdo a common Rainbow. Duplicates grant no stats; mastery never multiplies ATK / HP. The same card on
-  one border never reaches itself on the next through mastery (odds_test checks). Traits stay
-  small (never ATK / HP). Rolls are pure luck: no pity. Fusion is border fusion only: 100 copies at one border -> 1 at the next.
+  rarity (the 2026-10-30 tiers above, HP = 2 x ATK; among normal cards (and among boss cards) a rarer card never has less ATK, odds_test checks), so a rare
+  Gold may outdo a common Rainbow. Duplicates add +0.5% ATK / HP each up to +25% (the user's call, 2026-10-30);
+  mastery never multiplies ATK / HP. The same card on one border never reaches itself on the next through mastery
+  (odds_test checks). Traits stay small (never ATK / HP). Rolls are pure luck: no pity (luck only tilts odds).
+  Fusion is border fusion only: 50 / 25 copies at one border -> 1 at the next.
 - Content is data: a new card is one entry in `Cards.luau` (stats, abilities, `Role`, `Weight`, `Element`, `Image`); a
   boss or difficulty one entry in `Bosses.luau`; a relic or artifact in `Items.luau`; a trait in `Traits.luau`; a potion / gift /
   milestone / quest in `Meta.luau`. Support entries use generic `Support.Kind` handlers; Attack passives / Auras / Signatures use generic trigger bundles.

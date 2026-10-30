@@ -21,12 +21,27 @@ check(Items.RarityChances(12).Legendary > Items.RarityChances(1).Legendary, "har
 local gear = Items.Empty()
 gear.Artifacts = { clover = 3, voideye = 1, coin = 1 }
 gear.Worn = { "clover", "voideye" }
-check(math.abs(Items.ArtifactBonus(gear, "Luck") - (0.05 + 0.02 * 2 + 0.5)) < 1e-9, "worn luck artifacts add up, with levels")
+check(math.abs(Items.ArtifactBonus(gear, "Luck") - (0.75 + 2.5)) < 1e-9 and math.abs(Items.ArtifactBonus(gear, "Border") - (0.15 + 0.35)) < 1e-9, "worn relics add their Luck and Border Chance (levels only raise a specialty)")
 check(Items.ArtifactBonus(gear, "ShardGain") == 0, "an artifact in the bag (not worn) does nothing")
-check(math.abs(Meta.BaseLuck({}, {}, nil, 1, gear) - (1 + 0.59)) < 1e-9, "worn artifacts raise base luck")
+check(math.abs(Meta.BaseLuck({}, {}, nil, 1, gear) - (1 + 3.25)) < 1e-9, "worn relics raise base luck")
+do
+	-- The relic ladder: Rare +0.75x / +15% up to the rarest +2.5x / +35%; the best three worn = +6.5x / +90%.
+	local ladder = true
+	for _, relic in Items.Artifacts do
+		ladder = ladder and relic.Luck >= 0.75 and relic.Luck <= 2.5 and relic.Border >= 0.15 and relic.Border <= 0.35
+	end
+	local top = Items.Empty()
+	top.Artifacts = { voideye = 1, stormcrown = 1, emberheart = 1 }
+	top.Worn = { "voideye", "stormcrown", "emberheart" }
+	check(ladder and math.abs(Items.ArtifactBonus(top, "Luck") - 6.5) < 1e-9 and math.abs(Items.ArtifactBonus(top, "Border") - 0.9) < 1e-9, "relics run +0.75x / 15% to +2.5x / 35%; the best three give +6.5x luck and +90% border chance")
+	local coin = Items.ArtifactById.coin
+	check(Items.CanLevel(coin, 1) and not Items.CanLevel(Items.ArtifactById.voideye, 1), "only a relic with a specialty levels up; others melt")
+end
 check(Meta.Describe({ Artifacts = { voideye = 1 } }):find("Void Eye") ~= nil, "loot text names the relic")
 gear.TowerArtifacts = { hundredcrown = true }
-check(math.abs(Items.ArtifactBonus(gear, "Luck") - (0.05 + 0.02 * 2 + 0.5 + 0.5)) < 1e-9 and Items.ArtifactBonus(gear, "Border") == 0.25, "an owned artifact is always on, with every one of its bonuses")
+check(math.abs(Items.ArtifactBonus(gear, "Luck") - (3.25 + 3)) < 1e-9 and math.abs(Items.ArtifactBonus(gear, "Border") - (0.5 + 0.5)) < 1e-9 and Items.ArtifactBonus(gear, "ATK") == 0.15, "the Pagoda crown is always on: +3x luck, +50% border chance, +15% squad ATK")
+gear.TowerArtifacts.spireheart = true
+check(math.abs(Items.ArtifactBonus(gear, "Luck") - (3.25 + 5)) < 1e-9 and Items.ArtifactBonus(gear, "RollSpeed") == 0.15 and Items.InfiniteArtifactFloor == 100, "the Infinite Tower's floor-100 heart adds +2x luck and 15% faster rolls")
 check(Meta.Describe({ TowerArtifacts = { hundredcrown = true } }):find("Crown of the Hundred Floors") ~= nil, "loot text names the artifact")
 local drng = Random.new(3)
 local lowDrops, relicDrops = 0, 0
@@ -78,7 +93,7 @@ for _, id in MODULES.Borders.Order do
 	allClaimed[id] = true
 end
 check(near(Meta.BaseLuck({ Luck = 0 }, allClaimed), 1.75), "a full Index at every border gives +0.75x luck")
-check(near(Meta.BaseLuck({ Luck = 0 }, {}, { Luck = 10 }), 1.2), "10 Luck stat points give +0.2x base luck")
+check(near(Meta.BaseLuck({ Luck = 0 }, {}, { Luck = 10 }), 1.5) and near(Meta.StatBonus({ Luck = 40 }, "Luck"), 2) and near(Meta.StatBonus({ Border = 30 }, "Border"), 0.3), "Training: 0.05x luck a point (2x at 40), 1% border chance a point (30% at 30)")
 
 -- Stat points: one per level past 1, capped per stat, and they show up where they should.
 check(Meta.StatPoints(1) == 0 and Meta.StatPoints(10) == 9, "a stat point for every level past 1")
@@ -92,7 +107,19 @@ check(statTotal > Meta.StatPoints(Meta.MaxLevel), "there are more stat slots tha
 check(near(Meta.Cooldown({ RollSpeed = 0 }, {}, nil, { RollSpeed = 10 }), Config.Roll.Cooldown * 0.9), "10 Roll Speed points cut the cooldown 10%")
 check(Meta.StatResetCost({ Luck = 4 }) == 4 * Meta.StatResetPerPoint and Meta.StatResetCost({}) == 0, "a reset costs Shards per spent point")
 check(near(Meta.PotionLuck({}), 1), "no potion: x1")
-check(near(Meta.PotionLuck({ luck = 30, superluck = 10 }), 2), "luck potions don't multiply each other: the best applies")
+check(near(Meta.PotionLuck({ luck = 30, superluck = 10 }), 4) and near(Meta.PotionLuck({ mythic = 5 }), 7), "luck potions don't multiply each other: the best applies (I / II / III = +1.5x / +3x / +6x)")
+-- The endgame luck stack (2026-10-30): Training + 3 top relics + both artifacts + Potion III + Blood Moon,
+-- x Raid Luck 2 x Lucky Storm 2, with the diminishing returns starting at 35x, lands in 35-60x.
+do
+	local top = Items.Empty()
+	top.Artifacts = { voideye = 1, stormcrown = 1, emberheart = 1 }
+	top.Worn = { "voideye", "stormcrown", "emberheart" }
+	top.TowerArtifacts = { hundredcrown = true, spireheart = true }
+	local base = Meta.BaseLuck({}, {}, { Luck = 40 }, 100, top)
+	local total = Meta.TotalLuck(base, Meta.PotionLuck({ mythic = 60 }), 4, 2)
+	local effective = MODULES.Borders.EffectiveLuck(total)
+	check(effective >= 35 and effective <= 60, `a maxed player's luck lands at 35-60x after diminishing returns ({math.floor(effective * 10) / 10}x)`)
+end
 check(near(Meta.PotionLuck({ superluck = 0 }), 1), "an expired potion does nothing")
 check(near(Meta.TotalLuck(5, 6), 10) and Meta.TotalLuck(100,3)>100, "potions add luck and earned luck has no hard cap")
 
@@ -208,8 +235,8 @@ check(long ~= nil and long.Seconds == Meta.Offline.CapSeconds and long.Packs["10
 do
 	local Goals = MODULES.Goals
 	local luna = Cards.Get("luna")
-	local near = Goals.Next({ Cards = { luna = { Copies = 86, Stars = 5, BorderCopies = { Normal = 86 } } }, Rolls = 10, Shards = 0 })
-	check(near ~= nil and near.Kind == "Fusion" and near.Text == `Next Fusion: {luna.Name} Base (86/100)` and math.abs(near.Progress - 0.86) < 1e-9, "86 Base copies: the pill reads 'Next Fusion: ... (86/100)'")
+	local near = Goals.Next({ Cards = { luna = { Copies = 43, Stars = 5, BorderCopies = { Normal = 43 } } }, Rolls = 10, Shards = 0 })
+	check(near ~= nil and near.Kind == "Fusion" and near.Text == `Next Fusion: {luna.Name} Base (43/50)` and math.abs(near.Progress - 0.86) < 1e-9, "43 Base starter copies: the pill reads 'Next Fusion: ... (43/50)'")
 	local ready = Goals.Next({ Cards = { luna = { Copies = 140, Stars = 5, BorderCopies = { Normal = 120, Gold = 20 } } }, Rolls = 49, Shards = 9999 })
 	check(ready ~= nil and ready.Ready and ready.Kind == "Fusion" and string.find(ready.Text, "FUSE READY", 1, true) ~= nil, "100+ copies at a border: FUSE READY beats every other goal")
 	local roll = Goals.Next({ Cards = {}, Rolls = 45, Shards = 0 })

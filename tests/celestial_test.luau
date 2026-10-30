@@ -64,7 +64,7 @@ do
 		end
 		check(mass<.01 and R.Pick(pool,.99999)==nil,"most sky searches remain ordinary rolls: "..sky.Name)
 		local chances1,chances25=R.Chances(pool,1),R.Chances(pool,25)
-		check(math.abs(chances1[1]-1/pool[1].SkyOneIn)<1e-12 and math.abs(chances25[1]/chances1[1]-(1+24*.15))<1e-9,"luck lifts sky odds by 15% of its bonus: "..sky.Name)
+		check(math.abs(chances1[1]-1/pool[1].SkyOneIn)<1e-12 and math.abs(chances25[1]/chances1[1]-(1+24*.35))<1e-9,"luck lifts sky odds by 35% of its bonus: "..sky.Name)
 		local counts={};local rng=Random.new(429);local n=500000
 		for _=1,n do local found=R.Pick(pool,rng:NextNumber());if found then counts[found.Id]=(counts[found.Id] or 0)+1 end end
 		local bulk=R.Search(pool,n,1,Random.new(77))
@@ -76,7 +76,7 @@ do
 		end
 		check(matches,"single and bulk sky searches both match the displayed odds: "..sky.Name)
 	end
-	check(maxLimit==3000 and minBlood==10000,"Blood Moon (1 in 10,000+) is a rarer chase than Limitbreak (1,500-3,000)")
+	check(maxLimit==650 and minBlood==1200 and MODULES.Cards.Rarity("celestial_eclipse_muzan","Secret")==1250000000,"Blood Moon (1 in 1,200-2,500, Muzan Secret 1 in 1.25 billion) is a rarer chase than Limitbreak (300-650)")
 	check(R.Chances(C.WeatherPool("eclipse"),1e9)[1]<.5,"absurd luck still can't make every search a find")
 end
 
@@ -105,8 +105,8 @@ do
 	check(math.abs(unit.HP/unit.MaxHP-ratio)<.002,"a sky transition preserves HP percentage instead of healing the card")
 	battle:SetWeather("clear")
 	check(unit.Main==main and unit.MaxHP==hp,"event battle stats return to normal when the sky ends")
-	local near=MODULES.Goals.Closest({Cards={rook={Copies=99,Stars=0,BorderCopies={Normal=99}}},Rolls=45,Shards=0,Weather={Id="clear",Next={Starts=120}},Now=0})
-	check(#near==3 and near[1].Kind=="Fusion" and near[1].Progress==.99,"HUD selects the nearest three distinct progress targets")
+	local near=MODULES.Goals.Closest({Cards={rook={Copies=49,Stars=0,BorderCopies={Normal=49}}},Rolls=45,Shards=0,Weather={Id="clear",Next={Starts=120}},Now=0})
+	check(#near==3 and near[1].Kind=="Fusion" and near[1].Progress==.98,"HUD selects the nearest three distinct progress targets")
 end
 
 do

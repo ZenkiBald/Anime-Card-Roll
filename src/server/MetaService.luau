@@ -67,7 +67,7 @@ function MetaService.Grant(data, bundle: Meta.Bundle, player: Player?)
 			data.Gear.TowerArtifacts[id] = true
 		end
 	end
-	-- Relics: new ones arrive at level 1, duplicates level them up, and past max they melt into Shards.
+	-- Relics: new ones arrive at level 1, duplicates level up a specialty; past max (or with none) they melt.
 	for id, count in (bundle.Artifacts or {}) :: { [string]: number } do
 		local artifact = Items.ArtifactById[id]
 		if artifact and count > 0 then
@@ -75,7 +75,7 @@ function MetaService.Grant(data, bundle: Meta.Bundle, player: Player?)
 				local level = data.Gear.Artifacts[id]
 				if level == nil then
 					data.Gear.Artifacts[id] = 1
-				elseif level < Items.MaxLevel then
+				elseif Items.CanLevel(artifact, level) then
 					data.Gear.Artifacts[id] = level + 1
 				else
 					data.TraitShards += math.ceil((Items.MeltShards[artifact.Rarity] or 100)/Meta.ShardExchange)

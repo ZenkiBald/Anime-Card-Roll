@@ -30,7 +30,7 @@ local TIPS = {
 	"Galactic Emperor's Crystal Spear freezes a card: it skips its next action.",
 	"Mirror Flower Overlord's Hollow Veil shrugs off Basic hits. Break it with Skills and Ultimates.",
 	"Duplicates give fusion copies, never bonus DMG or HP.",
-	"Bring 100 copies of one border to Hoshi to fuse a copy of the next border.",
+	"Bring 50 copies of one border (25 for rare cards) to Hoshi to fuse a copy of the next border. Every duplicate adds +0.5% stats.",
 	"Find every card of a rarity in the INDEX for permanent luck and a prize.",
 	"Luck Potions stack time, not power: the strongest running potion counts.",
 	"Come back every day: the daily streak in QUESTS gets better until day 7.",

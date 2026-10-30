@@ -150,10 +150,10 @@ export type RollOptions = {
 }
 
 -- A card from the player's pool by Weight (the infused element's cards and the week's Featured Card
--- weighted up).
-local function pickCard(data, element: string?)
+-- weighted up, and luck tilting it toward rare cards: Cards.LuckTilt).
+local function pickCard(data, element: string?, luck: number?)
 	local pool = Collections.Pool(data.SelectedCollection, data.Progress.Cleared)
-	local chances = Cards.PullChances(pool, element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()))
+	local chances = Cards.PullChances(pool, element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()), luck)
 	local target = rng:NextNumber()
 	for _, card in pool do
 		target -= chances[card.Id]
@@ -189,10 +189,10 @@ local function doRoll(player: Player, profile, luck: number?, batch: { XP: numbe
 	local data = profile.Data
 	local o = opts or {}
 
-	local card = if o.CelestialId then Cards.Get(o.CelestialId) else pickCard(data, o.Element)
+	local rollLuck = luck or luckFor(player, data)
+	local card = if o.CelestialId then Cards.Get(o.CelestialId) else pickCard(data, o.Element, rollLuck)
 	-- The border: the tier. Luck, the Border Chance stat / artifacts and surge / pack multipliers raise it.
 	local borderBoost = (1 + Meta.Bonus(data.Stats, data.Gear, "Border")) * (o.BorderMult or 1) - 1
-	local rollLuck = luck or luckFor(player, data)
 	local border = Borders.Pick(rng:NextNumber(), borderBoost, rollLuck)
 
 	data.TotalRolls += 1
@@ -415,7 +415,7 @@ local function openPack(player: Player, profile, pack: Packs.Pack, count: number
 	end
 	local total = count * pack.Rolls
 	local pool = Collections.Pool(data.SelectedCollection, data.Progress.Cleared)
-	local chances = Cards.PullChances(pool, pack.Element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()))
+	local chances = Cards.PullChances(pool, pack.Element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()), luck)
 	local probs, commonest = {}, 1
 	for i, card in pool do
 		probs[i] = chances[card.Id]
@@ -493,6 +493,10 @@ function RollService.TowerRewards(player: Player, floor: number, mode: string, r
 	local reward = if mode == Tower.PagodaId then Tower.PagodaReward(floor) else Tower.Reward(floor, record)
 	local pagoda = mode == Tower.PagodaId
 	local artifact = if reward.Milestone then reward.Milestone.Artifact else nil
+	-- The Infinite Tower's milestone artifact: the first record run to InfiniteArtifactFloor.
+	if not pagoda and record and floor == Items.InfiniteArtifactFloor then
+		artifact = Items.InfiniteArtifact
+	end
 	local result = payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.TraitShards, if pagoda then nil else floor, artifact,if record and floor%10==0 then 3 else nil,if record and floor%25==0 then {orb=1} else nil)
 	result.Milestone = reward.Milestone
 	return result
@@ -792,14 +796,15 @@ function RollService.Start()
 			end
 		elseif action == "FillCopies" then
 			-- Every owned card gets enough copies at its best border for the next border fusion.
-			for _, entry in profile.Data.Cards do
+			for cardId, entry in profile.Data.Cards do
 				local best = Borders.Best(entry.Borders)
+				local need = Cards.FusionCost(Cards.Get(cardId))
 				if Borders.Next(best) then
 					entry.BorderCopies = entry.BorderCopies or {}
 					local have = entry.BorderCopies[best] or 0
-					if have < Config.FusionCopies then
-						entry.BorderCopies[best] = Config.FusionCopies
-						entry.Copies += Config.FusionCopies - have
+					if have < need then
+						entry.BorderCopies[best] = need
+						entry.Copies += need - have
 					end
 				end
 			end

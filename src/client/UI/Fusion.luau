@@ -1,5 +1,5 @@
 --!nonstrict
--- FUSION (talk to Hoshi the Fusion Master in town): border fusion only. Config.FusionCopies (100) copies of
+-- FUSION (talk to Hoshi the Fusion Master in town): border fusion only. Cards.FusionCost (50, or 25 rare) copies of
 -- one card at one border fuse into 1 copy at the next border (Base -> Gold -> Rainbow -> Secret; Awakening
 -- node 5; the card at the next border is the whole reward). Left: your cards with their copy progress, ready ones first.
 -- Right: the picked card at its fusing border and at the next, and the FUSE button. FUSE ALL (above the
@@ -62,15 +62,16 @@ local function hint(text: string)
 	end)
 end
 
--- The border a card fuses from: the highest one with 100 copies ready, else the one closest to 100
+-- The border a card fuses from: the highest one with a full pile ready, else the one closest to it
 -- (Secret never fuses). nil once all its copies are Secret.
-local function fuseBorder(entry): string?
+local function fuseBorder(entry, card): string?
+	local need = Cards.FusionCost(card)
 	local copies = entry.BorderCopies or {}
 	local pick, most = nil, -1
 	for _, id in Borders.Order do
 		local n = copies[id] or 0
 		if Borders.Next(id) and n > 0 then
-			if n >= Config.FusionCopies then
+			if n >= need then
 				pick, most = id, math.huge
 			elseif most ~= math.huge and n > most then
 				pick, most = id, n
@@ -84,8 +85,8 @@ local function copiesAt(entry, border: string?): number
 	return if border then (entry.BorderCopies or {})[border] or 0 else 0
 end
 
-local function canFuse(_card, entry): boolean
-	return copiesAt(entry, fuseBorder(entry)) >= Config.FusionCopies
+local function canFuse(card, entry): boolean
+	return copiesAt(entry, fuseBorder(entry, card)) >= Cards.FusionCost(card)
 end
 
 -- Owned cards that can still fuse, ready ones first, then the closest to their next fusion.
@@ -102,7 +103,7 @@ local function cardsByProgress()
 		if ra ~= rb then
 			return ra
 		end
-		local ca, cb = copiesAt(a.Entry, fuseBorder(a.Entry)), copiesAt(b.Entry, fuseBorder(b.Entry))
+		local ca, cb = copiesAt(a.Entry, fuseBorder(a.Entry, a.Card)), copiesAt(b.Entry, fuseBorder(b.Entry, b.Card))
 		if ca ~= cb then
 			return ca > cb
 		end
@@ -133,11 +134,12 @@ local function fuseAllCount(): number
 	local n = 0
 	for id, entry in State.Cards do
 		if Cards.Get(id) then
+			local need = Cards.FusionCost(Cards.Get(id))
 			local copies = table.clone(entry.BorderCopies or {})
 			for _, from in Borders.Order do
 				local to = Borders.Next(from)
-				while to and (copies[from] or 0) >= Config.FusionCopies do
-					copies[from] -= Config.FusionCopies
+				while to and (copies[from] or 0) >= need do
+					copies[from] -= need
 					copies[to] = (copies[to] or 0) + 1
 					n += 1
 				end
@@ -247,7 +249,7 @@ local function fuse(cardId: string)
 	if busy then
 		return
 	end
-	local from = fuseBorder(State.Cards[cardId])
+	local from = fuseBorder(State.Cards[cardId], Cards.Get(cardId))
 	if from == nil then
 		return
 	end
@@ -275,13 +277,13 @@ local function fuse(cardId: string)
 	end
 end
 
--- FUSE ALL: every card that has 100 copies at a border fuses (cascading), in one server call.
+-- FUSE ALL: every card with a full pile (Cards.FusionCost) at a border fuses (cascading), in one server call.
 local function fuseAll()
 	if busy then
 		return
 	end
 	if fuseAllCount() == 0 then
-		hint("No card has 100 copies at one border yet")
+		hint("No card has a full fusion pile at one border yet")
 		return
 	end
 	busy = true
@@ -318,7 +320,7 @@ local function drawDetail()
 	local card = selectedId and Cards.Get(selectedId)
 	if entry == nil or card == nil then
 		Kit.label({
-			Text = `Pick a card on the left.\n{Config.FusionCopies} copies of a card at one border fuse into 1 copy at the next border (4x the stats).`,
+			Text = `Pick a card on the left.\n{Config.FusionCopies.Common} copies of a card at one border ({Config.FusionCopies.Rare} for upper-mid and rarer, boss and sky cards) fuse into 1 copy at the next border (4x the stats).`,
 			Font = Theme.Font.Heavy,
 			TextColor3 = Theme.Color.Muted,
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -328,7 +330,8 @@ local function drawDetail()
 		}, 22)
 		return
 	end
-	local from = fuseBorder(entry)
+	local need = Cards.FusionCost(card)
+	local from = fuseBorder(entry, card)
 	local maxed = from == nil
 	local shown = from or Borders.Best(entry.Borders)
 	local to = if from then Borders.Next(from) else nil
@@ -397,7 +400,7 @@ local function drawDetail()
 	end
 
 	-- Copies bar.
-	local copies = math.min(have, Config.FusionCopies)
+	local copies = math.min(have, need)
 	local track = Kit.new("Frame", {
 		Position = UDim2.fromScale(0.04, 0.77),
 		Size = UDim2.fromScale(0.92, 0.055),
@@ -405,12 +408,12 @@ local function drawDetail()
 		Parent = detail,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(Theme.Color.TileEdge, 1.5, 0.5) })
 	Kit.new("Frame", {
-		Size = UDim2.fromScale(if maxed then 1 else copies / Config.FusionCopies, 1),
+		Size = UDim2.fromScale(if maxed then 1 else copies / need, 1),
 		BackgroundColor3 = FIRE,
 		Parent = track,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.gradient(ColorSequence.new(Color3.fromRGB(255, 200, 90), FIRE), 0) })
 	local barText = Kit.label({
-		Text = if maxed then "SECRET BORDER: MAX" else `{Kit.commas(have)} / {Config.FusionCopies} {Borders.Get(shown).Name} copies`,
+		Text = if maxed then "SECRET BORDER: MAX" else `{Kit.commas(have)} / {need} {Borders.Get(shown).Name} copies`,
 		Font = Theme.Font.Display,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -423,7 +426,7 @@ local function drawDetail()
 	-- FUSE.
 	local ready = canFuse(card, entry)
 	local button = Kit.button(
-		if maxed then "MAX BORDER" elseif ready then "🔥 FUSE!" else `NEED {Config.FusionCopies - have} MORE`,
+		if maxed then "MAX BORDER" elseif ready then "🔥 FUSE!" else `NEED {need - have} MORE`,
 		FIRE,
 		FIRE_DEEP,
 		{
@@ -467,7 +470,8 @@ function drawGrid()
 		})
 		tile.Size = UDim2.new(1, 0, 1, -22)
 		tile.Parent = cell
-		local from = fuseBorder(entry)
+		local need = Cards.FusionCost(card)
+		local from = fuseBorder(entry, card)
 		local maxed = from == nil
 		local have = copiesAt(entry, from)
 		local track = Kit.new("Frame", {
@@ -478,12 +482,12 @@ function drawGrid()
 			Parent = cell,
 		}, { Kit.corner(UDim.new(1, 0)) })
 		Kit.new("Frame", {
-			Size = UDim2.fromScale(if maxed then 1 else math.min(have / Config.FusionCopies, 1), 1),
+			Size = UDim2.fromScale(if maxed then 1 else math.min(have / need, 1), 1),
 			BackgroundColor3 = if canFuse(card, entry) then Theme.Color.Gold else FIRE,
 			Parent = track,
 		}, { Kit.corner(UDim.new(1, 0)) })
 		local text = Kit.label({
-			Text = if maxed then "MAX" elseif canFuse(card, entry) then "READY!" else `{have}/{Config.FusionCopies}`,
+			Text = if maxed then "MAX" elseif canFuse(card, entry) then "READY!" else `{have}/{need}`,
 			Font = Theme.Font.Heavy,
 			Size = UDim2.fromScale(1, 1),
 			ZIndex = 2,

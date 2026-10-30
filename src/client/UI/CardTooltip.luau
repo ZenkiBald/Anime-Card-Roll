@@ -66,7 +66,11 @@ local function build(cardId: string, border: string): Frame?
 	label("CardTier", `{tier.Name} · {card.Type}`, 2, 13, tier.Color)
 	local own = State.Cards[card.Id]
 	local stars, node = if own then own.Stars else 0, if own then Awaken.Level(own) else 0
-	if card.Type == "Attack" then StatLine.new(card,stars,border,node,{Size=UDim2.new(1,-4,0,24),LayoutOrder=3,ZIndex=52,Parent=scroll},true) end
+	local copies = Cards.CopiesAt(own, border)
+	if card.Type == "Attack" then StatLine.new(card,stars,border,node,{Size=UDim2.new(1,-4,0,24),LayoutOrder=3,ZIndex=52,Parent=scroll},true,copies) end
+	if card.Type == "Attack" and Cards.DupeBonus(copies) > 0 then
+		label("Dupes", `Duplicates: +{math.floor(Cards.DupeBonus(copies) * 1000 + 0.5) / 10}% ATK / HP ({copies} copies, max +{math.floor(Cards.DupeCap * 100)}%)`, 3, 13, Color3.fromRGB(255, 210, 90))
+	end
 	for i, ability in card.Abilities do
 		local row = Abilities.Row(ability, scroll, i + 3, "small", card, stars, border, node)
 		-- Rows share the same renderer as the full card sheet, above this tooltip's surface.

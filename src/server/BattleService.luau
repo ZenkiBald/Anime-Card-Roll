@@ -25,6 +25,7 @@ local Traits = require(Shared.Traits)
 local Tower = require(Shared.Tower)
 local Raid = require(Shared.Raid)
 local Cards = require(Shared.Cards)
+local Items = require(Shared.Items)
 local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
 
@@ -305,11 +306,18 @@ local function deckUnits(data, deck, mutator: Tower.Mutator?)
 						table.insert(effects, effect)
 					end
 				end
+				-- Always-on artifacts with squad ATK (the Pagoda's crown) power every Attack card.
+				local squadATK = Items.ArtifactBonus(data.Gear, "ATK")
+				if row == "Attack" and squadATK > 0 then
+					table.insert(effects, { Stat = "ATK", Amount = squadATK })
+				end
+				local border = Deck.PlayBorder(owned)
 				table.insert(units, {
 					Id = `{string.sub(row, 1, 1)}{i}`,
 					CardId = id,
 					Stars = owned.Stars,
-					Border = Deck.PlayBorder(owned),
+					Border = border,
+					Copies = (owned.BorderCopies or {})[border], -- duplicate bonus (Cards.DupeBonus)
 					Awaken = node,
 					Trait = effects,
 				})

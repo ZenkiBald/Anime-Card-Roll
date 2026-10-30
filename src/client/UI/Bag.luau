@@ -588,11 +588,11 @@ local function showDetail(entry)
 			action(row,`CRAFT · {cost}`,Theme.Color.Gold,GOLD_DEEP,2,(stock.Fragments or 0)>=cost,function() skyCall("Craft",item.Weather) end)
 		end
 	elseif entry.Kind == "Artifact" then
-		detailText(4, `Lv {entry.Level}/{Items.MaxLevel}: <b>{Items.ArtifactText(item, entry.Level)}</b>`, Theme.Color.Gold, 17, Theme.Font.Heavy)
-		if entry.Level < Items.MaxLevel then
+		detailText(4, if item.Kind then `Lv {entry.Level}/{Items.MaxLevel}: <b>{Items.ArtifactText(item, entry.Level)}</b>` else `<b>{Items.ArtifactText(item, entry.Level)}</b>`, Theme.Color.Gold, 17, Theme.Font.Heavy)
+		if Items.CanLevel(item, entry.Level) then
 			detailText(5, `A duplicate raises it to Lv {entry.Level + 1}: {Items.ArtifactText(item, entry.Level + 1)}`, Theme.Color.Muted, 14)
 		else
-			detailText(5, `Max level: duplicates melt into {math.ceil((Items.MeltShards[item.Rarity] or 100)/Meta.ShardExchange)} Trait Shards.`, Theme.Color.Muted, 14)
+			detailText(5, `{if item.Kind then "Max level: duplicates" else "Duplicates"} melt into {math.ceil((Items.MeltShards[item.Rarity] or 100)/Meta.ShardExchange)} Trait Shards.`, Theme.Color.Muted, 14)
 		end
 		local worn = gear().Worn or {}
 		detailText(6, `Relics worn: <b>{#worn}/{Items.ArtifactSlots}</b>  ·  relics drop only in the Infinite Tower, from floor {Items.RelicFloor} (0.1% a win)`, Theme.Color.Text, 15, Theme.Font.Heavy)

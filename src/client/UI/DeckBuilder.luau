@@ -340,8 +340,9 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 		local stars=if own then own.Stars else 0
 		local chosen=if own then Deck.PlayBorder(own) else "Normal"
 		local node=if own then Awaken.Level(own) else 0
-		StatLine.Value(info,"HP",Kit.commas(Cards.Stat(card,card.HP or 0,stars,chosen,node)),{Visible=not compact,Position=UDim2.fromScale(0,.4),Size=UDim2.fromScale(1,.23)})
-		StatLine.Value(info,"DMG",Kit.commas(Cards.Stat(card,card.Main,stars,chosen,node)),{Position=UDim2.fromScale(0,.68),Size=UDim2.fromScale(1,.23)})
+		local copies=Cards.CopiesAt(own,chosen)
+		StatLine.Value(info,"HP",Kit.commas(Cards.Stat(card,card.HP or 0,stars,chosen,node,copies)),{Visible=not compact,Position=UDim2.fromScale(0,.4),Size=UDim2.fromScale(1,.23)})
+		StatLine.Value(info,"DMG",Kit.commas(Cards.Stat(card,card.Main,stars,chosen,node,copies)),{Position=UDim2.fromScale(0,.68),Size=UDim2.fromScale(1,.23)})
 	else
 		text({Text=CardInfo.Headline(card,0,if own then Deck.PlayBorder(own) else "Normal"),TextColor3=Theme.Color.Support,Position=UDim2.fromScale(0,.48),Size=UDim2.fromScale(1,.35),Parent=info},16)
 	end
@@ -528,7 +529,7 @@ local function drawGrid()
 				Power = Deck.PowerAt(card.Id, State.Cards, border),
 				Stats = true,
 				Awaken = Awaken.Level(own),
-				Fusable = item.Copies >= Config.FusionCopies and Borders.Next(border) ~= nil,
+				Fusable = item.Copies >= Cards.FusionCost(card) and Borders.Next(border) ~= nil,
 				InDeck = playing and findInDeck(card.Id) ~= nil,
 				Selected = card.Id == inspectId and border == (inspectBorder or Deck.PlayBorder(own)),
 			})
@@ -548,7 +549,7 @@ local function drawGrid()
 		local count = tile:FindFirstChild("Copies")
 		if count then count.Text = `x{Kit.commas(item.Copies)}` end
 		local fuse = tile:FindFirstChild("Fuse")
-		if fuse then fuse.Visible = item.Copies >= Config.FusionCopies and Borders.Next(border) ~= nil end
+		if fuse then fuse.Visible = item.Copies >= Cards.FusionCost(card) and Borders.Next(border) ~= nil end
 		local selection = tile:FindFirstChild("Selected")
 		if selection then selection.Visible = card.Id == inspectId and border == (inspectBorder or Deck.PlayBorder(own)) end
 		local equipped = tile:FindFirstChild("InDeck")
@@ -607,7 +608,7 @@ local function drawInspector()
 	local border = Borders.Get(best)
 	local left=Kit.new("Frame",{Name="Facts",Size=UDim2.new(.58,-8,1,0),BackgroundTransparency=1,Parent=inspector})
 	text({Text=card.Name,Font=Theme.Font.Display,Size=UDim2.new(1,0,0,24),Parent=left},20)
-	StatLine.new(card,own.Stars,best,Awaken.Level(own),{Position=UDim2.fromOffset(0,28),Size=UDim2.new(1,0,0,26),Parent=left},true)
+	StatLine.new(card,own.Stars,best,Awaken.Level(own),{Position=UDim2.fromOffset(0,28),Size=UDim2.new(1,0,0,26),Parent=left},true,Cards.CopiesAt(own,best))
 	local ability=Cards.Ability(card,if card.Type=="Support" then "Passive" else "Skill")
 	text({Text=if ability then ability.Name else "Passive effect",TextColor3=Theme.Color.Text,Position=UDim2.fromOffset(0,62),Size=UDim2.new(1,0,0,22),Parent=left},17)
 	text({Text=border.Name.." · "..Kit.commas(Cards.Rarity(card.Id,best)).." rarity",TextColor3=border.Color,Position=UDim2.fromOffset(0,90),Size=UDim2.new(1,0,0,20),Parent=left},14)
@@ -651,10 +652,11 @@ local function drawInspector()
 	})
 	local pile = (own.BorderCopies or {})[best] or 0
 	local nextBorder = Borders.Next(best)
-	local fusable = nextBorder ~= nil and pile >= Config.FusionCopies
+	local need = Cards.FusionCost(card)
+	local fusable = nextBorder ~= nil and pile >= need
 	local fuseText = if nextBorder == nil then "TOP BORDER"
 		elseif fusable then `FUSE → {string.upper(Borders.Get(nextBorder).Name)}`
-		else `FUSE {math.min(pile, Config.FusionCopies)}/{Config.FusionCopies}`
+		else `FUSE {math.min(pile, need)}/{need}`
 	local fuse = Kit.button(fuseText, if fusable then C.VermilionHover else C.TamahaganeSlate, if fusable then C.VermilionWax else C.UrushiBase, {
 		LayoutOrder = 1,
 		Size = UDim2.new(0.5, -3, 1, 0),
@@ -671,7 +673,7 @@ local function drawInspector()
 			return
 		end
 		if not fusable then
-			hint(`{Config.FusionCopies - pile} more {border.Name} copies to fuse into {Borders.Get(nextBorder).Name}`)
+			hint(`{need - pile} more {border.Name} copies to fuse into {Borders.Get(nextBorder).Name}`)
 			return
 		end
 		modal:Close()

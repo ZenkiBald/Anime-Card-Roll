@@ -25,6 +25,7 @@ local CardView = require(script.Parent.CardView)
 local RollCard = require(script.Parent.RollCard)
 local Abilities = require(script.Parent.Abilities)
 local Sfx = require(script.Parent.Sfx)
+local StatLine = require(script.Parent.StatLine)
 
 local Reveal = {}
 
@@ -263,11 +264,14 @@ local function borderSting(borderId: string)
 	end
 end
 
-local function playFull(result)
+-- `item.Batch` (a pack's cinematic run, PackOpen): { Index, Total, Skipped }. SKIP ALL ends the current
+-- reveal, drops every queued one and tells the batch to stop, so a huge opening goes straight to its summary.
+local function playFull(result, item)
 	local card = Cards.Get(result.CardId)
 	if card == nil then
 		return
 	end
+	local batch = item and item.Batch
 	local tier = Borders.RevealTier(result.Border)
 	local idx = tier.Index
 
@@ -323,8 +327,33 @@ local function playFull(result)
 
 	-- SKIP jumps straight to the card for the long build-ups (Rare and up).
 	local skippedFlag = false
+	local skipAllFlag = false
+	local closeSignal = Instance.new("BindableEvent")
 	local function skipped(): boolean
-		return skippedFlag
+		return skippedFlag or skipAllFlag
+	end
+	-- SKIP ALL: shown whenever more reveals wait behind this one (queued, or the rest of a pack's batch).
+	local remaining = #queue + (if batch then math.max(0, batch.Total - batch.Index) else 0)
+	if remaining > 0 then
+		local skipAll = Kit.button(`SKIP ALL ({remaining})  ▶▶▶`, Theme.Color.Danger, Color3.fromRGB(110, 20, 40), {
+			Name = "SkipAll",
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -164, 1, -24),
+			Size = UDim2.fromOffset(190, 46),
+			ZIndex = 80,
+			Parent = root,
+		})
+		skipAll.Activated:Connect(function()
+			if skipAllFlag then
+				return
+			end
+			skipAllFlag = true
+			if batch then
+				batch.Skipped = true
+			end
+			Reveal.SkipQueue()
+			closeSignal:Fire()
+		end)
 	end
 	local skipButton = nil
 	if idx >= 3 then
@@ -423,6 +452,27 @@ local function playFull(result)
 	local front = RollCard.new(card.Id, borderId, RollCard.IsNew(result))
 	unlock(front)
 	front.Parent = flip
+	-- DMG / HP under the card, with the sword / heart icons (at its border and current duplicate bonus).
+	if card.Type == "Attack" then
+		local entry = State.Cards[card.Id]
+		local pill = Kit.new("Frame", {
+			Name = "Stats",
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 1, 10),
+			Size = UDim2.new(0.96, 0, 0, 34),
+			BackgroundColor3 = Color3.fromRGB(7, 9, 14),
+			BackgroundTransparency = 0.12,
+			ZIndex = 20,
+			Parent = holder,
+		}, { Kit.corner(UDim.new(0.5, 0)), Kit.stroke(Borders.Get(borderId).Color, 2, 0.2) })
+		StatLine.new(card, 0, borderId, if entry then Awaken.Level(entry) else 0, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, -20, 1, -8),
+			ZIndex = 21,
+			Parent = pill,
+		}, true, Cards.CopiesAt(entry, borderId))
+	end
 	Kit.tween(flip, 0.16, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
 	scale.Scale = 1.3
 	Kit.tween(scale, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
@@ -528,9 +578,8 @@ local function playFull(result)
 		end
 	end)
 
-	-- Close on tap, or by itself after a while.
+	-- Close on tap, or by itself after a while (at once after SKIP ALL).
 	local shownAt = os.clock()
-	local closeSignal = Instance.new("BindableEvent")
 	local tapConnection = dim.Activated:Connect(function()
 		if os.clock() - shownAt > 0.35 then
 			closeSignal:Fire()
@@ -540,7 +589,9 @@ local function playFull(result)
 	task.delay(autoClose, function()
 		closeSignal:Fire()
 	end)
-	closeSignal.Event:Wait()
+	if not skipAllFlag then
+		closeSignal.Event:Wait()
+	end
 	tapConnection:Disconnect()
 	closeSignal:Destroy()
 
@@ -566,7 +617,7 @@ local function pump()
 	task.spawn(function()
 		while #queue > 0 do
 			local item = table.remove(queue, 1)
-			local ok, err = pcall(playFull, item.Result)
+			local ok, err = pcall(playFull, item.Result, item)
 			if not ok then
 				warn("Reveal failed:", err)
 			end
@@ -621,8 +672,20 @@ function Reveal.IsBusy(): boolean
 end
 
 -- Full reveal. Queued, so several can arrive at once (e.g. Auto Roll hits).
-function Reveal.Full(result, onDone: (() -> ())?)
-	table.insert(queue, { Result = result, OnDone = onDone })
+-- Drops every queued full reveal (SKIP ALL); their OnDone still runs so callers carry on.
+function Reveal.SkipQueue()
+	local dropped = queue
+	queue = {}
+	for _, item in dropped do
+		if item.OnDone then
+			task.spawn(item.OnDone)
+		end
+	end
+end
+
+-- `batch` (optional): a pack's cinematic run { Index, Total, Skipped } so SKIP ALL can stop it.
+function Reveal.Full(result, onDone: (() -> ())?, batch: { Index: number, Total: number, Skipped: boolean? }?)
+	table.insert(queue, { Result = result, OnDone = onDone, Batch = batch })
 	pump()
 end
 

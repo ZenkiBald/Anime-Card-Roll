@@ -15,7 +15,8 @@ function Stats.Value(parent,kind,value,props)
 		TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.fromScale(.2,0),Size=UDim2.fromScale(.8,1),ZIndex=row.ZIndex+1,Parent=row},30)
 	return row
 end
-function Stats.new(card,stars,border,node,props,long)
+-- copies: copies held at `border` (the duplicate bonus, Cards.DupeBonus); nil = none.
+function Stats.new(card,stars,border,node,props,long,copies)
 	local p={Name="CombatStats",BackgroundTransparency=1}
 	for k,v in props or {} do p[k]=v end
 	local row=Kit.new("Frame",p)
@@ -24,8 +25,8 @@ function Stats.new(card,stars,border,node,props,long)
 		return row
 	end
 	local fmt=if long then Kit.commas else Kit.short
-	Stats.Value(row,"DMG",fmt(Cards.Stat(card,card.Main,stars,border,node)),{Size=UDim2.fromScale(.49,1),ZIndex=row.ZIndex})
-	Stats.Value(row,"HP",fmt(Cards.Stat(card,card.HP or 0,stars,border,node)),{Position=UDim2.fromScale(.51,0),Size=UDim2.fromScale(.49,1),ZIndex=row.ZIndex})
+	Stats.Value(row,"DMG",fmt(Cards.Stat(card,card.Main,stars,border,node,copies)),{Size=UDim2.fromScale(.49,1),ZIndex=row.ZIndex})
+	Stats.Value(row,"HP",fmt(Cards.Stat(card,card.HP or 0,stars,border,node,copies)),{Position=UDim2.fromScale(.51,0),Size=UDim2.fromScale(.49,1),ZIndex=row.ZIndex})
 	return row
 end
 return Stats

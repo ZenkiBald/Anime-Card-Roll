@@ -4,13 +4,12 @@
 -- tests/meta_test.luau runs it headless.
 --
 -- Candidates, each with a progress 0-1 from the previous step to the next one:
---   Fusion     a card's pile at one border toward Config.FusionCopies (100 -> 1 at the next border)
+--   Fusion     a card's pile at one border toward Cards.FusionCost (50 or 25 -> 1 at the next border)
 --   Mastery    different story boss challenges completed with a card (1 / 3 / 6 / 10)
 --   Milestone  total rolls toward the next unclaimed roll milestone (Meta.Milestones)
 --   Upgrade    Shards toward the next Shard Shop level (Meta.Upgrades)
 -- A fusion that is ready wins outright (it's an action: "see Hoshi"); otherwise the highest progress.
 
-local Config = require(script.Parent.Config)
 local Borders = require(script.Parent.Borders)
 local Cards = require(script.Parent.Cards)
 local Awaken = require(script.Parent.Awaken)
@@ -60,7 +59,7 @@ function Goals.Next(info: Info): Goal?
 			local nextBorder = Borders.Next(border)
 			if nextBorder and pile > 0 then
 				local name = `{card.Name} {Borders.Get(border).Name}`
-				if pile >= Config.FusionCopies then
+				if pile >= Cards.FusionCost(card) then
 					if pile > readyPile then
 						readyPile = pile
 						ready = {
@@ -73,8 +72,8 @@ function Goals.Next(info: Info): Goal?
 				else
 					best = better(best, {
 						Kind = "Fusion",
-						Text = `Next Fusion: {name} ({pile}/{Config.FusionCopies})`,
-						Progress = pile / Config.FusionCopies,
+						Text = `Next Fusion: {name} ({pile}/{Cards.FusionCost(card)})`,
+						Progress = pile / Cards.FusionCost(card),
 						Ready = false,
 					})
 				end
@@ -134,7 +133,7 @@ function Goals.Closest(info: Info): {Goal}
 		if card then
 			for border,pile in entry.BorderCopies or {} do
 				if Borders.Next(border) and pile>0 then
-					add({Kind="Fusion",Text=`Fusion: {card.Name} {pile}/{Config.FusionCopies}`,Progress=math.min(1,pile/Config.FusionCopies),Ready=pile>=Config.FusionCopies})
+					add({Kind="Fusion",Text=`Fusion: {card.Name} {pile}/{Cards.FusionCost(card)}`,Progress=math.min(1,pile/Cards.FusionCost(card)),Ready=pile>=Cards.FusionCost(card)})
 				end
 			end
 			local node=Awaken.Nodes[Awaken.Level(entry)+1]

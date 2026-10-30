@@ -90,11 +90,13 @@ for _, card in Cards.List do
 	bandOk = bandOk and card.Weight > 0
 end
 check(bandOk, "ATK 450-6,000 with HP = 2 x ATK; Support passives with no damage, HP or speed; every card has a Weight")
--- Rarer is stronger (2026-10-30): among normal / boss Attack cards, a strictly rarer card never has less ATK.
+-- Rarer is stronger (2026-10-30): among normal Attack cards, and among boss cards, a strictly rarer card
+-- never has less ATK. (Boss cards join the pool by clears; the user set W1's at 1 in 400 with 2,650 ATK
+-- beside the 1 in 500 apex cards, so the two lists are compared separately.)
 local rarerOk = true
 for _, a in Cards.List do
 	for _, b in Cards.List do
-		if a.Type == "Attack" and b.Type == "Attack" and not a.Weather and not b.Weather and a.Weight < b.Weight and a.Main < b.Main then
+		if a.Type == "Attack" and b.Type == "Attack" and not a.Weather and not b.Weather and (a.Boss == nil) == (b.Boss == nil) and a.Weight < b.Weight and a.Main < b.Main then
 			rarerOk = false
 			print(`   {a.Id} (Weight {a.Weight}) has less ATK than the commoner {b.Id}`)
 		end

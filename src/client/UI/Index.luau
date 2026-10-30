@@ -162,7 +162,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 	if card.SkyOneIn then
 		local sky=require(Shared.Weather).ById[card.Weather]
 		line(sky.Name.." only · "..Odds.FormatPercent(100*chance).." per sky search",Theme.Font.Medium,Theme.Color.Muted,20,15)
-		line("Every ROLL / AUTO / pack pull searches the active sky. Luck adds 15% of its bonus to the chance.",Theme.Font.Medium,Theme.Color.Muted,20,14)
+		line("Every ROLL / AUTO / pack pull searches the active sky. Luck adds 35% of its bonus to the chance (30x luck = about 11x the finds).",Theme.Font.Medium,Theme.Color.Muted,20,14)
 	elseif chance then
 		line(Odds.FormatPercent(chance*100).." card chance · any border",Theme.Font.Medium,Theme.Color.Muted,20,15)
 	elseif card.Boss then
@@ -175,7 +175,7 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 			if n>0 then table.insert(piles,Borders.Get(id).Name.." x"..Kit.commas(n)) end
 		end
 		line("COPIES  "..table.concat(piles," · "),Theme.Font.Heavy,Theme.Color.Text,22,15)
-		line("100 copies of one border fuse into the next at Hoshi.",Theme.Font.Medium,Theme.Color.Muted,20,14)
+		line(`{Cards.FusionCost(card)} copies of one border fuse into the next at Hoshi · each duplicate: +0.5% ATK / HP (max +25%).`,Theme.Font.Medium,Theme.Color.Muted,20,14)
 		local foil=Foils.Get(Foils.Best(entry.Foils))
 		if foil.Id~="standard" then line(foil.Name..": "..foil.Text,Theme.Font.Medium,foil.Color,22,15) end
 		for i,id in {entry.Trait or "",entry.Trait2 or ""} do

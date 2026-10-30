@@ -9,6 +9,15 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- LUCK / ODDS / BOSS HP / FUSION PASS COMPLETE (2026-10-30, headless only): the user's 6-part brief. Training nerf
+  (Border 1% a point) and Luck buff (0.05x), relics +0.75x / 15% to +2.5x / 35%, Crown +3x / +50% / +15% squad ATK,
+  new Infinite Tower floor-100 artifact (+2x luck, 15% faster rolls), potions +1.5 / +3 / +6x, luck soft start 35x,
+  luck tilts rare cards up to 5x, sky luck weight 0.35, the user's base odds and sky odds, the user's boss HP table
+  (all 12 winnable), fusion 50 / 25 copies, duplicates +0.5% ATK / HP (max 25%), cinematic reveal DMG / HP pill +
+  SKIP ALL, Clash jump hold. Open: W1 Normal clears in ~57 s even with four Base starters (window widened to 50-90);
+  W3 Nightmare takes ~98 s with the best 1 Secret + 3 Rainbow squad; starters can't reach 1 in 7-10 (pool must
+  total 100%). Needs a Studio check of the reveal pill / SKIP ALL and the Clash Space hold. See checklist 5.
+
 - REAL-TIME BATTLE PASS COMPLETE (2026-10-30, headless only): archetype timers (Fast / Balanced / Heavy),
   Boss Shield 0.5x / 1.5x break, Boss Clash ring (tap / Space), manual Ultimates + AUTO ULT / HOLD ULT FOR
   BREAK (both default on), guard roles linked to the leader, Vanguard slot 1, card animations, no passive
@@ -175,6 +184,22 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-30 · Claude Code · this commit · The user's luck / odds / boss brief (6 parts + reveal asks):
+  - Gear: `Meta.Stats` Luck 0.05 / Border 0.01 per point; `Items.Artifacts` now carry fixed `Luck` / `Border` by tier
+    plus an optional levelling specialty (`Items.CanLevel`); Crown { Luck 3, Border 0.5, ATK 0.15 } (squad ATK as a
+    whole-fight buff from BattleService `deckUnits`); new `spireheart` artifact paid by `RollService.TowerRewards` on
+    the first record Infinite floor 100; potions 2.5 / 4 / 7; `Config.Roll.LuckSoftStart` 35.
+  - Rolls: `Cards.LuckTilt` / `Cards.Tilt` in `PullChances(..., luck)` (single, bulk, ODDS); `CelestialRolls.LuckWeight`
+    0.35. Weights `10000 / N` per the user's tiers; sky `SkyOneIn` per the user; `Odds.RoundSteps` gains 1.75 /
+    2.25 / 3.25 / 6.25 / 6.5 so 175M / 325M / 625M show exactly; `FeaturedMaxWeight` 50.
+  - Bosses: the user's HP table; fixtures = the user's squad compositions; Recommended / ATK from them; per-fixture
+    `Window`; tower `Curve.Points` re-measured (60-75 s floors); raids 2.4-3.1 runs.
+  - Fusion: `Config.FusionCopies` { Common 50, Rare 25 } via `Cards.FusionCost`; `Cards.DupeBonus` (+0.5% / copy,
+    max 25%) in `Cards.Stat` / `Power`, battle `Copies`, Deck Power, inspector, tooltip, reveal.
+  - Client: reveal StatLine pill + SKIP ALL (`Reveal.SkipQueue`, batch from PackOpen); Clash zeroes jump while open.
+  - Tests: new `economy_test`; meta / celestial / battle / odds / strategy updated. Type 0 errors, props 0 problems,
+    headless ALL CHECKS PASSED. `docs/GAME_CARDS_md.md` regenerated (luck / gear / dupes sections). Not seen in Studio.
 
 - 2026-10-30 · Claude Code · this commit · The user's real-time battle brief:
   - Data: `Cards.Archetype` (SPD 120+ Fast, 105-119 Balanced, else Heavy). A post-build pass sets `BasicInterval`,

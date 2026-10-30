@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rarity = require(Shared.Rarity) -- trait tier colours
 local Cards = require(Shared.Cards)
+local CelestialRolls = require(Shared.CelestialRolls)
 local Odds = require(Shared.Odds)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
@@ -60,14 +61,15 @@ local function refresh()
 	end
 	local untilSurge = RollBoost.UntilSurge(State.Summary.TotalRolls or 0)
 	surgeTitle.Text = `OVERCHARGE SURGE  <font color="#FFC42E">(every {cfg.Every}th roll · next in {untilSurge})</font>`
-	-- Which card a pull gives (any border): its pull weight among the cards unlocked so far.
-	local pull = Cards.PullChances(Collections.Pool(State.Summary.SelectedCollection,State.Progress.Cleared), nil, nil, Cards.FeaturedAt(workspace:GetServerTimeNow()))
+	-- Which card a pull gives (any border): its pull weight among the cards unlocked so far, tilted toward
+	-- rare cards by your luck (Cards.LuckTilt).
+	local pull = Cards.PullChances(Collections.Pool(State.Summary.SelectedCollection,State.Progress.Cleared), nil, nil, Cards.FeaturedAt(workspace:GetServerTimeNow()), luck)
 	for id, row in cardRows do
 		local card=Cards.Get(id)
 		local chance=pull[id]
 		if card.Weather then
 			local sky=Weather.ById[card.Weather]
-			row.Chance.Text=if Config.CelestialCardsReady and State.Weather.Id==card.Weather then string.format("%.3f%% / sky search",100/card.SkyOneIn) else "INACTIVE"
+			row.Chance.Text=if Config.CelestialCardsReady and State.Weather.Id==card.Weather then string.format("%.3f%% / sky search",100/card.SkyOneIn*(1+(math.max(1,luck)-1)*CelestialRolls.LuckWeight)) else "INACTIVE"
 			row.OneIn.Text=sky.Name.." only"
 		else
 			row.Chance.Text=if chance then Odds.FormatPercent(chance*100) else "Unavailable"
@@ -322,8 +324,9 @@ function OddsPanel.Init(playerGui: Instance)
 		Text = "Rolls are free and pure luck (no pity). Every pull picks a card by its pull weight, then rolls its border (the tier: "
 			.. `Base 1x / Gold 4x / Rainbow 16x / Secret 64x stats). Luck raises the rarer borders most, with diminishing returns above {Config.Roll.LuckSoftStart} luck; Base `
 			.. "always keeps at least half. An infused Mega Pack weighs its element x1.5. Every pull also rolls a foil on its own; a card "
-			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (5x border odds; 3 cards at 6x when hit perfectly). 100 copies "
-			.. "at one border fuse into 1 at the next (Hoshi). Traits are rolled at the Trait Master. Probabilities are rounded, so the "
+			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (5x border odds; 3 cards at 6x when hit perfectly). Luck also tilts "
+			.. "the pool toward rare cards (up to 5x at endgame luck). 50 copies (25 for upper-mid and rarer) at one border fuse "
+			.. "into 1 at the next (Hoshi); each duplicate held adds +0.5% ATK / HP (max +25%). Traits are rolled at the Trait Master. Probabilities are rounded, so the "
 			.. "displayed values may not add up to exactly 100%.",
 		Parent = scroll,
 	}, 14)

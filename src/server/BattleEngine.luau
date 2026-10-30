@@ -61,6 +61,7 @@ export type UnitSpec = {
 	Stars: number,
 	Border: string?,
 	Awaken: number?, -- Awakening node (Awaken.luau): stats, and the 400% bond at node 3
+	Copies: number?, -- copies held at Border: the duplicate bonus (Cards.DupeBonus)
 	Trait: { { Stat: string, Amount: number } }?, -- unit effects: traits, foil, Awakening, mutator
 }
 -- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the leader's DEF / SPD:
@@ -120,8 +121,8 @@ local function newUnit(spec: UnitSpec)
 		Triggered = {},
 		HealingLock = 0,
 		HPCost = 0,
-		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Border, spec.Awaken),
-		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Border, spec.Awaken) else 0,
+		Main = Cards.Stat(card, card.Main, spec.Stars, spec.Border, spec.Awaken, spec.Copies),
+		MaxHP = if hasHP then Cards.Stat(card, card.HP or 0, spec.Stars, spec.Border, spec.Awaken, spec.Copies) else 0,
 		SPD = card.SPD,
 		Gauge = 0, -- Basic progress, 0-1 (a full bar is the next Basic)
 		SkillGauge = 0, -- Skill cooldown progress, 0-1

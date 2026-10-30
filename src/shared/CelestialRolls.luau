@@ -1,10 +1,11 @@
 --!strict
 -- Sky searches: while a sky is active, every normal pull (a click, each Triple Roll card, every pack pull)
 -- also searches that sky once. Each card has its own authored 1 / SkyOneIn chance; luck lifts it slightly
--- (x (1 + (luck - 1) * LuckWeight)); the rest of each search is no find.
+-- (x (1 + (luck - 1) * LuckWeight), 0.35 since 2026-10-30: 30-50x luck finds sky cards 11-18x as
+-- often); the rest of each search is no find.
 local BulkRoll = require(script.Parent.BulkRoll)
 local M = {}
-M.LuckWeight = 0.15
+M.LuckWeight = 0.35
 M.MaxTotal = 0.5 -- a safety ceiling for absurd dev luck: a search never finds a sky card more than half the time
 
 -- Each card's chance per search at `luck`, in pool order.

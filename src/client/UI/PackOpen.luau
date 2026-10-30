@@ -154,13 +154,16 @@ function PackOpen.Play(area: Frame, result, onDone: (() -> ())?)
 	if #chosen==0 then finish()
 	elseif settings.RevealStyle=="Cinematic" then
 		task.spawn(function()
-			for _,card in chosen do
-				if not fan.Parent then return end
+			-- SKIP ALL in a reveal stops the run and jumps to the complete summary.
+			local batch={Index=0,Total=#chosen,Skipped=false}
+			for i,card in chosen do
+				if not fan.Parent or batch.Skipped then break end
+				batch.Index=i
 				local done=false
-				Reveal.Full(card,function() done=true end)
+				Reveal.Full(card,function() done=true end,batch)
 				while not done and fan.Parent do task.wait(.05) end
 			end
-			finish()
+			if fan.Parent then finish() end
 		end)
 	else RewardReveal.Play(fan, { Results = chosen, AlreadyApplied = true }, finish) end
 end

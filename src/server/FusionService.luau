@@ -1,16 +1,15 @@
 --!strict
--- Hoshi's border fusion: Config.FusionCopies (100) copies of one card at one border fuse into 1 copy of
+-- Hoshi's border fusion: Cards.FusionCost (50, or 25 for rare cards) copies of one card at one border fuse into 1 copy of
 -- it at the next border (Base -> Gold -> Rainbow -> Secret). The card wears its best border, so Deck
 -- Power, the battle engine and every screen pick the new tier up from the save (Cards[id].BorderCopies /
 -- Borders). Fusing is Awakening node 5 (Awaken.luau); every fusion is counted in Cards[id].Fusion. The card
 -- at the next border is the whole reward: no luck, Trait Shards or XP (user's call, 2026-10-24).
--- Fuse remote: (cardId, border) = fuse 100 of that border; ("ALL") = FUSE ALL; only beside Hoshi (NpcRange).
+-- Fuse remote: (cardId, border) = fuse one pile of that border; ("ALL") = FUSE ALL; only beside Hoshi (NpcRange).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Cards = require(Shared.Cards)
-local Config = require(Shared.Config)
 local Borders = require(Shared.Borders)
 
 local Remotes = ReplicatedStorage.Remotes
@@ -24,17 +23,17 @@ local FusionService = {}
 
 local limiter = RateLimit.new(2, 4)
 
--- One fusion on a save entry (no checks beyond the copy count): 100 copies at `from` -> 1 at the next border.
-local function fuseOnce(entry: any, from: string): string?
+-- One fusion on a save entry (no checks beyond the copy count): `need` copies at `from` -> 1 at the next border.
+local function fuseOnce(entry: any, from: string, need: number): string?
 	local to = Borders.Next(from)
 	local copies = entry.BorderCopies or {}
-	if to == nil or (copies[from] or 0) < Config.FusionCopies then
+	if to == nil or (copies[from] or 0) < need then
 		return nil
 	end
-	copies[from] -= Config.FusionCopies
+	copies[from] -= need
 	copies[to] = (copies[to] or 0) + 1
 	entry.BorderCopies = copies
-	entry.Copies -= Config.FusionCopies - 1 -- the copies become one card at the next border
+	entry.Copies -= need - 1 -- the copies become one card at the next border
 	entry.Borders = entry.Borders or {}
 	entry.Borders[to] = true
 	entry.Fusion = (entry.Fusion or 0) + 1 -- fusions done (node 5 luck)
@@ -51,7 +50,7 @@ local function afterFusion(player: Player, count: number)
 	AvatarService.Apply(player)
 end
 
--- FUSE ALL: every card, lowest border first, again and again while any border holds 100 copies (so 200
+-- FUSE ALL: every card, lowest border first, again and again while any border holds a full pile (so two piles
 -- Base copies make 2 Gold, and 100 Gold made that way go on to a Rainbow).
 local function fuseAll(player: Player, profile): { [string]: any }
 	local data = profile.Data
@@ -61,8 +60,9 @@ local function fuseAll(player: Player, profile): { [string]: any }
 			continue
 		end
 		local any = false
+		local need = Cards.FusionCost(Cards.Get(cardId))
 		for _, from in Borders.Order do
-			while fuseOnce(entry, from) do
+			while fuseOnce(entry, from, need) do
 				fused += 1
 				any = true
 			end
@@ -78,7 +78,7 @@ local function fuseAll(player: Player, profile): { [string]: any }
 	return { Ok = true, All = true, Fused = fused, Cards = cards, Meta = MetaService.State(player, data) }
 end
 
--- Fuse remote: (cardId, border) fuses 100 of that border on one card; ("ALL") fuses everything that can.
+-- Fuse remote: (cardId, border) fuses one pile of that border on one card; ("ALL") fuses everything that can.
 local function fuse(player: Player, cardId: unknown, border: unknown): { [string]: any }
 	if type(cardId) ~= "string" then
 		return { Ok = false, Reason = "BadRequest" }
@@ -105,7 +105,7 @@ local function fuse(player: Player, cardId: unknown, border: unknown): { [string
 	if Borders.Next(from) == nil then
 		return { Ok = false, Reason = "MaxBorder" }
 	end
-	local to = fuseOnce(entry, from)
+	local to = fuseOnce(entry, from, Cards.FusionCost(card))
 	if to == nil then
 		return { Ok = false, Reason = "NotEnough" }
 	end

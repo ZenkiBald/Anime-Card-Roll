@@ -17,7 +17,10 @@ Config.DevGroupRank = 254
 
 Config.Roll = {
 	Cooldown = 1.2, -- seconds between rolls, enforced on the server
-	LuckSoftStart = 5,
+	-- Border / card-tilt luck is raw up to LuckSoftStart, then LuckSoftStart + LuckSoftScale x ln(1 + over /
+	-- LuckSoftScale): a maxed endgame player (Training + 3 relics + artifacts + Potion III + sky, x Raid /
+	-- Lucky Storm / Totem) lands around 35-60x.
+	LuckSoftStart = 35,
 	LuckSoftScale = 10,
 	DevLuckMax = 1000000, -- test input bound; earned luck has diminishing returns, not this cap
 }
@@ -34,8 +37,9 @@ Config.MaxStars = 5
 Config.StarBonus = 0 -- legacy save field; duplicates grant no combat stats
 
 -- Fusion (Hoshi in town): this many copies of one card at one border fuse into 1 copy at the next
--- border (Base -> Gold -> Rainbow -> Secret).
-Config.FusionCopies = 100
+-- border (Base -> Gold -> Rainbow -> Secret). Common: starter / lower-mid / mid cards; Rare: everything
+-- from upper-mid up, boss and sky cards (Cards.FusionCost).
+Config.FusionCopies = { Common = 50, Rare = 25 }
 
 -- Auto Roll never stops by itself (user's call, 2026-10-24: players want to pull every second). A
 -- Rainbow / Secret border or a Demon Seal pulled on Auto holds the next roll this long, so its full reveal

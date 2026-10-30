@@ -605,18 +605,18 @@ function CardView.new(cardId: string, opts: Options?): Frame
 
 		-- Footer: damage / HP for attackers; actual healing / shielding / boost for supports.
 		if owned then
-			local main = Cards.Stat(card, card.Main, stars, options.Border, options.Awaken)
+			local main = Cards.Stat(card, card.Main, stars, options.Border, options.Awaken, options.Copies)
 			local leftText, leftColor, rightText, rightColor
 			if card.Type == "Attack" then
 				leftText, leftColor = `DMG {short(main)}`, Color3.fromRGB(255, 70, 70)
-				rightText = `HP {short(Cards.Stat(card, card.HP or 0, stars, options.Border, options.Awaken))}`
+				rightText = `HP {short(Cards.Stat(card, card.HP or 0, stars, options.Border, options.Awaken, options.Copies))}`
 				rightColor = Color3.fromRGB(90, 230, 110)
 			else
 				leftText, leftColor = CardInfo.Headline(card, stars, options.Border, options.Awaken), Color3.fromRGB(139, 221, 177)
 				rightText, rightColor = "SUPPORT", Color3.fromRGB(139, 221, 177)
 			end
 			if card.Type=="Attack" then
-				StatLine.new(card,stars,options.Border,options.Awaken,{Position=UDim2.fromScale(.04,.9),Size=UDim2.fromScale(.92,.075),ZIndex=6,Parent=frame})
+				StatLine.new(card,stars,options.Border,options.Awaken,{Position=UDim2.fromScale(.04,.9),Size=UDim2.fromScale(.92,.075),ZIndex=6,Parent=frame},nil,options.Copies)
 			end
 			for i, info in ipairs(if card.Type=="Support" then { { leftText, leftColor }, { rightText, rightColor } } else {}) do
 				local stat = Kit.label({
