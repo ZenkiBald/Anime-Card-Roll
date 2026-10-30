@@ -65,6 +65,9 @@ local function drawBanner()
 		bannerText.Text = `{quest.Name} complete · Tap to claim`
 	else
 		bannerText.Text = `{quest.Text}  <b>{state.Count}/{state.Goal}</b>`
+		if state.Step == 1 and state.Count == 0 and (State.Packs["10"] or 0) > 0 then
+			bannerText.Text = "Open your starter pack: BAG > PACKS"
+		end
 	end
 	claimPill.Visible = state.Ready
 	banner.UIStroke.Color = if state.Ready then Theme.Color.Gold else SAGE
@@ -299,5 +302,10 @@ end
 function TutorialUi.Ready(): boolean
 	return state ~= nil and not state.Done and state.Ready == true
 end
+
+-- A newly loaded snapshot / opened pack can change the first-step guidance without a quest event.
+State.Changed:Connect(function(kind)
+	if banner and state and (kind == "all" or kind == "packs") then drawBanner() end
+end)
 
 return TutorialUi

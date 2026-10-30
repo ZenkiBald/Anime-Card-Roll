@@ -40,6 +40,7 @@ local function facts(data): Tutorial.Facts
 	return {
 		TotalRolls = data.TotalRolls,
 		DeckCards = Deck.Count(deck, "Attack") + Deck.Count(deck, "Support"),
+		AttackCards = Deck.Count(deck, "Attack"),
 		Cleared = data.Progress.Cleared,
 		Flags = save(data).Flags,
 	}

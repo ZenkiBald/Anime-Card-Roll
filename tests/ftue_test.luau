@@ -30,22 +30,22 @@ end
 check(count == 6, "quest ids are unique")
 local s = Tutorial.Steps
 check(s[1].Goal == 5 and s[1].Reward.Shards == 50 and s[1].Reward.Potions.superluck == 1, "Q1: roll 5 -> 50 Shards + a Super Luck potion")
-check(s[2].Goal == 8 and s[2].Reward.Packs["10"] == 1, "Q2: 4 + 4 deck -> a Roll Pack")
-check(s[3].Fight == Bosses.FightKey("kurogane", "Normal") and s[3].Reward.TraitShards == 25 and s[3].Reward.Shards == 100, "Q3: Kurogane Normal -> 25 Trait Shards + 100 Shards")
+check(s[2].Check == "AttackDeck" and s[2].Goal == 4 and s[2].Reward.Packs["10"] == 1, "Q2: four Attack cards -> a Roll Pack; Supports are optional")
+check(s[3].Fight == Bosses.FightKey("kurogane", "Normal") and s[3].Reward.TraitShards == 25 and s[3].Reward.Shards == 100 and s[3].Title == "First Victory", "Q3: first boss quest earns supplies and the permanent First Victory title")
 check(s[4].Flag == "TraitRoll" and s[4].Reward.TraitShards == 15, "Q4: a trait roll -> 15 Trait Shards")
 check(s[5].Flag == "Condense" and s[5].Reward.Packs["100"] == 1 and s[5].Supply.Count == 10, "Q5: condense -> a Big Roll Pack (topped up to 10 packs)")
 check(s[6].Flag == "CounterStagger" and s[6].Reward.Shards == 500 and s[6].Title == "Apprentice", "Q6: a counter Stagger -> 500 Shards + Apprentice")
 
-local facts = { TotalRolls = 3, DeckCards = 0, Cleared = {}, Flags = {} }
+local facts = { TotalRolls = 3, DeckCards = 0, AttackCards = 0, Cleared = {}, Flags = {} }
 local c, g = Tutorial.Progress(1, facts)
 check(c == 3 and g == 5 and not Tutorial.Ready(1, facts), "Q1 counts lifetime rolls (3/5)")
 facts.TotalRolls = 40
 c = Tutorial.Progress(1, facts)
 check(c == 5 and Tutorial.Ready(1, facts), "progress caps at the goal and the quest is ready")
-facts.DeckCards = 7
-check(not Tutorial.Ready(2, facts), "Q2 needs all 8 slots")
-facts.DeckCards = 8
-check(Tutorial.Ready(2, facts), "a full deck finishes Q2")
+facts.DeckCards = 7; facts.AttackCards = 3
+check(not Tutorial.Ready(2, facts), "four Supports cannot replace the fourth Attack card for Q2")
+facts.DeckCards = 4; facts.AttackCards = 4
+check(Tutorial.Ready(2, facts), "four attackers with no Supports finish Q2 and can reach the first boss quest")
 check(not Tutorial.Ready(3, facts), "Q3 waits for the clear")
 facts.Cleared["kurogane:Normal"] = true
 check(Tutorial.Ready(3, facts), "clearing Kurogane Normal finishes Q3")
@@ -91,5 +91,5 @@ end
 check(keys == #MonetizationConfig.ShardBundles and keys >= 1, "every Shard bundle is found by its key")
 check(rising, "bigger Shard bundles cost more and give more")
 for _, quest in Tutorial.Steps do
-	check(not quest.Hint:find("HUB") and not quest.Hint:find("BAG >"), `quest hint "{quest.Hint}" points at the new layout`)
+	check(not quest.Hint:find("HUB") and not quest.Hint:find("AUTO%-BUILD"), `quest hint "{quest.Hint}" points at the current controls`)
 end

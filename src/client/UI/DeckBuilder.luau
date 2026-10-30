@@ -591,7 +591,7 @@ local function drawInspector()
 	hintLabel.Position = UDim2.new(0.5, 0, 1, -reserve - 12)
 	if card == nil or own == nil then
 		text({
-			Text = "Start with AUTO-BUILD. Tap any card to compare it, then VIEW SKILLS for its effects and border upgrades.",
+			Text = "Press BEST DECK to equip your team. Four Attack cards can fight; Supports add optional bonuses. Tap a card, then VIEW SKILLS to learn its effects.",
 			TextColor3 = Theme.Color.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextWrapped = true,
@@ -1151,7 +1151,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		end
 		refresh()
 		if Deck.Count(working, "Attack") + Deck.Count(working, "Support") == 0 then
-			hint("Tap a card, then EQUIP, or press AUTO-BUILD")
+			hint("Tap a card, then EQUIP, or press BEST DECK")
 		end
 	end
 	modal.OnClose = function()

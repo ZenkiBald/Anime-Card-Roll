@@ -1,7 +1,7 @@
 --!strict
 -- Kenji's first-session questline: six quests in order, each claimed for its reward before the next
 -- opens. Shared so the HUD tracker shows exactly what the server counts (TutorialService).
---   Check kinds:  Rolls (lifetime rolls), Deck (cards in the active deck, Attack + Support),
+--   Check kinds:  Rolls (lifetime rolls), AttackDeck (equipped attackers), Deck (all filled slots),
 --                 Clear (a fight key cleared), Flag (something the server noted: a Trait Master roll, a
 --                 pack condensed, a Stagger broken by a counter element).
 -- Saved as Tutorial = { Step, Flags, Supplied }; flags count whenever they happen, so doing a quest early
@@ -18,7 +18,7 @@ export type Step = {
 	Text: string,
 	Kenji: string, -- what Kenji says when the quest opens
 	Hint: string, -- where to go
-	Check: string, -- Rolls | Deck | Clear | Flag
+	Check: string, -- Rolls | AttackDeck | Deck | Clear | Flag
 	Goal: number,
 	Fight: string?, -- Clear: the Bosses.FightKey
 	Flag: string?, -- Flag: the flag's name
@@ -33,7 +33,7 @@ Tutorial.Steps = {
 		Name = "First Summon",
 		Text = "Roll 5 cards",
 		Kenji = "Every legend starts with a pull. Open your starter Roll Pack in BAG, or press ROLL and see who answers!",
-		Hint = "Press ROLL at the bottom",
+		Hint = "Open your starter Roll Pack in BAG > PACKS, or press ROLL",
 		Check = "Rolls",
 		Goal = 5,
 		Reward = { Shards = 50, Potions = { superluck = 1 } },
@@ -41,23 +41,24 @@ Tutorial.Steps = {
 	{
 		Id = "line",
 		Name = "Assemble the Line",
-		Text = "Fill your deck: 4 Attack + 4 Support",
-		Kenji = "Attack cards fight and take hits. Support cards are passive bonuses, with no damage or HP. Matching slot numbers pair them; effects have limits shown in VIEW SKILLS. Use BEST DECK, then tap a card > VIEW SKILLS to see what it does.",
+		Text = "Equip 4 Attack cards",
+		Kenji = "Use BEST DECK to equip your strongest four Attack cards. They fight and take hits. Supports are optional bonuses for the attacker in the matching numbered slot; add them as you find them. You can challenge the first boss without a full Support row.",
 		Hint = "SQUAD > DECK > BEST DECK",
-		Check = "Deck",
-		Goal = 8,
+		Check = "AttackDeck",
+		Goal = 4,
 		Reward = { Packs = { ["10"] = 1 } },
 	},
 	{
 		Id = "flame",
 		Name = "Trial by Flame",
 		Text = "Beat the Tailed Beast Calamity on Normal",
-		Kenji = "The Tailed Beast Calamity waits in Ember Village. Build a full team and focus its guards before the warned attack.",
+		Kenji = "The Tailed Beast Calamity waits in Ember Village. Your four attackers can take it on; focus a guard to stop its protection or healing. Win, then claim your First Victory title here.",
 		Hint = "BATTLE > World 1, or walk through the Ember Village portal",
 		Check = "Clear",
 		Goal = 1,
 		Fight = "kurogane:Normal",
 		Reward = { TraitShards = 25, Shards = 100 },
+		Title = "First Victory",
 	},
 	{
 		Id = "awaken",
@@ -100,6 +101,7 @@ Tutorial.Steps = {
 export type Facts = {
 	TotalRolls: number,
 	DeckCards: number, -- filled slots in the active deck
+	AttackCards: number?, -- first battle needs attackers, never four random Support discoveries
 	Cleared: { [string]: boolean },
 	Flags: { [string]: boolean },
 }
@@ -115,6 +117,8 @@ function Tutorial.Progress(step: number, facts: Facts): (number, number)
 		count = facts.TotalRolls
 	elseif quest.Check == "Deck" then
 		count = facts.DeckCards
+	elseif quest.Check == "AttackDeck" then
+		count = facts.AttackCards or 0
 	elseif quest.Check == "Clear" then
 		count = if quest.Fight and facts.Cleared[quest.Fight] then 1 else 0
 	elseif quest.Check == "Flag" then

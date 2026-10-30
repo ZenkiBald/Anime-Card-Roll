@@ -20,7 +20,6 @@ local Meta = require(Shared.Meta)
 local Items = require(Shared.Items)
 local Tower = require(Shared.Tower)
 local Packs = require(Shared.Packs)
-local Elements = require(Shared.Elements)
 local ColumnBonds = require(Shared.ColumnBonds)
 local Raid = require(Shared.Raid)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -66,6 +65,7 @@ local showcaseWorld: TextLabel
 local view = nil -- ModelView
 local viewBoss = nil
 local body: ScrollingFrame -- right: details
+local fightActions: Frame -- fixed footer: starting a fight never requires scrolling
 local tabs: Frame
 local hintLabel: TextLabel
 local hintToken = 0
@@ -192,7 +192,7 @@ local function setShowcase(boss, floor, raidName: string?)
 	showcaseGradient.Color = ColorSequence.new(boss.Accent:Lerp(C.UrushiInset, 0.8), C.UrushiInset) -- a sunken well, a breath of the boss's colour
 	local affix = floor and floor.Affix and Tower.AffixById[floor.Affix]
 	showcaseName.Text = string.upper(if raidName then raidName elseif floor then floor.Name else boss.Name)
-	showcaseTitle.Text = if affix then `{affix.Icon} {affix.Name}: {affix.Text}` else `{Elements.Label(boss.Element)} · {boss.Title}`
+	showcaseTitle.Text = if affix then `{affix.Icon} {affix.Name}: {affix.Text}` else boss.Title
 	showcaseWorld.Text = if raidName
 		then "SERVER RAID · EVERYONE TOGETHER"
 		elseif floor then `{if floor.Mode == Tower.PagodaId then "HUNDRED-FLOOR PAGODA" else "INFINITE TOWER"} · FLOOR {floor.Floor}`
@@ -229,8 +229,7 @@ local function guardLine(ids: { string }): string
 	for _, id in ids do
 		local g = Bosses.GuardTypes[id]
 		if g then
-			local element = Elements.Get(g.Element)
-			table.insert(parts, `{g.Icon} <font color="#{g.Color:ToHex()}"><b>{g.Name}</b></font> · {g.Role} {if element then element.Icon else ""}`)
+			table.insert(parts, `<font color="#{g.Color:ToHex()}"><b>{g.Name}</b></font> · {g.Role}`)
 		end
 	end
 	return "GUARDS   " .. table.concat(parts, "    ")
@@ -443,53 +442,25 @@ local function scoutBox(order: number, leaderId: string, guards: { string }, dec
 		end
 	end
 
-	local strong, weak, hurt, ids = 0, 0, 0, {}
-	for _, deckRow in Deck.Rows do
-		for _, id in deck[deckRow] do
-			local card = Cards.Get(id)
-			if card then
-				table.insert(ids, id)
-				local matchup = Elements.Matchup(card.Element, leader.Element)
-				if matchup == "Strong" then
-					strong += 1
-				elseif matchup == "Weak" then
-					weak += 1
-				end
-				if card.Type == "Attack" and Elements.Matchup(leader.Element, card.Element) == "Strong" then
-					hurt += 1
-				end
-			end
-		end
-	end
-	local deckLine = `YOUR DECK  <font color="#56D68A"><b>{strong} strong</b></font>  ·  <font color="#FF7846"><b>{weak} weak</b></font>`
-	if hurt > 0 then
-		deckLine ..= `  ·  {hurt} Attack card{if hurt == 1 then "" else "s"} take +30%`
-	end
-	text(scout, 4, deckLine, C.WashiGhost, 14, Theme.Font.Heavy)
+	local attacks, supports = Deck.Count(deck, "Attack"), Deck.Count(deck, "Support")
+	text(scout, 4, `YOUR TEAM · {attacks}/4 Attack · {supports}/4 Support (optional)`, C.WashiGhost, 14, Theme.Font.Heavy)
 
-	-- Synergies and bonds as tags.
 	local tags = tray(scout, 5, 30)
-	local count = 0
-	for _, active in Elements.ActiveSynergies(Deck.Elements(deck)) do
-		local element = Elements.Get(active.Synergy.Element)
-		count += 1
-		local t = chip(tags, count, element and element.Color or C.TamahaganeSlate)
-		if element then
-			ElementUi.Badge(element.Id, { LayoutOrder = 1, Size = UDim2.fromOffset(22, 22), Parent = t })
-		end
-		chipText(t, 2, `{string.upper(active.Synergy.Name)} ({active.Count})`, C.WashiParchment, 13)
+	local activeBonds = ColumnBonds.Active(deck)
+	local bonuses = {}
+	for i, bond in activeBonds do
+		local t = chip(tags, i, Theme.Color.Gold)
+		chipText(t, 1, string.upper(bond.Name), Theme.Color.Gold, 13)
+		table.insert(bonuses, bond.Text)
 	end
-	for _, bond in ColumnBonds.Active(deck) do
-		count += 1
-		local t = chip(tags, count, Theme.Color.Gold)
-		chipText(t, 1, `🤝 {string.upper(bond.Name)}`, Theme.Color.Gold, 13)
-	end
-	if count == 0 then
-		chipText(tags, 1, "No synergy yet: 2 cards of one element switch one on", C.WashiGhost, 13)
+	if #activeBonds == 0 then
+		chipText(tags, 1, "Supports help any attacker; familiar pairs add a Bond", C.WashiGhost, 13)
+	else
+		text(scout, 6, table.concat(bonuses, "\n"), Theme.Color.Support, 14, Theme.Font.Bold)
 	end
 
 	local buttons = Kit.new("Frame", {
-		LayoutOrder = 6,
+		LayoutOrder = 7,
 		Size = UDim2.new(1, 0, 0, 40),
 		BackgroundTransparency = 1,
 		Parent = scout,
@@ -513,7 +484,7 @@ local function scoutBox(order: number, leaderId: string, guards: { string }, dec
 		end)
 		if ok and result and result.Decks then
 			State.ApplyDecks(result.Decks)
-			hint("Deck rebuilt: your strongest cards, weighed by element against this squad")
+			hint("Best available team equipped for this fight")
 		else
 			hint("Couldn't rebuild the deck")
 		end
@@ -576,8 +547,10 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 
 	-- Buttons
 	local buttons = row(order0 + 2, 60)
+	buttons.Name = "FightActions"
+	buttons.Parent = fightActions
 	local edit = Kit.button("EDIT DECK", Theme.Color.Auto, Theme.Color.AutoDeep, {
-		LayoutOrder = 1,
+		Name = "EditDeck", LayoutOrder = 1,
 		Size = UDim2.new(0, 170, 1, 0),
 		Parent = buttons,
 	})
@@ -585,7 +558,7 @@ local function deckAndFight(order0: number, deck, unlocked: boolean, fight: () -
 		actions.EditDeck(target)
 	end)
 	local fightButton = Kit.button(if unlocked then label or "FIGHT!" else "LOCKED", Theme.Color.Roll, Theme.Color.RollDeep, {
-		LayoutOrder = 2,
+		Name = "Fight", LayoutOrder = 2,
 		Size = UDim2.new(0, 220, 1, 0),
 		Parent = buttons,
 	})
@@ -960,6 +933,7 @@ end
 
 local function build()
 	hintLabel.Parent = nil -- reused across rebuilds
+	for _, child in fightActions:GetChildren() do child:Destroy() end
 	for _, child in body:GetChildren() do
 		if child:IsA("GuiObject") then
 			child:Destroy()
@@ -1215,7 +1189,7 @@ function BossScreen.Init(playerGui: Instance, bossActions: Actions)
 	body = Kit.new("ScrollingFrame", {
 		Name = "Details",
 		Position = UDim2.fromScale(0.4, 0),
-		Size = UDim2.fromScale(0.6, 1),
+		Size = UDim2.new(0.6, 0, 1, -74),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
@@ -1226,6 +1200,8 @@ function BossScreen.Init(playerGui: Instance, bossActions: Actions)
 		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
 		Kit.new("UIPadding", { PaddingRight = UDim.new(0, 8), PaddingLeft = UDim.new(0, 2), PaddingTop = UDim.new(0, 2) }),
 	})
+	fightActions = Kit.new("Frame", { Name = "Actions", Position = UDim2.new(.4, 0, 1, -60),
+		Size = UDim2.new(.6, 0, 0, 60), BackgroundTransparency = 1, Parent = modal.Body })
 	hintLabel = Kit.label({
 		Name = "Hint",
 		LayoutOrder = 9,

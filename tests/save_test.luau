@@ -2,6 +2,19 @@
 -- the per-border copy piles add up to the card's total, and running it twice changes nothing.
 local SaveMigration = MODULES.SaveMigration
 
+do
+	local d = { Cards = {}, Progress = { Cleared = { ["kurogane:Normal"] = true } },
+		Tutorial = { Step = 4 }, Titles = { Apprentice = true }, Settings = { Title = "Apprentice" } }
+	SaveMigration.Migrate(d)
+	check(d.Titles["First Victory"] == true and d.Titles.Apprentice and d.Settings.Title == "Apprentice",
+		"past first-boss quest claimants receive First Victory without losing their worn title")
+	local again = SaveMigration.Migrate(d)
+	check(not table.find(again, "first boss quest title granted"), "first-boss title backfill is idempotent")
+	local pending = { Cards = {}, Progress = { Cleared = { ["kurogane:Normal"] = true } }, Tutorial = { Step = 3 } }
+	SaveMigration.Migrate(pending)
+	check(not (pending.Titles and pending.Titles["First Victory"]), "an unclaimed boss quest still waits for its normal claim")
+end
+
 -- Celestial display-name / art revisions keep the original collection keys and border piles.
 do
 	local data = { Cards = {} }

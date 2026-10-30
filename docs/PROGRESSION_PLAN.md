@@ -1,7 +1,8 @@
 # Progression follow-up
 
 The user's feedback on 2026-10-29: there is little reason to grind and the game feels boring.
-This is a content proposal, not implemented reward behavior.
+This tracks the remaining content work. The first-session entry below is implemented; later checkpoint
+rewards remain proposals.
 
 The current loop has twelve story challenges, mastery, border fusion, two towers and raids, but most
 early visible rewards are consumables for more rolls. Boss cards are only added to the random pool after
@@ -12,14 +13,16 @@ few tangible goals for a new player.
 The implemented GOALS page now connects existing progress to those rewards. It does not solve the
 reward gap by itself. The next content pass should focus on this sequence:
 
-1. **A useful first-session reward.** A short, visible series of boss objectives should earn something
-   permanent that the player can see or use immediately. Prefer the existing title / cosmetic systems;
-   avoid another currency. Show the exact reward and earned progress before the player starts.
+1. **A useful first-session reward (implemented 2026-10-30).** Claiming Kenji's first-boss quest earns the
+   permanent First Victory title, displayed in the quest rewards before the fight. Previous claimants
+   receive it once through migration. Four Attack cards advance the guide; random Support discoveries
+   no longer hold it at7/8. Desktop mock-profile review:10 starter pulls, one Gold, Normal clear22.3 s;
+   no new card grants or combat tuning. Broader fresh-account sampling / first30-minute pacing remains.
 2. **Milestones along the climb.** Give tower checkpoints worthwhile guaranteed first-clear rewards,
    alongside the existing random chase. Choose the rewards and balance them before changing the server;
    keep border rolls pure luck. The player should know the next few wins lead somewhere.
 3. **A reason to change teammates.** Offer optional boss challenges with clear constraints, such as
-   an element team or the existing Cost Challenge. Reward successful different builds; avoid requiring
+   familiar bonds or the existing Cost Challenge. Reward successful different builds; avoid requiring
    hundreds of identical reruns. Mastery already provides part of this loop and needs clearer feedback.
 
 Validate the first 30 minutes on a fresh profile: time until the first permanent reward, wins between

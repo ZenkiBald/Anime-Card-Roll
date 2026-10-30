@@ -253,6 +253,15 @@ function SaveMigration.Migrate(data: any): { string }
 	end
 	if type(data.Settings.AutoUlt)~="boolean" then data.Settings.AutoUlt=true end
 	if type(data.Settings.HoldUlt)~="boolean" then data.Settings.HoldUlt=true end
+	-- The first boss quest now earns a permanent title; previous claimants keep that achievement.
+	if data.Progress and data.Progress.Cleared and data.Progress.Cleared["kurogane:Normal"] == true
+		and type(data.Tutorial) == "table" and type(data.Tutorial.Step) == "number" and data.Tutorial.Step > 3 then
+		data.Titles = data.Titles or {}
+		if not data.Titles["First Victory"] then
+			data.Titles["First Victory"] = true
+			table.insert(done, "first boss quest title granted")
+		end
+	end
 	return done
 end
 

@@ -9,6 +9,19 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- FIRST-SESSION REVIEW COMPLETE (2026-10-30): starter pack / BEST DECK / first Normal boss / Corrupted
+  Hard checked with an isolated Play-only profile and normal unlocks. Starter pack gave four Attack /
+  three Support cards, including one Gold; old guide stalled at 7/8. Guide now needs four Attack cards,
+  points at BAG > PACKS, and first-boss quest earns First Victory (past claimants backfilled once).
+  FIGHT / EDIT DECK remain visible in a fixed footer; Scout shows real team counts / familiar Bond
+  bonuses instead of obsolete element advice; tactics / BEST DECK hints match current controls.
+  Observed Normal 22.3 s / Hard 66.8 s, not tuning medians. Real Space Clash at 1x worked, jump held
+  during ring / restored afterward. Type 0 errors, props 5877 / 0 problems, full suite passed. Original
+  cards / decks verified unchanged, runtime accessors restored, Play stopped; no place edits / publishing.
+  Next: unlucky starter packs / first 30 minutes / phone footer / other boss tabs / 2x and touch Clash;
+  hidden-battle result widget overlaps sky panel. Longer guaranteed tower rewards remain proposals.
+  Pull / reconnect Rojo / restart Play. Full evidence and test harness notes in the newest log below.
+
 - CELESTIAL ART / NAMES COMPLETE (2026-10-30): seven background-only edits (Soulfall Ichigo / Yamamoto /
   Yhwach; Cursed Night Sukuna / Toji; Blood Moon Akaza / Doma) uploaded and wired. Nine originals retained.
   User rejected zoomed busts: preserve the old pulled-back 2:3 poses / body framing; those rejected variants
@@ -196,6 +209,38 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-30 · Codex · this commit · User approved fresh-profile first-boss review / fixes. Based on
+  7ca7cf3; pulled shared branch first, no concurrent Claude edits. Opened the actual starter ten-card
+  pack in BAG, used BEST DECK: four Attack / three Support discoveries with one Gold Iron Bastion.
+  Normal won in 22.3 s / one Shield Break; first boss pool / 2x speed unlock checked. Old tutorial was
+  stuck at 7/8 despite that capable team. Step 2 now counts four Attack cards, never random Supports;
+  starter tracker points at BAG > PACKS, stale AUTO-BUILD hints replaced with BEST DECK. Claimed
+  Trial by Flame through normal quest flow: First Victory title / existing rewards paid; auto-wears
+  only if no title equipped. SaveMigration backfills previous claimants once without changing worn
+  title or quest progress; pending step 3 still requires claiming. Regression tests cover those cases
+  and reject three Attack + four Support while accepting four Attack without Supports.
+  FIGHT was below the scroll fold: moved EDIT DECK / FIGHT into a fixed footer shared by story / tower /
+  Pagoda / raid; desktop story placement checked at scroll position zero. Scout no longer says zero
+  strong / weak or recommends elemental synergy; shows actual Attack / optional Support counts and
+  active familiar Bond bonuses. Tactics explains archetype timers / charge / HOLD ULT. No card / boss
+  identities, odds, kits, HP or combat tuning changed. Same earned team beat Corrupted Hard at 1x in
+  66.8 s / two Shield Breaks (264k HP with active Cursed Night). Actual Space input won a subsequent
+  Clash: one server Clash event, JumpPower / JumpHeight 0 during ring, restored to 50 / 7.2 after.
+  Battle hide returned to exploration / result widget; remaining sky-widget overlap logged in checklist 5.
+  Automatic approval review rejected editing saved Studio sources for mock setup. Used a temporary
+  Play-only Script instead: independent memory profile via runtime accessors, original ProfileStore
+  Data table retained, normal unlocks enabled only in running module memory. Reusable harness saved
+  outside Rojo sources at tools/studio/first-session-review.luau; persistent leaderboard readers keep
+  original profile. Stopped practice battle, restored accessors / flags, verified original card / deck
+  JSON unchanged; stopped Play. Final fresh snapshot confirmed starter hint visible and restore true.
+  Saved sources retain real-store selection / original TestMode flag; no temporary harness in Edit.
+  Required checks ran: luau-lsp 0 errors, props 5877 names / 0 problems, bundle + luau ALL CHECKS PASSED,
+  including story / tower fixtures. Existing lint warnings and asset 203785492 mismatch remain; no new
+  production runtime errors. New docs distinguish observed lucky runs from fixture / first-30-minute
+  pacing. Unlucky packs, phone / other footer tabs, worn title visuals, 2x / touch Clash remain unchecked.
+  No map edits or publishing; unrelated .codex/ and untracked artwork left alone. Pull / reconnect Rojo /
+  restart Play for source changes. Status IDLE.
 
 - 2026-10-30 · Codex · this commit · Celestial art / display naming only, after user confirmed Claude's
   latest pass finished (ac5c209 retained). Generated seven weather-only edits with built-in imagegen,

@@ -47,7 +47,7 @@ local function draw()
 	end
 
 	add("BUILD YOUR FOUR COLUMNS",Theme.Color.Gold,22,Theme.Font.Display)
-	add("Attack cards fight and take hits. A Support changes the Attack card directly above it. Supports work with any attacker; a familiar partner adds the bond bonus listed below.",Theme.Color.Text,17)
+	add("Four Attack cards are enough to start fighting. Supports are optional: each changes only the Attack card directly above it. Any attacker can use a Support; a familiar partner adds the exact bond bonus listed below.",Theme.Color.Text,17)
 	add("FAMILIAR BONDS",Theme.Color.Gold,22,Theme.Font.Display)
 	for _,bond in require(Shared.ColumnBonds).List do
 		local attack,support=Cards.Get(bond.Attack),Cards.Get(bond.Support)
@@ -55,7 +55,7 @@ local function draw()
 		add(bond.Text,Theme.Color.Text,16)
 	end
 	add("BATTLE RHYTHM",Theme.Color.Gold,22,Theme.Font.Display)
-	add("Basic attacks follow the blue action bar. Skills wait at least 8 seconds. Ultimates need full charge and a 22-second cooldown; changing speed accelerates the whole simulation.",Theme.Color.Text,17)
+	add("Each Attack card has its own Basic timer, Skill cooldown and Ultimate charge. Fast cards strike more often; Heavy cards hit harder. Tap a fully charged card to use its Ultimate, or leave AUTO ULT on. HOLD ULT FOR BREAK saves charged Ultimates for the boss's Shield Break. Battle speed accelerates every timer.",Theme.Color.Text,17)
 	add("Focus a Warder to break its protection or a Mender to stop enemy healing. The leader falling wins the fight. Familiar column combos fire once as the leader weakens.",Theme.Color.Text,17)
 	add("STATUS EFFECTS",Theme.Color.Gold,22,Theme.Font.Display)
 	add("Burn, Bleed, Freeze, Stun and Weaken work exactly as the card's technique describes. Inspect the ability and its activation-limit pills before choosing your four columns.",Theme.Color.Muted,16)

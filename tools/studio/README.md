@@ -4,6 +4,13 @@ Edit-mode scripts that built the world saved in the place (`workspace.Map`, Terr
 `ServerStorage.MapKit`). They are not synced by Rojo; run them in Studio (command bar, or the Studio MCP
 `execute_luau`) with `loadstring` after fetching them, or paste them in.
 
+Exception: `first-session-review.luau` is **Play-only**. Run as a temporary server Script to give services
+an independent in-memory test profile with normal unlocks. It never replaces ProfileStore's Data table;
+persistent leaderboard readers retain the original profile. `Snapshot` returns the test JSON, `Seed`
+can resume an earned checkpoint (or nil starts fresh), and **invoke `Restore` before stopping Play**.
+The restore result checks the original profile accessor, owned cards and decks. Do not publish the
+temporary Script or use the harness in a live server. It is outside Rojo's synced source folders.
+
 - `terrain.luau` - generates the terrain (town, Ember Village, Frostfang Peaks, Neon Abyss, lake, edge
   mountains) and the terrain colours. `{ Rows = {0, 11} }` writes everything; `{ Clear = true }` wipes it.
 - `map.luau` - places the kit models and the markers World.luau reads. `{ Part = "terrain" | "town" |

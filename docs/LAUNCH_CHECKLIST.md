@@ -16,12 +16,11 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   Before any public release, replace all three: original names, original art and original boss models. Roblox
   removes infringing games and assets, and repeat strikes can cost the account.
 
-- [ ] **World 4 Nightmare is unwinnable (decide).** At 250,000,000 HP (2026-10-30) the strongest deck in the game,
-  four Secret Blood Moon cards, deals about 169M in the 180 s limit (~203M with the Blood Moon +20%). Pick one: lower
-  its HP to ~120M (that deck wins in ~2 min), raise `Config.Battle.TimeLimit` for it, or keep it as an aspiration.
-- [ ] **New players can't clear World 1 Normal (decide).** The all-Base starter deck (31.5k) loses Kurogane Normal
-  (250,000 HP) on time; the first clear needs about four Gold cards (115.7k). Kenji's path and the first boss-card
-  unlock wait behind that. Consider ~60k HP for World 1 Normal or a starter Gold card.
+- [x] **Boss entry / endpoint HP revised (2026-10-30, Claude's newer user-approved table).** World 1 Normal
+  is60k; World 4 Nightmare125M. All12 fixtures win headless with authored timing windows. A ten-pull starter
+  team with one lucky Gold won Normal in22.3 s in desktop Studio; all-Base starter fixtures win around57 s.
+  No further HP changes were made during the first-session review. Wider fresh-account / late-game feel
+  sampling remains; the old250k /250M blockers no longer describe the game.
 
 ## 2. Code switches
 
@@ -60,6 +59,20 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 - [ ] Publish to Roblox from Studio (never `rojo build` over the place: a built place has no map).
 
 ## 5. Things still to check in Studio (never seen there yet)
+
+- [x] First-session desktop review (2026-10-30): Play-only in-memory profile / normal unlocks, starter
+  pack opened through BAG, BEST DECK equipped four Attack / three Support cards. Old guide stalled7/8
+  despite Normal clear22.3 s; revised four-Attack goal advanced and normal claims paid the First Victory
+  title / existing supplies. Title selected only when no other title worn. Starter-pack hint checked after
+  snapshot refresh. FIGHT remained visible with details at top; Scout shows4/4 Attack,3/4 optional Support,
+  no obsolete elements. Actual Corrupted Hard1x clear66.8 s /2 Shield Breaks; live Space Clash event
+  confirmed, jump values0 during ring and50 /7.2 afterward. Hidden fight returned to exploration / result
+  widget. No new production runtime errors; existing203785492 asset warning persists. Required checks
+  pass and original card / deck data verified unchanged; original accessors restored / Play stopped.
+- [ ] First-session follow-up: several unlucky starter-pack runs (without a Gold / weather card), real
+  first30 minutes, worn-title / first-boss reward visibility, fixed fight footer on phone and other tabs,
+  2x Clash timing / touch input. Hidden-battle result widget still overlaps the sky panel at desktop size.
+  Longer tower checkpoint rewards remain a proposal in PROGRESSION_PLAN; no new relic grants or pity.
 
 - [x] Celestial art / naming pass (2026-10-30): seven weather-only portrait edits uploaded, nine existing
   portraits retained. Desktop review loaded all16 images; square grid faces and top-aligned source aspect

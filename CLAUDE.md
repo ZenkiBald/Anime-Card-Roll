@@ -23,6 +23,13 @@ intro): the uploaded textures loaded, names and filter chips fit, and there were
 The 2026-10-30 real-time battle pass (archetype timers, Boss Shield, Clash ring, HOLD ULT, guard links, card
 animations) was built headless only: its battle screen and Arena beams are unseen in Studio. So is the following
 luck / odds / boss HP / fusion pass (cinematic reveal DMG / HP pill and SKIP ALL, Clash jump hold).
+The following first-session pass was reviewed in desktop Studio using an isolated in-memory profile
+with normal unlocks. Ten starter-pack pulls produced four Attack cards / three Supports and one Gold:
+World 1 Normal won in 22.3 s, Corrupted Hard in 66.8 s. These are observed runs, not fixture medians.
+The former eight-card guide gate stalled at7/8 despite a capable team; it now counts four equipped
+Attack cards only. First-boss quest claiming / title, fixed battle footer and actual team counts were
+checked. A real Space press won a Clash at1x; JumpPower / JumpHeight were0 during the prompt and restored
+to50 /7.2 after. Original save card / deck tables were verified unchanged before restoring accessors.
 
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and
@@ -88,6 +95,11 @@ consumable Roll Pack use that selection; any unlocked boss card remains eligible
 and decks may mix collections. The selector shows contents and exact featured-adjusted card chances; ACTIVE
 PACK appears over ROLL. Selection requires the keeper's 24-stud server range. A brand-new empty save receives
 one ten-card Roll Pack once, and Kenji explains opening it / BEST DECK / the first boss.
+The first tracker points at that starter pack. Kenji's second quest requires four Attack cards;
+Supports are optional and never block advancing to the first boss. Claiming Trial by Flame also
+unlocks the permanent First Victory title, worn automatically only if no title is equipped. Existing
+players who already claimed that quest receive the title through an idempotent SaveMigration backfill;
+pending claimants still use the ordinary claim. No existing quest step or supply is reset.
 
 `Weather` hashes server time and seed 731947 into shared 15-minute slots. Events start at a varied offset
 inside each slot, with a 150-second forecast. Quiet Skies is the default. Limitbreak Skies (Dragon Ball),
@@ -452,7 +464,10 @@ in both tiles and details, with separate names / counts / status lines. `UI/BagA
 images; infused Mega Packs reuse Mega art. Sources, exact built-in imagegen prompts, hashes, uploaded ids
 and 512 px RGBA upload copies are in `art/ui/bag-20261027/`. Unmapped items retain the existing marker fallback.
 Relic-rarity frames remain (bronze / purple / gold / crimson); packs keep their roll counts. BOSS SCOUT retains its unit trays and
-neutral matchup and familiar-column bond information. Battle intros use smaller straight lacquer / vermilion panels, with matching
+shows actual equipped Attack / optional Support counts and familiar-column bond bonuses. Obsolete elemental
+strong / weak / synergy advice is removed. EDIT DECK / FIGHT sit in a fixed footer on story / tower / Pagoda /
+raid screens, visible while their details scroll. The tactics guide describes current archetype timers /
+energy / HOLD ULT behavior. Battle intros use smaller straight lacquer / vermilion panels, with matching
 controls, enemy target panels and result frames. The current triggered ability kits are described above.
 
 `JuicyButton` still supplies sheen, spring and sounds; `IconBadge` carries element / role crests.
@@ -518,7 +533,8 @@ The character artwork pass did not change identities. The later character-to-Att
   Robux sales live only in MonetizationConfig / MonetizationService; any perk that changes odds or gives random rewards
   is gated by PolicyService, with all outcomes and live odds summing to 100% shown.
 - Boss HP / ATK per difficulty are tuned so each fixture deck in `tests/fixtures.luau` wins its fight in 60-90 s
-  (`tests/battle_test.luau`; World 4 Hard is a chase fight, 60-100 s; World 4 Nightmare is reported as out of reach); `tests/tower_test.luau` does the same for the tower and the Pagoda (Rainbow /
+  (`tests/battle_test.luau`; the user's newer HP table uses each fixture's Window where authored, including
+  World 1 Normal50-90 s / World 3 Nightmare60-100 s / World 4 Nightmare110-140 s); `tests/tower_test.luau` does the same for the tower and the Pagoda (Rainbow /
 Secret chase decks). Re-run after changing
   cards, bosses or battle rules, and retune if they fail.
 - Original characters only: no real anime characters, names or trademarked terms.
