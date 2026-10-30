@@ -153,6 +153,37 @@ Tower.PagodaMilestones = {
 	[100] = { Shards = 25000, TraitShards = 300, Packs = { ["1000"] = 2 }, Artifact = "hundredcrown", Title = "Pagoda Master" },
 } :: { [number]: Milestone }
 
+-- Guaranteed first-record goals, separate from repeatable floor loot and random relic rolls.
+Tower.Checkpoints = {
+	{ Floor = 5, Reward = { Packs = { ["10"] = 5 }, Potions = { luck = 1 } }, Text = "5 Roll Packs + Luck Potion I" },
+	{ Floor = 10, Reward = { Packs = { ["100"] = 1 }, Artifacts = { clover = 1 }, Title = "Skyward" }, Text = "Big Roll Pack + Four-Leaf Relic + Skyward title" },
+	{ Floor = 25, Reward = { Packs = { ["100"] = 3 }, Potions = { superluck = 1 }, Celestial = { orb = 1 } }, Text = "3 Big Roll Packs + Luck Potion II + Celestial Orb" },
+	{ Floor = 50, Reward = { Packs = { ["1000"] = 1 }, Artifacts = { prism = 1 } }, Text = "Mega Roll Pack + Prism Shard relic" },
+	{ Floor = 75, Reward = { Packs = { ["1000"] = 3 }, Potions = { mythic = 1 }, Fragments = 25 }, Text = "3 Mega Roll Packs + Luck Potion III + 25 Celestial Fragments" },
+	{ Floor = 100, Reward = { Packs = { ["10000"] = 1 }, TowerArtifacts = { spireheart = true }, Title = "Endless Ascendant" }, Text = "Colossal Roll Pack + Heart of the Endless Spire + Endless Ascendant title" },
+} :: { { Floor: number, Reward: any, Text: string } }
+
+function Tower.NextCheckpoint(best: number, claimed: { [string]: boolean }?): any?
+	for _, checkpoint in Tower.Checkpoints do
+		if not (claimed and claimed[tostring(checkpoint.Floor)]) then return checkpoint end
+	end
+	return nil
+end
+
+-- Called only after a tower win. Old best runs qualify too, without resetting their progress.
+function Tower.ClaimCheckpoints(tower: any): { any }
+	tower.Checkpoints = tower.Checkpoints or {}
+	local earned = {}
+	for _, checkpoint in Tower.Checkpoints do
+		local key = tostring(checkpoint.Floor)
+		if tower.Floor >= checkpoint.Floor and not tower.Checkpoints[key] then
+			tower.Checkpoints[key] = true
+			table.insert(earned, checkpoint)
+		end
+	end
+	return earned
+end
+
 -- Which of a boss's moves are in: the Hard-only moves join at floor HardFrom, Nightmare's at NightmareFrom
 -- (Nightmare also shortens the warning before big moves).
 Tower.HardFrom = 15

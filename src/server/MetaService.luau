@@ -483,18 +483,11 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 		-- The prize index goes back as the "reason" so the wheel can stop on it.
 		return true, index, MetaService.Grant(data, prize.Reward, player)
 	elseif action == "SpendStat" then
-		local stat = type(arg) == "string" and Meta.StatById[arg]
-		if not stat then
-			return false, "BadRequest"
-		end
-		if Meta.StatPoints(data.Level) - Meta.StatsSpent(data.Stats) <= 0 then
-			return false, "NoPoints"
-		end
-		local current = data.Stats[stat.Id] or 0
-		if current >= stat.Max then
-			return false, "MaxLevel"
-		end
-		data.Stats[stat.Id] = current + 1
+		local id = if type(arg) == "table" then (arg :: any).Id else arg
+		local requested = if type(arg) == "table" then (arg :: any).Amount else 1
+		local count, reason = Meta.StatSpend(data.Stats, data.Level, id, requested)
+		if count == 0 then return false, reason end
+		data.Stats[id] = (data.Stats[id] or 0) + count
 		return true
 	elseif action == "WearArtifact" then
 		local id = type(arg) == "string" and Items.ArtifactById[arg] and arg

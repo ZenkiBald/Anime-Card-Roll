@@ -74,3 +74,71 @@ do
 	check(crown.Bonuses.ATK == 0.15 and crown.Bonuses.Luck == 3 and crown.Bonuses.Border == 0.5, "the Crown of the Hundred Floors: +3x luck, +50% border chance, +15% squad ATK")
 	check(Borders.EffectiveLuck(35) == 35 and Borders.EffectiveLuck(60) < 60, "luck is raw up to 35x, with diminishing returns above")
 end
+do
+	local Meta, Tower, Packs = MODULES.Meta, MODULES.Tower, MODULES.Packs
+	check(Meta.StatSpend({Luck=38}, 50, "Luck", "max") == 2, "training MAX respects the stat cap")
+	check(Meta.StatSpend({Luck=20}, 24, "RollSpeed", 20) == 3, "typed training spending respects remaining points")
+	check(Meta.StatSpend({}, 10, "RollSpeed", 5) == 5, "typed training allocates multiple points at once")
+	for _, bad in {0,-1,1.5,math.huge,-math.huge,0/0,"20",true,{}} do
+		check(Meta.StatSpend({}, 50, "Luck", bad) == 0, "training rejects invalid amounts")
+	end
+	check(Meta.StatSpend({}, 50, "fake", "max") == 0 and Meta.StatSpend({}, 1, "Luck", "max") == 0,
+		"training rejects unknown stats and empty budgets")
+	check(Packs.ById["10000"].Rolls == 10000 and Packs.Condense["1000"].To == "10000"
+		and Packs.Condense["1000"].Need * Packs.ById["1000"].Rolls == 10000, "Colossal Pack condensing preserves all 10000 pulls")
+	local tower = {Floor=9,Run=9,Checkpoints={}}
+	local first = Tower.ClaimCheckpoints(tower)
+	check(#first == 1 and first[1].Floor == 5 and #Tower.ClaimCheckpoints(tower) == 0,
+		"tower checkpoints pay once, not on repeated wins or restarted runs")
+	tower.Floor=10; tower.Run=1
+	local second = Tower.ClaimCheckpoints(tower)
+	check(#second == 1 and second[1].Reward.Artifacts.clover == 1 and second[1].Reward.Title == "Skyward",
+		"floor 10 guarantees a usable relic and permanent title")
+	tower.Floor=100
+	local caughtUp = Tower.ClaimCheckpoints(tower)
+	check(#caughtUp == 4 and caughtUp[4].Reward.Packs["10000"] == 1 and caughtUp[4].Reward.TowerArtifacts.spireheart,
+		"old best runs catch up to each new checkpoint without duplicating earlier claims")
+	check(Tower.NextCheckpoint(100,tower.Checkpoints) == nil and #Tower.ClaimCheckpoints(tower) == 0,
+		"finished checkpoint tracks have no unpaid target or duplicate rewards")
+	for _, bond in MODULES.ColumnBonds.List do
+		local a, s = MODULES.Cards.Get(bond.Attack), MODULES.Cards.Get(bond.Support)
+		check(MODULES.CardInfo.BondText(a):find(s.Name,1,true) ~= nil and MODULES.CardInfo.BondText(s):find(a.Name,1,true) ~= nil,
+			"both bonded cards identify their exact familiar partner")
+	end
+	check(MODULES.CardInfo.BondText(MODULES.Cards.Get("blink_kunai"),"Secret"):find("45% → 50%",1,true) ~= nil,
+		"bond descriptions show the actual capped Secret opening-charge increase")
+end
+
+-- Unlucky starts: no Gold / sky finds / traits, just the real normal pool and BEST DECK.
+do
+	local Cards, Deck, Bulk = MODULES.Cards, MODULES.Deck, MODULES.BulkRoll
+	local pool = Cards.Pool({})
+	local chances = Cards.PullChances(pool, nil, nil, nil, 1)
+	local probabilities = {}
+	for i, card in pool do probabilities[i] = chances[card.Id] end
+	local wins, pulls, times = 0, {}, {}
+	for seed = 1, 30 do
+		local rng = Random.new(seed * 179)
+		local owned, count, deck = {}, 0, Deck.Empty()
+		repeat
+			local n = if count == 0 then 10 else 1
+			local drawn = Bulk.Multinomial(rng, n, probabilities)
+			for i, amount in drawn do
+				if amount > 0 then
+					local id = pool[i].Id
+					if not owned[id] then owned[id] = FIXTURES.own({id})[id]; owned[id].Copies=0; owned[id].BorderCopies.Normal=0 end
+					owned[id].Copies += amount
+					owned[id].BorderCopies.Normal += amount
+				end
+			end
+			count += n
+			deck = Deck.AutoBuild(owned)
+		until Deck.Count(deck,"Attack") == 4 or count >= 100
+		table.insert(pulls,count)
+		local fight = FIXTURES.fight("kurogane","Normal",deck,owned,seed*7919)
+		if fight.Result == "Win" then wins += 1; table.insert(times,fight.Time) end
+	end
+	table.sort(pulls);table.sort(times)
+	print(`   All-Base fresh starts: {wins}/30 wins; four attackers in median {FIXTURES.percentile(pulls,.5)} / p95 {FIXTURES.percentile(pulls,.95)} pulls; median fight {string.format("%.1f",FIXTURES.percentile(times,.5))}s`)
+	check(wins >= 29 and pulls[#pulls] < 100, "unlucky first sessions reach four attackers and beat the first boss without Gold or sky cards")
+end

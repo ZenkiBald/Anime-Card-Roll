@@ -659,16 +659,23 @@ local function buildTower()
 		19,
 		Theme.Font.Heavy
 	).Size = UDim2.new(1, 0, 0, 36)
-	floorBox(2, floor, TOWER_COLOR)
+	local checkpoint = Tower.NextCheckpoint(tower.Best, tower.Checkpoints)
+	if checkpoint then
+		local goal = box(2, Theme.Color.Gold)
+		text(goal, 1, `GUARANTEED FIRST CLEAR · FLOOR {checkpoint.Floor}`, Theme.Color.Gold, 20, Theme.Font.Heavy)
+		text(goal, 2, checkpoint.Text, Theme.Color.Text, 17)
+		text(goal, 3, if tower.Best >= checkpoint.Floor then "Already earned by your best run — win any tower floor to collect." else `Best: {tower.Best}/{checkpoint.Floor} · paid once; kept after a loss`, Theme.Color.Muted, 15)
+	end
+	floorBox(3, floor, TOWER_COLOR)
 	if not unlocked then
 		text(body, 3, `LOCKED · {Tower.UnlockHint()} to open the tower.`, Theme.Color.Roll, 15, Theme.Font.Heavy)
 	end
-	scoutBox(3, floor.Boss, floor.Guards, deck, Tower.Id, floor.Affix, floor.Name)
-	powerBox(4, floor.Recommended, power)
+	scoutBox(4, floor.Boss, floor.Guards, deck, Tower.Id, floor.Affix, floor.Name)
+	powerBox(5, floor.Recommended, power)
 
 	local record = floorNo > tower.Best
 	local reward = Tower.Reward(floorNo, record)
-	local rewardBox = box(5, Theme.Color.Gold)
+	local rewardBox = box(6, Theme.Color.Gold)
 	text(rewardBox, 1, if floor.Guardian and record then "GUARDIAN REWARDS · NEW RECORD" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
 	if reward.Packs and next(reward.Packs) then
 		text(rewardBox, 2, `<b>{Packs.Describe(reward.Packs)}</b>  (saved to your BAG, opened at your luck)`, Theme.Color.Gold, 18)
@@ -706,7 +713,7 @@ local function buildTower()
 		)
 	end
 
-	deckAndFight(6, deck, unlocked, function()
+	deckAndFight(7, deck, unlocked, function()
 		if not unlocked then
 			hint(`{Tower.UnlockHint()} first`)
 			return

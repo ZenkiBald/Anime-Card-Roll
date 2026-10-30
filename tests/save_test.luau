@@ -3,6 +3,16 @@
 local SaveMigration = MODULES.SaveMigration
 
 do
+	local old = {Cards={},Tower={Floor=50,Run=4}}
+	SaveMigration.Migrate(old)
+	check(type(old.Tower.Checkpoints)=="table" and next(old.Tower.Checkpoints)==nil and old.Tower.Floor==50 and old.Tower.Run==4,
+		"tower checkpoint migration preserves old records and leaves earned rewards claimable")
+	old.Tower.Checkpoints["10"]=true
+	SaveMigration.Migrate(old)
+	check(old.Tower.Checkpoints["10"]==true and not old.Tower.Checkpoints["25"], "checkpoint migration preserves existing claims")
+end
+
+do
 	local d = { Cards = {}, Progress = { Cleared = { ["kurogane:Normal"] = true } },
 		Tutorial = { Step = 4 }, Titles = { Apprentice = true }, Settings = { Title = "Apprentice" } }
 	SaveMigration.Migrate(d)

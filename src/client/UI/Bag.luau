@@ -91,14 +91,13 @@ local function gear()
 	return State.Meta.Gear or Items.Empty()
 end
 
--- Every item the bag shows for the current tab and search: what you hold, and on a tab of its own
--- kind also the packs and potions you could get (greyed out).
+-- Inventory tabs show only owned / active items; crafting remains a separate action.
 local function entries()
 	local list = {}
 	local function add(entry)
 		local tabOk = currentTab == "ALL" or KIND_TAB[entry.Kind] == currentTab
 		local held = entry.Count > 0 or entry.Worn == true or entry.Running == true
-		if tabOk and (held or currentTab ~= "ALL") and (search == "" or string.find(string.lower(entry.Name), search, 1, true)) then
+		if tabOk and held and (search == "" or string.find(string.lower(entry.Name), search, 1, true)) then
 			table.insert(list, entry)
 		end
 	end
@@ -281,6 +280,7 @@ local function tile(entry, order: number)
 	end
 	local count = Kit.label({
 		Name = "Count",
+		Visible = entry.Count > 0,
 		Text = `x{Kit.commas(entry.Count)}`,
 		Font = Theme.Font.Display,
 		TextColor3 = if entry.Count > 0 then UITheme.Colors.WashiParchment else UITheme.Colors.WashiGhost,
@@ -491,8 +491,21 @@ local function showDetail(entry)
 		PaddingRight = UDim.new(0, 12),
 		Parent = detail,
 	})
+	if currentTab == "SKY ITEMS" then
+		detailText(1000, "CRAFT SKY SIGILS", Theme.Color.Gold, 20, Theme.Font.Heavy)
+		for i, sky in Weather.List do
+			local cost = Weather.SigilCost(sky.Id)
+			if cost then
+				local button = Kit.button(`CRAFT {string.upper(sky.Name)} · {cost} FRAGMENTS`, sky.Color, sky.Color:Lerp(Color3.new(0, 0, 0), .5), {
+					Name = `Craft:{sky.Id}`, LayoutOrder = 1000 + i, Size = UDim2.new(1, 0, 0, 40), Parent = detail,
+				})
+				Kit.dim(button, ((State.Meta.Celestial or {Fragments=0}).Fragments or 0) < cost)
+				button.Activated:Connect(function() skyCall("Craft", sky.Id) end)
+			end
+		end
+	end
 	if entry == nil then
-		detailText(1, "Tap an item to see what it does.", Theme.Color.Muted, 18, Theme.Font.Heavy)
+		detailText(1, if currentTab == "SKY ITEMS" then "Use Celestial Fragments to craft a Sigil below." elseif search ~= "" then "Nothing matches that search." else "No owned items in this tab yet.", Theme.Color.Muted, 18, Theme.Font.Heavy)
 		return
 	end
 	local item = entry.Item
@@ -652,16 +665,6 @@ function Bag.Refresh()
 	for i, entry in list do
 		tile(entry, i)
 	end
-	if #list == 0 then
-		Kit.label({
-			Text = if search ~= "" then "Nothing matches that search." else "Nothing here yet: beat bosses, climb the tower and claim QUESTS gifts.",
-			Font = Theme.Font.Heavy,
-			TextColor3 = Theme.Color.Muted,
-			TextWrapped = true,
-			Size = UDim2.fromOffset(400, 60),
-			Parent = grid,
-		}, 18)
-	end
 	showDetail(selected)
 end
 
@@ -815,7 +818,7 @@ end
 
 -- Opens the BAG on its PACKS tab.
 function Bag.OpenPacks()
-	currentTab = "PACKS"
+	showTab("PACKS")
 	modal:Open()
 end
 

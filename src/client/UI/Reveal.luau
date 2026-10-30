@@ -690,7 +690,7 @@ function Reveal.Full(result, onDone: (() -> ())?, batch: { Index: number, Total:
 end
 
 -- Fast pop near the buttons; saved threshold / duplicate choices select the full show.
-function Reveal.Quick(result)
+function Reveal.Quick(result, batchSize: number?)
 	local card = Cards.Get(result.CardId)
 	if card == nil then
 		return
@@ -704,10 +704,16 @@ function Reveal.Quick(result)
 	if running or (Reveal.Muted and Reveal.Muted()) then
 		return -- a full reveal or a panel is on screen: the pull still lands in the feed, without a pop over it
 	end
-	if gui.AbsoluteSize.Y < 540 and result.Outcome ~= "New" and result.Outcome ~= "Star" and borderId == "Normal" then
+	if not batchSize and gui.AbsoluteSize.Y < 540 and result.Outcome ~= "New" and result.Outcome ~= "Star" and borderId == "Normal" then
 		return -- routine Base copies already appear in the phone's feed
 	end
 
+	placeToasts()
+	local limit = math.clamp(batchSize or 2, 2, 3)
+	if batchSize then
+		local size = toastArea.Size
+		toastArea.Size = UDim2.fromOffset(size.Y.Offset * .72 * limit + 8 * (limit - 1), size.Y.Offset)
+	end
 	toastOrder += 1
 	local slot = Kit.new("Frame", {
 		Name = "Toast",
@@ -743,7 +749,7 @@ function Reveal.Quick(result)
 	table.sort(toasts, function(a, b)
 		return a.LayoutOrder < b.LayoutOrder
 	end)
-	for i = 1, #toasts - 2 do
+	for i = 1, #toasts - limit do
 		toasts[i]:Destroy()
 	end
 
@@ -754,6 +760,23 @@ function Reveal.Quick(result)
 		Kit.tween(scale, 0.18, { Scale = 0 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Wait()
 		slot:Destroy()
 	end)
+end
+
+-- One click is one visual batch: rarest qualifying reveal first, or all three quick cards together.
+function Reveal.Batch(result, onDone: (() -> ())?): boolean
+	local cards = { result }
+	for _, extra in result.Extra or {} do table.insert(cards, extra) end
+	table.sort(cards, function(a, b) return Cards.Rarity(a.CardId, a.Border) > Cards.Rarity(b.CardId, b.Border) end)
+	local full = {}
+	for _, card in cards do if RevealPolicy.Eligible(card, State.Meta) then table.insert(full, card) end end
+	if #full > 0 then
+		for i, card in full do
+			Reveal.Full(card, if i == #full then onDone else nil, { Index = i, Total = #full })
+		end
+		return true
+	end
+	for i = 1, math.min(3, #cards) do Reveal.Quick(cards[i], if #cards > 1 then #cards else nil) end
+	return false
 end
 
 return Reveal

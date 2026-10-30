@@ -33,7 +33,7 @@ local function fitDecor(target, folder)
 	local top, bottom = padding.PaddingTop.Offset, padding.PaddingBottom.Offset
 	for _, frame in folder:GetChildren() do
 		if frame:IsA("Frame") then
-			local inset = if frame.Name == "InnerBevel" or frame.Name == "Gloss" then 2 elseif frame.Name == "HolographicBorder" then 4 else 0
+			local inset = if frame.Name == "InnerBevel" or frame.Name == "Gloss" then 2 else 0
 			local fraction = if frame.Name == "Gloss" then .45 else 1
 			frame.Position = UDim2.fromOffset(inset-left, inset-top)
 			frame.Size = UDim2.new(1,left+right-2*inset,fraction,(top+bottom)*fraction-2*inset)
@@ -187,8 +187,11 @@ function Style.Border(target, id, sequence, color)
 	local folder = decorations(target)
 	local old = folder:FindFirstChild("HolographicBorder")
 	if old then return old end
-	local frame = make("Frame", { Name = "HolographicBorder", Position = UDim2.fromOffset(4,4), Size = UDim2.new(1,-8,1,-8), BackgroundTransparency = 1, ZIndex = 22, Active = false }, folder)
-	corner(frame, 8)
+	-- The rarity rim belongs on the card silhouette, not four pixels inside its artwork.
+	local frame = make("Frame", { Name = "HolographicBorder", Position = UDim2.fromOffset(0,0), Size = UDim2.fromScale(1,1), BackgroundTransparency = 1, ZIndex = 22, Active = false }, folder)
+	local rounding = target:FindFirstChildOfClass("UICorner")
+	local edgeCorner = corner(frame, 10)
+	if rounding then edgeCorner.CornerRadius = rounding.CornerRadius end
 	local rim = stroke(frame, WHITE, 2.5)
 	-- Gold also needs multiple stops so the rotation reads as moving shine.
 	local colors = if id == "Gold" then ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255,151,24)), ColorSequenceKeypoint.new(.25, Color3.fromRGB(255,223,66)), ColorSequenceKeypoint.new(.5, WHITE), ColorSequenceKeypoint.new(.75, Color3.fromRGB(255,204,36)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255,151,24)) }) else sequence

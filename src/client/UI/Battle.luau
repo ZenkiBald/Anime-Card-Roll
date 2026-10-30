@@ -2635,7 +2635,7 @@ local function showResults(summary)
 		local milestone = hasRewards and rewards.Milestone
 		if milestone then
 			line(
-				if tower.Floor >= Tower.Pagoda.Floors then `🏯 PAGODA CONQUERED! « {milestone.Title} »` else `🏯 PAGODA MILESTONE · FLOOR {tower.Floor}`,
+				if tower.Mode ~= Tower.PagodaId then milestone.Title elseif tower.Floor >= Tower.Pagoda.Floors then `PAGODA CONQUERED! « {milestone.Title} »` else `PAGODA MILESTONE · FLOOR {tower.Floor}`,
 				Color3.fromRGB(255, 140, 90),
 				26,
 				Theme.Font.Display
@@ -3405,7 +3405,7 @@ end
 function Battle.Init(playerGui: Instance, battleHooks: Hooks)
 	hooks = battleHooks
 	returnGui = Kit.new("ScreenGui", { Name = "HiddenBattleGui", ResetOnSpawn = false, DisplayOrder = 45, Enabled = false, Parent = playerGui })
-	returnButton = Kit.button("RETURN TO BATTLE", Theme.Color.PanelLight, Theme.Color.Panel, { Name = "ReturnToBattle", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 110), Size = UDim2.fromOffset(260, 66), Parent = returnGui })
+	returnButton = Kit.button("RETURN TO BATTLE", Theme.Color.PanelLight, Theme.Color.Panel, { Name = "ReturnToBattle", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 94), Size = UDim2.fromOffset(260, 66), Parent = returnGui })
 	returnButton.Activated:Connect(function() if current then setHidden(false) end end)
 	gui = Kit.screenGui("BattleGui", 4, playerGui)
 	gui.IgnoreGuiInset = true

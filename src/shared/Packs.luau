@@ -1,14 +1,12 @@
 --!strict
--- Roll Packs: boss wins and some Infinite Tower floors drop packs of 10, 100 or 1000 rolls instead of
+-- Roll Packs: boss wins and tower rewards give packs of 10, 100, 1000 or 10000 rolls instead of
 -- rolling on the spot. A pack has no rarity of its own: it's just rolls, made at the player's luck when
--- they open it (potions, LUCKY STORM and pity all count then), so saving packs for a boost pays off.
+-- they open it (potions and LUCKY STORM count then), so saving packs for a boost pays off.
 -- Saved as Packs[id] = count; opened from BAG > PACKS (RollService "OpenPack"). Shared so the BAG, the
 -- boss / tower screens and the server agree. A new pack size is one entry in Packs.List.
 --
--- Pack Alchemy (BAG, RollService "Alchemy"): CONDENSE 10 Roll Packs into a Big Roll Pack and 10 Big Roll
--- Packs into a Mega Roll Pack; INFUSE a Mega Roll Pack with an element for InfuseCost Shards. An infused
--- pack ("1000:Flame") weights that element's cards x1.5 inside each rolled rarity, and doubles border
--- odds when it's opened during LUCKY STORM, Raid Luck or a Luck Totem.
+-- Pack Alchemy at Hoshi condenses ten packs into one of the next size without losing rolls.
+-- Legacy infused IDs remain readable so migrations can refund the retired infusion system.
 
 local Packs = {}
 
@@ -25,6 +23,7 @@ Packs.List = {
 	{ Id = "10", Name = "Roll Pack", Rolls = 10, Icon = "🎴", Color = Color3.fromRGB(86, 180, 255) },
 	{ Id = "100", Name = "Big Roll Pack", Rolls = 100, Icon = "📦", Color = Color3.fromRGB(190, 110, 255) },
 	{ Id = "1000", Name = "Mega Roll Pack", Rolls = 1000, Icon = "🎁", Color = Color3.fromRGB(255, 196, 46) },
+	{ Id = "10000", Name = "Colossal Roll Pack", Rolls = 10000, Icon = "🎁", Color = Color3.fromRGB(255, 95, 135) },
 } :: { Pack }
 
 -- Element-infused Mega Packs (Cosmic isn't offered: only Secret cards are Cosmic).
@@ -55,6 +54,7 @@ end
 Packs.Condense = {
 	["10"] = { To = "100", Need = 10 },
 	["100"] = { To = "1000", Need = 10 },
+	["1000"] = { To = "10000", Need = 10 },
 } :: { [string]: { To: string, Need: number } }
 
 Packs.InfuseCost = 2500 -- Shards to infuse one Mega Roll Pack

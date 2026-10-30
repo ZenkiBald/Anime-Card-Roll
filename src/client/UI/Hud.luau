@@ -985,14 +985,14 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 			goalPill.Size=UDim2.fromOffset(math.clamp(gui.AbsoluteSize.X-550,120,220),18)
 		end
 		for i,bar in progressRows do
-			bar.Position=goalPill.Position+UDim2.fromOffset(0,-23*i)
+			bar.Position=goalPill.Position+UDim2.fromOffset(0,-goalPill.Size.Y.Offset-4-(i-1)*24)
 			bar.Size=UDim2.fromOffset(goalPill.Size.X.Offset,20)
 		end
 		petsButton.Size = UDim2.fromOffset(if compact then 44 else 58, if compact then 44 else 58)
 		Hud.RefreshEvent()
 	end
 	for i=1,2 do
-		local bar=Kit.new("Frame",{Name=`NearGoal{i}`,Position=UDim2.new(0,18,1,-76-i*23),Size=UDim2.fromOffset(300,20),BackgroundColor3=Theme.Color.Panel,Parent=gui},{Kit.corner()})
+		local bar=Kit.new("Frame",{Name=`NearGoal{i}`,AnchorPoint=Vector2.new(0,1),Position=UDim2.new(0,18,1,-76-i*24),Size=UDim2.fromOffset(300,20),BackgroundColor3=Theme.Color.Panel,Parent=gui},{Kit.corner()})
 		Kit.new("Frame",{Name="Fill",Size=UDim2.fromScale(0,1),BackgroundColor3=Theme.Color.Quick,BackgroundTransparency=.35,Parent=bar},{Kit.corner()})
 		Kit.label({Name="Text",Text="",Size=UDim2.fromScale(1,1),Parent=bar},13)
 		progressRows[i]=bar
@@ -1196,7 +1196,7 @@ function Hud.RefreshGoal()
 	if goalPill == nil then
 		return
 	end
-	local nearest=Goals.Closest({Cards=State.Cards,Rolls=State.Rolls(),Claimed=State.Meta.Milestones,Shards=0,Weather=State.Weather,Now=workspace:GetServerTimeNow()})
+	local nearest=Goals.Closest({Cards=State.Cards,Rolls=State.Rolls(),Claimed=State.Meta.Milestones,Shards=0,Weather=State.Weather,Now=workspace:GetServerTimeNow(),Tower=State.Tower})
 	local goal=nearest[1]
 	for i,bar in progressRows do
 		local item=nearest[i+1]
@@ -1466,7 +1466,7 @@ function Hud.RefreshMomentum()
 		else `SURGE {progress}/{every}`
 	surgeCount.TextColor3 = if sealed then UITheme.Colors.UrushiBase else UITheme.Colors.WashiParchment
 	surgeMeter.UIStroke.Color = if sealed then UITheme.Colors.SurgeGold elseif imminent then UITheme.Colors.VoidSurge else UITheme.Colors.TamahaganeSlate
-	rollButton.Title.Text = if sealed then "UNLEASH SURGE!" else "ROLL"
+	rollButton.Title.Text = if sealed then "UNLEASH SURGE!" elseif State.Perk("TripleRoll", true) then "ROLL ×3" else "ROLL"
 	setShiver(imminent)
 	Kit.tween(momentumFill, 0.3, { Size = UDim2.new(math.clamp(m.Count / RollBoost.Momentum.Max, 0, 1), 0, 0, 2) })
 	-- Momentum only: the Surge meter under it already counts down to the next surge.

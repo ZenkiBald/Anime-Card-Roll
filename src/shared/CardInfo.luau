@@ -2,6 +2,8 @@
 -- Authored card copy resolves values from the same data used by the battle engine.
 local Cards = require(script.Parent.Cards)
 local Borders = require(script.Parent.Borders)
+local ColumnBonds = require(script.Parent.ColumnBonds)
+local Elements = require(script.Parent.Elements)
 local CardInfo = {}
 
 local function number(value: number): string
@@ -23,6 +25,20 @@ function CardInfo.Job(card: Cards.Card): string
 end
 function CardInfo.Link(_card: Cards.Card, _border: string?): string
 	return ""
+end
+function CardInfo.BondText(card: Cards.Card, supportBorder: string?): string
+	local bond = ColumnBonds.ForCard(card.Id)
+	if not bond then return "No familiar Bond. Any Support still works in the matching numbered slot." end
+	local partner = Cards.Get(if card.Id == bond.Attack then bond.Support else bond.Attack)
+	local name = if partner then partner.Name else "its familiar partner"
+	local bonus = bond.Text
+	local support = Cards.Get(bond.Support)
+	if bond.Stat == "Amount" and support and support.Support then
+		local value = Cards.SupportValue(support, 0, supportBorder)
+		local labels = {LowHeal="healing",Haste="opening attack speed",Dodge="evade chance",OpeningShield="opening shield",KillMend="on-defeat healing",StartEnergy="opening Ultimate charge"}
+		bonus = `Bonded: {labels[support.Support.Kind] or "effect"} {percent(value)} → {percent(math.min(.5, value + bond.Amount))}.`
+	end
+	return `Pair with {name} in the same numbered slot. {bonus} One 300% DMG combo fires when the boss falls below half HP or after {Elements.BondAt}s (350% at Mastery rank 3).`
 end
 function CardInfo.Describe(card: Cards.Card, ability: Cards.Ability, stars: number, border: string?, awaken: number?): string
 	local text = ability.Text

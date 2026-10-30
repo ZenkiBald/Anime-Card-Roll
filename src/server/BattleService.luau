@@ -75,7 +75,7 @@ end
 
 -- Both towers' progress, for the client: { Best, Run, Pagoda }.
 function BattleService.TowerState(data)
-	return { Best = data.Tower.Floor, Run = data.Tower.Run, Pagoda = data.Pagoda.Floor }
+	return { Best = data.Tower.Floor, Run = data.Tower.Run, Pagoda = data.Pagoda.Floor, Checkpoints = data.Tower.Checkpoints }
 end
 
 -- Fights are staged in 3D at the boss's own spot in its world (the client's Arena). With streaming on,

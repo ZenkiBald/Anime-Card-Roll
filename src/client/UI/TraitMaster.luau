@@ -27,6 +27,7 @@ local CardTile = require(script.Parent.CardTile)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
+local RewardLine = require(script.Parent.RewardLine)
 
 local TraitMaster = {}
 
@@ -232,7 +233,7 @@ local function playAuto(stage: Frame, result, done: () -> ())
 		if hit then
 			label.Text = `{hit.Icon} {string.upper(hit.Name)}!`
 			label.TextColor3 = Rarity.Get(hit.Tier).Color
-			count.Text = `Hit on roll {result.TotalRolled or #rolled} · 🧬{result.TotalSpent or result.Spent} spent · applied to slot {result.Slot}`
+			count.Text = `Hit on roll {result.TotalRolled or #rolled} · {result.TotalSpent or result.Spent} Trait Shards spent · applied to slot {result.Slot}`
 			local big = Traits.TierIndex(hit.Id) >= Traits.BigTier
 			local color = if Traits.TierIndex(hit.Id) >= 4 then Color3.fromRGB(255, 60, 80) else Theme.Color.Gold
 			Effects.Flash(stage, color, 0.6, 0.4)
@@ -242,7 +243,7 @@ local function playAuto(stage: Frame, result, done: () -> ())
 		else
 			label.Text = "NO HIT"
 			label.TextColor3 = Theme.Color.Muted
-			count.Text = `No ticked trait in {result.TotalRolled or #rolled} rolls · 🧬{result.TotalSpent or result.Spent} spent · the old trait stays`
+			count.Text = `No ticked trait in {result.TotalRolled or #rolled} rolls · {result.TotalSpent or result.Spent} Trait Shards spent · the old trait stays`
 			Sfx.Play("Reward", 0.9)
 			task.wait(0.6)
 		end
@@ -283,7 +284,7 @@ local function drawDetail()
 		BackgroundTransparency = 1,
 		Parent = detail,
 	}, { Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }) })
-	line(info, 1, `🧬 <b>{Kit.commas(State.Summary.TraitShards or 0)}</b> Trait Shards`, TEAL, 22, Theme.Font.Display)
+	RewardLine.new({ Name = "TraitShardBalance", LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 28), Parent = info }, `🧬 {Kit.commas(State.Summary.TraitShards or 0)} Trait Shards`, 22)
 	line(info, 2, `SLOT 1   {traitText(entry.Trait)}`, Theme.Color.Text, 17, Theme.Font.Heavy)
 	if slotOpen(entry, 2) then
 		line(info, 3, `SLOT 2   {traitText(entry.Trait2)}`, Theme.Color.Text, 17, Theme.Font.Heavy)
@@ -325,6 +326,21 @@ local function drawDetail()
 
 	local function button(text: string, color: Color3, deep: Color3, order: number, width: number, onTap: () -> ())
 		local b = Kit.button(text, color, deep, { LayoutOrder = order, Size = UDim2.new(width, -8, 0.9, 0), Parent = buttons })
+		if string.find(text, "🧬", 1, true) then
+			b.Label.Visible = false
+			local title, cost = string.match(text, "^(.-)%s*·%s*(🧬.*)$")
+			local heading = Kit.label({ Name = "CostAction", Text = title or "ROLL", Font = Theme.Font.Display,
+				Position = UDim2.fromScale(.04, .1), Size = UDim2.fromScale(.92, .34), ZIndex = b.Label.ZIndex + 1, Parent = b }, 17)
+			local currency = RewardLine.new({ Name = "TraitShardCost", Position = UDim2.fromScale(.08, .52), Size = UDim2.fromScale(.84, .32), ZIndex = b.Label.ZIndex + 1, Parent = b }, cost or text, 19)
+			local connection = b.Label:GetPropertyChangedSignal("TextTransparency"):Connect(function()
+				heading.TextTransparency = b.Label.TextTransparency
+				for _, child in currency:GetDescendants() do
+					if child:IsA("TextLabel") then child.TextTransparency = b.Label.TextTransparency
+					elseif child:IsA("ImageLabel") then child.ImageTransparency = b.Label.TextTransparency end
+				end
+			end)
+			b.Destroying:Once(function() connection:Disconnect() end)
+		end
 		b.Activated:Connect(function()
 			if not busy then
 				onTap()
@@ -461,16 +477,13 @@ function drawAuto(id: string, entry, card)
 		Size = UDim2.new(1, -300, 1, 0),
 		Parent = header,
 	}, 26)
-	Kit.label({
-		Text = `🧬 {Kit.commas(State.Summary.TraitShards or 0)}`,
-		Font = Theme.Font.Display,
-		TextColor3 = TEAL,
-		TextXAlignment = Enum.TextXAlignment.Right,
+	RewardLine.new({
+		Name = "TraitShardBalance",
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
 		Size = UDim2.new(0, 170, 1, 0),
 		Parent = header,
-	}, 24)
+	}, `🧬 {Kit.commas(State.Summary.TraitShards or 0)}`, 24)
 
 	-- Slot picker: each slot with the trait it holds now.
 	local slots = Kit.new("Frame", { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1, Parent = list }, {
@@ -616,7 +629,7 @@ function drawAuto(id: string, entry, card)
 	Kit.label({
 		Text = if ticked == 0
 			then "Tick at least one trait above."
-			else `Stops on <b>{ticked}</b> trait{if ticked == 1 then "" else "s"} · <b>{string.format("%.2f", chance * 100)}%</b> a roll (about <b>{Kit.commas(math.ceil(1 / chance))}</b> rolls)\nRuns until a selected trait, Stop or empty shards. Each batch: up to <b>{rolls}</b> rolls = 🧬<b>{Kit.commas(rolls * Traits.RollCost)}</b> (🧬{Traits.RollCost} each, the rest stays)`,
+			else `Stops on <b>{ticked}</b> trait{if ticked == 1 then "" else "s"} · <b>{string.format("%.2f", chance * 100)}%</b> a roll (about <b>{Kit.commas(math.ceil(1 / chance))}</b> rolls)\nRuns until a selected trait, Stop or empty shards. Each batch: up to <b>{rolls}</b> rolls for <b>{Kit.commas(rolls * Traits.RollCost)}</b> Trait Shards ({Traits.RollCost} each).`,
 		RichText = true,
 		Font = Theme.Font.Bold,
 		TextColor3 = Theme.Color.Text,

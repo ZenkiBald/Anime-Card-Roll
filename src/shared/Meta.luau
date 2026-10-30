@@ -263,6 +263,19 @@ function Meta.StatsSpent(stats: { [string]: number }?): number
 	return spent
 end
 
+-- One bounded transaction for +1, a typed amount or MAX; the server decides what fits.
+function Meta.StatSpend(stats: { [string]: number }, level: number, id: any, amount: any): (number, string?)
+	local stat = if type(id) == "string" then Meta.StatById[id] else nil
+	if not stat then return 0, "BadRequest" end
+	if amount ~= "max" and (type(amount) ~= "number" or amount ~= amount or amount == math.huge
+		or amount < 1 or amount % 1 ~= 0 or amount > 1000000) then return 0, "BadRequest" end
+	local free = math.max(0, Meta.StatPoints(level) - Meta.StatsSpent(stats))
+	local room = math.max(0, stat.Max - (stats[id] or 0))
+	if room == 0 then return 0, "MaxLevel" end
+	if free == 0 then return 0, "NoPoints" end
+	return math.min(free, room, if amount == "max" then room else amount), nil
+end
+
 -- What a stat adds: points x Per (0 when none).
 function Meta.StatBonus(stats: { [string]: number }?, id: string): number
 	local stat = Meta.StatById[id]

@@ -9,7 +9,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
-local ColumnBonds = require(Shared.ColumnBonds)
 local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
 local Odds = require(Shared.Odds)
@@ -186,12 +185,6 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		line("MASTERY  "..Awaken.Count(entry).." distinct boss victories",Theme.Font.Heavy,Theme.Color.Gold,22,17)
 		local nextNode=Awaken.Nodes[node+1]
 		if nextNode then line("Next at "..nextNode.Challenges..": "..nextNode.Text,Theme.Font.Medium,Theme.Color.Muted,20,15) end
-		for _,bond in ColumnBonds.List do
-			if card.Id==bond.Attack or card.Id==bond.Support then
-				local partner=Cards.Get(if card.Id==bond.Attack then bond.Support else bond.Attack)
-				line("BOND  "..(if partner then partner.Name else bond.Name).." · "..bond.Text,Theme.Font.Medium,Theme.Color.Support,22,15)
-			end
-		end
 		order+=1
 		local fav=Kit.button(if State.Meta.Favorite==card.Id then "YOUR FAVOURITE" else "SET FAVOURITE",Theme.Color.Info,Theme.Color.InfoDeep,{LayoutOrder=order,Size=UDim2.new(0,230,0,36),ZIndex=22,Parent=infoParent})
 		fav.Activated:Connect(function()

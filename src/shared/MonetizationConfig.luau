@@ -59,7 +59,7 @@ MonetizationConfig.Passes = {
 		Price = 399,
 		Color = Color3.fromRGB(190, 110, 255),
 		Perks = {
-			{ Text = "Every ROLL click rolls 3 cards", Random = true },
+			{ Text = "ROLL and AUTO each roll 3 cards", Random = true },
 			{ Text = "Roll Packs open 3x faster" },
 		},
 	},

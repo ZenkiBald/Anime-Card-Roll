@@ -262,6 +262,12 @@ function SaveMigration.Migrate(data: any): { string }
 			table.insert(done, "first boss quest title granted")
 		end
 	end
+	-- New checkpoint claims start empty; old record holders receive earned rewards on their next win.
+	data.Tower = data.Tower or { Floor = 0, Run = 0 }
+	if type(data.Tower.Checkpoints) ~= "table" then
+		data.Tower.Checkpoints = {}
+		table.insert(done, "tower checkpoint claims initialized")
+	end
 	return done
 end
 

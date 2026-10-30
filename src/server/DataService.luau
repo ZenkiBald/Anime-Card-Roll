@@ -53,7 +53,7 @@ local TEMPLATE = {
 	-- Infinite Tower (Tower.luau): the best run (Floor, on the leaderboard) and the run going now (Run:
 	-- floors cleared; the next fight is Run + 1). Live is the floor being fought: a save that loads with
 	-- it set was left mid-fight, so SaveMigration ends that run.
-	Tower = { Floor = 0, Run = 0 },
+	Tower = { Floor = 0, Run = 0, Checkpoints = {} },
 	-- The Hundred-Floor Pagoda: floors cleared (kept; the next fight is Floor + 1, done at 100).
 	Pagoda = { Floor = 0 },
 	-- Roll Packs from boss and tower wins (Packs.luau id -> count), opened from the BAG.

@@ -214,8 +214,11 @@ are culled at 120 studs and cleaned on unequip / respawn / leaving range.
 Each Support works with any Attack in its numbered column. `ColumnBonds` adds one authored familiar bonus
 when its matching character occupies that column: +5 percentage points to healing / speed / shield / evade,
 +10 points to counter / drain chance or opening charge, one extra curse / reflection activation, or +5% guard
-for the beast-seal pair. Fatal-blow return stays once; drain healing caps do not rise. BONDED chips and the
-BONDS & TACTICS guide show the real bonus. A familiar pair gets one 300% combo (350% at Mastery 3). Each Support modifies the
+for the beast-seal pair. Fatal-blow return stays once; drain healing caps do not rise. Skill sheets and
+hover tooltips put FAMILIAR BOND first: exact partner, ACTIVE / NOT ACTIVE, actual before / after values
+at the Support's inspected or equipped border, and the combo trigger. Opening charge still caps at 50%
+(Secret Blink Kunai 45% -> 50%). Ordinary column links say SUPPORT; only matching familiars say BOND ACTIVE.
+A familiar pair gets one 300% combo (350% at Mastery 3), when the boss reaches half HP or after 45 seconds. Each Support modifies the
 Attack card with the matching slot number. Supports have no damage, HP, action bar, Skill or Ultimate; counters,
 reflected statuses and Black Flames belong to the supported Attack card. Original character ownership, ids, names and portraits remain. On first load, `SupportRelicsVersion = 1` grants each owned former Support's replacement relic an independent copy of its saved collection (copies / borders / traits / foil / Mastery / selected border), without overwriting an already-owned relic. All preset Support positions and the older single deck map to the replacement; Attack lineups stay as chosen. Compensation runs once, before deck cleanup; further rolls award only the card rolled.
 `Cards.Support` owns the trigger, effect, cost, chance, limits and authored text. `Cards.SupportValue` applies border
@@ -324,11 +327,18 @@ affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recomme
 re-measured for the new boss HP, floor 6 is a World 1 Normal squad, floor 23 World 1 Hard, floor 106 World 4 Nightmare); every floor
 pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
 SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past
-it; from floor 50 every win has a 0.1% relic drop (`Items.RelicFloor` / `RelicChance`), the only relic source.
+it; from floor 50 every win has a 0.1% random relic drop (`Items.RelicFloor` / `RelicChance`).
+Guaranteed first-clear checkpoints (`Tower.Checkpoints`) also pay once at floors 5 / 10 / 25 / 50 / 75 / 100:
+five Roll Packs + Potion I; a Big Pack + Four-Leaf Relic + Skyward title; three Big Packs + Potion II + Orb;
+a Mega Pack + Prism Shard relic; three Mega Packs + Potion III + 25 Fragments; a Colossal Pack + the existing
+Spire Heart artifact + Endless Ascendant title. Claims persist in `Tower.Checkpoints` across lost runs.
+SaveMigration initializes missing claim maps without resetting records; prior best runs collect all earned
+new checkpoints on their next tower win. Server grants / receipts use MetaService once and checkpoints stop
+auto-climb for a result screen. The tower preview and QUESTS > GOALS show the next exact guaranteed reward.
 Hundred-Floor Pagoda: 100 kept floors (16.5k x 1.053^(floor-1), floor 100 is a full Secret deck's fight), each paid once,
 milestones at 25 / 50 / 75 (packs, Trait Shards) and 100 (the Pagoda's artifact, the Crown of the Hundred Floors, and
 the worn "Pagoda Master" title). Server raids every hour at :30 (a shared Colossus pool, Raid Luck x2 when cleared).
-Roll Packs (10 / 100 / 1000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy
+Roll Packs (10 / 100 / 1000 / 10000 rolls) open 1 / 5 / 10 / ALL at your luck, also during Auto Roll; Pack Alchemy
 condenses them. Element infusion is retired; old infused packs retain their rolls and their infusion spend is refunded as Trait Shards. One OpenPack request consumes the selected packs and rolls count × pack size in one non-yielding
 server pass however large: `BulkRoll.Multinomial` splits packs x rolls over the pool's card chances, then
 each card's count over borders and foils (a fixed handful of binomial draws, so 100 Mega Packs = 100,000 pulls
@@ -349,25 +359,30 @@ BAG blocks repeated clicks during requests / animation; reveals never reapply ol
 
 **Progression and retention.** Levels 1-100 with stat points; earned potions; gear in two sets
 (`Items.luau`): **relics** (the 10 wearable items, `Items.Artifacts` / `Gear.Artifacts` in code, wear 3, Infinite Tower
-drops only; each adds fixed Luck and Border Chance by tier, Rare +0.75x / +15% up to Void Eye +2.5x / +35%, the
+drops and guaranteed checkpoints; each adds fixed Luck and Border Chance by tier, Rare +0.75x / +15% up to Void Eye +2.5x / +35%, the
 best three +6.5x / +90%; Hourglass / Coin / Tome / Frost Sigil keep a specialty that duplicates level, others melt)
 and **artifacts** (`Items.TowerArtifacts`, always on: the Pagoda's floor-100 Crown, +3x luck / +50% border chance /
 +15% squad ATK as a whole-fight ATK buff on every Attack card; the Infinite Tower's Heart of the Endless Spire,
 +2x luck / 15% faster rolls, for the first record run to floor `Items.InfiniteArtifactFloor` 100). TRAINING: Luck
-+0.05x a point (2x at 40), Border Chance +1% a point (30% at 30); daily streak,
++0.05x a point (2x at 40), Border Chance +1% a point (30% at 30). TRAINING has a typed AMOUNT, a per-row
+allocation button and MAX. The server clamps the request to unspent points / the stat cap, rejects invalid
+numbers and unknown IDs, and retains the existing action rate limit. The row previews the full requested
+increase. Ten Mega Packs condense into one 10000-roll Colossal Pack at Hoshi; its tile reuses Mega artwork
+with the correct name / roll count. Daily streak,
 daily quests, playtime gifts, time-away rewards (`Meta.OfflineReward`: a Roll Pack per 30 min and a converted Trait Shard reward
 offline, after 10 min, up to 8 h; `LastSeen` in the save), roll milestones, Lucky Wheel, server events (LUCKY STORM /
 ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.client`): a SQUAD badge + hint when BEST DECK would
 beat the active deck by 5%, and a hint when a card can fuse at Hoshi. `Goals.Closest` shows up to three nearest distinct progress bars: fusion, battle mastery, normal collection,
-roll milestone or next sky. The first 50-roll milestone also grants the First Light title. Social: server list with favourite cards, profiles, name
+roll milestone, tower checkpoint or next sky. Their bottom-left rows have separate vertical slots rather
+than covering the primary goal. The first 50-roll milestone also grants the First Light title. Social: server list with favourite cards, profiles, name
 tags, three town leaderboards.
 
 QUESTS opens on **GOALS** (`UI/Journey`, `Goals.Journey`): four live targets show the next unlocked story
 challenge / boss-card pool unlock, an equipped Attack card's next mastery rank, the next Pagoda milestone
-and crown / title, and the Infinite Tower relic hunt. Buttons open the selected story difficulty, tower /
+and crown / title, and the next guaranteed Infinite Tower checkpoint. Buttons open the selected story difficulty, tower /
 Pagoda or SQUAD. Progress comes from existing server snapshots; viewing goals grants nothing. Kenji's
-tracker still opens his path; DAILY & GIFTS remains its own tab. This is guidance for existing progression,
-not new rewards; reward pacing / a reliable early grind still needs a content pass (docs/PROGRESSION_PLAN.md).
+tracker still opens his path; DAILY & GIFTS remains its own tab. Longer-session reward pacing still needs
+ordinary-play review (docs/PROGRESSION_PLAN.md).
 
 The general Shard shop and SQUAD upgrade purchase tab are retired; SQUAD TRAINING allocates earned stat
 points. `EconomyVersion=1` converts old balances at 20:1 (rounded up) to Trait Shards, retains every purchased
@@ -386,6 +401,17 @@ bundles without reapplying reward multipliers.
 **Store.** Passes (Fast Roll, Auto Roll+, Triple Roll, VIP) and Server Luck Totem. Shard bundle sales are hidden /
 rejected; receipts for old purchases still compensate the buyer. Weather items are earned only in v1. Every perk that touches
 odds or random rewards is gated by PolicyService (`ArePaidRandomItemsRestricted`). Ids are 0 (placeholders) until launch.
+Triple Roll applies three normal pulls to both ROLL and AUTO, retaining the same PolicyService gate.
+Every normal pull still gets its sky search. The HUD says ROLL x3; quick results show three cards together,
+and qualifying full reveals run rarest first under the existing preferences / SKIP ALL. Sky bonuses are
+identified separately from Triple Roll; every result still updates ownership and the feed.
+
+BAG inventory tabs omit unowned items; a running potion can remain visible without an x0 count. SKY ITEMS
+keeps text crafting buttons even with no Sigils owned. Trait Master balances / reroll costs use the current
+Trait Shard image, with slot names above the cost. All 13 trait icon subjects and a shared art prompt are
+in `docs/TRAIT_ICON_PROMPTS.md`; their existing icons remain until the user supplies the new artwork.
+Holographic rarity rims follow the outside silhouette at zero inset, retaining the inner white bevel.
+The hidden-battle return / result widget sits at top-center below the event strip, clear of the sky panel.
 
 **Look.** Character artwork sits in glossy simulator-style vector controls. `UI/VectorStyle` supplies
 8–14 px rounded surfaces, saturated vertical gradients, black 2.5 px outer edges and inset white

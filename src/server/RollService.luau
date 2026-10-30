@@ -15,6 +15,7 @@ local Cards = require(Shared.Cards)
 local Rewards = require(Shared.Rewards)
 local Bosses = require(Shared.Bosses)
 local Tower = require(Shared.Tower)
+local RewardBundle = require(Shared.RewardBundle)
 local Packs = require(Shared.Packs)
 local PackBatch = require(Shared.PackBatch)
 local Collections = require(Shared.Collections)
@@ -131,7 +132,7 @@ local function fullState(player: Player, data)
 		Summary = summary(player, data),
 		Decks = DeckService.State(data, player),
 		Progress = data.Progress,
-		Tower = { Best = data.Tower.Floor, Run = data.Tower.Run, Pagoda = data.Pagoda.Floor },
+		Tower = { Best = data.Tower.Floor, Run = data.Tower.Run, Pagoda = data.Pagoda.Floor, Checkpoints = data.Tower.Checkpoints },
 		Packs = data.Packs,
 		Battle = { AutoUlt = data.Settings.AutoUlt ~= false, HoldUlt = data.Settings.HoldUlt ~= false, Speed = data.Settings.BattleSpeed },
 		Mount = data.Settings.Mount,
@@ -267,8 +268,8 @@ end
 
 -- A click (or an Auto Roll step): the Momentum chain grows, and the 25th roll is an Overcharge Surge.
 -- `perfect`: hit inside the surge window (or Auto with the Auto Roll pass). The Triple Roll pass adds
--- two cards to every click. Returns the main result, with the others in Extra.
-local function rollClick(player: Player, profile, perfect: boolean, click: boolean)
+-- two cards to every click or Auto step. Returns the main result, with the others in Extra.
+local function rollClick(player: Player, profile, perfect: boolean)
 	local data = profile.Data
 	local surge = RollBoost.IsSurge(data.TotalRolls + 1)
 	local cfg = RollBoost.Surge
@@ -283,7 +284,8 @@ local function rollClick(player: Player, profile, perfect: boolean, click: boole
 		main = doRoll(player, profile)
 		count = 1
 	end
-	if click and MonetizationService.Perk(player, "TripleRoll", true) then
+	local triple = MonetizationService.Perk(player, "TripleRoll", true)
+	if triple then
 		count = math.max(count, MonetizationConfig.TripleRollCards)
 	end
 	local extra = {}
@@ -298,6 +300,9 @@ local function rollClick(player: Player, profile, perfect: boolean, click: boole
 	end
 
 	main.Extra = if #extra > 0 then extra else nil
+	main.BatchCount = count
+	main.TripleRoll = triple
+	main.SkyCount = #extra - (count - 1)
 
 	local before = Momentum.Count(player)
 	local after = Momentum.Add(player, count)
@@ -499,6 +504,17 @@ function RollService.TowerRewards(player: Player, floor: number, mode: string, r
 	end
 	local result = payWin(player, profile, reward.Packs, reward.Shards, reward.Potion, 1, reward.TraitShards, if pagoda then nil else floor, artifact,if record and floor%10==0 then 3 else nil,if record and floor%25==0 then {orb=1} else nil)
 	result.Milestone = reward.Milestone
+	if not pagoda then
+		for _, checkpoint in Tower.ClaimCheckpoints(profile.Data.Tower) do
+			local paid = MetaService.Grant(profile.Data, checkpoint.Reward, player)
+			RewardBundle.Merge(result.Bundle, paid)
+			result.NewPacks = result.NewPacks or {}
+			for id, count in paid.Packs or {} do result.NewPacks[id] = (result.NewPacks[id] or 0) + count end
+			result.Milestone = { Title = `INFINITE TOWER · FLOOR {checkpoint.Floor}` }
+		end
+		result.Summary = summary(player, profile.Data)
+		result.Meta = MetaService.State(player, profile.Data)
+	end
 	return result
 end
 
@@ -562,7 +578,7 @@ local function startAuto(player: Player)
 
 			lastRoll[player] = os.clock()
 			-- Surges on Auto are plain, unless the Auto Roll pass hits them perfectly.
-			local result = rollClick(player, profile, MonetizationService.Perk(player, "AutoRoll", true), false)
+			local result = rollClick(player, profile, MonetizationService.Perk(player, "AutoRoll", true))
 
 			-- Only pulls eligible under the saved reveal choice hold Auto; filtered copies keep rolling.
 			local big = false
@@ -676,7 +692,7 @@ function RollService.Start()
 		local perfect = RollBoost.IsPerfect(early == true, left, COOLDOWN_TOLERANCE) and lastRoll[player] ~= nil
 		perfect = perfect or MonetizationService.Perk(player, "AutoRoll", true)
 		lastRoll[player] = os.clock()
-		return rollClick(player, profile, perfect, true)
+		return rollClick(player, profile, perfect)
 	end
 
 	-- Pack Alchemy: "Condense" (10 packs -> 1 of the next size) or "Infuse" (a Mega Pack + Shards ->

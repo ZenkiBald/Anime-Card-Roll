@@ -432,7 +432,7 @@ local function drawLink(link: Frame, index: number)
 		end)
 	elseif linked and support then
 		text({
-			Text = `PAIR {index}`,
+			Text = "SUPPORT",
 			TextColor3 = CYAN,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			AnchorPoint = Vector2.new(0.5, 0),
@@ -613,6 +613,9 @@ local function drawInspector()
 	text({Text=if ability then ability.Name else "Passive effect",TextColor3=Theme.Color.Text,Position=UDim2.fromOffset(0,62),Size=UDim2.new(1,0,0,22),Parent=left},17)
 	text({Text=border.Name.." · "..Kit.commas(Cards.Rarity(card.Id,best)).." rarity",TextColor3=border.Color,Position=UDim2.fromOffset(0,90),Size=UDim2.new(1,0,0,20),Parent=left},14)
 	text({Text=Kit.commas((own.BorderCopies or {})[best] or 0).." copies · 100 fuse to the next border",TextColor3=Theme.Color.Muted,Position=UDim2.fromOffset(0,117),Size=UDim2.new(1,0,0,32),Parent=left},13)
+	local familiar = ColumnBonds.ForCard(card.Id)
+	local partner = familiar and Cards.Get(if card.Id == familiar.Attack then familiar.Support else familiar.Attack)
+	text({Name="BondPartner", Text=if partner then `BOND: {partner.Name} · VIEW SKILLS for bonus` else "Any Support works · no familiar Bond",TextColor3=if partner then Theme.Color.Gold else Theme.Color.Muted,Position=UDim2.fromOffset(0,149),Size=UDim2.new(1,0,0,32),Parent=left},13)
 
 	-- Actions.
 	local actions = Kit.new("Frame", {

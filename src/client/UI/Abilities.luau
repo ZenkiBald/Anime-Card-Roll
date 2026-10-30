@@ -11,6 +11,7 @@ local CardInfo = require(Shared.CardInfo)
 local Deck = require(Shared.Deck)
 local Awaken = require(Shared.Awaken)
 local State = require(script.Parent.Parent.State)
+local ColumnBonds = require(Shared.ColumnBonds)
 
 local Abilities = {}
 
@@ -174,9 +175,34 @@ function Abilities.Row(ability, parent: Instance, order: number, size: string?, 
 	return row
 end
 
+-- Put the partner / real bonus beside skills, not behind collection metadata.
+function Abilities.BondRow(card, parent: Instance, order: number, size: string?, border: string?): Frame
+	local bond = ColumnBonds.ForCard(card.Id)
+	local supportOwn = bond and State.Cards[bond.Support]
+	local supportBorder = if card.Type == "Support" then border else if supportOwn then Deck.PlayBorder(supportOwn) else "Normal"
+	local active = false
+	for _, current in ColumnBonds.Active(State.ActiveDeck() or Deck.Empty()) do
+		if current == bond then active = true; break end
+	end
+	local row = Kit.new("Frame", { Name = "FamiliarBond", LayoutOrder = order, BackgroundColor3 = Theme.Color.Panel,
+		Size = UDim2.new(1, -4, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 22, Parent = parent }, {
+		Kit.corner(UDim.new(0, 10)), Kit.stroke(if active then Theme.Color.Support else Theme.Color.Gold, 1.5),
+		Kit.padding(9), Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) }),
+	})
+	Kit.new("TextLabel", { Name = "BondStatus", Text = if active then "FAMILIAR BOND · ACTIVE" elseif bond then "FAMILIAR BOND · NOT ACTIVE" else "FLEXIBLE PAIRING",
+		Font = Theme.Font.Display, TextSize = if size == "small" then 17 else 20, TextColor3 = if active then Theme.Color.Support else Theme.Color.Gold,
+		BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 24), ZIndex = 24, Parent = row })
+	Kit.new("TextLabel", { Name = "BondDescription", LayoutOrder = 2, Text = CardInfo.Highlight(CardInfo.BondText(card, supportBorder)), RichText = true,
+		Font = Theme.Font.Medium, TextSize = if size == "small" then 16 else 18, TextColor3 = Theme.Color.Text,
+		TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 24, Parent = row })
+	return row
+end
+
 -- Every ability of a card, in slot order, into a list frame (it needs a UIListLayout).
 function Abilities.List(card, parent: Instance, firstOrder: number, size: string?, border: string?): number
-	local order = firstOrder
+	local order = firstOrder + 1
+	Abilities.BondRow(card, parent, order, size, border)
 	local own = State.Cards[card.Id]
 	for _, ability in card.Abilities do
 		order += 1

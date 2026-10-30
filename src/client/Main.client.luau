@@ -31,7 +31,6 @@ local WeatherUi = require(UI.Weather)
 local Journey = require(UI.Journey)
 local Travel = require(UI.Travel)
 local Settings = require(UI.Settings)
-local RevealPolicy=require(Shared.RevealPolicy)
 local Fusion = require(UI.Fusion)
 local Title = require(UI.Title)
 local Pets = require(UI.Pets)
@@ -145,15 +144,10 @@ local function requestRoll(mode: string)
 	lastRollAt = os.clock()
 	State.ApplyRoll(result)
 	Hud.StartCooldown(State.Cooldown())
+	Hud.FeedAdd(result)
 	showExtras(result)
 
-	if mode == "Full" and RevealPolicy.Eligible(result,State.Meta) then
-		Reveal.Full(result, function()
-			busy = false
-		end)
-	else
-		Reveal.Quick(result)
-		Hud.FeedAdd(result)
+	if not Reveal.Batch(result, function() busy = false end) then
 		task.delay(State.Cooldown(), function()
 			busy = false
 		end)
@@ -164,15 +158,16 @@ end
 function showExtras(result)
 	for _, extra in result.Extra or {} do
 		Hud.FeedAdd(extra)
-		if not State.InBattle and not Modal.AnyOpen() and RevealPolicy.Eligible(extra,State.Meta) then Reveal.Full(extra) end
 	end
 	if result.Surge == "Perfect" then
 		Sfx.Sting("Epic", true)
 		Hud.Hint(`⚡ PERFECT OVERCHARGE SURGE! {1 + #(result.Extra or {})} cards at 6x border odds`)
 	elseif result.Surge == "Plain" then
 		Hud.Hint("⚡ OVERCHARGE SURGE! 5x border odds (tap inside the surge window for a perfect one)")
-	elseif result.Extra then
-		Hud.Hint(`🎴 TRIPLE ROLL: +{#result.Extra} cards`)
+	elseif result.TripleRoll then
+		Hud.Hint(`TRIPLE ROLL · {result.BatchCount or 3} cards{if (result.SkyCount or 0) > 0 then ` + {result.SkyCount} sky bonus` else ""}`)
+	elseif (result.SkyCount or 0) > 0 then
+		Hud.Hint(`SKY DISCOVERY · {result.SkyCount} bonus card{if result.SkyCount == 1 then "" else "s"}`)
 	end
 end
 
@@ -234,7 +229,7 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 	end
 	-- Auto Roll never stops: a Rainbow / Secret pull plays its full reveal (Reveal.Quick hands it over)
 	-- while the server holds the next roll for it, then rolling carries on.
-	Reveal.Quick(result)
+	Reveal.Batch(result)
 end)
 
 -- Pulls rarer than 1 in 10,000,000 (card x border, Cards.Rarity) also get a system line in the chat;

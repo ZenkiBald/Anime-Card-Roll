@@ -35,6 +35,7 @@ export type Info = {
 	Upgrades: { [string]: number }?, -- Shard Shop levels
 	Weather: any?,
 	Now: number?,
+	Tower: any?,
 }
 
 
@@ -147,6 +148,14 @@ function Goals.Closest(info: Info): {Goal}
 	end
 	local nextGoal=Goals.Next(info)
 	if nextGoal then add(nextGoal) end
+	if info.Tower then
+		local bestFloor = info.Tower.Best or 0
+		local checkpoint = Tower.NextCheckpoint(bestFloor, info.Tower.Checkpoints)
+		if checkpoint then
+			local reward = string.match(checkpoint.Text, "^[^+]+") or "first-clear reward"
+			add({Kind="Tower",Text=if bestFloor>=checkpoint.Floor then "Tower reward earned · win a floor to collect" else `Tower {bestFloor}/{checkpoint.Floor} · {reward}`,Progress=math.min(1,bestFloor/checkpoint.Floor),Ready=bestFloor>=checkpoint.Floor})
+		end
+	end
 	local sorted={}
 	for _,goal in best do table.insert(sorted,goal) end
 	table.sort(sorted,function(a,b) if a.Progress~=b.Progress then return a.Progress>b.Progress end;return a.Kind<b.Kind end)
@@ -207,11 +216,12 @@ function Goals.Journey(info: any): { any }
 		Action = "Pagoda", ArtKey = "TowerArtifact:hundredcrown",
 	})
 	local best = tower.Best or 0
+	local checkpoint = Tower.NextCheckpoint(best, tower.Checkpoints)
 	table.insert(rows, {
-		Title = "HUNT TOWER RELICS", Count = `Best floor {best}`,
-		Progress = math.clamp(best / Items.RelicFloor, 0, 1),
-		Text = `Reach floor {Items.RelicFloor}, then fight eligible floors for wearable relics. Wear up to {Items.ArtifactSlots}.`,
-		Reward = "Packs every 5 floors; Big Packs every 25. Relics are rare random drops, not guaranteed at floor 50. Losing ends the run.",
+		Title = "CLIMB THE INFINITE TOWER", Count = if checkpoint then `Best {best} / floor {checkpoint.Floor}` else `Best floor {best}`,
+		Progress = if checkpoint then math.clamp(best / checkpoint.Floor, 0, 1) else 1,
+		Text = if checkpoint then `Next guaranteed reward: floor {checkpoint.Floor}. First-clear rewards survive a lost run.` else "Every checkpoint earned. Keep climbing for records and rare relics.",
+		Reward = if checkpoint then checkpoint.Text else `Random relics still drop from floor {Items.RelicFloor}; wear up to {Items.ArtifactSlots}.`,
 		Action = "Tower", ArtKey = "Artifact:voideye",
 	})
 	return rows

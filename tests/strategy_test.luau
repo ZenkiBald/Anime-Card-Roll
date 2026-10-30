@@ -35,6 +35,15 @@ check(#Elements.ActiveSynergies({"Flame","Flame","Storm","Storm","Storm","Storm"
 local Bonds=MODULES.ColumnBonds
 for _,bond in Bonds.List do
  check(Cards.Get(bond.Attack).Type=="Attack" and Cards.Get(bond.Support).Type=="Support","familiar bond has a real attacker and relic: "..bond.Name)
+ local owned=F.own({bond.Attack,bond.Support})
+ local battle=Engine.new({Units=F.units(F.deck({bond.Attack},{bond.Support}),owned),BossId="kurogane",Difficulty="Normal",Rng=Random.new(5)})
+ local mod=battle.ById.S1.Modifier
+ local def=Cards.Get(bond.Support).Support
+ local applied=if bond.Stat=="Amount" then math.abs(mod.Amount-(Cards.SupportValue(Cards.Get(bond.Support),0,"Normal")+bond.Amount))<1e-8
+  elseif bond.Stat=="Chance" then math.abs(mod.Def.Chance-(def.Chance+bond.Amount))<1e-8
+  elseif bond.Stat=="Uses" then mod.Def.Uses==def.Uses+bond.Amount
+  else battle.ById.A1.Buffs["Bond:S1"].Amount==bond.Amount
+ check(applied,"familiar bonus changes the actual battle modifier: "..bond.Name)
 end
 check(#Bonds.Active(F.deck({"hana"},{"mitotic_seal"}))==1 and #Bonds.Active(F.deck({"hana","rook"},{"","mitotic_seal"}))==0,"familiar bonds require the matching column")
 do

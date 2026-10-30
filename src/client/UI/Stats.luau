@@ -23,6 +23,8 @@ local modal
 local pointsLabel: TextLabel
 local hintLabel: TextLabel
 local resetButton: any
+local amountInput: TextBox
+local spending = false
 local resetArmed = false
 local armToken = 0
 local rows = {} -- [statId] = refs
@@ -68,11 +70,15 @@ function StatsPanel.Refresh()
 		local refs = rows[stat.Id]
 		local points = stats[stat.Id] or 0
 		local maxed = points >= stat.Max
+		local requested = tonumber(amountInput.Text)
+		local valid = requested and requested == requested and requested >= 1 and requested <= 1000000 and requested % 1 == 0
+		local count = if valid then math.min(free, stat.Max - points, requested) else 0
 		refs.Count.Text = `{points} / {stat.Max}`
-		refs.Effect.Text = if maxed then `{effectText(stat, points)}  (max)` else `{effectText(stat, points)}  →  {effectText(stat, points + 1)}`
+		refs.Effect.Text = if maxed then `{effectText(stat, points)}  (max)` elseif count > 0 then `{effectText(stat, points)}  →  {effectText(stat, points + count)}` else effectText(stat, points)
 		Kit.tween(refs.Fill, 0.25, { Size = UDim2.fromScale(math.max(0.02, points / stat.Max), 1) })
-		refs.Add.Label.Text = if maxed then "MAX" else "+1"
-		Kit.dim(refs.Add, maxed or free <= 0)
+		refs.Add.Label.Text = if maxed then "FULL" else `+{count}`
+		Kit.dim(refs.Add, maxed or count <= 0)
+		Kit.dim(refs.Max, maxed or free <= 0)
 	end
 	local cost = math.ceil(Meta.StatResetCost(stats)/Meta.ShardExchange)
 	resetButton.Label.Text = if cost == 0 then "RESET" elseif resetArmed then "TAP AGAIN" else `RESET  {Kit.commas(cost)} Trait Shards`
@@ -115,7 +121,7 @@ local function statRow(parent: Instance, stat, order: number)
 		TextColor3 = Theme.Color.Text,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -140, 0, 8),
+		Position = UDim2.new(1, -180, 0, 8),
 		Size = UDim2.new(0.2, 0, 0, 28),
 		Parent = row,
 	}, 26)
@@ -126,12 +132,12 @@ local function statRow(parent: Instance, stat, order: number)
 		TextColor3 = Theme.Color.Text,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.new(0, 88, 0, 38),
-		Size = UDim2.new(1, -236, 0, 20),
+		Size = UDim2.new(1, -270, 0, 20),
 		Parent = row,
 	}, 18)
 	local track = Kit.new("Frame", {
 		Position = UDim2.new(0, 88, 0, 64),
-		Size = UDim2.new(1, -236, 0, 12),
+		Size = UDim2.new(1, -270, 0, 12),
 		BackgroundColor3 = Color3.fromRGB(6, 7, 11),
 		Parent = row,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.stroke(stat.Color, 1.5, 0.5) })
@@ -142,12 +148,20 @@ local function statRow(parent: Instance, stat, order: number)
 	}, { Kit.corner(UDim.new(1, 0)) })
 	local add = Kit.button("+1", stat.Color, stat.Color:Lerp(Color3.new(0, 0, 0), 0.45), {
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -14, 0.5, 0),
-		Size = UDim2.fromOffset(112, 56),
+		Position = UDim2.new(1, -90, 0.5, 0),
+		Size = UDim2.fromOffset(72, 56),
 		Parent = row,
 	})
-	add.Activated:Connect(function()
-		local result = MetaClient.Call("SpendStat", stat.Id)
+	local max = Kit.button("MAX", stat.Color, stat.Color:Lerp(Color3.new(0, 0, 0), 0.45), {
+		Name = "SpendMax", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
+		Size = UDim2.fromOffset(72, 56), Parent = row,
+	})
+	local function spend(amount)
+		if spending then return end
+		if amount ~= "max" and (not amount or amount < 1 or amount % 1 ~= 0) then hint("Enter a whole number of points"); return end
+		spending = true
+		local result = MetaClient.Call("SpendStat", { Id = stat.Id, Amount = amount })
+		spending = false
 		if result.Ok then
 			Sfx.Play("Upgrade", 1.15)
 			Effects.Sparks(row, stat.Color, 14, 0.7)
@@ -158,8 +172,10 @@ local function statRow(parent: Instance, stat, order: number)
 			hint(MetaClient.Message(result))
 		end
 		StatsPanel.Refresh()
-	end)
-	rows[stat.Id] = { Count = count, Effect = effect, Fill = fill, Add = add }
+	end
+	add.Activated:Connect(function() spend(tonumber(amountInput.Text)) end)
+	max.Activated:Connect(function() spend("max") end)
+	rows[stat.Id] = { Count = count, Effect = effect, Fill = fill, Add = add, Max = max }
 end
 
 -- `host`: the SQUAD panel (Modal.Tabbed); stat points are the left half of its UPGRADES tab.
@@ -170,10 +186,17 @@ function StatsPanel.Init(playerGui: Instance, host: any?)
 		Text = "",
 		Font = Theme.Font.Display,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Size = UDim2.new(0.6, 0, 0, 36),
+		Size = UDim2.new(0.4, 0, 0, 36),
 		Parent = modal.Body,
 	}, 32)
 	Kit.textStroke(Color3.fromRGB(70, 30, 0), 2.5, 0).Parent = pointsLabel
+	Kit.label({ Text = "AMOUNT", Font = Theme.Font.Bold, Position = UDim2.new(.43, 0, 0, 8),
+		Size = UDim2.fromOffset(80, 24), Parent = modal.Body }, 16)
+	amountInput = Kit.new("TextBox", { Name = "SpendAmount", Text = "1", PlaceholderText = "1",
+		ClearTextOnFocus = false, Font = Theme.Font.Display, TextSize = 21, TextColor3 = Theme.Color.Text,
+		BackgroundColor3 = Theme.Color.Panel, Position = UDim2.new(.43, 84, 0, 2), Size = UDim2.fromOffset(70, 36), Parent = modal.Body },
+		{ Kit.corner(UDim.new(0, 8)), Kit.stroke(Theme.Color.Gold, 1.5) })
+	amountInput:GetPropertyChangedSignal("Text"):Connect(StatsPanel.Refresh)
 	Kit.label({
 		Text = "You get 1 point every level. Put them where you want: each stat has a cap.",
 		Font = Theme.Font.Bold,

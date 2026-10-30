@@ -259,7 +259,8 @@ do
 		Cards = { luna = { Mastery = { ["kurogane:Normal"] = true } } }, Attack = { "luna" } })
 	check(afterStory[1].Difficulty == "Hard" and Bosses.IsUnlocked(cleared, afterStory[1].Boss, "Hard"), "journey advances to a legally unlocked harder challenge")
 	check(afterStory[2].Count == "1/3 wins" and string.find(afterStory[2].Reward, "+10%", 1, true) ~= nil, "mastery target uses the equipped card's next real reward")
-	check(string.find(afterStory[3].Text, "floor 50", 1, true) ~= nil and afterStory[4].Count == "Best floor 50", "tower goals use saved progress and the next unearned Pagoda milestone")
+	check(string.find(afterStory[3].Text, "floor 50", 1, true) ~= nil and afterStory[4].Count == "Best 50 / floor 5"
+		and string.find(afterStory[4].Reward, "5 Roll Packs", 1, true) ~= nil, "tower goals show saved progress and the next unpaid guaranteed checkpoint")
 	for _, difficulty in Bosses.DifficultyOrder do
 		for _, boss in Bosses.List do cleared[Bosses.FightKey(boss.Id, difficulty)] = true end
 	end

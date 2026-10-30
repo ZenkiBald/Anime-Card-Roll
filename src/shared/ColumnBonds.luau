@@ -19,6 +19,10 @@ function Bonds.For(attack: any,support: any): any?
 	for _,def in Bonds.List do if def.Attack==attack.Id and def.Support==support.Id then return def end end
 	return nil
 end
+function Bonds.ForCard(id: string): any?
+	for _, def in Bonds.List do if def.Attack == id or def.Support == id then return def end end
+	return nil
+end
 function Bonds.Active(deck: any): {any}
 	local active={}
 	for slot,attack in deck.Attack or {} do

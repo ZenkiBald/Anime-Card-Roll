@@ -60,6 +60,25 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Tower / bond / inventory QoL (2026-10-30, desktop): isolated Play-only profile, original cards /
+  decks verified unchanged, runtime accessors restored / Play stopped. Typed 7 training points reached
+  Border 7, a larger request capped Roll Speed at 30; MAX capped Luck at 40 and spent only the two
+  remaining points on XP. Tower reward callback paid checkpoints 5 / 10 including Clover / Skyward;
+  repeating a lower floor added no checkpoint rewards. Next floor-25 reward visible above the fight
+  details. Attack / Support hover sheets identify the familiar partner and ACTIVE state; all 11 actual
+  battle modifiers tested headless, including the capped Secret charge description. Rarity rim bounds
+  match card bounds (zero inset). BAG hides unowned potions / sky items; separate text Sigil recipes stay
+  accessible. Final Trait Master costs use shard images / separate readable slot headings. Manual quick
+  roll produced three visible cards; four AUTO receipts each had three normal cards / two extras.
+  ROLL x3 visible. Actual USE ALL consumed two Colossal Packs for 20000 pulls. Hidden-return widget
+  preview clears the desktop sky panel. Type 0, props 5926 / 0 problems, full suite ALL CHECKS PASSED.
+  Thirty all-Base / no-sky headless starter samples all won. Existing asset 203785492 warning remains.
+- [ ] Ordinary-play follow-up: checkpoint result screen / auto-climb stops, catch-up on a real older
+  save, worn Skyward / Endless Ascendant titles, full floor-100 payout, Hoshi Mega -> Colossal condense,
+  Triple Roll reveal preferences / surplus sky finds / 2x and touch play. Check AMOUNT / MAX, bond text,
+  goal-row spacing and centered hidden-battle widget on phone. Trait artwork still awaits the user's
+  13 files; prompts / exact filenames are in docs/TRAIT_ICON_PROMPTS.md. No place published.
+
 - [x] First-session desktop review (2026-10-30): Play-only in-memory profile / normal unlocks, starter
   pack opened through BAG, BEST DECK equipped four Attack / three Support cards. Old guide stalled7/8
   despite Normal clear22.3 s; revised four-Attack goal advanced and normal claims paid the First Victory
@@ -69,10 +88,10 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
   confirmed, jump values0 during ring and50 /7.2 afterward. Hidden fight returned to exploration / result
   widget. No new production runtime errors; existing203785492 asset warning persists. Required checks
   pass and original card / deck data verified unchanged; original accessors restored / Play stopped.
-- [ ] First-session follow-up: several unlucky starter-pack runs (without a Gold / weather card), real
-  first30 minutes, worn-title / first-boss reward visibility, fixed fight footer on phone and other tabs,
-  2x Clash timing / touch input. Hidden-battle result widget still overlaps the sky panel at desktop size.
-  Longer tower checkpoint rewards remain a proposal in PROGRESSION_PLAN; no new relic grants or pity.
+- [ ] First-session follow-up: ordinary unlucky starter-pack runs (30 headless Base-only samples now
+  pass), real first 30 minutes, worn-title / first-boss reward visibility, fixed fight footer on phone
+  and other tabs, 2x Clash timing / touch input. Tower checkpoints are implemented; longer-session pacing
+  remains to review. Hidden-battle widget moved clear of the desktop sky panel. No pity added.
 
 - [x] Celestial art / naming pass (2026-10-30): seven weather-only portrait edits uploaded, nine existing
   portraits retained. Desktop review loaded all16 images; square grid faces and top-aligned source aspect

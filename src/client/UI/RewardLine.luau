@@ -44,7 +44,7 @@ function RewardLine.Set(frame, text: string)
 	local function word(value)
 		if value == "" then return end
 		order += 1
-		Kit.label({ Text = value, TextScaled = false, TextSize = size, Font = Theme.Font.Heavy,
+		Kit.label({ Text = value, TextScaled = false, TextWrapped = false, TextSize = size, Font = Theme.Font.Heavy,
 			AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, size + 6),
 			LayoutOrder = order, ZIndex = frame.ZIndex, Parent = inner }, size)
 	end

@@ -71,8 +71,11 @@ local function build(cardId: string, border: string): Frame?
 	if card.Type == "Attack" and Cards.DupeBonus(copies) > 0 then
 		label("Dupes", `Duplicates: +{math.floor(Cards.DupeBonus(copies) * 1000 + 0.5) / 10}% ATK / HP ({copies} copies, max +{math.floor(Cards.DupeCap * 100)}%)`, 3, 13, Color3.fromRGB(255, 210, 90))
 	end
+	local bondRow = Abilities.BondRow(card, scroll, 4, "small", border)
+	for _, child in bondRow:GetDescendants() do if child:IsA("GuiObject") then child.ZIndex += 30 end end
+	bondRow.ZIndex += 30
 	for i, ability in card.Abilities do
-		local row = Abilities.Row(ability, scroll, i + 3, "small", card, stars, border, node)
+		local row = Abilities.Row(ability, scroll, i + 4, "small", card, stars, border, node)
 		-- Rows share the same renderer as the full card sheet, above this tooltip's surface.
 		for _, child in row:GetDescendants() do if child:IsA("GuiObject") then child.ZIndex += 30 end end
 		row.ZIndex += 30

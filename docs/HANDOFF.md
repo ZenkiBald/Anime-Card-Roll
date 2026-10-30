@@ -9,6 +9,23 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- TOWER / BONDS / INVENTORY QoL COMPLETE (2026-10-30): guaranteed Infinite Tower checkpoints at
+  5 / 10 / 25 / 50 / 75 / 100; floor 10 Clover + Skyward title, floor 50 Prism, floor 100 Colossal
+  Pack + existing Spire Heart + Endless Ascendant title. Flags survive runs; old best records collect
+  earned new checkpoints on their next tower win. Tower / GOALS / nearest HUD bars show the next reward.
+  Skill sheets / hover tooltips on both card types name the exact familiar partner, actual bonus /
+  capped values and 300% combo trigger; ACTIVE only for matching columns, ordinary links say SUPPORT.
+  All 11 real battle modifiers tested. Rarity rims sit at zero inset. TRAINING has AMOUNT / MAX with
+  server budget / cap validation and full-increase previews. BAG hides unowned inventory; Sigil recipes
+  remain separate text actions. 10000-roll Colossal Pack / ten Mega -> one Colossal alchemy added.
+  Triple Roll now applies to AUTO too; ROLL x3 / three quick cards / rarest-first eligible cinematics /
+  separate sky-bonus counts. Trait Shard costs use current art. All 13 trait prompts / exact filenames:
+  docs/TRAIT_ICON_PROMPTS.md (user will supply artwork; existing trait icons remain until then).
+  Desktop / runtime checks and all required checks passed: type 0, props 5926 / 0, full suite passed.
+  30 Base-only / no-sky starter samples all won. Studio Edit, real card / deck data preserved, no map
+  edits / publishing. User review / phone / live older-save catch-up / longer reward pacing remain in
+  checklist 5. Pull / reconnect Rojo / restart Play; win one tower floor for already-earned checkpoints.
+
 - FIRST-SESSION REVIEW COMPLETE (2026-10-30): starter pack / BEST DECK / first Normal boss / Corrupted
   Hard checked with an isolated Play-only profile and normal unlocks. Starter pack gave four Attack /
   three Support cards, including one Gold; old guide stalled at 7/8. Guide now needs four Attack cards,
@@ -209,6 +226,56 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-30 · Codex · this commit · User approved tower milestones / clearer next goals / unlucky
+  starter review / hidden-battle overlap plus bonds, rims, AMOUNT / MAX, empty BAG, 10000 packs, Triple
+  Roll and trait-icon prompts. Pulled shared branch at 428bbcf; no other session in progress. Tower
+  checkpoints are data in Tower.Checkpoints, paid once by RollService.TowerRewards through MetaService;
+  they do not replace repeat floor packs / random relics or change combat tuning. Floor 10 guarantees
+  Clover + title, 50 Prism, 100 adds a 10000 pack / title to the existing artifact. SaveMigration initializes
+  claim maps, preserves old records / claims, and old best runs qualify on next win. Tests cover once-only
+  claims, catch-up, completed tracks and migration twice. Tower preview / GOALS describe exact next reward;
+  HUD candidate includes it. Fixed the two secondary HUD bars covering the primary goal by giving all
+  bottom anchors and distinct vertical slots. Hidden-battle return widget centered below the event strip.
+  Familiar mechanics were already present; verified all 11 actual engine bonus modifiers and kept their
+  combat values. Exposed both partners / real bonus / active state and half-HP-or-45s combo in the shared
+  skill and hover renderer. Amount text uses actual border values / existing 50% cap (Secret Blink Kunai
+  45% -> 50%, not a misleading +10); ordinary non-familiar column link says SUPPORT. Removed duplicate
+  hidden collection Bond text. Inspector includes partner shortcut text. Animated rarity rim frame now
+  exactly matches the card silhouette instead of 4 px inset; inner white bevel remains.
+  TRAINING uses one AMOUNT input and each row has allocate / MAX. Shared Meta.StatSpend validates finite
+  positive integers / known IDs and clamps to cap / free points in one rate-limited server transaction;
+  old +1 callers still supported. Preview reflects the whole clamped allocation. BAG omits zero-owned
+  entries in all tabs; active potions remain without x0. Empty grids stay empty; details explain / offer
+  Sigil text recipes so hiding unowned items cannot remove crafting access. OpenPacks refreshes its tab
+  even if BAG was already open. Colossal Pack reuses Mega icon art with its own name / 10000-roll count;
+  generic bulk opener / USE ALL / alchemy / DEV registry accept it, ten Mega packs preserve all pulls.
+  Triple Roll had excluded AUTO; now both use the same server / PolicyService-gated three-pull batch.
+  Client shows ROLL x3, three quick cards together, eligible full shows rarest first with SKIP ALL;
+  bonus sky finds no longer get mislabeled Triple Roll. Ownership / counts / feed retain every result.
+  Trait Master balances / costs render the existing shard illustration; slot headings above costs stay
+  legible. RewardLine text no longer wraps / clips into its fixed-height inline strip. Matching prompts
+  for all 13 trait icons saved in docs/TRAIT_ICON_PROMPTS.md; no new trait artwork generated or uploaded.
+  Studio review used tools/studio/first-session-review.luau as temporary Play-only independent memory
+  profiles; ProfileStore Data table retained. Actual keyboard / buttons allocated 7 Border, capped a
+  typed 71 Roll Speed request at 30, MAX Luck at 40 and final XP at the remaining 2 points. Actual tower
+  reward callback paid checkpoints 5 / 10 (Clover + Skyward) then no checkpoint on a repeated low floor;
+  next floor-25 preview visible without burying FIGHT. Both familiar tooltip directions / ACTIVE shown;
+  rare border rectangles measured zero position / size delta. Unowned potion / sky grids omitted items,
+  Sigil text recipes remained. Four AUTO receipts each contained 3 normal pulls / 2 extras; manual batch
+  created 3 quick cards; ROLL x3 visible. Actual BAG USE ALL consumed 2 Colossal packs = 20000 normal
+  pulls in one request / complete receipt. Centered hidden-return widget preview clears desktop sky.
+  Final two-line trait costs checked with a Play-only copy of final source to avoid cached modules;
+  preview copies discarded on stop. Temporary Config / mock-pass state stayed in memory; original
+  accessors / flags restored and original cards / decks verified unchanged in both review sessions.
+  No new production errors; existing asset 203785492 mismatch persists. Saved real-store selection /
+  TestMode source unchanged; no harness in Edit. No place edited / published. Required checks: luau-lsp
+  0 errors, props 5926 / 0 problems, bundle + luau ALL CHECKS PASSED incl. story / both tower fixtures.
+  New unboosted Base-only / no-sky / no-trait starter sample: 30/30 wins; four attackers median / p95
+  10 pulls, median first fight 26.1 s. This is a conditional headless sample, not a real first-30-minute
+  playthrough or a guarantee for all seeds. Phone, ordinary checkpoint auto-climb / real-save catch-up,
+  floor-100 results, Hoshi condense and long-session pacing remain checklist 5. Unrelated .codex/ and
+  old untracked artwork untouched. Pull / reconnect Rojo / restart Play. Status IDLE.
 
 - 2026-10-30 · Codex · this commit · User approved fresh-profile first-boss review / fixes. Based on
   7ca7cf3; pulled shared branch first, no concurrent Claude edits. Opened the actual starter ten-card
