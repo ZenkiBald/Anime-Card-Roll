@@ -320,6 +320,7 @@ local function deckUnits(data, deck, mutator: Tower.Mutator?)
 					Copies = (owned.BorderCopies or {})[border], -- duplicate bonus (Cards.DupeBonus)
 					Awaken = node,
 					Trait = effects,
+					StatMultiplier = if row == "Attack" then Deck.TraitMultiplier(owned, data.Cards[deck.Support[i] or ""]) else 1,
 				})
 			end
 		end

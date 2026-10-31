@@ -341,8 +341,9 @@ local function drawPlate(plate: any, row: string, index: number) -- children rea
 		local chosen=if own then Deck.PlayBorder(own) else "Normal"
 		local node=if own then Awaken.Level(own) else 0
 		local copies=Cards.CopiesAt(own,chosen)
-		StatLine.Value(info,"HP",Kit.commas(Cards.Stat(card,card.HP or 0,stars,chosen,node,copies)),{Visible=not compact,Position=UDim2.fromScale(0,.4),Size=UDim2.fromScale(1,.23)})
-		StatLine.Value(info,"DMG",Kit.commas(Cards.Stat(card,card.Main,stars,chosen,node,copies)),{Position=UDim2.fromScale(0,.68),Size=UDim2.fromScale(1,.23)})
+		local multiplier=Deck.TraitMultiplier(own,entry(working.Support[index]))
+		StatLine.Value(info,"HP",Kit.commas(math.floor(Cards.Stat(card,card.HP or 0,stars,chosen,node,copies)*multiplier+.5)),{Visible=not compact,Position=UDim2.fromScale(0,.4),Size=UDim2.fromScale(1,.23)})
+		StatLine.Value(info,"DMG",Kit.commas(math.floor(Cards.Stat(card,card.Main,stars,chosen,node,copies)*multiplier+.5)),{Position=UDim2.fromScale(0,.68),Size=UDim2.fromScale(1,.23)})
 	else
 		text({Text=CardInfo.Headline(card,0,if own then Deck.PlayBorder(own) else "Normal"),TextColor3=Theme.Color.Support,Position=UDim2.fromScale(0,.48),Size=UDim2.fromScale(1,.35),Parent=info},16)
 	end
@@ -1107,7 +1108,7 @@ function DeckBuilder.Init(playerGui: Instance, host: any?)
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		Parent = right,
-	}, { Kit.new("UIPadding", { PaddingTop = UDim.new(0, 3), PaddingLeft = UDim.new(0, 3), PaddingBottom = UDim.new(0, 6) }) })
+	}, { Kit.new("UIPadding", { PaddingTop = UDim.new(0, 5), PaddingLeft = UDim.new(0, 5), PaddingBottom = UDim.new(0, 6) }) })
 	gridLayout = Kit.new("UIGridLayout", { SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Left, Parent = grid })
 	grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(sizeGrid)
 	emptyLabel = text({

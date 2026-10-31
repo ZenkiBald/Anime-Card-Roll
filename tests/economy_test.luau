@@ -22,10 +22,10 @@ do
 	end
 	check(math.abs(total - Cards.WeightTotal) < 1e-3, "the full normal + boss pool adds up to 100%")
 	local sky = true
-	for id, n in { celestial_rain_broly = 300, celestial_rain_goku = 650, celestial_blizzard_yhwach = 1250, celestial_thunder_gojo = 1000, celestial_eclipse_akaza = 1200, celestial_eclipse_kokushibo = 2000, celestial_eclipse_muzan = 2500 } do
+	for id, n in { celestial_rain_broly = 10000, celestial_rain_goku = 40000, celestial_blizzard_yhwach = 80000, celestial_thunder_gojo = 50000, celestial_eclipse_akaza = 50000, celestial_eclipse_kokushibo = 125000, celestial_eclipse_muzan = 200000 } do
 		sky = sky and (Cards.Get(id) :: any).SkyOneIn == n
 	end
-	check(sky and Cards.Rarity("celestial_eclipse_kokushibo", "Secret") == 1000000000, "sky cards: Limitbreak 1 in 300-650 ... Blood Moon 1,200-2,500 (Kokushibo Secret 1 in 1 billion)")
+	check(sky and Cards.Rarity("celestial_eclipse_kokushibo", "Secret") == 62500000000, "sky odds span 10,000-200,000; displayed Secret rarity uses the same base odds")
 end
 
 -- 2. Luck tilts pulls toward rare cards: nothing at 1x, high / elite / apex / boss 2.5-5x at endgame luck.
@@ -49,7 +49,7 @@ end
 do
 	local pool = Cards.WeatherPool("eclipse")
 	local c1, c40 = CelestialRolls.Chances(pool, 1), CelestialRolls.Chances(pool, 40)
-	check(math.abs(c40[1] / c1[1] - (1 + 39 * 0.35)) < 1e-9, "40x luck finds a sky card 14.65x as often")
+	check(math.abs(c40[1] / c1[1] - 2) < 1e-9, "high luck cannot exceed 2x sky find odds")
 end
 
 -- 4. Fusion costs and the duplicate bonus.
@@ -141,4 +141,31 @@ do
 	table.sort(pulls);table.sort(times)
 	print(`   All-Base fresh starts: {wins}/30 wins; four attackers in median {FIXTURES.percentile(pulls,.5)} / p95 {FIXTURES.percentile(pulls,.95)} pulls; median fight {string.format("%.1f",FIXTURES.percentile(times,.5))}s`)
 	check(wins >= 29 and pulls[#pulls] < 100, "unlucky first sessions reach four attackers and beat the first boss without Gold or sky cards")
+end
+
+-- Traits improve real combat stats, without multiplying four slots into a runaway bonus.
+do
+	local T,D=MODULES.Traits,MODULES.Deck
+	check(T.Multiplier(nil,nil,"sovereign")==2 and T.Multiplier("swift","eternal","apex","godspeed")==2,
+		"trait lookup handles empty slots and strongest-only cap")
+	for _,trait in T.List do
+		check(trait.Multiplier>=1.1 and trait.Multiplier<=2 and #trait.Effects>0,"stat boost plus specialty: "..trait.Name)
+	end
+	check(D.TraitMultiplier({Trait="swift",Trait2="eternal"})==1.1 and D.TraitMultiplier({Trait="swift",Trait2="eternal",Trait2Unlocked=true})==2,
+		"locked second traits cannot grant stats")
+	local deck=F.deck({"hana"},{"mitotic_seal"})
+	local own=F.own({"hana","mitotic_seal"},0)
+	local base=Engine.new({Units=F.units(deck,own),BossId="kurogane",Difficulty="Normal",Rng=Random.new(1)})
+	own.hana.Trait="swift";own.mitotic_seal.Trait="sovereign"
+	local boosted=Engine.new({Units=F.units(deck,own),BossId="kurogane",Difficulty="Normal",Rng=Random.new(1)})
+	check(boosted.ById.A1.Main==2*base.ById.A1.Main and boosted.ById.A1.MaxHP==2*base.ById.A1.MaxHP,
+		"support trait transfers its strongest DMG / HP boost to the matching attacker")
+	check(D.Power(deck,own)==boosted.ById.A1.Main*MODULES.Config.Power.PerATK+boosted.ById.A1.MaxHP,
+		"deck recommendation rating agrees with real trait-boosted combat stats")
+	check(D.PowerAt("mitotic_seal",own)==0,"trait supports still add no damage, HP or attack rating of their own")
+	local chances=T.Chances()
+	check(math.abs(chances.sovereign-1/6000)<1e-12 and T.Pick(.9999,.5)=="sovereign","Secret chase traits use their advertised 1 in 6,000 odds each")
+	local pool=Cards.WeatherPool("rain")
+	local c1,c6,cHuge=CelestialRolls.Chances(pool,1),CelestialRolls.Chances(pool,6),CelestialRolls.Chances(pool,1e9)
+	check(math.abs(c6[1]/c1[1]-1.5)<1e-9 and math.abs(cHuge[1]/c1[1]-2)<1e-9,"sky luck rises gently before its cap")
 end

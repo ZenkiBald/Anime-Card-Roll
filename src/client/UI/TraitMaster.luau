@@ -61,7 +61,7 @@ local autoView = false -- the detail panel shows AUTO ROLL (drawAuto) instead of
 local lastAuto: { Title: string, Color: Color3, Detail: string }? = nil -- the last run's result, kept on the stage
 local targets: { [string]: boolean } = {} -- AUTO ROLL stops on these (for the session)
 for _, trait in Traits.List do
-	targets[trait.Id] = trait.Tier == "Mythic" -- the default: stop on a Mythic
+	targets[trait.Id] = Traits.TierIndex(trait.Id) >= 4 -- Mythic and Secret
 end
 
 local function hint(text: string)
@@ -167,7 +167,7 @@ local function playRoll(stage: Frame, rolled: { string }, done: () -> ())
 		for _ = 1, 18 do
 			for _, label in labels do
 				local fake = Traits.List[math.random(1, #Traits.List)]
-				label.Text = `{fake.Icon} {string.upper(fake.Name)}`
+				label.Text = `{string.upper(fake.Name)}`
 				label.TextColor3 = Rarity.Get(fake.Tier).Color
 			end
 			Sfx.Play("Click", 1.3)
@@ -231,7 +231,7 @@ local function playAuto(stage: Frame, result, done: () -> ())
 		end
 		local hit = Traits.Get(result.Hit)
 		if hit then
-			label.Text = `{hit.Icon} {string.upper(hit.Name)}!`
+			label.Text = `{string.upper(hit.Name)}!`
 			label.TextColor3 = Rarity.Get(hit.Tier).Color
 			count.Text = `Hit on roll {result.TotalRolled or #rolled} · {result.TotalSpent or result.Spent} Trait Shards spent · applied to slot {result.Slot}`
 			local big = Traits.TierIndex(hit.Id) >= Traits.BigTier
@@ -290,12 +290,12 @@ local function drawDetail()
 		line(info, 3, `SLOT 2   {traitText(entry.Trait2)}`, Theme.Color.Text, 17, Theme.Font.Heavy)
 	else
 		local node = Awaken.Nodes[Traits.Slot2Node]
-		line(info, 3, `SLOT 2   🔒 opens at {node.Challenges} distinct boss challenges (Mastery rank {node.Node}) · completed {Awaken.Count(entry)}`, Theme.Color.Muted, 16)
+		line(info, 3, `SLOT 2   LOCKED · opens at {node.Challenges} distinct boss challenges (Mastery rank {node.Node}) · completed {Awaken.Count(entry)}`, Theme.Color.Muted, 16)
 	end
 	line(
 		info,
 		4,
-		`{if card.Type == "Support" then "Traits affect the supported card. " else ""}A roll is pure luck: Rare 75% · Epic 20% · Legendary 4.5% · Mythic 0.5%. You choose KEEP OLD or APPLY NEW, so a roll never makes a card worse.`,
+		`{if card.Type == "Support" then "Traits affect the supported card. " else ""}A roll is pure luck: Rare 70% · Epic 25% · Legendary 4.5% · Mythic 0.45% · Secret 0.05%. Strongest trait in the column sets DMG / HP (up to 2x); specialties still combine. You choose KEEP OLD or APPLY NEW, so a roll never makes a card worse.`,
 		Theme.Color.Muted,
 		14
 	)
@@ -494,7 +494,7 @@ function drawAuto(id: string, entry, card)
 		local current = Traits.Get(if slot == 2 then entry.Trait2 else entry.Trait)
 		local on = autoSlot == slot
 		local b = Kit.button(
-			if not open then `SLOT {slot} · 🔒 node {Traits.Slot2Node}` elseif current then `SLOT {slot} · now {current.Icon} {current.Name}` else `SLOT {slot} · empty`,
+			if not open then `SLOT {slot} · LOCKED · rank {Traits.Slot2Node}` elseif current then `SLOT {slot} · now {current.Name}` else `SLOT {slot} · empty`,
 			if on then TEAL else Theme.Color.PanelLight,
 			if on then TEAL_DEEP else Theme.Color.Panel,
 			{ LayoutOrder = slot, Size = UDim2.new(0.5, -4, 1, 0), Parent = slots }
@@ -509,17 +509,16 @@ function drawAuto(id: string, entry, card)
 	end
 
 	-- Quick picks.
-	local quick = Kit.new("Frame", { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, Parent = list }, {
-		Kit.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center }),
+	local quick = Kit.new("Frame", { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1, Parent = list }, {
+		Kit.new("UIGridLayout", { CellSize=UDim2.new(.2,-5,1,0), CellPadding=UDim2.fromOffset(6,0), SortOrder=Enum.SortOrder.LayoutOrder }),
 	})
-	Kit.label({ Text = "STOP ON:", Font = Theme.Font.Heavy, TextColor3 = Theme.Color.Muted, LayoutOrder = 0, Size = UDim2.new(0, 90, 1, 0), Parent = quick }, 16)
 	local function pickTiers(minTier: number?)
 		for _, trait in Traits.List do
 			targets[trait.Id] = minTier ~= nil and Traits.TierIndex(trait.Id) >= minTier
 		end
 		drawDetail()
 	end
-	for i, info in { { "MYTHIC ONLY", 4 }, { "LEGENDARY +", 3 }, { "EPIC +", 2 }, { "CLEAR", nil } } do
+	for i, info in { { "SECRET", 5 }, { "MYTHIC +", 4 }, { "LEGENDARY +", 3 }, { "EPIC +", 2 }, { "CLEAR", nil } } do
 		local b = Kit.button(info[1], Theme.Color.PanelLight, Theme.Color.Panel, { LayoutOrder = i, Size = UDim2.new(0, 132, 1, 0), Parent = quick })
 		b.Activated:Connect(function()
 			if not busy then
@@ -541,7 +540,7 @@ function drawAuto(id: string, entry, card)
 		Parent = list,
 	}, {
 		Kit.new("UIGridLayout", {
-			CellSize = UDim2.new(1 / 3, -8, 0, 64),
+			CellSize = UDim2.new(.5, -8, 0, 122),
 			CellPadding = UDim2.fromOffset(8, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
@@ -557,28 +556,16 @@ function drawAuto(id: string, entry, card)
 			BackgroundColor3 = if on then color:Lerp(Color3.new(0, 0, 0), 0.35) else Color3.fromRGB(14, 20, 28),
 			Parent = grid,
 		}, { Kit.corner(UDim.new(0, 12)), Kit.stroke(color, if on then 3 else 1.5, if on then 0 else 0.5) })
-		Kit.label({ Text = trait.Icon, Font = Theme.Font.Heavy, Position = UDim2.fromOffset(6, 8), Size = UDim2.fromOffset(44, 48), Parent = tileButton }, 34)
-		local name = Kit.label({
-			Text = `{if on then "✓ " else ""}{string.upper(trait.Name)}  <font size="13" color="#{color:ToHex()}">{string.upper(trait.Tier)}</font>`,
-			RichText = true,
-			Font = Theme.Font.Display,
-			TextColor3 = Color3.new(1, 1, 1),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Position = UDim2.new(0, 54, 0, 6),
-			Size = UDim2.new(1, -60, 0, 26),
-			Parent = tileButton,
-		}, 20)
-		Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = name
-		Kit.label({
-			Text = Traits.Text(trait.Id),
-			Font = Theme.Font.Bold,
-			TextColor3 = Color3.fromRGB(215, 222, 235),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextWrapped = true,
-			Position = UDim2.new(0, 54, 0, 32),
-			Size = UDim2.new(1, -60, 0, 26),
-			Parent = tileButton,
-		}, 14)
+		Kit.label({ Name="TraitName", Text=trait.Name, Font=Theme.Font.Bold, TextXAlignment=Enum.TextXAlignment.Left,
+			Position=UDim2.fromOffset(10,7), Size=UDim2.new(1,-42,0,22), Parent=tileButton },20)
+		Kit.label({ Name="Selected", Text=if on then "✓" else "", TextColor3=color, Position=UDim2.new(1,-30,0,7), Size=UDim2.fromOffset(24,22), Parent=tileButton },20)
+		Kit.label({ Name="TierOdds", Text=string.format("%s · %.3g%%",trait.Tier,Traits.Chances()[trait.Id]*100), Font=Theme.Font.Medium, TextColor3=color,
+			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(10,31), Size=UDim2.new(1,-20,0,17), Parent=tileButton },13)
+		Kit.label({ Name="StatBoost", Text=string.format("%gx DMG & HP",trait.Multiplier or 1), Font=Theme.Font.Bold, TextColor3=Theme.Color.Support,
+			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(10,51), Size=UDim2.new(1,-20,0,22), Parent=tileButton },19)
+		Kit.label({ Name="Specialties", Text=Traits.SpecialtyText(trait.Id), Font=Theme.Font.Medium, TextColor3=Theme.Color.Text,
+			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(10,77), Size=UDim2.new(1,-20,0,37), Parent=tileButton },14)
+
 		tileButton.Activated:Connect(function()
 			if not busy then
 				targets[trait.Id] = not targets[trait.Id]

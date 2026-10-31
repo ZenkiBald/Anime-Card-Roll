@@ -104,6 +104,7 @@ local function draw(data, isMe: boolean)
 			Stars = data.Favorite.Stars,
 			Border = data.Favorite.Border,
 			Trait = data.Favorite.Trait,
+			StatMultiplier = data.Favorite.StatMultiplier,
 			Animate = true,
 		})
 		view.AnchorPoint = Vector2.new(0.5, 0)

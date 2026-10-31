@@ -152,6 +152,15 @@ local function row(order: number, height: number): Frame
 	})
 end
 
+local function packText(held): string
+	local parts={}
+	for _,pack in Packs.List do
+		local count=held and held[pack.Id] or 0
+		if count>0 then table.insert(parts,`{count}x {pack.Name}`) end
+	end
+	return table.concat(parts,", ")
+end
+
 local function text(parent: Instance, order: number, value: string, color: Color3, size: number, font: Enum.Font?): TextLabel
 	return Kit.label({
 		LayoutOrder = order,
@@ -192,7 +201,7 @@ local function setShowcase(boss, floor, raidName: string?)
 	showcaseGradient.Color = ColorSequence.new(boss.Accent:Lerp(C.UrushiInset, 0.8), C.UrushiInset) -- a sunken well, a breath of the boss's colour
 	local affix = floor and floor.Affix and Tower.AffixById[floor.Affix]
 	showcaseName.Text = string.upper(if raidName then raidName elseif floor then floor.Name else boss.Name)
-	showcaseTitle.Text = if affix then `{affix.Icon} {affix.Name}: {affix.Text}` else boss.Title
+	showcaseTitle.Text = if affix then `{affix.Name}: {affix.Text}` else boss.Title
 	showcaseWorld.Text = if raidName
 		then "SERVER RAID · EVERYONE TOGETHER"
 		elseif floor then `{if floor.Mode == Tower.PagodaId then "HUNDRED-FLOOR PAGODA" else "INFINITE TOWER"} · FLOOR {floor.Floor}`
@@ -426,7 +435,7 @@ local function scoutBox(order: number, leaderId: string, guards: { string }, dec
 	end
 	local affix = affixId and Tower.AffixById[affixId]
 	if affix then
-		table.insert(leaderLines, `{affix.Icon} <b>{string.upper(affix.Name)}</b>: {affix.Text}`)
+		table.insert(leaderLines, `<b>{string.upper(affix.Name)}</b>: {affix.Text}`)
 	else
 		table.insert(leaderLines, "Beat the leader to win: guards can wait")
 	end
@@ -594,14 +603,14 @@ local function floorBox(order: number, floor, color: Color3)
 	text(foe, 4, guardLine(floor.Guards), Theme.Color.Text, 15, Theme.Font.Heavy)
 	local affix = floor.Affix and Tower.AffixById[floor.Affix]
 	if affix then
-		text(foe, 3, `{affix.Icon} <b>{string.upper(affix.Name)}</b>: {affix.Text}`, Color3.fromRGB(255, 170, 230), 17, Theme.Font.Heavy)
+		text(foe, 3, `<b>{string.upper(affix.Name)}</b>: {affix.Text}`, Color3.fromRGB(255, 170, 230), 17, Theme.Font.Heavy)
 	end
 	local mutator = State.Mutator()
 	local resetIn = 86400 - os.time() % 86400
 	text(
 		foe,
 		5,
-		`TODAY  {mutator.Icon} <b>{string.upper(mutator.Name)}</b>: {mutator.Text}  ·  next in {resetIn // 3600}h {(resetIn % 3600) // 60}m`,
+		`TODAY  <b>{string.upper(mutator.Name)}</b>: {mutator.Text}  ·  next in {resetIn // 3600}h {(resetIn % 3600) // 60}m`,
 		Color3.fromRGB(150, 255, 190),
 		16,
 		Theme.Font.Heavy
@@ -625,7 +634,7 @@ local function rewardExtras(reward): string
 	local extras = `+{math.ceil(reward.Shards/Meta.ShardExchange)+reward.TraitShards} Trait Shards`
 	if reward.Potion then
 		local potion = Meta.PotionById[reward.Potion]
-		extras ..= `  ·  {potion.Icon} {potion.Name}`
+		extras ..= `  ·  {potion.Name}`
 	end
 	return extras
 end
@@ -678,21 +687,21 @@ local function buildTower()
 	local rewardBox = box(6, Theme.Color.Gold)
 	text(rewardBox, 1, if floor.Guardian and record then "GUARDIAN REWARDS · NEW RECORD" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
 	if reward.Packs and next(reward.Packs) then
-		text(rewardBox, 2, `<b>{Packs.Describe(reward.Packs)}</b>  (saved to your BAG, opened at your luck)`, Theme.Color.Gold, 18)
+		text(rewardBox, 2, `<b>{packText(reward.Packs)}</b>  (saved to your BAG, opened at your luck)`, Theme.Color.Gold, 18)
 	else
 		local packFloor = floorNo + 1
 		while Packs.ForFloor(packFloor) == nil do
 			packFloor += 1
 		end
-		text(rewardBox, 2, `No pack on this floor · next: <b>{Packs.Describe(Packs.ForFloor(packFloor))}</b> on floor {packFloor}`, Theme.Color.Text, 17)
+		text(rewardBox, 2, `No pack on this floor · next: <b>{packText(Packs.ForFloor(packFloor))}</b> on floor {packFloor}`, Theme.Color.Text, 17)
 	end
 	text(rewardBox, 3, rewardExtras(reward), Theme.Color.Text, 17, Theme.Font.Bold)
 	text(
 		rewardBox,
 		4,
 		if reward.Relic > 0
-			then `🔮 Relic drop <b>{string.format("%.1f", reward.Relic * 100)}%</b> (every win from floor {Items.RelicFloor})`
-			else `🔮 Relics drop from floor {Items.RelicFloor} up (0.1% a win), only in the Infinite Tower`,
+			then `Relic drop <b>{string.format("%.1f", reward.Relic * 100)}%</b> (every win from floor {Items.RelicFloor})`
+			else `Relics drop from floor {Items.RelicFloor} up (0.1% a win), only in the Infinite Tower`,
 		Color3.fromRGB(255, 170, 230),
 		17,
 		Theme.Font.Bold
@@ -778,7 +787,7 @@ local function buildPagoda()
 
 	if done then
 		local crown = box(2, Theme.Color.Gold)
-		text(crown, 1, "🏯 <b>PAGODA CONQUERED</b>", Theme.Color.Gold, 24, Theme.Font.Heavy)
+		text(crown, 1, "<b>PAGODA CONQUERED</b>", Theme.Color.Gold, 24, Theme.Font.Heavy)
 		text(crown, 2, `All {Tower.Pagoda.Floors} floors beaten. You wear the "{Tower.Pagoda.Title}" title.`, Theme.Color.Text, 17, Theme.Font.Bold)
 		hintLabel.Parent = body
 		return
@@ -795,22 +804,22 @@ local function buildPagoda()
 	local milestone = reward.Milestone
 	text(rewardBox, 1, if milestone then `MILESTONE · FLOOR {floorNo}` elseif floor.Guardian then "GUARDIAN REWARDS" else "FLOOR REWARDS", Theme.Color.Gold, 20, Theme.Font.Heavy)
 	if reward.Packs and next(reward.Packs) then
-		text(rewardBox, 2, `<b>{Packs.Describe(reward.Packs)}</b>  (saved to your BAG)`, Theme.Color.Gold, 18)
+		text(rewardBox, 2, `<b>{packText(reward.Packs)}</b>  (saved to your BAG)`, Theme.Color.Gold, 18)
 	end
 	text(rewardBox, 3, rewardExtras(reward), Theme.Color.Text, 17, Theme.Font.Bold)
 	-- The Pagoda's artifact waits on its last floor (always on once owned).
 	local crownId = Tower.PagodaMilestones[Tower.Pagoda.Floors].Artifact
 	local crown = crownId and Items.TowerArtifactById[crownId]
 	if milestone and milestone.Artifact and crown then
-		text(rewardBox, 4, `🏯 THE ARTIFACT: <b>{crown.Name}</b> ({Items.TowerArtifactText(crown)}, always on)` .. (if milestone.Title then `  ·  🏷️ the "{milestone.Title}" title` else ""), Color3.fromRGB(255, 140, 90), 17, Theme.Font.Heavy)
+		text(rewardBox, 4, `THE ARTIFACT: <b>{crown.Name}</b> ({Items.TowerArtifactText(crown)}, always on)` .. (if milestone.Title then `  ·  the "{milestone.Title}" title` else ""), Color3.fromRGB(255, 140, 90), 17, Theme.Font.Heavy)
 	else
 		local nextMilestone = Tower.NextMilestone(floorNo)
 		if nextMilestone then
 			local m = Tower.PagodaMilestones[nextMilestone]
-			text(rewardBox, 4, `Next milestone: floor {nextMilestone} · {Packs.Describe(m.Packs)} and 🧬{m.TraitShards}`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+			text(rewardBox, 4, `Next milestone: floor {nextMilestone} · {packText(m.Packs)} and Trait Shards {m.TraitShards}`, Theme.Color.Gold, 16, Theme.Font.Heavy)
 		end
 		if crown then
-			text(rewardBox, 5, `🏯 Floor {Tower.Pagoda.Floors}: <b>{crown.Name}</b>, the Pagoda's artifact ({Items.TowerArtifactText(crown)}, always on)`, Color3.fromRGB(255, 140, 90), 16, Theme.Font.Heavy)
+			text(rewardBox, 5, `Floor {Tower.Pagoda.Floors}: <b>{crown.Name}</b>, the Pagoda's artifact ({Items.TowerArtifactText(crown)}, always on)`, Color3.fromRGB(255, 140, 90), 16, Theme.Font.Heavy)
 		end
 	end
 
@@ -920,12 +929,12 @@ local function buildRaid()
 	text(
 		rewardBox,
 		2,
-		`Cleared: <b>+{math.ceil(reward.Shards/Meta.ShardExchange)+reward.TraitShards} Trait Shards</b> (two good runs; more damage pays more) + <b>{Packs.Describe(reward.Packs)}</b>`,
+		`Cleared: <b>+{math.ceil(reward.Shards/Meta.ShardExchange)+reward.TraitShards} Trait Shards</b> (two good runs; more damage pays more) + <b>{packText(reward.Packs)}</b>`,
 		Theme.Color.Text,
 		17,
 		Theme.Font.Bold
 	)
-	text(rewardBox, 3, `Top hitter: <b>+{Packs.Describe(Raid.TopPacks)} +🧬{Raid.TopTraitShards}</b>   ·   Not cleared: about half the Trait Shards`, Theme.Color.Gold, 16, Theme.Font.Heavy)
+	text(rewardBox, 3, `Top hitter: <b>+{packText(Raid.TopPacks)} +Trait Shards {Raid.TopTraitShards}</b>   ·   Not cleared: about half the Trait Shards`, Theme.Color.Gold, 16, Theme.Font.Heavy)
 	text(rewardBox, 4, `Each run is {Raid.FightSeconds} s against a Colossus sized to your deck, so every player's hits count.`, Theme.Color.Muted, 15, Theme.Font.Bold)
 
 	deckAndFight(5, deck, open, function()
@@ -1032,7 +1041,7 @@ local function build()
 	local costText = text(
 		costRow,
 		2,
-		`Deck Cost <font color="{if fits then "#56D68A" else "#FF7846"}"><b>{cost}/{Config.Deck.CostCap}</b></font> · win for <b>x{Config.Deck.CostTraitShards} 🧬</b> (Base 2 · Gold 4 · Rainbow 6 · Secret 8)`,
+		`Deck Cost <font color="{if fits then "#56D68A" else "#FF7846"}"><b>{cost}/{Config.Deck.CostCap}</b></font> · win for <b>x{Config.Deck.CostTraitShards} Trait Shards </b> (Base 2 · Gold 4 · Rainbow 6 · Secret 8)`,
 		Theme.Color.Text,
 		15,
 		Theme.Font.Heavy
@@ -1046,7 +1055,7 @@ local function build()
 	text(
 		rewardBox,
 		2,
-		`<b>{Packs.Describe(Packs.ForBoss(fight.D, false))}</b>  (saved to your BAG, opened at your luck)`,
+		`<b>{packText(Packs.ForBoss(fight.D, false))}</b>  (saved to your BAG, opened at your luck)`,
 		Theme.Color.Gold,
 		18
 	)
@@ -1054,7 +1063,7 @@ local function build()
 	text(
 		rewardBox,
 		3,
-		`+{math.ceil(reward.Shards/Meta.ShardExchange)+Rewards.TraitShards(fight.D, false) * (if costChallenge then Config.Deck.CostTraitShards else 1)} Trait Shards ({if cleared()[key] then "" else "x2 first clear · "}{if costChallenge then "Cost Challenge x2" else "x2 on a Cost Challenge"})  ·  {math.floor(Config.Rewards.PotionChance * 100)}% chance of a {dropPotion.Icon} {dropPotion.Name}`,
+		`+{math.ceil(reward.Shards/Meta.ShardExchange)+Rewards.TraitShards(fight.D, false) * (if costChallenge then Config.Deck.CostTraitShards else 1)} Trait Shards ({if cleared()[key] then "" else "x2 first clear · "}{if costChallenge then "Cost Challenge x2" else "x2 on a Cost Challenge"})  ·  {math.floor(Config.Rewards.PotionChance * 100)}% chance of a {dropPotion.Name}`,
 		Theme.Color.Text,
 		17,
 		Theme.Font.Bold

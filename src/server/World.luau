@@ -22,6 +22,7 @@ local TownModels = require(script.Parent.TownModels)
 local TownServices = require(script.Parent.TownServices)
 
 local World = {}
+local gateSigns: { [string]: CFrame } = {}
 
 local function part(props: { [string]: any }): Part
 	local p = Instance.new("Part")
@@ -68,7 +69,17 @@ local function styleMapSigns(map: Instance, _hub: Instance)
 			local color=if labels[2] then labels[2].TextColor3 else Color3.fromRGB(120,218,184)
 			inst.Enabled=false
 			CollectionService:RemoveTag(inst,"FadeSign")
-			Signs.Destination(anchor,0,title,sub,color)
+			-- Portal markers already supply each world title. Do not recreate a second map heading.
+			local worldTitle = false
+			for _, boss in Bosses.List do
+				if string.upper(title) == string.upper(boss.WorldName) then
+					worldTitle = true
+					-- Reuse the map artist's sign above the town gateway, not a second distant arena heading.
+					gateSigns[boss.Id] = CFrame.new(anchor.Position + inst.StudsOffsetWorldSpace + Vector3.new(0, inst.StudsOffset.Y, 0))
+					break
+				end
+			end
+			if title ~= "" and not worldTitle then Signs.Destination(anchor,0,title,sub,color) end
 		end
 	end
 end
@@ -514,7 +525,7 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 	swirl.Parent = portal
 	embers(portal, theme.Glow, 5)
 	local anchor=part({Name="GateGlow",Size=Vector3.one,Transparency=1,CanCollide=false,
-		CFrame=portalMarker.CFrame*CFrame.new(0,portalMarker.Size.Y/2+3,0),Parent=area})
+		CFrame=gateSigns[boss.Id] or portalMarker.CFrame*CFrame.new(0,portalMarker.Size.Y/2+12,0),Parent=area})
 	Signs.Destination(anchor,0,string.upper(boss.WorldName),"WORLD " .. tostring(boss.World) .. " · " .. boss.Name,boss.Accent)
 
 	local height = BossModels.Height(boss.Id)

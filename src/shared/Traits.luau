@@ -7,22 +7,23 @@
 -- twice, so the player picks the better of two. AUTO ROLL rolls one slot again and again (RollCost each,
 -- up to AutoMax per server batch) until it lands one of the traits the player ticked, which it applies; with no
 -- hit the old trait stays.
--- Traits are battle-only buffs (speed, crits, guard, a head start on the Ultimate) applied as permanent
--- unit buffs in BattleEngine: they never add ATK or HP, so Deck Power and "rarity always wins" stay put.
+-- Every trait improves DMG / HP as well as its battle specialty. A column uses its strongest equipped
+-- trait multiplier, never multiplying four slots together; this keeps the ceiling at 2x.
 -- Saved as Cards[id].Trait (slot 1), Cards[id].Trait2 (slot 2) and Cards[id].Pending (an unchosen roll).
 -- A new trait is one entry in Traits.List.
 
 local Traits = {}
 
 export type Effect = { Stat: string, Amount: number } -- SPD | Crit | CritDamage | Guard | StartEnergy
-export type Trait = { Id: string, Name: string, Icon: string, Tier: string, Effects: { Effect } }
+export type Trait = { Id: string, Name: string, Icon: string, Tier: string, Effects: { Effect }, Multiplier: number? }
 
 -- Tiers (they reuse the card rarity colours) and the chance a pull's trait is of that tier.
 Traits.Tiers = {
-	{ Tier = "Rare", Chance = 0.75 },
-	{ Tier = "Epic", Chance = 0.2 },
+	{ Tier = "Rare", Chance = 0.70 },
+	{ Tier = "Epic", Chance = 0.25 },
 	{ Tier = "Legendary", Chance = 0.045 },
-	{ Tier = "Mythic", Chance = 0.005 },
+	{ Tier = "Mythic", Chance = 0.0045 },
+	{ Tier = "Secret", Chance = 0.0005 },
 }
 
 Traits.List = {
@@ -69,7 +70,21 @@ Traits.List = {
 		Tier = "Mythic",
 		Effects = { { Stat = "Crit", Amount = 0.15 }, { Stat = "CritDamage", Amount = 0.4 } },
 	},
+	{ Id = "apex", Name = "Apex", Icon = "", Tier = "Secret", Multiplier = 1.9,
+		Effects = { { Stat = "SPD", Amount = .20 }, { Stat = "Crit", Amount = .10 } } },
+	{ Id = "sovereign", Name = "Sovereign", Icon = "", Tier = "Secret", Multiplier = 2,
+		Effects = { { Stat = "Crit", Amount = .20 }, { Stat = "CritDamage", Amount = .50 } } },
+	{ Id = "eternal", Name = "Eternal", Icon = "", Tier = "Secret", Multiplier = 2,
+		Effects = { { Stat = "Guard", Amount = .20 }, { Stat = "StartEnergy", Amount = .50 } } },
 } :: { Trait }
+
+local tierMultiplier = { Rare=1.1, Epic=1.2, Legendary=1.4, Mythic=1.75, Secret=2 }
+for _, trait in Traits.List do
+	trait.Multiplier = trait.Multiplier or tierMultiplier[trait.Tier]
+	for _, effect in trait.Effects do
+		if effect.Stat == "SPD" or effect.Stat == "Crit" then effect.Amount = math.ceil(effect.Amount * 20) / 20 end
+	end
+end
 
 Traits.RollCost = 1 -- one Trait Shard per normal reroll
 Traits.LockCost = 2 -- two candidates, one Trait Shard each
@@ -91,6 +106,16 @@ end
 
 function Traits.Get(id: string?): Trait?
 	return if id then Traits.ById[id] else nil
+end
+
+function Traits.Multiplier(...: string?): number
+	local strongest = 1
+	for i = 1, select("#", ...) do
+		local id = select(i, ...)
+		local trait = Traits.Get(id)
+		if trait then strongest = math.max(strongest, trait.Multiplier or 1) end
+	end
+	return math.min(2, strongest)
 end
 
 -- 1 = Rare ... 4 = Mythic; 0 for no trait.
@@ -154,7 +179,7 @@ local STAT_TEXT = {
 }
 
 -- "+5% speed, +15% Ultimate charge at the start".
-function Traits.Text(id: string?): string
+function Traits.SpecialtyText(id: string?): string
 	local trait = Traits.Get(id)
 	if trait == nil then
 		return ""
@@ -164,6 +189,12 @@ function Traits.Text(id: string?): string
 		table.insert(parts, `+{math.floor(effect.Amount * 100 + 0.5)}% {STAT_TEXT[effect.Stat] or effect.Stat}`)
 	end
 	return table.concat(parts, ", ")
+end
+
+function Traits.Text(id: string?): string
+	local trait = Traits.Get(id)
+	if not trait then return "" end
+	return string.format("%gx DMG / HP · ", trait.Multiplier or 1) .. Traits.SpecialtyText(id)
 end
 
 -- AUTO ROLL: rolls with `pick` until a trait in `targets` (id -> true) lands, at most `maxRolls` times.

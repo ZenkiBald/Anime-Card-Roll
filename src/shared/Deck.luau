@@ -8,9 +8,10 @@ local Cards = require(script.Parent.Cards)
 local Borders = require(script.Parent.Borders)
 local Elements = require(script.Parent.Elements)
 local Awaken = require(script.Parent.Awaken)
+local Traits = require(script.Parent.Traits)
 
 export type Deck = { Attack: { string }, Support: { string } }
-export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, BorderCopies: { [string]: number }?, Awaken: number?, Mastery: { [string]: boolean }?, Trait2Unlocked: boolean?, Play: string? } }
+export type Owned = { [string]: { Copies: number, Stars: number, Fusion: number?, Borders: { [string]: boolean }?, BorderCopies: { [string]: number }?, Awaken: number?, Mastery: { [string]: boolean }?, Trait2Unlocked: boolean?, Play: string?, Trait: string?, Trait2: string? } }
 
 local Deck = {}
 
@@ -126,15 +127,27 @@ function Deck.PlayBorder(entry: any): string
 end
 
 -- A card's power at a border (default: the one it fights at), with the owner's Awakening and duplicate bonus.
-function Deck.PowerAt(id: string, owned: Owned, border: string?): number
+function Deck.TraitMultiplier(attack: any, support: any?): number
+	local function second(entry: any): string?
+		return if entry and (entry.Trait2Unlocked or Awaken.Level(entry) >= Traits.Slot2Node) then entry.Trait2 else nil
+	end
+	return Traits.Multiplier(attack and attack.Trait, second(attack), support and support.Trait, second(support))
+end
+
+function Deck.PowerAt(id: string, owned: Owned, border: string?, support: any?): number
 	local card = Cards.Get(id)
 	if card == nil then
 		return 0
 	end
 	local entry = owned[id]
-	return if entry
-		then Cards.Power(card, entry.Stars, border or Deck.PlayBorder(entry), Awaken.Level(entry :: any), Cards.CopiesAt(entry, border or Deck.PlayBorder(entry)))
-		else Cards.Power(card, 0)
+	if not entry then return Cards.Power(card, 0) end
+	if card.Type ~= "Attack" then return 0 end
+	local chosen = border or Deck.PlayBorder(entry)
+	local node, copies = Awaken.Level(entry :: any), Cards.CopiesAt(entry, chosen)
+	local multiplier = Deck.TraitMultiplier(entry, support)
+	local main = math.floor(Cards.Stat(card, card.Main, entry.Stars, chosen, node, copies) * multiplier + .5)
+	local hp = math.floor(Cards.Stat(card, card.HP or 0, entry.Stars, chosen, node, copies) * multiplier + .5)
+	return main * Config.Power.PerATK + hp
 end
 
 -- Card power with the owner's stars, the border it fights at (the tier) and Awakening.
@@ -143,10 +156,7 @@ function Deck.CardPower(id: string, owned: Owned): number
 	if card == nil then
 		return 0
 	end
-	local entry = owned[id]
-	return if entry
-		then Cards.Power(card, entry.Stars, Deck.PlayBorder(entry), Awaken.Level(entry :: any), Cards.CopiesAt(entry, Deck.PlayBorder(entry)))
-		else Cards.Power(card, 0)
+	return Deck.PowerAt(id, owned)
 end
 
 -- The player's "rarest" card: the best border worn, then the least likely card (Cards.RarityRank).
@@ -169,11 +179,10 @@ end
 -- Deck Power: the sum of the cards in it.
 function Deck.Power(deck: Deck, owned: Owned): number
 	local total = 0
-	for _, row in Deck.Rows do
-		for _, id in (deck :: any)[row] :: { string } do
-			if id ~= "" then
-				total += Deck.CardPower(id, owned)
-			end
+	for slot, id in deck.Attack do
+		local card, own = Cards.Get(id), owned[id]
+		if card and own then
+			total += Deck.PowerAt(id, owned, nil, owned[deck.Support[slot] or ""])
 		end
 	end
 	return total
@@ -241,12 +250,10 @@ end
 -- Deck Power if every card in it fought at its best border (what AUTO-BUILD aims for).
 function Deck.BestPower(deck: Deck, owned: Owned): number
 	local total = 0
-	for _, row in Deck.Rows do
-		for _, id in (deck :: any)[row] :: { string } do
-			local entry = owned[id]
-			if id ~= "" and entry then
-				total += Deck.PowerAt(id, owned, Borders.Best(entry.Borders))
-			end
+	for slot, id in deck.Attack do
+		local entry = owned[id]
+		if id ~= "" and entry then
+			total += Deck.PowerAt(id, owned, Borders.Best(entry.Borders), owned[deck.Support[slot] or ""])
 		end
 	end
 	return total
@@ -268,8 +275,8 @@ function Deck.AutoBuild(owned: Owned, against: { string }?, weatherId: string?):
 		table.sort(pool, function(a, b)
 			local ea, eb = owned[a], owned[b]
 			local ca, cb = Cards.Get(a) :: Cards.Card, Cards.Get(b) :: Cards.Card
-			local pa = (if row == "Support" then Cards.SupportScore(ca, ea.Stars, Borders.Best(ea.Borders), Awaken.Level(ea :: any)) else Deck.PowerAt(a, owned, Borders.Best(ea.Borders))) * Deck.MatchupValue(a, against) * (if ca.Weather and ca.Weather==weatherId then 1.2 else 1)
-			local pb = (if row == "Support" then Cards.SupportScore(cb, eb.Stars, Borders.Best(eb.Borders), Awaken.Level(eb :: any)) else Deck.PowerAt(b, owned, Borders.Best(eb.Borders))) * Deck.MatchupValue(b, against) * (if cb.Weather and cb.Weather==weatherId then 1.2 else 1)
+			local pa = (if row == "Support" then Cards.SupportScore(ca, ea.Stars, Borders.Best(ea.Borders), Awaken.Level(ea :: any)) * Deck.TraitMultiplier(ea) else Deck.PowerAt(a, owned, Borders.Best(ea.Borders))) * Deck.MatchupValue(a, against) * (if ca.Weather and ca.Weather==weatherId then 1.2 else 1)
+			local pb = (if row == "Support" then Cards.SupportScore(cb, eb.Stars, Borders.Best(eb.Borders), Awaken.Level(eb :: any)) * Deck.TraitMultiplier(eb) else Deck.PowerAt(b, owned, Borders.Best(eb.Borders))) * Deck.MatchupValue(b, against) * (if cb.Weather and cb.Weather==weatherId then 1.2 else 1)
 			if pa ~= pb then
 				return pa > pb
 			end

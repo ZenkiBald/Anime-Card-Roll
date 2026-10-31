@@ -155,7 +155,7 @@ local function requestRoll(mode: string)
 end
 
 -- Surge and Triple Roll cards: the extras go to the feed, and a surge gets its callout.
-function showExtras(result)
+function showExtras(result, automatic)
 	for _, extra in result.Extra or {} do
 		Hud.FeedAdd(extra)
 	end
@@ -164,7 +164,7 @@ function showExtras(result)
 		Hud.Hint(`⚡ PERFECT OVERCHARGE SURGE! {1 + #(result.Extra or {})} cards at 6x border odds`)
 	elseif result.Surge == "Plain" then
 		Hud.Hint("⚡ OVERCHARGE SURGE! 5x border odds (tap inside the surge window for a perfect one)")
-	elseif result.TripleRoll then
+	elseif result.TripleRoll and not automatic then
 		Hud.Hint(`TRIPLE ROLL · {result.BatchCount or 3} cards{if (result.SkyCount or 0) > 0 then ` + {result.SkyCount} sky bonus` else ""}`)
 	elseif (result.SkyCount or 0) > 0 then
 		Hud.Hint(`SKY DISCOVERY · {result.SkyCount} bonus card{if result.SkyCount == 1 then "" else "s"}`)
@@ -223,7 +223,7 @@ Remotes.AutoResult.OnClientEvent:Connect(function(result)
 	State.ApplyRoll(result)
 	Hud.StartCooldown(State.Cooldown())
 	Hud.FeedAdd(result)
-	showExtras(result)
+	showExtras(result, true)
 	if State.InBattle or Modal.AnyOpen() then
 		return -- reading panels and hidden fights must not be interrupted by auto reveals
 	end

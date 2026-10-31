@@ -250,7 +250,7 @@ local function fadeSigns()
 		local far=math.max(gui.MaxDistance,2)
 		local fade=math.clamp((distance-far*.8)/(far*.2),0,1)
 		if gui:IsA("BillboardGui") and gui:GetAttribute("NearTitle") then
-			local pos,onScreen=camera:WorldToViewportPoint(position+gui.StudsOffset)
+			local pos,onScreen=camera:WorldToViewportPoint(position+gui.StudsOffsetWorldSpace)
 			local scale=math.clamp(camera.ViewportSize.Y/520,.72,1)
 			gui.Size=UDim2.fromOffset(178*scale,48*scale)
 			local box={ X=pos.X-89*scale, Y=pos.Y-24*scale, W=178*scale, H=48*scale }
@@ -261,12 +261,18 @@ local function fadeSigns()
 			if blocked then gui.Enabled=false; continue end
 			table.insert(occupied,box)
 		end
+		if gui:IsA("BillboardGui") and gui:GetAttribute("Destination") then
+			local scale=math.clamp(1-distance/800,.68,1)*math.clamp(camera.ViewportSize.Y/600,.8,1)
+			gui.Size=UDim2.fromOffset(290*scale,72*scale)
+		end
 		local plate=gui:FindFirstChild("Plate")
 		if plate and plate:IsA("CanvasGroup") then
 			plate.GroupTransparency=fade
 			local nearTitle=gui:GetAttribute("NearTitle")
 			if type(nearTitle)=="string" then
-				local near=distance <= (gui:GetAttribute("DetailRange") or 38)
+				local limit=gui:GetAttribute("DetailRange") or 38
+				local near=distance <= limit+(if gui:GetAttribute("ShowingDetail") then 4 else -4)
+				gui:SetAttribute("ShowingDetail",near)
 				local title=plate:FindFirstChild("Title")
 				local sub=plate:FindFirstChild("Sub")
 				if title then

@@ -763,6 +763,7 @@ function Reveal.Quick(result, batchSize: number?)
 end
 
 -- One click is one visual batch: rarest qualifying reveal first, or all three quick cards together.
+local lastQuickBatch = -math.huge
 function Reveal.Batch(result, onDone: (() -> ())?): boolean
 	local cards = { result }
 	for _, extra in result.Extra or {} do table.insert(cards, extra) end
@@ -775,6 +776,9 @@ function Reveal.Batch(result, onDone: (() -> ())?): boolean
 		end
 		return true
 	end
+	-- The feed records every pull; a fast auto batch must not replace a just-arrived tray mid-entry.
+	if os.clock()-lastQuickBatch < 1.4 then return false end
+	lastQuickBatch = os.clock()
 	for i = 1, math.min(3, #cards) do Reveal.Quick(cards[i], if #cards > 1 then #cards else nil) end
 	return false
 end

@@ -60,13 +60,15 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Name = cardId,
 		AutoButtonColor = false,
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		ClipsDescendants = true,
+		ClipsDescendants = false,
 		Text = "",
 	}, {
 		Kit.corner(UDim.new(0, 6)),
 		Kit.gradient(ColorSequence.new(C.UrushiRaised, if owned then C.UrushiBase:Lerp(glow, 0.12) else C.UrushiInset), 90),
 	})
 	Kit.surface(button, C.UrushiRaised, C.UrushiBase)
+	-- Clip the illustration only. The rarity rim must extend outside the art on all four edges.
+	local artClip = Kit.new("Frame", { Name="ArtClip", Position=UDim2.fromOffset(3,3), Size=UDim2.new(1,-6,1,-6), BackgroundTransparency=1, ClipsDescendants=true, Parent=button }, { Kit.corner(UDim.new(0,8)) })
 	-- Element aura rising behind the art.
 	Kit.new("Frame", {
 		Name = "ElementGlow",
@@ -76,7 +78,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		BackgroundColor3 = if frame.Glow then frame.Color:Lerp(glow, 0.5) else glow,
 		BackgroundTransparency = if owned then (if frame.Glow then 0.72 else 0.82) else 0.94,
 		ZIndex = 1,
-		Parent = button,
+		Parent = artClip,
 	}, { Kit.corner(UDim.new(1, 0)), Kit.aspect(1, Enum.DominantAxis.Width) })
 
 	-- The art well (an uploaded illustration, else the element-lit bust).
@@ -85,13 +87,13 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		art.AnchorPoint = Vector2.new(0.5, 0.5)
 		art.Position = UDim2.fromScale(0.5, 0.5)
 		art.Size = UDim2.fromScale(1, 1)
-		art.Parent = button
+		art.Parent = artClip
 	else
 		local bust = CardView.Portrait(cardId, owned, false)
 		bust.AnchorPoint = Vector2.new(0.5, 0.5)
 		bust.Position = UDim2.fromScale(0.5, 0.36)
 		bust.Size = UDim2.fromScale(0.66, 0.52)
-		bust.Parent = button
+		bust.Parent = artClip
 	end
 	if not owned and art then
 		outlined(Kit.label({
@@ -116,7 +118,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		BackgroundTransparency = 0.25,
 		BorderSizePixel = 0,
 		ZIndex = 3,
-		Parent = button,
+		Parent = artClip,
 	}, {
 		Kit.new("UIGradient", {
 			Rotation = 90,
@@ -133,8 +135,8 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	-- Bottom: reserve enough height for long epithets to wrap, then the rarity number.
 	local nameLabel = outlined(Kit.label({
 		Name = "CardName",
-		Text = if owned then string.upper(card.Name) else "???",
-		Font = Theme.Font.Display,
+		Text = if owned then card.Name else "???",
+		Font = Theme.Font.Bold,
 		TextColor3 = if owned then C.WashiParchment else C.WashiGhost,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextYAlignment = Enum.TextYAlignment.Bottom,
@@ -143,7 +145,7 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 		Size = UDim2.fromScale(0.88, 0.20),
 		ZIndex = 5,
 		Parent = button,
-	}, 14), 1.5)
+	}, 15), .8)
 	nameLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 6
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 2), PaddingRight = UDim.new(0, 2), Parent = nameLabel })
 	-- Copies at this border: top-left, under the stars.
@@ -188,14 +190,14 @@ function CardTile.new(cardId: string, opts: Options?): TextButton
 	local rarityLabel = outlined(Kit.label({
 		Name = "Rarity",
 		Text = if rarity > 0 then Kit.commas(rarity) else "",
-		Font = Theme.Font.Display,
+		Font = Theme.Font.Bold,
 		TextColor3 = if borderId == "Normal" then C.WashiParchment else tier.Color:Lerp(Color3.new(1, 1, 1), 0.2),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.fromScale(0.5, 0.96),
 		Size = UDim2.fromScale(0.90, 0.10),
 		ZIndex = 5,
 		Parent = button,
-	}, 18), 2)
+	}, 17), .8)
 	-- Set after shared typography: rarity keeps its collectible tint.
 	rarityLabel.TextColor3 = if borderId == "Gold" or borderId == "Normal" then Color3.fromRGB(255, 221, 95) else Color3.fromRGB(125, 245, 255)
 	rarityLabel:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 6

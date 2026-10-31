@@ -63,6 +63,7 @@ export type UnitSpec = {
 	Awaken: number?, -- Awakening node (Awaken.luau): stats, and the 400% bond at node 3
 	Copies: number?, -- copies held at Border: the duplicate bonus (Cards.DupeBonus)
 	Trait: { { Stat: string, Amount: number } }?, -- unit effects: traits, foil, Awakening, mutator
+	StatMultiplier: number?, -- strongest trait in this column, server-derived; capped at 2x
 }
 -- Stats (optional) replaces the difficulty's HP / ATK / WarnSeconds and adds to the leader's DEF / SPD:
 -- the Infinite Tower (Tower.luau) fights a boss's moves at stats scaled to the floor. Difficulty still
@@ -151,6 +152,10 @@ local function newUnit(spec: UnitSpec)
 		Dealt = 0, -- damage dealt this battle
 		Healed = 0, -- HP healed + shields given this battle
 	}
+	unit.HP = unit.MaxHP
+	local statMultiplier = math.clamp(spec.StatMultiplier or 1, 1, 2)
+	unit.Main = round(unit.Main * statMultiplier)
+	unit.MaxHP = round(unit.MaxHP * statMultiplier)
 	unit.HP = unit.MaxHP
 	unit.BaseMain=unit.Main
 	unit.BaseMaxHP=unit.MaxHP

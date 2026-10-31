@@ -274,6 +274,17 @@ function State.ApplyTower(tower: { Best: number, Run: number, Pagoda: number })
 	changed:Fire("progress")
 end
 
+function State.CardMultiplier(id: string): number
+	local Deck = require(ReplicatedStorage.Shared.Deck)
+	local own = State.Cards[id]
+	if not own then return 1 end
+	local deck = State.ActiveDeck()
+	for slot, attack in (if deck then deck.Attack else {}) do
+		if attack == id then return Deck.TraitMultiplier(own, State.Cards[deck.Support[slot] or ""]) end
+	end
+	return Deck.TraitMultiplier(own)
+end
+
 function State.ActiveDeck()
 	return State.Decks.Presets[State.Decks.Active]
 end

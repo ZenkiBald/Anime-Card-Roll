@@ -24,7 +24,6 @@ local Bosses = require(Shared.Bosses)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Tower = require(Shared.Tower)
-local Elements = require(Shared.Elements)
 local Raid = require(Shared.Raid)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
@@ -508,8 +507,8 @@ local BADGES = {
 	{ Flag = "X", Text = "EXPOSED", Color = Color3.fromRGB(255, 120, 100) },
 	{ Flag = "N", Text = "HEAL BLOCK", Color = Color3.fromRGB(220, 130, 145) },
 	{ Flag = "U", Text = "BUFFED ▲", Color = Color3.fromRGB(255, 210, 60) },
-	{ Flag = "B", Text = "BURN 🔥", Color = Color3.fromRGB(255, 96, 40) },
-	{ Flag = "Z", Text = "FROZEN ❄", Color = Color3.fromRGB(120, 220, 255) },
+	{ Flag = "B", Text = "BURN", Color = Color3.fromRGB(255, 96, 40) },
+	{ Flag = "Z", Text = "FROZEN", Color = Color3.fromRGB(120, 220, 255) },
 	{ Flag = "S", Text = "SLOWED ▼", Color = Color3.fromRGB(170, 140, 255) },
 	{ Flag = "T", Text = "TAUNT", Color = Color3.fromRGB(255, 120, 90) },
 	{ Flag = "G", Text = "GUARD 🛡", Color = Color3.fromRGB(150, 210, 255) },
@@ -3254,8 +3253,7 @@ local function begin(start, bossId: string, difficulty: string?)
 	end
 	local diffIndex = Bosses.DifficultyIndex(current.Difficulty)
 	local subtitle = `{boss.Title} · {string.upper(current.Difficulty)}`
-	local element = Elements.Get(boss.Element)
-	local icon = if element then `{element.Icon} ` else ""
+	local icon = ""
 	if raid then
 		subtitle = `Server raid · {Raid.FightSeconds} s run · every hit counts`
 		bossName.Text = `{icon}{string.upper(raid.Name)}  <font color="#A8A2C8">SERVER RAID</font>`
@@ -3269,8 +3267,8 @@ local function begin(start, bossId: string, difficulty: string?)
 		local mutator = start.Mutator and Tower.MutatorById[start.Mutator]
 		subtitle = `{if tower.Mode == Tower.PagodaId then Tower.Pagoda.Name else "Infinite Tower"} · Floor {tower.Floor}`
 			.. (if affix then ` · {string.upper(affix.Name)}` else "")
-			.. (if mutator then ` · {mutator.Icon} {string.upper(mutator.Name)}` else "")
-		bossName.Text = `{icon}{string.upper(tower.Name)}  <font color="#A8A2C8">{if affix then `{affix.Icon} {affix.Name}` else boss.Title}</font>`
+			.. (if mutator then ` · {string.upper(mutator.Name)}` else "")
+		bossName.Text = `{icon}{string.upper(tower.Name)}  <font color="#A8A2C8">{if affix then `{affix.Name}` else boss.Title}</font>`
 		bossChip.Label.Text = `FLOOR {tower.Floor}`
 		bossChip.BackgroundColor3 = if tower.Guardian then Theme.Color.Gold else Color3.fromRGB(40, 170, 165)
 	else
@@ -3299,8 +3297,7 @@ local function begin(start, bossId: string, difficulty: string?)
 	-- The deck's synergies and bonds ride on the intro's YOUR DECK banner.
 	local extras = {}
 	for _, synergy in start.Info.Synergies or {} do
-		local e = Elements.Get(synergy.Element)
-		table.insert(extras, `{e and e.Icon or ""} {string.upper(synergy.Name)}`)
+		table.insert(extras, `{string.upper(synergy.Name)}`)
 	end
 	for _, bond in start.Info.Bonds or {} do
 		table.insert(extras, `🤝 {string.upper(bond.Name)}`)

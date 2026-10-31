@@ -24,7 +24,7 @@ local limiter = RateLimit.new(2, 4)
 local TOP_CARDS = 6
 
 local function cardInfo(id: string, entry): { [string]: any }
-	return { Id = id, Stars = entry.Stars, Border = Borders.Best(entry.Borders), Trait = entry.Trait }
+	return { Id = id, Stars = entry.Stars, Border = Borders.Best(entry.Borders), Trait = entry.Trait, StatMultiplier = Deck.TraitMultiplier(entry) }
 end
 
 local function profileOf(target: Player)
@@ -39,7 +39,7 @@ local function profileOf(target: Player)
 	for id, entry in data.Cards do
 		local card = Cards.Get(id)
 		if card then
-			table.insert(owned, { Id = id, Entry = entry, Power = Cards.Power(card, entry.Stars, Borders.Best(entry.Borders)) })
+			table.insert(owned, { Id = id, Entry = entry, Power = Deck.PowerAt(id, data.Cards, Borders.Best(entry.Borders)) })
 		end
 	end
 	table.sort(owned, function(a, b)

@@ -96,7 +96,7 @@ function Style.Text(label)
 	local c=label.TextColor3
 	local dark=math.max(c.R,c.G,c.B)<.3
 	label.TextStrokeTransparency = 1
-	if label.Font ~= Enum.Font.LuckiestGuy then label.Font = Enum.Font.FredokaOne end
+	-- Preserve body and small-label fonts; only display text needs a strong outline.
 	local outline = nil
 	for _, child in label:GetChildren() do
 		if child:IsA("UIStroke") and child.ApplyStrokeMode == Enum.ApplyStrokeMode.Contextual then outline = child; break end
@@ -107,7 +107,7 @@ function Style.Text(label)
 		outline.Destroying:Once(function() connection:Disconnect() end)
 	end
 	outline.Color = if dark then WHITE else BLACK
-	outline.Thickness = if dark then 0.6 else 2.5
+	outline.Thickness = if dark then 0.6 elseif label.TextSize <= 20 then 1 else 1.75
 	outline.Transparency = label.TextTransparency
 end
 

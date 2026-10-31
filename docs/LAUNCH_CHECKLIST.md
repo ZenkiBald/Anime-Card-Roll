@@ -60,6 +60,22 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] 2026-10-31 desktop polish: inspected four-sided exterior rarity rims in the Squad grid, cleaner
+  card typography, the rebuilt trait target picker, and Tower preview text without old reward
+  emojis. Final Play showed one heading per authored town gateway; NPC plates use thin outlined titles
+  and compact subtitles. Sixteen rapid hint / reward calls produced zero hint fade frames while refreshed
+  and one reward visibility transition during the 1.6-second observation (no rapid hide/show). Normal
+  Play only; no inventory / trait / purchase actions, no place edits or publishing; temporary UI helpers
+  disappear on Stop. Original profile accessors / data were never replaced in this pass.
+- [ ] User review at close / far zoom and on phone: exterior rims at grid edges / scroll boundaries,
+  long card names and ability descriptions, NPC plates / world-gateway title placement, notification
+  pacing during fast AUTO and CLAIM ALL. Check Secret trait selection after scrolling to the picker end.
+- [ ] Live pacing review: sky base chances now span 1 in 10,000–200,000 per eligible pull; sky luck
+  caps at twice those odds, and packs still search once per real pull. Headless single / bulk distributions,
+  all sixteen strengths, trait stat / column cap / locked-slot rules and saved pending rolls pass.
+  Check 1.10x–2x traits feel worthwhile over a normal session. User supplies sixteen icons from
+  docs/TRAIT_ICON_PROMPTS.md; custom trait images are not integrated yet.
+
 - [x] Tower / bond / inventory QoL (2026-10-30, desktop): isolated Play-only profile, original cards /
   decks verified unchanged, runtime accessors restored / Play stopped. Typed 7 training points reached
   Border 7, a larger request capped Roll Speed at 30; MAX capped Luck at 40 and spent only the two

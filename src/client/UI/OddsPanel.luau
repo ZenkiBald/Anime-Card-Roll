@@ -64,12 +64,15 @@ local function refresh()
 	-- Which card a pull gives (any border): its pull weight among the cards unlocked so far, tilted toward
 	-- rare cards by your luck (Cards.LuckTilt).
 	local pull = Cards.PullChances(Collections.Pool(State.Summary.SelectedCollection,State.Progress.Cleared), nil, nil, Cards.FeaturedAt(workspace:GetServerTimeNow()), luck)
+	local skyChances = {}
+	local skyPool = Cards.WeatherPool(State.Weather.Id)
+	for i, chance in CelestialRolls.Chances(skyPool, luck) do skyChances[skyPool[i].Id] = chance end
 	for id, row in cardRows do
 		local card=Cards.Get(id)
 		local chance=pull[id]
 		if card.Weather then
 			local sky=Weather.ById[card.Weather]
-			row.Chance.Text=if Config.CelestialCardsReady and State.Weather.Id==card.Weather then string.format("%.3f%% / sky search",100/card.SkyOneIn*(1+(math.max(1,luck)-1)*CelestialRolls.LuckWeight)) else "INACTIVE"
+			row.Chance.Text=if Config.CelestialCardsReady and skyChances[id] then string.format("%.4f%% per pull",100*skyChances[id]) else "INACTIVE"
 			row.OneIn.Text=sky.Name.." only"
 		else
 			row.Chance.Text=if chance then Odds.FormatPercent(chance*100) else "Unavailable"
@@ -292,7 +295,7 @@ function OddsPanel.Init(playerGui: Instance)
 			Parent = scroll,
 		}, { Kit.corner(UDim.new(0, 10)) })
 		Kit.label({
-			Text = `{string.upper(trait.Name)}  <font color="#A8A2C8">{Traits.Text(trait.Id)}</font>`,
+			Text = `{trait.Name}  <font color="#A8A2C8">{trait.Multiplier}x DMG / HP</font>`,
 			RichText = true,
 			Font = Theme.Font.Heavy,
 			TextColor3 = tier.Color,
@@ -314,7 +317,8 @@ function OddsPanel.Init(playerGui: Instance)
 
 	Kit.label({
 		LayoutOrder = 600,
-		Size = UDim2.new(1, 0, 0, 72),
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Font = Theme.Font.Medium,
 		TextColor3 = Theme.Color.Muted,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -323,11 +327,13 @@ function OddsPanel.Init(playerGui: Instance)
 		TextSize = 14,
 		Text = "Rolls are free and pure luck (no pity). Every pull picks a card by its pull weight, then rolls its border (the tier: "
 			.. `Base 1x / Gold 4x / Rainbow 16x / Secret 64x stats). Luck raises the rarer borders most, with diminishing returns above {Config.Roll.LuckSoftStart} luck; Base `
-			.. "always keeps at least half. An infused Mega Pack weighs its element x1.5. Every pull also rolls a foil on its own; a card "
-			.. "keeps the best of each. Every 25th roll is an Overcharge Surge (5x border odds; 3 cards at 6x when hit perfectly). Luck also tilts "
+			.. "always keeps at least half. Every pull also rolls a foil on its own; a card "
+			.. `keeps the best of each. Every {cfg.Every}th roll is an Overcharge Surge ({cfg.BorderMult}x border odds; {cfg.PerfectCards} cards at {cfg.PerfectBorderMult}x when hit perfectly). Luck also tilts `
 			.. "the pool toward rare cards (up to 5x at endgame luck). 100 copies at one border fuse "
 			.. "into 1 at the next (Hoshi); each duplicate held adds +0.5% ATK / HP (max +25%). Traits are rolled at the Trait Master. Probabilities are rounded, so the "
-			.. "displayed values may not add up to exactly 100%.",
+			.. "displayed values may not add up to exactly 100%. Active-sky chances above are per real pull: a 10-roll pack searches 10 times, "
+			.. "a Triple Roll searches three times. Each search can find one extra sky card. Sky luck gains 10% of your luck bonus, up to 2x sky odds; "
+			.. "there are no sky-card drops outside the matching sky.",
 		Parent = scroll,
 	}, 14)
 

@@ -63,6 +63,7 @@ function Fixtures.units(deck, owned)
 					Copies = (owned[id].BorderCopies or {})[border], -- the duplicate bonus, as BattleService sends it
 					Awaken = node,
 					Trait = if #effects > 0 then effects else nil,
+					StatMultiplier = if row == "Attack" then Deck.TraitMultiplier(owned[id], owned[deck.Support[i] or ""]) else 1,
 				})
 			end
 		end

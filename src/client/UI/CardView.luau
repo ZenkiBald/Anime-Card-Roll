@@ -34,6 +34,7 @@ export type Options = {
 	Compact: boolean?, -- small grid tile: hides title and stats
 	Animate: boolean?, -- the figure sways (big reveals and detail views only)
 	Border: string?, -- Borders.luau id: the tier (frame and stat multiplier)
+	StatMultiplier: number?, -- profile previews carry the viewed owner's multiplier
 	Trait: string?, -- Traits.luau id: shown as the first tag chip, in its tier colour
 	Foil: string?, -- Foils.luau id: shown as a tag chip when it isn't Standard
 }
@@ -635,7 +636,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 				rightText, rightColor = "SUPPORT", Color3.fromRGB(139, 221, 177)
 			end
 			if card.Type=="Attack" then
-				StatLine.new(card,stars,options.Border,options.Awaken,{Position=UDim2.fromScale(.04,.9),Size=UDim2.fromScale(.92,.075),ZIndex=6,Parent=frame},nil,options.Copies)
+				StatLine.new(card,stars,options.Border,options.Awaken,{Position=UDim2.fromScale(.04,.9),Size=UDim2.fromScale(.92,.075),ZIndex=6,Parent=frame},nil,options.Copies,options.StatMultiplier)
 			end
 			for i, info in ipairs(if card.Type=="Support" then { { leftText, leftColor }, { rightText, rightColor } } else {}) do
 				local stat = Kit.label({

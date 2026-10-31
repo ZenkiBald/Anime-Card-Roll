@@ -64,7 +64,7 @@ do
 		end
 		check(mass<.01 and R.Pick(pool,.99999)==nil,"most sky searches remain ordinary rolls: "..sky.Name)
 		local chances1,chances25=R.Chances(pool,1),R.Chances(pool,25)
-		check(math.abs(chances1[1]-1/pool[1].SkyOneIn)<1e-12 and math.abs(chances25[1]/chances1[1]-(1+24*.35))<1e-9,"luck lifts sky odds by 35% of its bonus: "..sky.Name)
+		check(math.abs(chances1[1]-1/pool[1].SkyOneIn)<1e-12 and math.abs(chances25[1]/chances1[1]-2)<1e-9,"sky luck stops at twice the authored chance: "..sky.Name)
 		local counts={};local rng=Random.new(429);local n=500000
 		for _=1,n do local found=R.Pick(pool,rng:NextNumber());if found then counts[found.Id]=(counts[found.Id] or 0)+1 end end
 		local bulk=R.Search(pool,n,1,Random.new(77))
@@ -76,7 +76,7 @@ do
 		end
 		check(matches,"single and bulk sky searches both match the displayed odds: "..sky.Name)
 	end
-	check(maxLimit==650 and minBlood==1200 and MODULES.Cards.Rarity("celestial_eclipse_muzan","Secret")==1250000000,"Blood Moon (1 in 1,200-2,500, Muzan Secret 1 in 1.25 billion) is a rarer chase than Limitbreak (300-650)")
+	check(maxLimit==40000 and minBlood==50000 and MODULES.Cards.Rarity("celestial_eclipse_muzan","Secret")==100000000000,"Blood Moon starts rarer than the rarest Limitbreak card; owned cards keep their IDs")
 	check(R.Chances(C.WeatherPool("eclipse"),1e9)[1]<.5,"absurd luck still can't make every search a find")
 end
 

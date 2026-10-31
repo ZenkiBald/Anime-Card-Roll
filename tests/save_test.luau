@@ -2,6 +2,17 @@
 -- the per-border copy piles add up to the card's total, and running it twice changes nothing.
 local SaveMigration = MODULES.SaveMigration
 
+-- Trait stat tuning adds definitions, not a save format. Existing rolls and new Secret IDs survive.
+do
+	local data={Cards={hana={Copies=1,Stars=0,Borders={Normal=true},BorderCopies={Normal=1},
+		Trait="godspeed",Trait2="executioner",Trait2Unlocked=true,Pending={Slot=1,Traits={"sovereign"}}}}}
+	SaveMigration.Migrate(data)
+	SaveMigration.Migrate(data)
+	local entry=data.Cards.hana
+	check(entry.Trait=="godspeed" and entry.Trait2=="executioner" and entry.Trait2Unlocked and entry.Pending.Traits[1]=="sovereign",
+		"trait tuning preserves old slots and a pending Secret roll across repeated loads")
+end
+
 do
 	local old = {Cards={},Tower={Floor=50,Run=4}}
 	SaveMigration.Migrate(old)

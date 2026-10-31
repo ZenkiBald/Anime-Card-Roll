@@ -146,8 +146,8 @@ function Abilities.Row(ability, parent: Instance, order: number, size: string?, 
 	local name = Kit.new("TextLabel", {
 		LayoutOrder = 2,
 		Text = ability.Name,
-		Font = Theme.Font.Display,
-		TextSize = if big then 24 else 21,
+		Font = Theme.Font.Bold,
+		TextSize = if big then 22 else 19,
 		TextColor3 = Color3.new(1, 1, 1),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		BackgroundTransparency = 1,
@@ -155,7 +155,7 @@ function Abilities.Row(ability, parent: Instance, order: number, size: string?, 
 		ZIndex = 24,
 		Parent = row,
 	})
-	Kit.textStroke(Color3.fromRGB(8, 10, 15), 2, 0).Parent = name
+	Kit.textStroke(Color3.fromRGB(8, 10, 15), .75, .25).Parent = name
 	Kit.new("TextLabel", {
 		LayoutOrder = 3,
 		Text = Abilities.Describe(ability, card, stars, border, awaken),

@@ -9,10 +9,10 @@ local C = UITheme.Colors
 local Theme = {}
 
 Theme.Font = {
-	Display = UITheme.Fonts.Header, -- big headings, tier callouts
-	Heavy = Enum.Font.FredokaOne,
-	Bold = Enum.Font.FredokaOne,
-	Medium = Enum.Font.Gotham,
+	Display = Enum.Font.FredokaOne, -- big headings, tier callouts
+	Heavy = Enum.Font.GothamBold,
+	Bold = Enum.Font.GothamBold,
+	Medium = Enum.Font.GothamMedium,
 }
 
 Theme.Color = {

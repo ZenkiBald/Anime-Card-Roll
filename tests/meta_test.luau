@@ -72,7 +72,7 @@ for _, trait in Traits.List do
 	end
 	traitsOk = traitsOk and Rarity.Get(trait.Tier) ~= nil
 end
-check(traitsOk, "rarer trait tiers are rarer, and no trait adds ATK / HP (rarity still wins)")
+check(traitsOk, "rarer traits have lower odds; stat multiplier is separate from specialty buffs")
 check(Traits.Pick(0, 0) == Traits.List[1].Id and Traits.TierIndex(Traits.Pick(0.9999, 0)) == #Traits.Tiers, "trait picks span every tier")
 check(Traits.Better("godspeed", "swift") and not Traits.Better("swift", "fleet") and Traits.Better("swift", nil), "a better trait beats a worse one or none")
 local trng = Random.new(9)
@@ -82,7 +82,7 @@ for _ = 1, 200000 do
 		mythic += 1
 	end
 end
-check(math.abs(mythic / 200000 - Traits.Tiers[#Traits.Tiers].Chance) < 0.001, "Mythic traits roll at their listed chance")
+check(math.abs(mythic / 200000 - Traits.Tiers[#Traits.Tiers].Chance) < 0.001, "Secret traits roll at their listed chance")
 check(Traits.Text("tempest"):find("speed") ~= nil, "trait text names its effects")
 
 -- Luck sources.

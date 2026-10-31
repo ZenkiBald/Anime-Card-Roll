@@ -83,7 +83,9 @@ local feedOrder = 0
 local FEED_Y = 0.6 -- the Auto Roll feed's centre: below the server list, above the potion tiles
 local bannerToken = 0
 local hintToken = 0
-local toastToken = 0
+local hintTween, bannerTween
+local rewardQueue = {}
+local showingReward = false
 
 local function compactHud(): boolean
 	return gui.AbsoluteSize.Y > 0 and gui.AbsoluteSize.Y < 540
@@ -1485,35 +1487,36 @@ end
 function Hud.Hint(text: string)
 	hintToken += 1
 	local token = hintToken
+	if hintTween then hintTween:Cancel() end
+	local same = hintLabel.Text == text and hintLabel.TextTransparency < .05
 	hintLabel.Text = text
-	Kit.tween(hintLabel, 0.15, { TextTransparency = 0 })
+	if not same then hintTween = Kit.tween(hintLabel, .15, { TextTransparency = 0 }) end
 	task.delay(1.6, function()
-		if token == hintToken then
-			Kit.tween(hintLabel, 0.4, { TextTransparency = 1 })
-		end
+		if token == hintToken then hintTween = Kit.tween(hintLabel, .4, { TextTransparency = 1 }) end
 	end)
 end
 
--- "+💎25  🍀x1" popping in at the top of the screen.
+-- One presentation worker: new rewards cannot restart a toast's scale or race its exit tween.
 function Hud.Reward(text: string)
-	if text == "" then
-		return
-	end
-	toastToken += 1
-	local token = toastToken
-	RewardLine.Set(toast.Text, text)
-	toast.Visible = true
-	toast.Scale.Scale = 0.4
-	Kit.tween(toast.Scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
-	Effects.Sparks(toast, Theme.Color.Gold, 10, 1.2)
-	task.delay(2.6, function()
-		if token == toastToken then
-			Kit.tween(toast.Scale, 0.2, { Scale = 0 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Connect(function()
-				if token == toastToken then
-					toast.Visible = false
-				end
-			end)
+	if text == "" then return end
+	local tail = rewardQueue[#rewardQueue]
+	if tail and tail.Text == text then tail.Count += 1
+	else table.insert(rewardQueue, {Text=text, Count=1}) end
+	if showingReward then return end
+	showingReward = true
+	task.spawn(function()
+		while #rewardQueue > 0 do
+			local item = table.remove(rewardQueue,1)
+			RewardLine.Set(toast.Text,item.Text .. (if item.Count > 1 then ` · {item.Count} rewards` else ""))
+			toast.Visible = true
+			toast.Scale.Scale = .85
+			Kit.tween(toast.Scale,.2,{Scale=1},Enum.EasingStyle.Quad).Completed:Wait()
+			Effects.Sparks(toast,Theme.Color.Gold,10,1.2)
+			task.wait(2.2)
+			Kit.tween(toast.Scale,.2,{Scale=0},Enum.EasingStyle.Quad,Enum.EasingDirection.In).Completed:Wait()
+			toast.Visible = false
 		end
+		showingReward = false
 	end)
 end
 
@@ -1590,6 +1593,7 @@ function Hud.Announce(playerName: string, cardId: string, borderId: string?, foi
 	end
 	local border = Borders.Get(borderId)
 	local secret = borderId == "Secret"
+	if bannerTween then bannerTween:Cancel() end
 	bannerToken += 1
 	local token = bannerToken
 	-- A Secret border gets the gold server banner; others wear their border's colours.
@@ -1606,10 +1610,12 @@ function Hud.Announce(playerName: string, cardId: string, borderId: string?, foi
 		else `{playerName} rolled a <b>{what}</b> {card.Name}, {card.Title}!`
 	bannerLabel.TextColor3 = if secret then Color3.fromRGB(40, 24, 0) else Color3.new(1, 1, 1)
 	banner.Visible = true
-	Kit.tween(banner, 0.35, { Position = UDim2.new(0.5, 0, 0, 72) }, Enum.EasingStyle.Back)
+	bannerTween = Kit.tween(banner, 0.35, { Position = UDim2.new(0.5, 0, 0, 72) }, Enum.EasingStyle.Back)
 	task.delay(4.5, function()
 		if token == bannerToken then
-			Kit.tween(banner, 0.3, { Position = UDim2.new(0.5, 0, 0, -80) }).Completed:Connect(function()
+			bannerTween = Kit.tween(banner, 0.3, { Position = UDim2.new(0.5, 0, 0, -80) })
+			bannerTween.Completed:Once(function(state)
+				if state ~= Enum.PlaybackState.Completed then return end
 				if token == bannerToken then
 					banner.Visible = false
 				end

@@ -127,14 +127,16 @@ they do not count toward normal completion rewards. No event Supports or same-we
 Normal pulls keep their usual rates / quantities. While a sky is active, every normal pull (a click, each
 Triple Roll card, every pack pull) also searches it once; there is no time throttle. `CelestialRolls.Search`
 draws all of a click's or a pack's searches at once (BulkRoll multinomial), with disjoint per-card chances
-`1 / SkyOneIn x (1 + (luck - 1) x 0.35)` (`CelestialRolls.LuckWeight`, 2026-10-30) and a no-find remainder (capped
-at 50% a search for absurd luck). The user's 2026-10-30 odds: Limitbreak: Emerald Titan 300 / Azure Fusion 400 /
-Ego Sovereign 500 / Silver Sovereign 650; Soulfall: Hollow Ascendant 600 / Chrysalis Overlord 800 /
-Sunblade Patriarch 1,000 / All-Seeing Emperor 1,250; Cursed Night: Nullborn Hunter 600 / Bound Prodigy 800 /
-Honored Anomaly 1,000 / Four-Armed Calamity 1,250; Blood Moon: Shattering Compass 1,200 / Crimson Frost
-Sovereign 1,500 / Crescent Demon 2,000 / Immortal Progenitor 2,500. Displayed border rarity uses that base
-chance and border odds (Crescent Demon Secret 1 in 1 billion, Immortal Progenitor 1 in 1.25 billion). Rarer sky cards have greater actual stats, and each outstats every
-normal / boss card that is no rarer. Bulk receipts include every normal and
+`1 / SkyOneIn x min(2, 1 + (luck - 1) x 0.1)` (`CelestialRolls.Chances`); the remaining probability
+is no sky find. Normal card and border luck are unchanged. Authored base odds (2026-10-31): Limitbreak:
+Emerald Titan 10,000 / Azure Fusion 15,000 / Ego Sovereign 25,000 / Silver Sovereign 40,000; Soulfall:
+Hollow Ascendant 20,000 / Chrysalis Overlord 30,000 / Sunblade Patriarch 50,000 / All-Seeing Emperor 80,000;
+Cursed Night: Nullborn Hunter 20,000 / Bound Prodigy 30,000 / Honored Anomaly 50,000 / Four-Armed Calamity
+80,000; Blood Moon: Shattering Compass 50,000 / Crimson Frost Sovereign 75,000 / Crescent Demon 125,000 /
+Immortal Progenitor 200,000. Displayed border rarity uses these same base odds and border odds. Each sky's
+rarer cards have greater actual stats; every sky card outstats all normal / boss cards at the same border.
+Limitbreak base ATK is 3,350 / 3,500 / 3,650 / 3,800; Blood Moon remains the strongest sky.
+The live ODDS panel calls the same chance function, including its luck cap. Bulk receipts include every normal and
 bonus card in the same rarest-first highlights / complete grouped summary. No out-of-weather event drops.
 Matching sky cards gain +20% ATK / max HP in every battle, reverting when it ends; transitions preserve HP
 percentage and never provide free healing. BEST DECK accounts for the active sky.
@@ -194,8 +196,16 @@ damage, a 350% bond combo instead of 300%, then trait slot 2. Mastery never mult
 percentages. Existing second-slot access survives migration (`Trait2Unlocked`); old copies grant no free mastery.
 Cards, borders, copies, traits and presets are preserved by the idempotent SaveMigration steps.
 
-Traits are bought at Kenshin with Trait Shards (battle-only: SPD / crit / guard / energy, never ATK /
-HP); AUTO continues until a ticked trait lands, Stop, closing the panel, insufficient shards or leaving Kenshin.
+Traits are bought at Kenshin with Trait Shards. Each grants both DMG / HP and its existing speed / crit /
+guard / starting-energy specialty: Rare 1.10x, Epic 1.20x, Legendary 1.40x, Mythic 1.75x. Secret adds Apex
+(1.90x, +20% speed / +10% crit), Sovereign (2x, +20% crit / +50% crit damage), Eternal (2x, +20% guard /
++50% starting energy). Tier odds are 70% / 25% / 4.5% / 0.45% / 0.05%; traits split their tier equally,
+so each Secret is 1 in 6,000. The strongest unlocked trait among the Attack and matching Support's two
+slots supplies one column multiplier, capped at 2x; specialties still combine. Locked second slots do
+nothing. BattleEngine, deck ratings / Best Deck and stat panels use that same rule; a Support never gains
+its own DMG or HP. Existing trait IDs / pending rolls need no save-format change. All sixteen icon
+prompts / filenames are in `docs/TRAIT_ICON_PROMPTS.md`; the picker uses text until supplied.
+AUTO continues until a ticked trait lands, Stop, closing the panel, insufficient shards or leaving Kenshin.
 Each server request validates / charges at most `Traits.AutoMax` rolls; Stop finishes the current batch. The UI
 shows cumulative rolls and spending for the run. A miss keeps the old trait. Every action is rate-limited. The Index lists
 every card by best border with completion rewards per border. A card can be worn as your avatar (element aura; Rainbow
@@ -411,6 +421,10 @@ keeps text crafting buttons even with no Sigils owned. Trait Master balances / r
 Trait Shard image, with slot names above the cost. All 13 trait icon subjects and a shared art prompt are
 in `docs/TRAIT_ICON_PROMPTS.md`; their existing icons remain until the user supplies the new artwork.
 Holographic rarity rims follow the outside silhouette at zero inset, retaining the inner white bevel.
+CardTile clips only its art well, inset 3 pixels; its root does not clip the exterior rim. Grid padding
+reserves space around outer strokes. Small card names / rarity use GothamBold with thin outlines;
+GothamMedium body copy and GothamBold technique names keep skill descriptions readable. FredokaOne
+is reserved for main display headings. Shared text strokes honor authored color, thickness and opacity.
 The hidden-battle return / result widget sits at top-center below the event strip, clear of the sky panel.
 
 **Look.** Character artwork sits in glossy simulator-style vector controls. `UI/VectorStyle` supplies
@@ -422,7 +436,7 @@ summon-button and icon atlases without deleting them; `Skin` keeps the existing 
 `src/configs/UITheme.luau` feeds Theme with navy / lilac surfaces and element / border colours where meaningful.
 The earlier image kit remains archived under `art/ui/occult/` for reference.
 
-The HUD has a vertical menu with 20 px FredokaOne labels and distinct saturated gradients: crimson BATTLE,
+The HUD has a vertical menu with 20 px bold labels and distinct saturated gradients: crimson BATTLE,
 royal-blue SQUAD, violet BAG, emerald QUESTS, cyan TRAVEL, gold STORE and orange DEV.
 Sidebar notification badges are plain crimson 26 px circles with a 1.2 px text outline and no inner bevel.
 It has an opaque currency group, a quiet Kenji tracker / claim seal,
@@ -461,7 +475,7 @@ them out of grid / list layouts. TextButton labels are mirrored above their fill
 or cover white text; existing text changes / selection strokes continue to work.
 Tiles show art, a plain ATTACK / SUPPORT label, element, name, xN, FUSE! at 100 copies and the
 rarity number, with no combat stats. A black transparent-to-dark vignette covers the bottom 38%; centered
-names end at 82% height and gold / cyan rarity numbers end at 96%, in separate rows. Names scale 6–14
+names end at 82% height and gold / cyan rarity numbers end at 96%, in separate rows. Names scale 6–15
 to fit the smallest profile deck tiles; stats live in the inspector / tooltip. Vault tiles are
 larger; the phone inspector collapses until selection; deck thumbnails omit duplicate tiny name / rarity labels.
 DECK explains the two card types and numbered pairs. Attack slots show damage / HP; Support slots show their actual
@@ -549,7 +563,8 @@ The character artwork pass did not change identities. The later character-to-Att
   rarity (the 2026-10-30 tiers above, HP = 2 x ATK; among normal cards (and among boss cards) a rarer card never has less ATK, odds_test checks), so a rare
   Gold may outdo a common Rainbow. Duplicates add +0.5% ATK / HP each up to +25% (the user's call, 2026-10-30);
   mastery never multiplies ATK / HP. The same card on one border never reaches itself on the next through mastery
-  (odds_test checks). Traits stay small (never ATK / HP). Rolls are pure luck: no pity (luck only tilts odds).
+  (odds_test checks). Traits grant their separate strongest-per-column 1.10x–2x DMG / HP multiplier plus
+  specialties. Rolls are pure luck: no pity (luck only tilts odds).
   Fusion is border fusion only: 100 copies at one border -> 1 at the next, for every card.
 - Content is data: a new card is one entry in `Cards.luau` (stats, abilities, `Role`, `Weight`, `Element`, `Image`); a
   boss or difficulty one entry in `Bosses.luau`; a relic or artifact in `Items.luau`; a trait in `Traits.luau`; a potion / gift /
@@ -613,3 +628,12 @@ card / supply grants edit the developer's existing test save. No new save fields
 - UI property names (props set through `Kit.new` aren't type checked): `python tests/check_props.py tests/defs/globalTypes.d.luau src`
 - Headless tests (odds, cards, progression, decks, battles, tower, strategy, phase 2, tutorial, save migration):
   `python tests/bundle.py` then `luau tests/bundle_out.luau`
+
+Reward toasts use one sequential animation worker, coalescing repeated queued messages instead of
+restarting the visible toast's scale. Hint / announcement tweens cancel old transitions before changing
+content; repeated hints extend their lifetime. Quick roll batches hold the tray for at least 1.4 seconds,
+while every actual pull still enters ownership / the feed. Routine AUTO Triple Roll hints are suppressed.
+World titles reuse the map's authored town-gateway anchors once; legacy duplicate billboards stay
+hidden. NPC / destination titles use GothamBold with thin outlines, world-space height offsets and
+bounded distance scaling; NPC detail switching has hysteresis. Battle / tower / Pagoda / raid previews
+use item names and quantities instead of legacy emoji labels.

@@ -11,23 +11,23 @@ local function make(class, props, parent)
 end
 
 local function text(parent, name, value, y, height, cap, color)
-	local label = make("TextLabel", { Name = name, Text = value, Font = Enum.Font.FredokaOne,
+	local label = make("TextLabel", { Name = name, Text = value, Font = if name=="Title" then Enum.Font.GothamBold else Enum.Font.GothamMedium,
 		BackgroundTransparency = 1, TextColor3 = color, TextScaled = true, TextWrapped = true,
 		Position = UDim2.fromScale(.04,y), Size = UDim2.fromScale(.92,height), ZIndex = 2 }, parent)
 	make("UITextSizeConstraint", { MinTextSize = 8, MaxTextSize = cap }, label)
-	make("UIStroke", { Color = Color3.fromRGB(10,13,21), Thickness = 2,
+	make("UIStroke", { Color = Color3.fromRGB(10,13,21), Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual }, label)
 	return label
 end
 
 -- Destination titles retain their original floating presentation, readable across the town.
 function Signs.Destination(parent, offset, title, sub, color)
-	local gui = make("BillboardGui", { Name="Sign", Size=UDim2.fromOffset(340,86),
-		StudsOffset=Vector3.new(0,offset,0), MaxDistance=600, LightInfluence=0,
+	local gui = make("BillboardGui", { Name="Sign", Size=UDim2.fromOffset(290,72),
+		StudsOffsetWorldSpace=Vector3.new(0,offset,0), MaxDistance=600, LightInfluence=0,
 		AlwaysOnTop=false, ZIndexBehavior=Enum.ZIndexBehavior.Sibling }, parent)
 	gui:SetAttribute("Destination",true)
 	local plate=make("CanvasGroup",{Name="Plate",Size=UDim2.fromScale(1,1),BackgroundTransparency=1},gui)
-	text(plate,"Title",title,0,.6,32,Color3.new(1,1,1))
+	text(plate,"Title",title,0,.6,27,Color3.new(1,1,1))
 	text(plate,"Sub",sub,.64,.3,18,color:Lerp(Color3.new(1,1,1),.2))
 	CollectionService:AddTag(gui,"FadeSign")
 	return gui
@@ -35,7 +35,7 @@ end
 
 function Signs.Npc(parent, offset, title, sub, color)
 	local gui = make("BillboardGui", { Name = "Sign", Size = UDim2.fromOffset(178,48),
-		StudsOffset = Vector3.new(0,math.min(offset,4.3),0), MaxDistance = 76,
+		StudsOffsetWorldSpace = Vector3.new(0,math.min(offset,4.3),0), MaxDistance = 76,
 		LightInfluence = 0, AlwaysOnTop = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, parent)
 	gui:SetAttribute("NearTitle",title)
 	gui:SetAttribute("ShortTitle",if title == "HOSHI" then "FUSION" elseif title == "KENSHIN" then "TRAITS" elseif title == "KENJI" then "GUIDE" else title)

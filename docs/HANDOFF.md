@@ -9,6 +9,21 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- UI / SKY / TRAIT POLISH COMPLETE (2026-10-31): four-sided exterior tile rims (only art clips),
+  restrained small-text outlines / Gotham body fonts, single authored gateway headings / compact NPC
+  plates, emoji-free battle previews, serialized reward toasts / cancelled stale hint and banner tweens.
+  Sky chances now 1 in 10,000–200,000 per actual pull, with at most 2x sky luck; ODDS shares the server
+  formula. Packs still search every pull, no new cooldown, all ownership preserved. Limitbreak ATK now
+  3,350–3,800 so even its weakest exceeds normal / boss cards; W3 Normal / Hard recommendations track
+  the existing fixture decks' new ratings (HP / moves untouched). Traits grant both DMG / HP: Rare 1.10x,
+  Epic 1.20x, Legendary 1.40x, Mythic 1.75x; new Secret Apex 1.90x, Sovereign / Eternal 2x. Strongest
+  unlocked trait in each column wins that multiplier; specialties combine, Supports have no own stats.
+  All 16 icon prompts / exact filenames: docs/TRAIT_ICON_PROMPTS.md (art not supplied / integrated yet).
+  Type 0 errors / 7 existing warnings, props 5942 / 0 problems, full headless suite passed. Desktop
+  Squad / Trait Master / Tower / labels / rapid notifications checked. Studio Edit; no map / asset edits
+  or publishing. User aesthetics / phone / long-session sky and trait pacing remain checklist 5.
+  Pull / reconnect Rojo / restart Play; cards and bosses were not renamed.
+
 - TOWER / BONDS / INVENTORY QoL COMPLETE (2026-10-30): guaranteed Infinite Tower checkpoints at
   5 / 10 / 25 / 50 / 75 / 100; floor 10 Clover + Skyward title, floor 50 Prism, floor 100 Colossal
   Pack + existing Spire Heart + Endless Ascendant title. Flags survive runs; old best records collect
@@ -226,6 +241,41 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-10-31 · Codex · this commit · User requested clipped Squad borders, cleaner UI / NPC fonts,
+  rarer sky cards, old battle emojis removed, stable notifications, meaningful stat traits / rarer chase
+  traits and updated icon prompts. Pulled shared branch at 4481b9f, Status was IDLE. CardTile root no
+  longer clips its exterior rim; a separate 3px-inset art well clips imagery. Name / rarity stay in their
+  separate bottom rows. Theme / VectorStyle preserve Gotham small labels and medium body copy;
+  Kit.textStroke now honors authored settings. Technique names have restrained outlines. World titles
+  reuse original town-gateway anchors once instead of also recreating distant arena headings; NPC
+  offsets are world-space, detail switching has hysteresis. Battle / Tower / Pagoda / raid previews
+  use clean names / quantities instead of legacy emoji. No saved map / tower changes.
+  Hint / banner transitions cancel prior tweens, reward toasts have one worker with adjacent duplicate
+  coalescing, AUTO no longer repeats routine Triple hints; quick trays hold for 1.4s without losing
+  feed / ownership results. Sixteen rapid calls: zero hint fade frames during refresh, one reward
+  visibility transition in 1.6s. Studio screenshots reviewed Squad exterior rims, trait picker and Tower;
+  final Play confirms one readable world heading at each authored gateway. NPC near plate inspected.
+  Sky tables now Limitbreak 10k / 15k / 25k / 40k; Soulfall / Cursed Night 20k / 30k / 50k / 80k;
+  Blood Moon 50k / 75k / 125k / 200k. Sky luck = min(2, 1 + .1*(luck-1)); normal luck unchanged.
+  ODDS calls CelestialRolls.Chances rather than duplicating its formula. Single / bulk distribution
+  tests passed; every actual pack pull still searches, no new timer. Existing cards / piles untouched.
+  Limitbreak stats raised above the strongest normal boss card; Vex recommendations updated to
+  1,387,200 / 2,774,400 to match existing fixture decks, with no boss HP / ATK / move changes.
+  Traits keep all 13 IDs / names / specialties, rounded speed / crit to clean 5% steps. Tier stat boosts
+  1.10x / 1.20x / 1.40x / 1.75x, three new Secrets Apex 1.90x, Sovereign / Eternal 2x. Tier odds
+  70 / 25 / 4.5 / .45 / .05%; each Secret 1/6000. Strongest unlocked trait among Attack + matching
+  Support slots sets the column's one DMG / HP multiplier, capped at 2x; specialty buffs still combine.
+  Battle constructor / service, ratings / Best Deck, stat lines, working-deck plates and profile preview
+  agree; Support still has no own damage / HP. Tests cover nil holes, locked slots, stat cap, paired
+  server stats / deck rating, Secret odds and old / pending traits surviving repeated migration. No
+  save-format change. All 16 trait-art prompts / filenames updated; no trait images generated / uploaded.
+  Required checks: type 0 errors (7 pre-existing warnings), props 5942 / 0 problems, rebuilt bundle /
+  luau ALL CHECKS PASSED, diff check clean. Logs ignored under studio-local/polish-*. No persistent
+  profile replacement / inventory actions; temporary Play-only visual helpers discarded by Stop.
+  Studio Edit, no place published. Unrelated .codex and old untracked art left untouched. Unsure:
+  user aesthetic approval, phone text / grid scrolling, long-session sky scarcity / trait chase pacing;
+  checklist 5 records these. Pull / reconnect Rojo / restart Play.
 
 - 2026-10-30 · Codex · this commit · User approved tower milestones / clearer next goals / unlucky
   starter review / hidden-battle overlap plus bonds, rims, AMOUNT / MAX, empty BAG, 10000 packs, Triple
