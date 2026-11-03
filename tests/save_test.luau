@@ -24,6 +24,20 @@ do
 end
 
 do
+	local fresh = { Cards = {} }
+	SaveMigration.Migrate(fresh)
+	check(type(fresh.Weekly) == "table" and fresh.Weekly.Week == 0 and next(fresh.Weekly.Progress) == nil,
+		"weekly quests start empty on an old save")
+	fresh.Weekly = { Week = 2860, Progress = { w_roll = 900 }, Claimed = { w_boss = true } }
+	local again = SaveMigration.Migrate(fresh)
+	check(not table.find(again, "weekly quests initialized") and fresh.Weekly.Progress.w_roll == 900 and fresh.Weekly.Claimed.w_boss,
+		"weekly quest migration keeps a valid week's progress and claims")
+	local broken = { Cards = {}, Weekly = "junk" }
+	SaveMigration.Migrate(broken)
+	check(type(broken.Weekly) == "table" and type(broken.Weekly.Claimed) == "table", "a malformed weekly record is repaired")
+end
+
+do
 	local d = { Cards = {}, Progress = { Cleared = { ["kurogane:Normal"] = true } },
 		Tutorial = { Step = 4 }, Titles = { Apprentice = true }, Settings = { Title = "Apprentice" } }
 	SaveMigration.Migrate(d)

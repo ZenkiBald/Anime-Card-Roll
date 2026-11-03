@@ -40,6 +40,7 @@ local TEMPLATE = {
 	Milestones = {},
 	-- Daily quests: progress per quest id for Day (reset when the day changes), and the claimed ones.
 	Quests = { Day = 0, Progress = {}, Claimed = {} },
+	Weekly = { Week = 0, Progress = {}, Claimed = {} }, -- weekly quests (MetaService.questWeek)
 	-- Player level (Meta.XPToNext) and XP toward the next one.
 	Level = 1,
 	XP = 0,

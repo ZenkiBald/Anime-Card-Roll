@@ -175,6 +175,19 @@ local function questDay(data): number
 	return today
 end
 
+-- Starts a fresh quest week (Monday 00:00 UTC) when the week has changed.
+local function questWeek(data): number
+	local week = Meta.WeekNumber(os.time())
+	if type(data.Weekly) ~= "table" then
+		data.Weekly = { Week = week, Progress = {}, Claimed = {} }
+	elseif data.Weekly.Week ~= week then
+		data.Weekly.Week = week
+		data.Weekly.Progress = {}
+		data.Weekly.Claimed = {}
+	end
+	return week
+end
+
 -- Counts `amount` toward today's quests that track `stat` (called by the roll, battle, fusion and
 -- gift code on the server).
 function MetaService.Track(player: Player, stat: string, amount: number?)
@@ -190,6 +203,12 @@ function MetaService.Track(player: Player, stat: string, amount: number?)
 			data.Quests.Progress[id] = math.min(quest.Goal, (data.Quests.Progress[id] or 0) + (amount or 1))
 		end
 	end
+	questWeek(data)
+	for _, quest in Meta.WeeklyQuests do
+		if quest.Stat == stat then
+			data.Weekly.Progress[quest.Id] = math.min(quest.Goal, (data.Weekly.Progress[quest.Id] or 0) + (amount or 1))
+		end
+	end
 end
 
 -- Today's quests for the client: ids with progress and claimed flags (text and rewards are in Meta).
@@ -200,6 +219,16 @@ function MetaService.QuestState(player: Player, data)
 		table.insert(list, { Id = id, Progress = data.Quests.Progress[id] or 0, Claimed = data.Quests.Claimed[id] == true })
 	end
 	return { Day = today, ResetIn = 86400 - os.time() % 86400, List = list }
+end
+
+-- This week's quests for the client (every player gets all of Meta.WeeklyQuests).
+function MetaService.WeeklyState(data)
+	local week = questWeek(data)
+	local list = {}
+	for _, quest in Meta.WeeklyQuests do
+		table.insert(list, { Id = quest.Id, Progress = data.Weekly.Progress[quest.Id] or 0, Claimed = data.Weekly.Claimed[quest.Id] == true })
+	end
+	return { Week = week, ResetIn = Meta.WeekResetIn(os.time()), List = list }
 end
 
 -- Raid Luck: x2 for the whole server for a while after a cleared raid (RaidService sets the attribute).
@@ -275,6 +304,7 @@ function MetaService.State(player: Player, data)
 		Momentum = Momentum.State(player),
 		Volume = { Music = data.Settings.Music, Effects = data.Settings.Effects },
 		Quests = MetaService.QuestState(player, data),
+		Weekly = MetaService.WeeklyState(data),
 		Level = { Level = data.Level, XP = data.XP, Need = Meta.XPToNext(data.Level) },
 		Stats = data.Stats,
 		StatPoints = Meta.StatPoints(data.Level) - Meta.StatsSpent(data.Stats),
@@ -319,6 +349,7 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 			for i in Meta.Playtime do collect("ClaimGift",i) end
 			for i in Meta.Milestones do collect("ClaimMilestone",i) end
 			for _,id in Meta.QuestsFor(questDay(data),player.UserId) do collect("ClaimQuest",id) end
+			for _,quest in Meta.WeeklyQuests do collect("ClaimWeekly",quest.Id) end
 		end
 		for _,id in Borders.Order do collect("ClaimIndex",id) end
 		return true,nil,bundle,{Claimed=count}
@@ -469,6 +500,21 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 		end
 		data.Quests.Claimed[quest.Id] = true
 		MetaService.AddXP(player, data, Meta.XP.Quest)
+		return true, nil, MetaService.Grant(data, quest.Reward, player)
+	elseif action == "ClaimWeekly" then
+		local quest = type(arg) == "string" and Meta.WeeklyById[arg]
+		if not quest then
+			return false, "BadRequest"
+		end
+		questWeek(data)
+		if data.Weekly.Claimed[quest.Id] then
+			return false, "Claimed"
+		end
+		if (data.Weekly.Progress[quest.Id] or 0) < quest.Goal then
+			return false, "NotYet"
+		end
+		data.Weekly.Claimed[quest.Id] = true
+		MetaService.AddXP(player, data, Meta.XP.Quest * 3)
 		return true, nil, MetaService.Grant(data, quest.Reward, player)
 	elseif action == "SpinWheel" then
 		if not NpcRange.Near(player, "fortune") then

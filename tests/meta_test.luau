@@ -194,6 +194,26 @@ for d = 20001, 20010 do
 end
 check(changes, "daily quests change from day to day")
 
+-- Weekly quests: real rewards, unique ids, stats the server tracks, and the Featured Card's week.
+do
+	local known = { Rolls = true, EpicPulls = true, BossWins = true, HardWins = true, Fusions = true, Gifts = true,
+		Potions = true, TowerFloors = true, TraitRolls = true, Momentum100 = true, RaidRuns = true }
+	local ok, seen = #Meta.WeeklyQuests >= 4, {}
+	for _, q in Meta.WeeklyQuests do
+		ok = ok and bundleOk(q.Reward) and q.Goal > 0 and known[q.Stat] and not seen[q.Id] and Meta.QuestById[q.Id] == nil
+			and Meta.WeeklyById[q.Id] == q and Meta.Describe(q.Reward) ~= "" and (q.Reward.Shards or 0) == 0
+		seen[q.Id] = true
+	end
+	check(ok, "weekly quests: unique ids, tracked stats, real rewards, no retired Shards")
+	local weekSame = true
+	for _, t in { 0, 345599, 345600, 1_700_000_000, 1_793_664_000, 1_793_750_399 } do
+		weekSame = weekSame and Meta.WeekNumber(t) == Cards.WeekAt(t)
+			and Meta.WeekResetIn(t) > 0 and Meta.WeekResetIn(t) <= 604800
+			and t + Meta.WeekResetIn(t) == Cards.WeekEnds(t)
+	end
+	check(weekSame, "weekly quests reset with the Featured Card's Monday 00:00 UTC week")
+end
+
 -- Levels: each level costs more than the last, rewards name real potions, luck every 10 levels.
 local levelsOk = true
 for level = 1, Meta.MaxLevel - 1 do

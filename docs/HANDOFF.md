@@ -242,6 +242,15 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Log (newest first)
 
+- 2026-11-03 · Claude Code · this commit · User: "do more". Weekly quests for the session 2-5 drop-off: six fixed
+  quests every week (Monday 00:00 UTC, the Featured Card's week; `Meta.WeeklyQuests`, `Meta.WeekNumber` /
+  `WeekResetIn`): 2,000 rolls, 15 boss wins, 5 Hard / Nightmare wins, 25 tower floors, 2 fusions, 5 raid runs;
+  rewards are packs / potions / Trait Shards / Fragments / an Orb (no retired Shards). `MetaService.Track` also
+  counts them (practice wins still count nothing), `WeeklyState` in State and on each roll result, ClaimWeekly
+  (+3x quest XP) and CLAIM ALL. Save field `Weekly` (DataService default, SaveMigration init / repair, save_test);
+  Gifts shows WEEKLY QUESTS under the dailies; badge counts ready ones. Type 0 errors, props 0, headless ALL
+  CHECKS PASSED. Not seen in Studio (checklist 5).
+
 - 2026-11-03 · Claude Code · this commit · User: "do more research and improve the game". Research (Sol's RNG,
   Anime Card Clash, Roblox retention guidance; most sites unreachable from the cloud sandbox) pointed at reachable
   gear chases and tower checkpoints. Changes: `Items.RelicChance` 0.1% -> 1% (one chosen Mythic was ~19,000

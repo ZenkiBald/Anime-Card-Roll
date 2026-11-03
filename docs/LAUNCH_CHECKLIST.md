@@ -60,6 +60,10 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] Weekly quests (2026-11-03): QUESTS > DAILY & GIFTS shows WEEKLY QUESTS under the dailies with a
+  "new week in Nd hh:mm" timer; rolling moves "Roll 2,000 times" live; a finished weekly can be claimed alone
+  and through CLAIM ALL; the QUESTS badge counts it; the rows and reward lines fit on a phone.
+
 - [ ] Checkpoint / relic / Clash pass (2026-11-03): lose an Infinite Tower run past floor 25 and check the result
   screen says the next run starts at floor 26 and the tower panel agrees; BAG / tower texts say relics drop at 1%;
   at 2x speed the Clash ring stays up about 1 second.

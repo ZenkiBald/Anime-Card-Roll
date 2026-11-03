@@ -36,6 +36,7 @@ local State = {
 	Meta = {
 		Celestial = {Fragments=0,Inventory={}},
 		Quests = { Day = 0, ResetIn = 0, List = {} },
+		Weekly = { Week = 0, ResetIn = 0, List = {} },
 		Level = { Level = 1, XP = 0, Need = 80 },
 		Wheel = { Spins = 0, Progress = 0 },
 		Stats = {},
@@ -231,6 +232,9 @@ function State.ApplyRoll(result)
 	end
 	if result.Quests then
 		State.Meta.Quests = result.Quests
+	end
+	if result.Weekly then
+		State.Meta.Weekly = result.Weekly
 	end
 	if result.Summary then
 		State.Summary = result.Summary

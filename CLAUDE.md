@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-11-03, after the relic / checkpoint / Clash-window pass). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-11-03, after the relic / checkpoint / Clash-window and weekly quest passes). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -404,7 +404,14 @@ converted by `Meta.RetireShards` before grant / display. A normal trait reroll c
 Luck Potion I / II / III add +1.5 / +3 / +6 luck for 5 / 10 / 15 minutes (2026-10-30). Only the strongest active luck potion
 counts; same-kind uses add time up to an hour. Running old II / III timers are extended once on migration.
 
-CLAIM ALL on DAILY & GIFTS pays every ready daily streak, playtime gift, roll milestone, daily quest and
+**Weekly quests** (2026-11-03, `Meta.WeeklyQuests`): every player gets the same six each week, resetting Monday
+00:00 UTC like the Featured Card (`Meta.WeekNumber` = `Cards.WeekAt`): 2,000 rolls, 15 boss wins, 5 Hard /
+Nightmare wins, 25 Infinite Tower floors, 2 fusions, 5 raid runs, paying packs / potions / Trait Shards /
+Fragments / a Celestial Orb. `MetaService.Track` counts daily and weekly together (practice wins count nothing);
+saved as `Weekly = { Week, Progress, Claimed }`; ClaimWeekly gives 3x quest XP. DAILY & GIFTS lists them under
+the daily quests; the QUESTS badge counts ready ones.
+
+CLAIM ALL on DAILY & GIFTS pays every ready daily streak, playtime gift, roll milestone, daily quest, weekly quest and
 Index reward using the same individual server eligibility / paid flags. Gifts are processed before
 quests so gift-related quests can finish in the same call. INDEX has a collection-only CLAIM ALL.
 KENJI'S PATH has CLAIM ALL READY, advancing only consecutive ready steps, bounded by the quest count.

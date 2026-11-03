@@ -1,5 +1,5 @@
 --!nonstrict
--- Gifts: today's 3 daily quests, the 7-day login streak, free gifts for time played this session,
+-- Gifts: today's 3 daily quests, this week's quests, the 7-day login streak, free gifts for time played this session,
 -- and lifetime roll milestones. The server checks every claim (MetaService).
 -- Chunky kit tiles with the uploaded icons; claimed (and still-locked playtime) tiles sit under a
 -- dark cover so only what's ready stands out.
@@ -36,6 +36,9 @@ local questBox: Frame
 local questReset: TextLabel
 local questRows = {} -- [questId] = refs
 local questDayShown = nil
+local weeklyBox: Frame
+local weeklyReset: TextLabel
+local weeklyRows = {} -- [questId] = refs
 
 local GOLD_DEEP = Color3.fromRGB(170, 110, 0)
 local CAPTION = Color3.fromRGB(207, 219, 241)
@@ -161,6 +164,66 @@ local function footer(frame: GuiObject, onClaim: () -> ())
 	return button, state
 end
 
+-- One quest row: text, reward, progress bar and CLAIM (daily and weekly quests share it).
+local function questRow(box: Frame, order: number, quest, action: string)
+	local row = Kit.tile({ LayoutOrder = order, Size = UDim2.new(1, -6, 0, 70), Parent = box })
+	Kit.label({
+		Text = quest.Text,
+		Font = Theme.Font.Display,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 14, 0, 8),
+		Size = UDim2.new(0.49, 0, 0, 24),
+		Parent = row,
+	}, 24)
+	RewardLine.new({
+		Position = UDim2.new(0.5, 0, 0, 10),
+		Size = UDim2.new(0.24, -8, 0, 24),
+		Parent = row,
+	}, Meta.Describe(quest.Reward), 19)
+	local track = Kit.new("Frame", {
+		Position = UDim2.new(0, 14, 0, 42),
+		Size = UDim2.new(0.74, -14, 0, 14),
+		BackgroundColor3 = Color3.fromRGB(6, 7, 11),
+		Parent = row,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	local fill = Kit.new("Frame", {
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = Theme.Color.Quick,
+		Parent = track,
+	}, { Kit.corner(UDim.new(1, 0)) })
+	local count = Kit.label({
+		Text = "",
+		Font = Theme.Font.Heavy,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 2,
+		Parent = track,
+	}, 13)
+	Kit.textStroke(Color3.fromRGB(10, 6, 24), 1.5, 0).Parent = count
+	local button = Kit.button("CLAIM", Theme.Color.Gold, GOLD_DEEP, {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -10, 0.5, 0),
+		Size = UDim2.new(0.22, 0, 0, 42),
+		ZIndex = 6,
+		Parent = row,
+	})
+	button.Activated:Connect(function()
+		claim(action, quest.Id, row)
+	end)
+	local state = Kit.label({
+		Text = "",
+		Font = Theme.Font.Display,
+		TextColor3 = CLAIMED_GREEN,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -14, 0.5, 0),
+		Size = UDim2.new(0.22, 0, 0, 24),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 6,
+		Parent = row,
+	}, 22)
+	Kit.textStroke(Color3.fromRGB(10, 6, 24), 2, 0).Parent = state
+	return { Row = row, Stroke = row.UIStroke, Fill = fill, Count = count, Button = button, State = state, Quest = quest }
+end
+
 -- Today's quest rows (rebuilt when the day, and so the quests, change).
 local function buildQuests()
 	for _, child in questBox:GetChildren() do
@@ -176,104 +239,57 @@ local function buildQuests()
 		if quest == nil then
 			continue
 		end
-		local row = Kit.tile({ LayoutOrder = i, Size = UDim2.new(1, -6, 0, 70), Parent = questBox })
-		Kit.label({
-			Text = quest.Text,
-			Font = Theme.Font.Display,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Position = UDim2.new(0, 14, 0, 8),
-			Size = UDim2.new(0.49, 0, 0, 24),
-			Parent = row,
-		}, 24)
-		RewardLine.new({
-			Position = UDim2.new(0.5, 0, 0, 10),
-			Size = UDim2.new(0.24, -8, 0, 24),
-			Parent = row,
-		}, Meta.Describe(quest.Reward), 19)
-		local track = Kit.new("Frame", {
-			Position = UDim2.new(0, 14, 0, 42),
-			Size = UDim2.new(0.74, -14, 0, 14),
-			BackgroundColor3 = Color3.fromRGB(6, 7, 11),
-			Parent = row,
-		}, { Kit.corner(UDim.new(1, 0)) })
-		local fill = Kit.new("Frame", {
-			Size = UDim2.fromScale(0, 1),
-			BackgroundColor3 = Theme.Color.Quick,
-			Parent = track,
-		}, { Kit.corner(UDim.new(1, 0)) })
-		local count = Kit.label({
-			Text = "",
-			Font = Theme.Font.Heavy,
-			Size = UDim2.fromScale(1, 1),
-			ZIndex = 2,
-			Parent = track,
-		}, 13)
-		Kit.textStroke(Color3.fromRGB(10, 6, 24), 1.5, 0).Parent = count
-		local button = Kit.button("CLAIM", Theme.Color.Gold, GOLD_DEEP, {
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -10, 0.5, 0),
-			Size = UDim2.new(0.22, 0, 0, 42),
-			ZIndex = 6,
-			Parent = row,
-		})
-		button.Activated:Connect(function()
-			claim("ClaimQuest", quest.Id, row)
-		end)
-		local state = Kit.label({
-			Text = "",
-			Font = Theme.Font.Display,
-			TextColor3 = CLAIMED_GREEN,
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -14, 0.5, 0),
-			Size = UDim2.new(0.22, 0, 0, 24),
-			TextXAlignment = Enum.TextXAlignment.Right,
-			ZIndex = 6,
-			Parent = row,
-		}, 22)
-		Kit.textStroke(Color3.fromRGB(10, 6, 24), 2, 0).Parent = state
-		questRows[entry.Id] = { Row = row, Stroke = row.UIStroke, Fill = fill, Count = count, Button = button, State = state, Quest = quest }
+		questRows[entry.Id] = questRow(questBox, i, quest, "ClaimQuest")
 	end
 end
 
 local function build()
 	built = true
-	-- Daily quests first: what to do today.
-	local questHead = Kit.new("Frame", {
-		LayoutOrder = -2,
-		Size = UDim2.new(1, 0, 0, 34),
-		BackgroundTransparency = 1,
-		Parent = list,
-	})
-	local questTitle = Kit.label({
-		Text = "DAILY QUESTS",
-		Font = Theme.Font.Display,
-		TextColor3 = Theme.Color.Gold,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.new(0, 0, 0, 2),
-		Size = UDim2.new(0.6, 0, 1, -4),
-		Parent = questHead,
-	}, 28)
-	Kit.textStroke(Color3.fromRGB(70, 40, 0), 2, 0).Parent = questTitle
-	questReset = Kit.label({
-		Text = "",
-		Font = Theme.Font.Heavy,
-		TextColor3 = CAPTION,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.new(0.38, 0, 0, 20),
-		Parent = questHead,
-	}, 18)
-	questBox = Kit.new("Frame", {
-		LayoutOrder = -1,
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-		Parent = list,
-	}, {
-		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
-		Kit.new("UIPadding", { PaddingTop = UDim.new(0, 3), PaddingLeft = UDim.new(0, 3) }),
-	})
+	-- Quests first: today's, then this week's.
+	local function questSection(title: string, order: number): (TextLabel, Frame)
+		local head = Kit.new("Frame", {
+			LayoutOrder = order,
+			Size = UDim2.new(1, 0, 0, 34),
+			BackgroundTransparency = 1,
+			Parent = list,
+		})
+		local titleLabel = Kit.label({
+			Text = title,
+			Font = Theme.Font.Display,
+			TextColor3 = Theme.Color.Gold,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.new(0, 0, 0, 2),
+			Size = UDim2.new(0.6, 0, 1, -4),
+			Parent = head,
+		}, 28)
+		Kit.textStroke(Color3.fromRGB(70, 40, 0), 2, 0).Parent = titleLabel
+		local reset = Kit.label({
+			Text = "",
+			Font = Theme.Font.Heavy,
+			TextColor3 = CAPTION,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -8, 0, 8),
+			Size = UDim2.new(0.38, 0, 0, 20),
+			Parent = head,
+		}, 18)
+		local box = Kit.new("Frame", {
+			LayoutOrder = order + 1,
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 1,
+			Parent = list,
+		}, {
+			Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
+			Kit.new("UIPadding", { PaddingTop = UDim.new(0, 3), PaddingLeft = UDim.new(0, 3) }),
+		})
+		return reset, box
+	end
+	questReset, questBox = questSection("DAILY QUESTS", -4)
+	weeklyReset, weeklyBox = questSection("WEEKLY QUESTS", -2)
+	for i, quest in Meta.WeeklyQuests do
+		weeklyRows[quest.Id] = questRow(weeklyBox, i, quest, "ClaimWeekly")
+	end
 	buildQuests()
 
 	heading("DAILY STREAK", "GIFTS", 1)
@@ -404,6 +420,19 @@ local function highlight(stroke: UIStroke, ready: boolean, dimmed: boolean)
 	stroke.Transparency = if ready then 0 elseif dimmed then 0.65 else 0.1
 end
 
+-- A quest row's bar, count, CLAIM button and state.
+local function paintQuest(refs, entry)
+	local goal = refs.Quest.Goal
+	local done = entry.Progress >= goal
+	refs.Fill.Size = UDim2.fromScale(math.clamp(entry.Progress / goal, 0, 1), 1)
+	refs.Count.Text = `{Kit.commas(entry.Progress)} / {Kit.commas(goal)}`
+	refs.Button.Visible = done and not entry.Claimed
+	refs.State.Text = if entry.Claimed then "✓ CLAIMED" elseif done then "" else "IN PROGRESS"
+	refs.State.TextColor3 = if entry.Claimed then CLAIMED_GREEN else CAPTION
+	highlight(refs.Stroke, done and not entry.Claimed, entry.Claimed)
+	Kit.dimTile(refs.Row, entry.Claimed)
+end
+
 function Gifts.Refresh()
 	if not modal or not modal.IsOpen then
 		return
@@ -421,15 +450,19 @@ function Gifts.Refresh()
 	for _, entry in quests.List do
 		local refs = questRows[entry.Id]
 		if refs then
-			local goal = refs.Quest.Goal
-			local done = entry.Progress >= goal
-			refs.Fill.Size = UDim2.fromScale(math.clamp(entry.Progress / goal, 0, 1), 1)
-			refs.Count.Text = `{Kit.commas(entry.Progress)} / {Kit.commas(goal)}`
-			refs.Button.Visible = done and not entry.Claimed
-			refs.State.Text = if entry.Claimed then "✓ CLAIMED" elseif done then "" else "IN PROGRESS"
-			refs.State.TextColor3 = if entry.Claimed then CLAIMED_GREEN else CAPTION
-			highlight(refs.Stroke, done and not entry.Claimed, entry.Claimed)
-			Kit.dimTile(refs.Row, entry.Claimed)
+			paintQuest(refs, entry)
+		end
+	end
+	-- Weekly quests (every player gets all of them; the server resets them Monday 00:00 UTC).
+	local weekly = State.Meta.Weekly
+	if weekly then
+		local weekIn = math.max(0, math.floor(weekly.ResetIn - (os.clock() - State.MetaAt)))
+		weeklyReset.Text = string.format("new week in %dd %02d:%02d", weekIn // 86400, weekIn // 3600 % 24, weekIn // 60 % 60)
+		for _, entry in weekly.List do
+			local refs = weeklyRows[entry.Id]
+			if refs then
+				paintQuest(refs, entry)
+			end
 		end
 	end
 	-- Daily streak.

@@ -311,6 +311,7 @@ local function rollClick(player: Player, profile, perfect: boolean)
 	end
 	main.Summary = summary(player, data)
 	main.Quests = MetaService.QuestState(player, data)
+	main.Weekly = MetaService.WeeklyState(data)
 	return main
 end
 

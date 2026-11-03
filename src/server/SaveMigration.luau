@@ -268,6 +268,12 @@ function SaveMigration.Migrate(data: any): { string }
 		data.Tower.Checkpoints = {}
 		table.insert(done, "tower checkpoint claims initialized")
 	end
+	-- Weekly quests (2026-11-03) start with an empty week; a malformed record is repaired, a valid one kept.
+	local weekly = data.Weekly
+	if type(weekly) ~= "table" or type(weekly.Progress) ~= "table" or type(weekly.Claimed) ~= "table" then
+		data.Weekly = { Week = 0, Progress = {}, Claimed = {} }
+		table.insert(done, "weekly quests initialized")
+	end
 	return done
 end
 

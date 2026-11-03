@@ -229,6 +229,35 @@ function Meta.QuestsFor(day: number, userId: number): { string }
 	return picked
 end
 
+-- Weekly quests (2026-11-03): every player gets all of these each week, which starts Monday 00:00 UTC
+-- (the same week as the Featured Card, Cards.WeekAt). Bigger goals and rewards than the dailies, so a
+-- few sessions across the week each move something forward; progress counts the same server stats.
+Meta.WeeklyQuests = {
+	{ Id = "w_roll", Text = "Roll 2,000 times", Stat = "Rolls", Goal = 2000, Reward = { Packs = { ["100"] = 1 }, Potions = { superluck = 1 } } },
+	{ Id = "w_boss", Text = "Beat 15 bosses", Stat = "BossWins", Goal = 15, Reward = { TraitShards = 25, Potions = { superluck = 1 } } },
+	{ Id = "w_hard", Text = "Beat 5 bosses on Hard or Nightmare", Stat = "HardWins", Goal = 5, Reward = { Potions = { mythic = 1 }, TraitShards = 15 } },
+	{ Id = "w_tower", Text = "Climb 25 Infinite Tower floors", Stat = "TowerFloors", Goal = 25, Reward = { Packs = { ["1000"] = 1 }, Fragments = 10 } },
+	{ Id = "w_fuse", Text = "Fuse 2 cards", Stat = "Fusions", Goal = 2, Reward = { TraitShards = 30 } },
+	{ Id = "w_raid", Text = "Fight 5 raid runs", Stat = "RaidRuns", Goal = 5, Reward = { Celestial = { orb = 1 }, TraitShards = 20 } },
+} :: { Quest }
+
+Meta.WeeklyById = {} :: { [string]: Quest }
+for _, quest in Meta.WeeklyQuests do
+	Meta.WeeklyById[quest.Id] = quest
+end
+
+local WEEK = 604800
+local MONDAY = 345600 -- the Unix epoch was a Thursday; +4 days is the first Monday 00:00 UTC (as Cards.WeekAt)
+
+function Meta.WeekNumber(unixTime: number): number
+	return math.floor((unixTime - MONDAY) / WEEK)
+end
+
+-- Seconds until the next weekly reset.
+function Meta.WeekResetIn(unixTime: number): number
+	return (Meta.WeekNumber(unixTime) + 1) * WEEK + MONDAY - unixTime
+end
+
 -- Stat points ------------------------------------------------------------------------------------
 -- Every level past 1 gives one point (Meta.StatPoints) to put into one of these, up to its Max.
 -- Per is what one point adds. Points can be taken back with a Shard reset (Meta.StatResetCost).

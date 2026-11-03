@@ -100,8 +100,20 @@ function MetaClient.QuestsReady(): number
 	return n
 end
 
+-- This week's quests that are done but not claimed yet.
+function MetaClient.WeeklyReady(): number
+	local n = 0
+	for _, entry in (State.Meta.Weekly and State.Meta.Weekly.List or {}) :: { any } do
+		local quest = Meta.WeeklyById[entry.Id]
+		if quest and not entry.Claimed and entry.Progress >= quest.Goal then
+			n += 1
+		end
+	end
+	return n
+end
+
 function MetaClient.GiftsClaimable(): number
-	local n = (if State.Meta.Daily.CanClaim then 1 else 0) + MetaClient.QuestsReady()
+	local n = (if State.Meta.Daily.CanClaim then 1 else 0) + MetaClient.QuestsReady() + MetaClient.WeeklyReady()
 	local session = State.SessionSeconds()
 	for i, gift in Meta.Playtime do
 		if session >= gift.Minutes * 60 and not MetaClient.GiftClaimed(i) then
