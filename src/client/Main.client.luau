@@ -275,6 +275,17 @@ Remotes.StoreState.OnClientEvent:Connect(function(message)
 	State.ApplyStore(message)
 	Hud.Refresh()
 end)
+-- Friend luck (Meta.FriendLuck): say so when a friend arrives, and redraw the luck numbers either way.
+local friendsShown = 0
+player:GetAttributeChangedSignal("FriendsHere"):Connect(function()
+	local count = player:GetAttribute("FriendsHere")
+	local n = if type(count) == "number" then count else 0
+	if n > friendsShown and n <= Config.FriendLuck.Max then
+		Hud.Hint(`A friend is here: +{math.floor((Meta.FriendLuck(n) - 1) * 100 + 0.5)}% luck while you play together!`)
+	end
+	friendsShown = n
+	Hud.Refresh()
+end)
 task.spawn(function()
 	local ok, store = pcall(function()
 		return Remotes.Store:InvokeServer("State")

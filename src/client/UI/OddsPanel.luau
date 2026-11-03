@@ -46,7 +46,10 @@ local function refresh()
 		row.Chance.Text = Odds.FormatPercent(chances[id])
 		row.OneIn.Text = Odds.FormatRarity(chances[id])
 	end
-	luckLabel.Text = string.format("Luck %.2fx   ·   every roll is pure luck", luck)
+	local friends = Meta.FriendLuck(game:GetService("Players").LocalPlayer:GetAttribute("FriendsHere"))
+	luckLabel.Text = if friends > 1
+		then string.format("Luck %.2fx (friends +%d%%)   ·   every roll is pure luck", luck, math.floor((friends - 1) * 100 + 0.5))
+		else string.format("Luck %.2fx   ·   every roll is pure luck", luck)
 	borderTitle.Text = if boost > 0
 		then `BORDERS (the tiers)  <font color="#FF78DC">(+{math.floor(boost * 100 + 0.5)}% Border Chance)</font>`
 		else "BORDERS (the tiers)"

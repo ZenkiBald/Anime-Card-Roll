@@ -33,6 +33,10 @@ Config.Unlocks = {
 	AutoRoll = { Rolls = 50, Seconds = 600 },
 }
 
+-- Friend luck (2026-11-03): +10% luck for each Roblox friend in the same server, up to 4 (+40%), multiplying
+-- total luck like an event (Meta.FriendLuck; FriendService counts, MetaService.Luck / State.Luck apply it).
+Config.FriendLuck = { Per = 0.1, Max = 4 }
+
 Config.MaxStars = 5
 Config.StarBonus = 0 -- legacy save field; duplicates grant no combat stats
 

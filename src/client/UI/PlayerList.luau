@@ -2,7 +2,8 @@
 -- The server list, top right (replaces Roblox's player list): everyone in the server, strongest deck
 -- first, each with their favourite card as their picture (favourite one in the INDEX; until then it's
 -- their rarest card), their Deck Power and total rolls. The ">" button folds it to just the header.
--- Tap a row (yourself too) to open that player's PROFILE.
+-- Tap a row (yourself too) to open that player's PROFILE. Friends are tagged; each one here adds luck
+-- (Config.FriendLuck, shown in the header), and INVITE FRIENDS opens Roblox's invite prompt.
 -- The numbers come from player attributes the server sets every 2 s (LeaderboardService).
 
 local Players = game:GetService("Players")
@@ -10,10 +11,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
+local SocialService = game:GetService("SocialService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
 local Borders = require(Shared.Borders)
+local Meta = require(Shared.Meta)
+local Config = require(Shared.Config)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -26,6 +30,7 @@ local changed=Instance.new("BindableEvent")
 PlayerList.Changed=changed.Event
 
 local ROW_HEIGHT = 58
+local INVITE_HEIGHT = 40
 local MAX_ROWS = 5
 
 local gui: ScreenGui
@@ -33,6 +38,8 @@ local panel: Frame
 local list: ScrollingFrame
 local countLabel: TextLabel
 local foldButton: TextButton
+local inviteButton: TextButton
+local friendCache = {} -- [userId] = true / false (IsFriendsWith, asked once)
 local rows = {} -- [Player] = { Frame, Portrait, Fav, Name, Power, Rolls }
 local folded = false
 local hiddenBy = {}
@@ -149,7 +156,21 @@ local function makeRow(player: Player)
 			onPick(player)
 		end
 	end)
-	local row = { Frame = frame, Portrait = portrait, Stroke = stroke, Fav = nil, Power = power, Rolls = rolls }
+	local row = { Frame = frame, Portrait = portrait, Stroke = stroke, Fav = nil, Power = power, Rolls = rolls, Friend = false }
+	-- Friends get a green FRIEND tag on their name (they add luck: Meta.FriendLuck).
+	if not me then
+		task.spawn(function()
+			if friendCache[player.UserId] == nil then
+				local ok, result = pcall(Players.LocalPlayer.IsFriendsWith, Players.LocalPlayer, player.UserId)
+				friendCache[player.UserId] = ok and result == true
+			end
+			row.Friend = friendCache[player.UserId]
+			if row.Friend and name.Parent then
+				name.RichText = true
+				name.Text = `{player.DisplayName} <font color="#78F0A0" size="13">FRIEND</font>`
+			end
+		end)
+	end
 	rows[player] = row
 	return row
 end
@@ -180,10 +201,14 @@ function PlayerList.Refresh()
 		row.Power.Text = `{short(player:GetAttribute("Power") or 0)} Deck Power`
 		row.Rolls.Text = `{short(player:GetAttribute("Rolls") or 0)} Rolls  ·  Lv {player:GetAttribute("Level") or 1}`
 	end
-	countLabel.Text = `SERVER · {#players}`
+	-- Friends here multiply luck: the header says by how much.
+	local boost = Meta.FriendLuck(Players.LocalPlayer:GetAttribute("FriendsHere"))
+	countLabel.Text = if boost > 1
+		then `SERVER · {#players}  <font color="#78F0A0">+{math.floor((boost - 1) * 100 + 0.5)}% LUCK</font>`
+		else `SERVER · {#players}`
 	local shown = math.min(#players, MAX_ROWS)
 	list.Visible = not folded
-	panel.Size = UDim2.new(0, panel.Size.X.Offset, 0, 32 + (if folded then 0 else shown * ROW_HEIGHT + 4))
+	panel.Size = UDim2.new(0, panel.Size.X.Offset, 0, 32 + (if folded then 0 else shown * ROW_HEIGHT + INVITE_HEIGHT + 4))
 	local fold: any = foldButton
 	fold.Label.Text = if folded then "‹" else "›"
 	changed:Fire()
@@ -300,6 +325,7 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSetti
 		cog.Visible = true
 		UIArt.Icon(gear, "SETTINGS", { Position = UDim2.fromScale(0.15, 0.15), Size = UDim2.fromScale(0.7, 0.7), ZIndex = 3 })
 	end
+	countLabel.RichText = true
 	Kit.textStroke(Color3.new(0, 0, 0), 1.5, 0.2).Parent = countLabel
 	foldButton = Kit.button("›", Theme.Color.PanelLight, Theme.Color.Panel, {
 		Name = "Fold",
@@ -327,6 +353,20 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSetti
 	}, {
 		Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }),
 	})
+	-- INVITE: Roblox's own invite prompt; friends who join add luck (shown in the header).
+	inviteButton = Kit.button(
+		`INVITE FRIENDS · +{math.floor(Config.FriendLuck.Per * 100 + 0.5)}% LUCK EACH`,
+		Theme.Color.Support,
+		Theme.Color.SupportDeep,
+		{ Name = "Invite", LayoutOrder = 1000, Size = UDim2.new(1, -6, 0, INVITE_HEIGHT - 8), Parent = list }
+	)
+	inviteButton.Activated:Connect(function()
+		local me = Players.LocalPlayer
+		local okCan, can = pcall(SocialService.CanSendGameInviteAsync, SocialService, me)
+		if okCan and can then
+			pcall(SocialService.PromptGameInviteAsync, SocialService, me)
+		end
+	end)
 	-- Small screens: shrink it, and start folded on phones so it doesn't cover the world.
 	local function fit()
 		local height = gui.AbsoluteSize.Y
@@ -338,6 +378,7 @@ function PlayerList.Init(playerGui: Instance, pick: ((Player) -> ())?, openSetti
 	folded = true -- the world stays visible; tap to expand profiles
 	applyHidden()
 
+	Players.LocalPlayer:GetAttributeChangedSignal("FriendsHere"):Connect(PlayerList.Refresh)
 	Players.PlayerAdded:Connect(PlayerList.Refresh)
 	Players.PlayerRemoving:Connect(function()
 		task.defer(PlayerList.Refresh)

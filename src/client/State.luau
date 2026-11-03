@@ -3,6 +3,7 @@
 -- this mirrors what it last sent so the UI can draw without asking again.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local Meta = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Meta"))
 local Raid = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Raid"))
 local Tower = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Tower"))
@@ -167,12 +168,13 @@ function State.Perk(key: string, random: boolean?): boolean
 	return State.Store.Passes[key] == true and (not random or not State.Store.Restricted)
 end
 
--- Luck right now (base x the strongest running potion x the event x Raid Luck x Totem x VIP), matching
+-- Luck right now (base x the strongest running potion x the event x Raid Luck x Totem x VIP x friends), matching
 -- the server.
 function State.Luck(): number
 	local event = State.Event()
 	local vip = if State.Perk("VIP", true) then MonetizationConfig.VipLuck else 1
 	local eventLuck = (event and event.Luck or 1) * State.RaidLuck() * State.TotemLuck() * vip
+		* Meta.FriendLuck(Players.LocalPlayer:GetAttribute("FriendsHere"))
 	return Meta.TotalLuck(State.Meta.BaseLuck or 1, Meta.PotionLuck(liveActive()), eventLuck,State.Weather.Luck or 0)
 end
 

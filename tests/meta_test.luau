@@ -287,3 +287,8 @@ do
 	local done = Goals.Journey({ Cleared = cleared, Tower = { Pagoda = 100 } })
 	check(done[1].Boss == nil and done[1].Progress == 1 and done[3].Progress == 1, "completed journeys stay complete rather than promising another crown")
 end
+
+-- Friend luck: +10% per friend in the server, at most 4; junk counts as none.
+check(Meta.FriendLuck(0) == 1 and math.abs(Meta.FriendLuck(1) - 1.1) < 1e-9 and math.abs(Meta.FriendLuck(4) - 1.4) < 1e-9
+	and Meta.FriendLuck(9) == Meta.FriendLuck(4) and Meta.FriendLuck(-3) == 1 and Meta.FriendLuck(nil) == 1
+	and Meta.FriendLuck(0 / 0) == 1 and Meta.FriendLuck("2") == 1, "friend luck: +10% each, capped at +40%, junk ignored")

@@ -242,6 +242,13 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Log (newest first)
 
+- 2026-11-03 · Claude Code · this commit · User: "more more". Friend luck, the usual Roblox invite loop:
+  +10% luck per Roblox friend in the same server, up to +40% (`Config.FriendLuck`, `Meta.FriendLuck`), multiplying
+  total luck in `MetaService.Luck` and `State.Luck`. New `FriendService` (server-set `FriendsHere` attribute,
+  pcall'd / cached `IsFriendsWith`, recount on join / leave). Server list: FRIEND tags, "+N% LUCK" header, INVITE
+  FRIENDS button (SocialService prompt); join hint; ODDS luck line. Not paid, so no PolicyService gate. Test in
+  meta_test. Type 0 errors, props 0, headless ALL CHECKS PASSED. Not seen in Studio (checklist 5).
+
 - 2026-11-03 · Claude Code · this commit · User: "do more". Weekly quests for the session 2-5 drop-off: six fixed
   quests every week (Monday 00:00 UTC, the Featured Card's week; `Meta.WeeklyQuests`, `Meta.WeekNumber` /
   `WeekResetIn`): 2,000 rolls, 15 boss wins, 5 Hard / Nightmare wins, 25 tower floors, 2 fusions, 5 raid runs;

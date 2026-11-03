@@ -469,6 +469,12 @@ function Meta.PotionLuck(active: { [string]: number }): number
 end
 
 -- Potion and sky bonuses add to earned luck; server events, Raid Luck and Totems multiply it.
+-- Luck multiplier for `count` friends in the server (Config.FriendLuck); junk counts as none.
+function Meta.FriendLuck(count: unknown): number
+	local n = if type(count) == "number" and count == count then math.clamp(math.floor(count), 0, Config.FriendLuck.Max) else 0
+	return 1 + n * Config.FriendLuck.Per
+end
+
 function Meta.TotalLuck(base: number, potionLuck: number, eventLuck: number?, weatherLuck: number?): number
 	return math.max(1,(base+math.max(0,potionLuck-1)+(weatherLuck or 0))*(eventLuck or 1))
 end

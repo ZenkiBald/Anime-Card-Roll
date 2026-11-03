@@ -24,9 +24,11 @@ local TutorialService = require(script.Parent.TutorialService)
 local GlobalAnnounce = require(script.Parent.GlobalAnnounce)
 local CollectionService = require(script.Parent.CollectionService)
 local WeatherService = require(script.Parent.WeatherService)
+local FriendService = require(script.Parent.FriendService)
 
 World.Build()
 GlobalAnnounce.Start()
+FriendService.Start()
 BattleService.SetRewardHandler(RollService.RewardRolls, RollService.TowerRewards)
 RaidService.SetPayer(RollService.RaidRewards, RollService.RaidRewardsOffline)
 -- Saved messages (e.g. a raid payout from while the player was away) are granted as they load.

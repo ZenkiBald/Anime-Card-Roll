@@ -68,8 +68,8 @@ double jump. Lighting: a bright town afternoon (`LightingSetup`); each world has
 own card joins after that boss's first Normal clear) and rolls its **border**, which is the tier: Base ("Normal" in
 saves) 1x / Gold 4x / Rainbow 16x / Secret 64x stats, base odds 1 in 200 / 5,000 / 500,000 (rare on purpose: story
 bosses are beaten with Base + Gold, Rainbow and Secret are the tower chase). Luck raises each special border by luck ^
-0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped at 50% together). Total luck = (earned base + strongest potion bonus + active sky bonus) x event / Raid Luck / Totem / VIP
-(`Meta.TotalLuck`), without a hard total-luck cap. Borders use raw luck through 35x (`Config.Roll.LuckSoftStart`), then
+0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped at 50% together). Total luck = (earned base + strongest potion bonus + active sky bonus) x event / Raid Luck / Totem / VIP /
+friends (`Meta.TotalLuck`; friend luck is +10% per Roblox friend in the server, up to +40%, `Config.FriendLuck`), without a hard total-luck cap. Borders use raw luck through 35x (`Config.Roll.LuckSoftStart`), then
 `35 + 10 * log(1 + (luck - 35) / 10)`; the 50% combined special-border safety limit remains. ODDS uses the same formula.
 **Luck also tilts the card pick** (`Cards.LuckTilt`, `Cards.Tilt`): a card of 1 in 100 or rarer weighs
 `1 + (effective luck - 1) x 0.12 x rareness` (rareness 0 at 1 in 100, 1 at 1 in 800+; at most 5x), so at 35-40x
@@ -388,7 +388,10 @@ ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.cli
 beat the active deck by 5%, and a hint when a card can fuse at Hoshi. `Goals.Closest` shows up to three nearest distinct progress bars: fusion, battle mastery, normal collection,
 roll milestone, tower checkpoint or next sky. Their bottom-left rows have separate vertical slots rather
 than covering the primary goal. The first 50-roll milestone also grants the First Light title. Social: server list with favourite cards, profiles, name
-tags, three town leaderboards.
+tags, three town leaderboards. **Friend luck** (2026-11-03): `FriendService` sets each player's `FriendsHere`
+attribute (pcall'd `IsFriendsWith`, cached per pair, recounted on join / leave); `Meta.FriendLuck` turns it into
+x1.1 ... x1.4 luck in `MetaService.Luck` / `State.Luck`. The server list tags friends, shows "+N% LUCK" in its
+header and ends with INVITE FRIENDS (Roblox's invite prompt); a hint says when a friend arrives; ODDS shows it.
 
 QUESTS opens on **GOALS** (`UI/Journey`, `Goals.Journey`): four live targets show the next unlocked story
 challenge / boss-card pool unlock, an equipped Attack card's next mastery rank, the next Pagoda milestone
@@ -542,7 +545,7 @@ The character artwork pass did not change identities. The later character-to-Att
   packs, alchemy, rewards, dev tools), `BattleService` + `BattleEngine`, `DeckService`, `FusionService`, `TraitService`,
   `MetaService` (progression actions, luck / cooldown), `RaidService`, `Momentum`, `MonetizationService`, `AvatarService`,
   `NameTagService`, `LeaderboardService`, `ProfileService`, `TravelService`, `MountService`, `TutorialService`,
-  `CollectionService`, `WeatherService`, `CodeService` + `Codes`, `GlobalAnnounce` (Secret pulls to every server), `NpcRange`, `World` (markers / arena spots),
+  `CollectionService`, `WeatherService`, `FriendService` (friends in the server, for friend luck), `CodeService` + `Codes`, `GlobalAnnounce` (Secret pulls to every server), `NpcRange`, `World` (markers / arena spots),
   `WorldSigns` (NPC plates / gate plaques), `TownModels` (four service figures), `TownServices` (stations / pagoda), `RateLimit`, `ProfileStore` (vendored).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient`, `LightingSetup`, `ZoneFx`, `HubFx`,
   `Followers`, `Avatars`, `Dash`, `SkyFx`, and `UI/*` (Kit helpers incl. `Kit.glyph` / `Kit.statsText` / `Kit.short`, Theme,

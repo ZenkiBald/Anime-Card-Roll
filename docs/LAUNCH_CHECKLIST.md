@@ -60,6 +60,10 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] Friend luck (2026-11-03): in a live server with a Roblox friend, the server list header shows "+10% LUCK",
+  the friend's row says FRIEND, a hint appears when they join, the HUD / ODDS luck rises by 10% and drops back
+  when they leave. INVITE FRIENDS opens Roblox's invite prompt (it does nothing in Studio test players).
+
 - [ ] Weekly quests (2026-11-03): QUESTS > DAILY & GIFTS shows WEEKLY QUESTS under the dailies with a
   "new week in Nd hh:mm" timer; rolling moves "Roll 2,000 times" live; a finished weekly can be claimed alone
   and through CLAIM ALL; the QUESTS badge counts it; the rows and reward lines fit on a phone.

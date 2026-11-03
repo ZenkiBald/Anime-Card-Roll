@@ -242,10 +242,11 @@ function MetaService.ServerLuck(): number
 	return MetaService.RaidLuck() * MonetizationService.TotemLuck()
 end
 
--- The player's own luck: base x the strongest running luck potion x the event x server luck x VIP, capped.
+-- The player's own luck: base x the strongest running luck potion x the event x server luck x VIP x friends.
 function MetaService.Luck(player: Player, data): number
 	local event = MetaService.Event()
 	local eventLuck = (event and event.Luck or 1) * MetaService.ServerLuck() * MonetizationService.VipLuck(player)
+		* Meta.FriendLuck(player:GetAttribute("FriendsHere"))
 	return Meta.TotalLuck(MetaService.BaseLuck(player, data), Meta.PotionLuck(data.Potions.Active), eventLuck,WeatherService.Luck())
 end
 
