@@ -412,7 +412,12 @@ counts; same-kind uses add time up to an hour. Running old II / III timers are e
 Nightmare wins, 25 Infinite Tower floors, 2 fusions, 5 raid runs, paying packs / potions / Trait Shards /
 Fragments / a Celestial Orb. `MetaService.Track` counts daily and weekly together (practice wins count nothing);
 saved as `Weekly = { Week, Progress, Claimed }`; ClaimWeekly gives 3x quest XP. DAILY & GIFTS lists them under
-the daily quests; the QUESTS badge counts ready ones.
+the daily quests; the QUESTS badge counts ready ones. Claiming all six unlocks the **Weekly Champion** bonus
+(`Meta.WeeklyBonus`: a Mega Roll Pack, 25 Trait Shards, the Weekly Champion title; ClaimWeekly "w_all", its flag
+is `Claimed.w_all`, so no new save field; CLAIM ALL takes it after the quests). `Goals.Weekly` feeds a WEEKLY
+QUESTS card in GOALS (OPEN QUESTS) and a Weekly bar in the HUD's nearest goals. QoL hints (`Main.client`): QUEST
+COMPLETE when a daily / weekly quest (or the bonus) reaches its goal, never for ones already done at load; a
+running potion warns at 30 s left and again when it wears off, naming spares in BAG.
 
 CLAIM ALL on DAILY & GIFTS pays every ready daily streak, playtime gift, roll milestone, daily quest, weekly quest and
 Index reward using the same individual server eligibility / paid flags. Gifts are processed before

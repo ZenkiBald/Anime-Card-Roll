@@ -37,7 +37,7 @@ local State = {
 	Meta = {
 		Celestial = {Fragments=0,Inventory={}},
 		Quests = { Day = 0, ResetIn = 0, List = {} },
-		Weekly = { Week = 0, ResetIn = 0, List = {} },
+		Weekly = { Week = 0, ResetIn = 0, List = {}, Bonus = { Progress = 0, Claimed = false } },
 		Level = { Level = 1, XP = 0, Need = 80 },
 		Wheel = { Spins = 0, Progress = 0 },
 		Stats = {},

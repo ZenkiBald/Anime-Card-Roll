@@ -228,7 +228,18 @@ function MetaService.WeeklyState(data)
 	for _, quest in Meta.WeeklyQuests do
 		table.insert(list, { Id = quest.Id, Progress = data.Weekly.Progress[quest.Id] or 0, Claimed = data.Weekly.Claimed[quest.Id] == true })
 	end
-	return { Week = week, ResetIn = Meta.WeekResetIn(os.time()), List = list }
+	local claimed = 0
+	for _, quest in Meta.WeeklyQuests do
+		if data.Weekly.Claimed[quest.Id] then
+			claimed += 1
+		end
+	end
+	return {
+		Week = week,
+		ResetIn = Meta.WeekResetIn(os.time()),
+		List = list,
+		Bonus = { Progress = claimed, Claimed = data.Weekly.Claimed[Meta.WeeklyBonus.Id] == true },
+	}
 end
 
 -- Raid Luck: x2 for the whole server for a while after a cleared raid (RaidService sets the attribute).
@@ -351,6 +362,7 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 			for i in Meta.Milestones do collect("ClaimMilestone",i) end
 			for _,id in Meta.QuestsFor(questDay(data),player.UserId) do collect("ClaimQuest",id) end
 			for _,quest in Meta.WeeklyQuests do collect("ClaimWeekly",quest.Id) end
+			collect("ClaimWeekly",Meta.WeeklyBonus.Id) -- after the quests, so finishing the sixth pays it too
 		end
 		for _,id in Borders.Order do collect("ClaimIndex",id) end
 		return true,nil,bundle,{Claimed=count}
@@ -503,6 +515,20 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 		MetaService.AddXP(player, data, Meta.XP.Quest)
 		return true, nil, MetaService.Grant(data, quest.Reward, player)
 	elseif action == "ClaimWeekly" then
+		if arg == Meta.WeeklyBonus.Id then
+			questWeek(data)
+			if data.Weekly.Claimed[Meta.WeeklyBonus.Id] then
+				return false, "Claimed"
+			end
+			for _, other in Meta.WeeklyQuests do
+				if not data.Weekly.Claimed[other.Id] then
+					return false, "NotYet"
+				end
+			end
+			data.Weekly.Claimed[Meta.WeeklyBonus.Id] = true
+			MetaService.AddXP(player, data, Meta.XP.Quest * 3)
+			return true, nil, MetaService.Grant(data, Meta.WeeklyBonus.Reward, player)
+		end
 		local quest = type(arg) == "string" and Meta.WeeklyById[arg]
 		if not quest then
 			return false, "BadRequest"

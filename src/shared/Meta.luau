@@ -241,6 +241,13 @@ Meta.WeeklyQuests = {
 	{ Id = "w_raid", Text = "Fight 5 raid runs", Stat = "RaidRuns", Goal = 5, Reward = { Celestial = { orb = 1 }, TraitShards = 20 } },
 } :: { Quest }
 
+-- Claimable once a week after every weekly quest above is claimed (its claim flag is Claimed[WeeklyBonus.Id]).
+Meta.WeeklyBonus = {
+	Id = "w_all",
+	Text = "Weekly Champion: claim every weekly quest",
+	Reward = { Packs = { ["1000"] = 1 }, TraitShards = 25, Title = "Weekly Champion" } :: Bundle,
+}
+
 Meta.WeeklyById = {} :: { [string]: Quest }
 for _, quest in Meta.WeeklyQuests do
 	Meta.WeeklyById[quest.Id] = quest

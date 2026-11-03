@@ -8,6 +8,7 @@
 --   Mastery    different story boss challenges completed with a card (1 / 3 / 6 / 10)
 --   Milestone  total rolls toward the next unclaimed roll milestone (Meta.Milestones)
 --   Upgrade    Shards toward the next Shard Shop level (Meta.Upgrades)
+--   Weekly     (Closest only) the nearest unclaimed weekly quest, or a ready weekly reward
 -- A fusion that is ready wins outright (it's an action: "see Hoshi"); otherwise the highest progress.
 
 local Borders = require(script.Parent.Borders)
@@ -36,7 +37,33 @@ export type Info = {
 	Weather: any?,
 	Now: number?,
 	Tower: any?,
+	Weekly: any?, -- MetaService.WeeklyState: { List = { { Id, Progress, Claimed } }, Bonus = { Progress, Claimed } }
 }
+
+-- This week's quest state: the closest unclaimed quest, how many are claimed, and how many can be claimed now.
+function Goals.Weekly(weekly: any): (any?, number, number, number)
+	local nearest, nearestProgress, nearestPart = nil, 0, -1
+	local claimed, ready = 0, 0
+	for _, entry in (if type(weekly) == "table" and type(weekly.List) == "table" then weekly.List else {}) :: { any } do
+		local quest = Meta.WeeklyById[entry.Id]
+		if quest == nil then
+			continue
+		end
+		local progress = tonumber(entry.Progress) or 0
+		if entry.Claimed then
+			claimed += 1
+		elseif progress >= quest.Goal then
+			ready += 1
+		elseif progress / quest.Goal > nearestPart then
+			nearest, nearestProgress, nearestPart = quest, progress, progress / quest.Goal
+		end
+	end
+	local bonus = type(weekly) == "table" and weekly.Bonus
+	if type(bonus) == "table" and not bonus.Claimed and claimed >= #Meta.WeeklyQuests then
+		ready += 1
+	end
+	return nearest, nearestProgress, claimed, ready
+end
 
 
 local function better(a: Goal?, b: Goal): Goal
@@ -156,6 +183,14 @@ function Goals.Closest(info: Info): {Goal}
 			add({Kind="Tower",Text=if bestFloor>=checkpoint.Floor then "Tower reward earned · win a floor to collect" else `Tower {bestFloor}/{checkpoint.Floor} · {reward}`,Progress=math.min(1,bestFloor/checkpoint.Floor),Ready=bestFloor>=checkpoint.Floor})
 		end
 	end
+	if info.Weekly then
+		local quest,progress,_,ready=Goals.Weekly(info.Weekly)
+		if ready>0 then
+			add({Kind="Weekly",Text=`Weekly reward ready · claim in QUESTS`,Progress=1,Ready=true})
+		elseif quest then
+			add({Kind="Weekly",Text=`Weekly: {quest.Text} {math.floor(progress)}/{quest.Goal}`,Progress=math.min(.999,progress/quest.Goal),Ready=false})
+		end
+	end
 	local sorted={}
 	for _,goal in best do table.insert(sorted,goal) end
 	table.sort(sorted,function(a,b) if a.Progress~=b.Progress then return a.Progress>b.Progress end;return a.Kind<b.Kind end)
@@ -215,6 +250,20 @@ function Goals.Journey(info: any): { any }
 		Reward = if pagoda < Tower.Pagoda.Floors then `Floor {nextFloor}: {math.ceil(milestone.Shards/Meta.ShardExchange)+milestone.TraitShards} Trait Shards and packs. Crown + Pagoda Master title at floor {Tower.Pagoda.Floors}.` else "The Crown of the Hundred Floors is always active; no relic slot needed.",
 		Action = "Pagoda", ArtKey = "TowerArtifact:hundredcrown",
 	})
+	if info.Weekly then
+		local quest, progress, claimed, ready = Goals.Weekly(info.Weekly)
+		local total = #Meta.WeeklyQuests
+		local bonusClaimed = type(info.Weekly.Bonus) == "table" and info.Weekly.Bonus.Claimed == true
+		table.insert(rows, {
+			Title = "WEEKLY QUESTS", Count = `{claimed}/{total} claimed`, Progress = claimed / total,
+			Text = if ready > 0 then `{ready} weekly reward{if ready == 1 then "" else "s"} ready to claim.`
+				elseif quest then `Closest: {quest.Text} ({math.floor(progress)}/{quest.Goal}). New quests every Monday 00:00 UTC.`
+				else "Every weekly quest is done. New ones arrive Monday 00:00 UTC.",
+			Reward = if bonusClaimed then "Weekly Champion bonus collected this week."
+				else `Claim all {total} for the Weekly Champion bonus: {Meta.Describe(Meta.WeeklyBonus.Reward)}.`,
+			Action = "Weekly", ArtKey = "QUESTS",
+		})
+	end
 	local best = tower.Best or 0
 	local checkpoint = Tower.NextCheckpoint(best, tower.Checkpoints)
 	table.insert(rows, {

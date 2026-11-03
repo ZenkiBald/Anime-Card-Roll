@@ -312,6 +312,8 @@ CollectionsUi.Init(playerGui)
 Journey.Init(questsPanel, function(goal)
 	if goal.Action == "Squad" then
 		squadPanel:Show("DECK")
+	elseif goal.Action == "Weekly" then
+		questsPanel:Show("DAILY & GIFTS")
 	else
 		BossScreen.OpenGoal(goal.Action, goal.Boss, goal.Difficulty)
 	end
@@ -489,6 +491,72 @@ State.Changed:Connect(function(kind)
 	if kind == "roll" or kind == "cards" or kind == "decks" or kind == "all" then
 		checkNudges(kind ~= "all")
 		Hud.RefreshBadges()
+	end
+end)
+
+-- Quest toasts: one hint when a daily or weekly quest reaches its goal (the reward waits in QUESTS > DAILY &
+-- GIFTS). The first loaded snapshot only records what was already done, so rejoining doesn't repeat them.
+local questsDone: { [string]: boolean }? = nil
+local function checkQuestsDone()
+	local daily, weekly = State.Meta.Quests, State.Meta.Weekly
+	if daily == nil or daily.Day == 0 then
+		return -- the server's quest state hasn't arrived yet
+	end
+	local now, finished = {}, {}
+	local function scan(list, byId, prefix)
+		for _, entry in list or {} do
+			local quest = byId[entry.Id]
+			if quest and entry.Progress >= quest.Goal then
+				local key = `{prefix}:{entry.Id}`
+				now[key] = true
+				if questsDone and not questsDone[key] and not entry.Claimed then
+					table.insert(finished, quest.Text)
+				end
+			end
+		end
+	end
+	scan(daily.List, Meta.QuestById, `d{daily.Day}`)
+	if weekly and weekly.Week ~= 0 then
+		scan(weekly.List, Meta.WeeklyById, `w{weekly.Week}`)
+		local bonus = weekly.Bonus
+		if bonus and bonus.Progress >= #Meta.WeeklyQuests then
+			local key = `w{weekly.Week}:{Meta.WeeklyBonus.Id}`
+			now[key] = true
+			if questsDone and not questsDone[key] and not bonus.Claimed then
+				table.insert(finished, Meta.WeeklyBonus.Text)
+			end
+		end
+	end
+	questsDone = now
+	if #finished > 0 then
+		local more = if #finished > 1 then ` (+{#finished - 1} more)` else ""
+		Hud.Hint(`QUEST COMPLETE: {finished[1]}{more} · claim it in QUESTS`)
+		Sfx.Play("Reward")
+		Hud.RefreshBadges()
+	end
+end
+State.Changed:Connect(checkQuestsDone)
+checkQuestsDone() -- the loaded state arrived before this listener: record what's already done
+
+-- Potion timers: a hint 30 s before a running potion ends and one when it does, naming spares in BAG.
+local POTION_WARN = 30
+local potionLeft: { [string]: number } = {}
+task.spawn(function()
+	while true do
+		task.wait(1)
+		for _, potion in Meta.Potions do
+			local left = State.PotionLeft(potion.Id)
+			local before = potionLeft[potion.Id] or 0
+			local spare = (State.Meta.Inventory or {})[potion.Id] or 0
+			local tip = if spare > 0 then ` You have {spare} more in BAG.` else ""
+			if before > POTION_WARN and left <= POTION_WARN and left > 0 then
+				Hud.Hint(`{potion.Name} ends in {math.ceil(left)} s.{tip}`)
+			elseif before > 0 and left <= 0 then
+				Hud.Hint(`{potion.Name} wore off.{tip}`)
+				Hud.Refresh() -- the luck / speed numbers drop
+			end
+			potionLeft[potion.Id] = left
+		end
 	end
 end)
 

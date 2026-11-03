@@ -109,6 +109,10 @@ function MetaClient.WeeklyReady(): number
 			n += 1
 		end
 	end
+	local bonus = State.Meta.Weekly and State.Meta.Weekly.Bonus
+	if bonus and not bonus.Claimed and bonus.Progress >= #Meta.WeeklyQuests then
+		n += 1
+	end
 	return n
 end
 

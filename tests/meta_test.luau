@@ -292,3 +292,35 @@ end
 check(Meta.FriendLuck(0) == 1 and math.abs(Meta.FriendLuck(1) - 1.1) < 1e-9 and math.abs(Meta.FriendLuck(4) - 1.4) < 1e-9
 	and Meta.FriendLuck(9) == Meta.FriendLuck(4) and Meta.FriendLuck(-3) == 1 and Meta.FriendLuck(nil) == 1
 	and Meta.FriendLuck(0 / 0) == 1 and Meta.FriendLuck("2") == 1, "friend luck: +10% each, capped at +40%, junk ignored")
+
+-- Weekly goals: the nearest unclaimed weekly quest, claimed / ready counts, the bonus once all six are claimed.
+do
+	local Goals = MODULES.Goals
+	local list = {}
+	for i, q in Meta.WeeklyQuests do
+		list[i] = { Id = q.Id, Progress = 0, Claimed = false }
+	end
+	list[1].Progress = 1500 -- 2,000 rolls: 75%
+	list[2].Progress = 3 -- 15 bosses: 20%
+	local quest, progress, claimed, ready = Goals.Weekly({ List = list, Bonus = { Progress = 0, Claimed = false } })
+	check(quest and quest.Id == list[1].Id and progress == 1500 and claimed == 0 and ready == 0, "weekly goal: the closest unclaimed quest")
+	list[3].Progress = Meta.WeeklyQuests[3].Goal
+	local _, _, _, ready2 = Goals.Weekly({ List = list })
+	check(ready2 == 1, "weekly goal: a finished, unclaimed quest is ready")
+	for _, entry in list do
+		entry.Claimed = true
+	end
+	local none, _, all, bonusReady = Goals.Weekly({ List = list, Bonus = { Progress = #list, Claimed = false } })
+	local _, _, _, afterBonus = Goals.Weekly({ List = list, Bonus = { Progress = #list, Claimed = true } })
+	check(none == nil and all == #Meta.WeeklyQuests and bonusReady == 1 and afterBonus == 0,
+		"weekly goal: the Weekly Champion bonus is ready once every quest is claimed, then done")
+	local _, _, c0, r0 = Goals.Weekly(nil)
+	check(c0 == 0 and r0 == 0 and Meta.WeeklyBonus.Id ~= nil and Meta.WeeklyById[Meta.WeeklyBonus.Id] == nil
+		and Meta.Describe(Meta.WeeklyBonus.Reward) ~= "", "weekly goal: junk state is empty; the bonus is not a quest id")
+	local closest = Goals.Closest({ Cards = {}, Rolls = 0, Shards = 0, Weekly = { List = list, Bonus = { Progress = #list, Claimed = false } } })
+	local found = false
+	for _, goal in closest do
+		found = found or (goal.Kind == "Weekly" and goal.Ready)
+	end
+	check(found, "the HUD's nearest goals include a ready weekly reward")
+end

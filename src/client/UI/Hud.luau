@@ -1198,7 +1198,7 @@ function Hud.RefreshGoal()
 	if goalPill == nil then
 		return
 	end
-	local nearest=Goals.Closest({Cards=State.Cards,Rolls=State.Rolls(),Claimed=State.Meta.Milestones,Shards=0,Weather=State.Weather,Now=workspace:GetServerTimeNow(),Tower=State.Tower})
+	local nearest=Goals.Closest({Cards=State.Cards,Rolls=State.Rolls(),Claimed=State.Meta.Milestones,Shards=0,Weather=State.Weather,Now=workspace:GetServerTimeNow(),Tower=State.Tower,Weekly=State.Meta.Weekly})
 	local goal=nearest[1]
 	for i,bar in progressRows do
 		local item=nearest[i+1]

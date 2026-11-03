@@ -22,7 +22,7 @@ function Journey.Init(host, navigate)
 		if not page.IsOpen then return end
 		local preset = State.Decks.Presets[State.Decks.Active] or {}
 		local rows = Goals.Journey({ Cleared = State.Progress.Cleared, Tower = State.Tower,
-			Cards = State.Cards, Attack = preset.Attack })
+			Cards = State.Cards, Attack = preset.Attack, Weekly = State.Meta.Weekly })
 		for i, goal in rows do
 			local ref = refs[i]
 			if not ref then
@@ -55,7 +55,7 @@ function Journey.Init(host, navigate)
 			ref.Title.Text, ref.Text.Text, ref.Reward.Text = goal.Title, goal.Text, goal.Reward
 			ref.Count.Text = goal.Count
 			ref.Fill.Size = UDim2.fromScale(goal.Progress,1)
-			ref.Button.Label.Text = if goal.Action == "Squad" then "OPEN SQUAD" else "OPEN BATTLE"
+			ref.Button.Label.Text = if goal.Action == "Squad" then "OPEN SQUAD" elseif goal.Action == "Weekly" then "OPEN QUESTS" else "OPEN BATTLE"
 		end
 	end
 	page.OnOpen = refresh

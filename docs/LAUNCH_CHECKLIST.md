@@ -60,6 +60,11 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] Quest / potion QoL (2026-11-03): finishing a daily quest shows QUEST COMPLETE once (not again after a
+  rejoin); claiming all six weekly quests enables the Weekly Champion row (Mega Pack, 25 Trait Shards, title)
+  and CLAIM ALL takes it; GOALS has a WEEKLY QUESTS card whose OPEN QUESTS button lands on DAILY & GIFTS; the HUD
+  goal bars show the nearest weekly quest; a Luck Potion warns at 30 s and when it wears off.
+
 - [ ] Friend luck (2026-11-03): in a live server with a Roblox friend, the server list header shows "+10% LUCK",
   the friend's row says FRIEND, a hint appears when they join, the HUD / ODDS luck rises by 10% and drops back
   when they leave. INVITE FRIENDS opens Roblox's invite prompt (it does nothing in Studio test players).

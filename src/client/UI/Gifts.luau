@@ -39,6 +39,8 @@ local questDayShown = nil
 local weeklyBox: Frame
 local weeklyReset: TextLabel
 local weeklyRows = {} -- [questId] = refs
+local weeklyBonusRow -- refs for the "claim every weekly quest" bonus
+local WEEKLY_BONUS = { Id = Meta.WeeklyBonus.Id, Text = Meta.WeeklyBonus.Text, Goal = #Meta.WeeklyQuests, Reward = Meta.WeeklyBonus.Reward }
 
 local GOLD_DEEP = Color3.fromRGB(170, 110, 0)
 local CAPTION = Color3.fromRGB(207, 219, 241)
@@ -290,6 +292,7 @@ local function build()
 	for i, quest in Meta.WeeklyQuests do
 		weeklyRows[quest.Id] = questRow(weeklyBox, i, quest, "ClaimWeekly")
 	end
+	weeklyBonusRow = questRow(weeklyBox, #Meta.WeeklyQuests + 1, WEEKLY_BONUS, "ClaimWeekly")
 	buildQuests()
 
 	heading("DAILY STREAK", "GIFTS", 1)
@@ -463,6 +466,9 @@ function Gifts.Refresh()
 			if refs then
 				paintQuest(refs, entry)
 			end
+		end
+		if weekly.Bonus then
+			paintQuest(weeklyBonusRow, weekly.Bonus)
 		end
 	end
 	-- Daily streak.
