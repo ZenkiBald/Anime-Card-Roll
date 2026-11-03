@@ -144,8 +144,9 @@ local function recordResult(player: Player, state)
 			MetaService.Track(player, "TowerFloors")
 			MetaService.AddXP(player, data, math.ceil(Meta.XP.BossWinPerD * Tower.Reward(state.Floor).D))
 		elseif battle.Result ~= "Win" then
-			record.RunEnded = data.Tower.Run -- floors this run climbed
-			data.Tower.Run = 0
+			record.RunEnded = data.Tower.Run -- the floor this run reached
+			data.Tower.Run = Tower.RestartFloor(data.Tower.Floor) -- back to the last 25-floor checkpoint
+			record.RestartFloor = data.Tower.Run + 1
 		end
 		record.Progress = data.Progress
 		record.Tower = BattleService.TowerState(data)
@@ -249,6 +250,7 @@ local function run(player: Player, state)
 		summary.Floor = state.Floor
 		summary.Mode = state.Mode
 		summary.RunEnded = record.RunEnded
+		summary.RestartFloor = record.RestartFloor
 		summary.SpeedUnlocked = record.SpeedUnlocked
 		if state.Raid then
 			summary.Raid = { Dealt = state.Raid.Reported, Name = state.Raid.Name, State = RaidService.Public() }
@@ -446,6 +448,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	battle.AutoUlt = data.Settings.AutoUlt ~= false -- on unless the player switched it off
 	battle.HoldForBreak = data.Settings.HoldUlt ~= false
 	local speed = if speedAllowed(data, data.Settings.BattleSpeed) then data.Settings.BattleSpeed else 1
+	battle.ClashWindow = Engine.ClashWindowFor(speed) -- at least 1 real second at 2x
 	local state = {
 		Corrupted=corrupted,
 		Practice=not isTower and not isRaid and ((data.Progress.RewardAt or {})[Bosses.FightKey(bossId,difficulty)] or 0)>os.time(),
@@ -524,6 +527,7 @@ function BattleService.Start()
 			profile.Data.Settings.BattleSpeed = value
 			if state then
 				state.Speed = value
+				state.Engine.ClashWindow = Engine.ClashWindowFor(value :: number)
 			end
 		elseif state == nil then
 			return

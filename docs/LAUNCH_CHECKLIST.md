@@ -60,6 +60,10 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] Checkpoint / relic / Clash pass (2026-11-03): lose an Infinite Tower run past floor 25 and check the result
+  screen says the next run starts at floor 26 and the tower panel agrees; BAG / tower texts say relics drop at 1%;
+  at 2x speed the Clash ring stays up about 1 second.
+
 - [x] 2026-10-31 desktop polish: inspected four-sided exterior rarity rims in the Squad grid, cleaner
   card typography, the rebuilt trait target picker, and Tower preview text without old reward
   emojis. Final Play showed one heading per authored town gateway; NPC plates use thin outlined titles

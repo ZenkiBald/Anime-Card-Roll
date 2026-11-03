@@ -201,7 +201,7 @@ function SaveMigration.Migrate(data: any): { string }
 		end
 		if tower.Live ~= nil then
 			tower.Live = nil
-			tower.Run = 0
+			tower.Run = Tower.RestartFloor(tower.Floor) -- back to the last checkpoint
 			table.insert(done, "tower run ended (left mid-fight)")
 		end
 	end

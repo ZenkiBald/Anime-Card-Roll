@@ -86,7 +86,7 @@ end
 -- improves with the floor's score D (floor x 0.25, Tower.DPerFloor).
 
 Items.RelicFloor = 50
-Items.RelicChance = 0.001 -- 0.1% a win
+Items.RelicChance = 0.01 -- 1% a win (2026-11-03: at 0.1% one chosen Mythic took ~19,000 floor-50 wins)
 
 Items.ItemRarities = { "Rare", "Epic", "Legendary", "Mythic" }
 

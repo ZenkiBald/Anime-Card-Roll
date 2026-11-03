@@ -125,6 +125,7 @@ Config.Battle = {
 	-- Space in time sends the strongest card in: it reflects ClashReflect x its ATK, the move's damage to the
 	-- squad is cut by ClashCut and the Shield bar fills ClashShield. Ignored, the move lands as normal.
 	ClashWindow = 1.2,
+	ClashMinReal = 1, -- ...and never under this many real seconds at 2x (the window stretches in battle time)
 	ClashReflect = 2,
 	ClashCut = 0.75,
 	ClashShield = 0.3,

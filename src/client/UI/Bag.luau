@@ -608,7 +608,7 @@ local function showDetail(entry)
 			detailText(5, `{if item.Kind then "Max level: duplicates" else "Duplicates"} melt into {math.ceil((Items.MeltShards[item.Rarity] or 100)/Meta.ShardExchange)} Trait Shards.`, Theme.Color.Muted, 14)
 		end
 		local worn = gear().Worn or {}
-		detailText(6, `Relics worn: <b>{#worn}/{Items.ArtifactSlots}</b>  ·  relics drop only in the Infinite Tower, from floor {Items.RelicFloor} (0.1% a win)`, Theme.Color.Text, 15, Theme.Font.Heavy)
+		detailText(6, `Relics worn: <b>{#worn}/{Items.ArtifactSlots}</b>  ·  relics drop only in the Infinite Tower, from floor {Items.RelicFloor} ({math.floor(Items.RelicChance * 1000 + 0.5) / 10}% a win)`, Theme.Color.Text, 15, Theme.Font.Heavy)
 		local row = actionRow(7)
 		if entry.Worn then
 			action(row, "REMOVE", Theme.Color.Danger, Color3.fromRGB(120, 20, 40), 1, true, function()

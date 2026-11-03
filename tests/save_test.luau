@@ -228,7 +228,7 @@ do
 	check(old.Tower.Floor == 37 and old.Tower.Run == 0, "an old tower floor becomes the best run, and the run starts at floor 1")
 	local left = { Cards = {}, Tower = { Floor = 40, Run = 22, Live = 23 } }
 	SaveMigration.Migrate(left)
-	check(left.Tower.Run == 0 and left.Tower.Live == nil and left.Tower.Floor == 40, "a save left mid tower fight ends that run (the best stays)")
+	check(left.Tower.Run == 25 and left.Tower.Live == nil and left.Tower.Floor == 40, "a save left mid tower fight ends that run at its checkpoint (best 40 -> floor 26 next; the best stays)")
 	local mid = { Cards = {}, Tower = { Floor = 40, Run = 22 } }
 	SaveMigration.Migrate(mid)
 	check(mid.Tower.Run == 22, "a run between fights carries on after a rejoin")

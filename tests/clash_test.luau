@@ -263,3 +263,7 @@ do
 	end
 	check(clean, "no Attack, sky or Support passive carries a self-penalty")
 end
+
+-- The Clash window never runs under a real second: 1.2 battle s at 1x, stretched to 2 battle s at 2x.
+check(Engine.ClashWindowFor(1) == B.ClashWindow and Engine.ClashWindowFor(2) == 2 and Engine.ClashWindowFor(2) / 2 >= B.ClashMinReal,
+	"the Clash ring lasts at least 1 real second at 2x speed")

@@ -242,6 +242,15 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Log (newest first)
 
+- 2026-11-03 · Claude Code · this commit · User: "do more research and improve the game". Research (Sol's RNG,
+  Anime Card Clash, Roblox retention guidance; most sites unreachable from the cloud sandbox) pointed at reachable
+  gear chases and tower checkpoints. Changes: `Items.RelicChance` 0.1% -> 1% (one chosen Mythic was ~19,000
+  floor-50 wins); Infinite Tower runs that end (loss / GIVE UP / leaving, `Tower.Live` migration) restart after the
+  last 25-floor mark of the best run (`Tower.RestartFloor`, results / tower texts say where); Clash window never
+  under 1 real second at 2x (`Engine.ClashWindowFor`, `Config.Battle.ClashMinReal`, BattleService sets it on start
+  and speed change). Stale CLAUDE.md tuning rule fixed. Tests: tower / clash / save / meta. Type 0 errors, props 0,
+  headless ALL CHECKS PASSED. Not seen in Studio.
+
 - 2026-10-31 · Codex · this commit · User requested clipped Squad borders, cleaner UI / NPC fonts,
   rarer sky cards, old battle emojis removed, stable notifications, meaningful stat traits / rarer chase
   traits and updated icon prompts. Pulled shared branch at 4481b9f, Status was IDLE. CardTile root no

@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-10-30, after the luck / odds / boss HP / fusion pass). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-11-03, after the relic / checkpoint / Clash-window pass). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -279,7 +279,8 @@ into the break. Server-side, so AFK and HIDE BATTLE keep firing; `BattleControls
 numbers, event Sd) and 1.5x once broken (big gold numbers, Bk). Hits fill it by DMG % x `ShieldFill` (Basic 0.5%,
 Skill 0.8%, Heavy Skills x2, Ultimate 0.4% per 100%), a guard KO adds 25%, a standing Warder absorbs 30% of hit
 fill; full = glass-shatter break, 6 s stun, its warned move cancelled. **Boss Clash:** a leader's warned move that
-hits the squad opens a 1.2 s window (event ClashOpen, snapshot Cl) when its warning runs out; the CLICK / SPACE TO
+hits the squad opens a 1.2 s window (event ClashOpen, snapshot Cl; `Engine.ClashWindowFor` stretches it to stay at
+least `ClashMinReal` 1 real second at 2x) when its warning runs out; the CLICK / SPACE TO
 CLASH! ring (Space / gamepad A / X via ContextActionService at High priority, sunk, never bound while hidden; the
 character's JumpHeight / JumpPower are zeroed while it shows and restored after) sends BattleInput Clash
 (own 2/s limiter). In time, the strongest standing card dashes in: 200% ATK back at the leader, the move's damage
@@ -336,8 +337,10 @@ the streak's totals when no pack dropped. SCOUT is four unit cards (leader + gua
 affixes, Guardians every 10th, the daily mutator. Infinite Tower: a run (recommended 16.5k x 1.068^(floor-1); `Tower.Curve.Points`
 re-measured for the new boss HP, floor 6 is a World 1 Normal squad, floor 23 World 1 Hard, floor 106 World 4 Nightmare); every floor
 pays, Roll Packs every 5th floor (Big every 25th); one loss, GIVE UP or leaving mid-fight (`Tower.Live`, ended by
-SaveMigration on load) sends the run back to floor 1; the best run is the leaderboard and Guardian bonuses only pay past
-it; from floor 50 every win has a 0.1% random relic drop (`Items.RelicFloor` / `RelicChance`).
+SaveMigration on load) sends the run back to the last 25-floor checkpoint of the best run (`Tower.RestartFloor`,
+2026-11-03, after Anime Card Clash's checkpoint keys: best 63 -> floor 51 next; skipped floors pay nothing); the best
+run is the leaderboard and Guardian bonuses only pay past it; from floor 50 every win has a 1% random relic drop
+(`Items.RelicFloor` / `RelicChance`; it was 0.1%, about 19,000 wins for one chosen Mythic).
 Guaranteed first-clear checkpoints (`Tower.Checkpoints`) also pay once at floors 5 / 10 / 25 / 50 / 75 / 100:
 five Roll Packs + Potion I; a Big Pack + Four-Leaf Relic + Skyward title; three Big Packs + Potion II + Orb;
 a Mega Pack + Prism Shard relic; three Mega Packs + Potion III + 25 Fragments; a Colossal Pack + the existing
@@ -573,10 +576,9 @@ The character artwork pass did not change identities. The later character-to-Att
 - Potions, sky items and gifts are earned in game only; the retired Shard shop / bundle sales stay closed.
   Robux sales live only in MonetizationConfig / MonetizationService; any perk that changes odds or gives random rewards
   is gated by PolicyService, with all outcomes and live odds summing to 100% shown.
-- Boss HP / ATK per difficulty are tuned so each fixture deck in `tests/fixtures.luau` wins its fight in 60-90 s
-  (`tests/battle_test.luau`; the user's newer HP table uses each fixture's Window where authored, including
-  World 1 Normal50-90 s / World 3 Nightmare60-100 s / World 4 Nightmare110-140 s); `tests/tower_test.luau` does the same for the tower and the Pagoda (Rainbow /
-Secret chase decks). Re-run after changing
+- Boss HP / ATK per difficulty are tuned so each fixture deck in `tests/fixtures.luau` wins its fight inside its
+  window (60-90 s by default; W1 Normal 50-90, W3 Nightmare 60-100, W4 Nightmare the 110-140 s chase; every fight is
+  winnable); `tests/tower_test.luau` does the same for the tower and the Pagoda (Rainbow / Secret chase decks). Re-run after changing
   cards, bosses or battle rules, and retune if they fail.
 - Original characters only: no real anime characters, names or trademarked terms.
   Prototype exception (the user's call, 2026-10-25, confirmed 2026-10-26): card and boss names are anime-style

@@ -2668,7 +2668,7 @@ local function showResults(summary)
 			if bundle and (bundle.TraitShards or 0) > 0 then
 				stat("TRAIT SHARDS", `+{bundle.TraitShards}`, Color3.fromRGB(80, 230, 200), "TraitShards", if summary.CostChallenge then "Cost Challenge x2" else "for the Trait Master")
 			end
-			-- A relic drop (Infinite Tower, 0.1%) or the Pagoda's artifact gets its own loud line.
+			-- A relic drop (Infinite Tower, Items.RelicChance) or the Pagoda's artifact gets its own loud line.
 			if bundle and bundle.TowerArtifacts then
 				line(`🏯 ARTIFACT!  {Meta.Describe({ TowerArtifacts = bundle.TowerArtifacts })} · always on`, Color3.fromRGB(255, 140, 90), 26)
 			end
@@ -2696,8 +2696,9 @@ local function showResults(summary)
 		if tower and tower.Mode == Tower.Id then
 			-- The Infinite Tower: one loss ends the run.
 			local best = if summary.Tower then summary.Tower.Best else State.Tower.Best
-			line(`RUN OVER · {summary.RunEnded or 0} floor{if summary.RunEnded == 1 then "" else "s"} climbed · best run: floor {best}`, Theme.Color.Danger, 22, Theme.Font.Heavy)
-			line("The next run starts at floor 1. Roll for stronger cards and climb higher!", Theme.Color.Muted, 17, Theme.Font.Bold)
+			line(`RUN OVER · reached floor {summary.RunEnded or 0} · best run: floor {best}`, Theme.Color.Danger, 22, Theme.Font.Heavy)
+			local restart = summary.RestartFloor or (Tower.RestartFloor(best) + 1)
+			line(if restart > 1 then `The next run starts at floor {restart} (your checkpoint). Climb past it for more!` else "The next run starts at floor 1. Reach floor 25 for your first checkpoint!", Theme.Color.Muted, 17, Theme.Font.Bold)
 		else
 			line("Roll for stronger cards, tune your deck, then try again.", Theme.Color.Muted, 17, Theme.Font.Bold)
 		end

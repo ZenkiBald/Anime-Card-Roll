@@ -654,7 +654,7 @@ local function buildTower()
 	text(
 		body,
 		0,
-		"Climb as high as you can in one run: every win goes up a floor, every floor pays, and Roll Packs drop every 5th floor (a Big Roll Pack every 25th). Lose once, give up or leave mid-fight and the run starts again from floor 1.",
+		"Climb as high as you can in one run: every win goes up a floor, every floor pays, and Roll Packs drop every 5th floor (a Big Roll Pack every 25th). Lose once, give up or leave mid-fight and the run starts again from your last checkpoint (every 25 floors of your best run).",
 		Theme.Color.Muted,
 		17,
 		Theme.Font.Bold
@@ -701,7 +701,7 @@ local function buildTower()
 		4,
 		if reward.Relic > 0
 			then `Relic drop <b>{string.format("%.1f", reward.Relic * 100)}%</b> (every win from floor {Items.RelicFloor})`
-			else `Relics drop from floor {Items.RelicFloor} up (0.1% a win), only in the Infinite Tower`,
+			else `Relics drop from floor {Items.RelicFloor} up ({math.floor(Items.RelicChance * 1000 + 0.5) / 10}% a win), only in the Infinite Tower`,
 		Color3.fromRGB(255, 170, 230),
 		17,
 		Theme.Font.Bold

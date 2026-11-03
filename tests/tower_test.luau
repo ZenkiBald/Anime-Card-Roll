@@ -269,3 +269,8 @@ do
 	end
 	check(worst >= 0.9, "a full Secret deck (5 stars, Awakening 3) beats the Pagoda's floor 100 Guardian")
 end
+
+-- Checkpoint restarts (2026-11-03): a run that ends goes back to the last 25-floor mark of the best run.
+check(Tower.RestartFloor(0) == 0 and Tower.RestartFloor(24) == 0 and Tower.RestartFloor(25) == 25 and Tower.RestartFloor(63) == 50 and Tower.RestartFloor(0 / 0) == 0,
+	"a lost run restarts after the last 25-floor checkpoint of the best run (best 63 -> floor 51)")
+check(Items.RelicChanceAt(49) == 0 and Items.RelicChanceAt(50) == 0.01, "relics drop at 1% a win from floor 50")

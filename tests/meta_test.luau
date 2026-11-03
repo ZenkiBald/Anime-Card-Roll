@@ -8,7 +8,7 @@ local Rewards = MODULES.Rewards
 -- Gear (Items.luau): relics drop only from Infinite Tower floors past RelicFloor, rarities sum to 1, worn
 -- relics and owned artifacts add bonuses.
 local Items = MODULES.Items
-check(Items.RelicChanceAt(Items.RelicFloor - 1) == 0 and Items.RelicChanceAt(Items.RelicFloor) == 0.001 and Items.RelicChanceAt(300) == 0.001, "relics drop only from the relic floor up, at 0.1% a win")
+check(Items.RelicChanceAt(Items.RelicFloor - 1) == 0 and Items.RelicChanceAt(Items.RelicFloor) == 0.01 and Items.RelicChanceAt(300) == 0.01, "relics drop only from the relic floor up, at 1% a win")
 for _, d in { 1, 6, 12 } do
 	local sum = 0
 	for _, chance in Items.RarityChances(d) do

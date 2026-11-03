@@ -232,6 +232,7 @@ function Engine.new(setup: Setup)
 	self.Result = nil
 	self.AutoUlt = false
 	self.HoldForBreak = true -- AUTO ULT holds full Ultimates for a Shield Break (BattleInput HoldUlt)
+	self.ClashWindow = B.ClashWindow -- battle seconds; BattleService stretches it at 2x (Engine.ClashWindowFor)
 	self.Holding = false
 	self.Focus = nil -- the enemy id the player tapped
 	self.Events = {}
@@ -1402,6 +1403,12 @@ end
 
 -- Boss Clash ------------------------------------------------------------------------------
 
+-- The Clash window in battle seconds at a playback speed: ClashWindow, stretched so it never runs
+-- under ClashMinReal real seconds (1 s at 2x).
+function Engine.ClashWindowFor(speed: number?): number
+	return math.max(B.ClashWindow, B.ClashMinReal * math.max(1, speed or 1))
+end
+
 -- Can this warned move be Clashed? A leader's move that hits the squad.
 local function clashable(enemy, move): boolean
 	return enemy.Leader and move.Warn == true and move.Target ~= "Self" and move.Target ~= "Ally" and (move.Pct or 0) > 0
@@ -1587,8 +1594,9 @@ function Engine:Step(dt: number)
 			else
 				pending.Left -= dt
 				if pending.Left <= 0 and clashable(enemy, pending.Move) then
-					pending.Window = B.ClashWindow
-					self:Emit({ K = "ClashOpen", U = enemy.Id, N = pending.Move.Name, S = B.ClashWindow })
+					local window = self.ClashWindow or B.ClashWindow
+					pending.Window = window
+					self:Emit({ K = "ClashOpen", U = enemy.Id, N = pending.Move.Name, S = window })
 				end
 			end
 			if pending.Left <= 0 and (pending.Window or 0) <= 0 then

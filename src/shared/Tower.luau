@@ -170,6 +170,19 @@ function Tower.NextCheckpoint(best: number, claimed: { [string]: boolean }?): an
 	return nil
 end
 
+-- Checkpoint restarts (2026-11-03, after Anime Card Clash's checkpoint keys): a lost, abandoned or given-up
+-- run starts again from the last RestartEvery-floor mark the best run has passed (best 63 -> floor 51 next),
+-- so floors 50+ stay farmable for relics. Skipped floors pay nothing; records and Guardians are unchanged.
+Tower.RestartEvery = 25
+function Tower.RestartFloor(best: number?): number
+	local b = tonumber(best) or 0
+	if b ~= b or b <= 0 or b == math.huge then
+		return 0 -- junk or no record
+	end
+	b = math.floor(b)
+	return b - b % Tower.RestartEvery
+end
+
 -- Called only after a tower win. Old best runs qualify too, without resetting their progress.
 function Tower.ClaimCheckpoints(tower: any): { any }
 	tower.Checkpoints = tower.Checkpoints or {}
