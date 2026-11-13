@@ -25,7 +25,7 @@ local function refresh()
 	if not pane then return end
 	local short=gui.AbsoluteSize.Y<540
 	local expanded,listBottom=PlayerList.Bounds()
-	pane.Visible=not Title.IsOpen() and not Modal.AnyOpen() and (not State.InBattle or State.BattleHidden) and not (short and expanded)
+	pane.Visible=not Hud.IsGuided() and not Title.IsOpen() and not Modal.AnyOpen() and (not State.InBattle or State.BattleHidden) and not (short and expanded)
 	local now=workspace:GetServerTimeNow()
 	local active=current.Id~="clear" and current.Ends>now
 	local forecast=not active and current.Forecast and current.Next
@@ -79,7 +79,7 @@ local function refresh()
 			end
 		end
 	end
-	fit.Scale=if short then 1 else math.min(1,gui.AbsoluteSize.X*.25/330)
+	fit.Scale=if short then math.min(.82,gui.AbsoluteSize.X*.28/236,math.max(.58,(gui.AbsoluteSize.Y-204)/146)) else math.min(1,gui.AbsoluteSize.X*.25/330)
 	pane.Size=UDim2.fromOffset(if short then 236 else 330,if hasCards then (if short then 146 else 238) else (if short then 86 else 104))
 	pane.Position=UDim2.new(1,-14,0,if expanded then math.max(52,listBottom+8) elseif short then 42 else 52)
 	kicker.Position=UDim2.fromOffset(if short then 10 else 12,if short then 5 else 7)

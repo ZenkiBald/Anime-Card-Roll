@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-11-13, after the Rift Draft pass). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-11-13, after the fusion tracker and onboarding pass). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -201,7 +201,7 @@ it). Stars remain a legacy save field, always zero on normal rolls, and copy-bas
 Copies pile up per border (`BorderCopies`); each owned border has its own tile, and the deck fights at the chosen
 border (`Deck.PlayBorder`, save `Play`). **Border fusion** at Hoshi costs 100 copies of one border (`Config.FusionCopies`,
 read through `Cards.FusionCost`; the same for every card and step, the user's call after a short 50 / 25 try) for
-one copy at the next border, with no extra reward.
+one copy at the next border, with no extra reward. In SQUAD, inspect an owned card and pin Gold, Rainbow or Secret. The HUD tracks its specific source pile, including zero copies, in `Settings.FusionTarget`. At 100, tap the tracker for a waypoint to Hoshi. His forge opens on the pinned card and prioritizes its ready pile. The pin stays on that recipe after crafting. Tapping the chosen pin again clears it.
 
 **Battle Mastery** replaces copy upgrades (`Awaken.luau` retains its old module name). Each participating Attack
 and paired Support earns one mark for winning each distinct story boss/difficulty, even if previously cleared
@@ -408,9 +408,7 @@ with the correct name / roll count. Daily streak,
 daily quests, playtime gifts, time-away rewards (`Meta.OfflineReward`: a Roll Pack per 30 min and a converted Trait Shard reward
 offline, after 10 min, up to 8 h; `LastSeen` in the save), roll milestones, Lucky Wheel, server events (LUCKY STORM /
 ROLL RUSH / DOUBLE XP), codes, Kenji's 6-step path and titles. Nudges (`Main.client`): a SQUAD badge + hint when BEST DECK would
-beat the active deck by 5%, and a hint when a card can fuse at Hoshi. `Goals.Closest` shows up to three nearest distinct progress bars: fusion, battle mastery, normal collection,
-roll milestone, tower checkpoint or next sky. Their bottom-left rows have separate vertical slots rather
-than covering the primary goal. The first 50-roll milestone also grants the First Light title. Social: server list with favourite cards, profiles, name
+beat the active deck by 5%, and a hint when a card can fuse at Hoshi. After the first boss, an unpinned HUD shows the nearest goal above ROLL. Two secondary desktop rows show other close goals from fusion, mastery, collection, milestones, tower, weekly quests and the next sky. Picking a fusion target replaces the automatic suggestions. The first 50-roll milestone also grants the First Light title. Social: server list with favourite cards, profiles, name
 tags, three town leaderboards. **Friend luck** (2026-11-03): `FriendService` sets each player's `FriendsHere`
 attribute (pcall'd `IsFriendsWith`, cached per pair, recounted on join / leave); `Meta.FriendLuck` turns it into
 x1.1 ... x1.4 luck in `MetaService.Luck` / `State.Luck`. The server list tags friends, shows "+N% LUCK" in its
@@ -481,15 +479,12 @@ summon-button and icon atlases without deleting them; `Skin` keeps the existing 
 `src/configs/UITheme.luau` feeds Theme with navy / lilac surfaces and element / border colours where meaningful.
 The earlier image kit remains archived under `art/ui/occult/` for reference.
 
-The HUD has a vertical menu with 20 px bold labels and distinct saturated gradients: crimson BATTLE,
+The desktop HUD has a vertical menu with 20 px bold labels and distinct saturated gradients: crimson BATTLE,
 royal-blue SQUAD, violet BAG, emerald QUESTS, cyan TRAVEL, gold STORE and orange DEV.
 Sidebar notification badges are plain crimson 26 px circles with a 1.2 px text outline and no inner bevel.
-It has an opaque currency group, a quiet Kenji tracker / claim seal,
-XP and nearest-progress bars at bottom-left on desktop, and AUTO / ROLL / QUICK at bottom-centre with Momentum and Surge in one
-band. The server list starts folded (tap to expand). RECENT PULLS shows up to three rows, two on short screens.
+During Kenji's first three quests, BATTLE, SQUAD and BAG are the main shortcuts. MORE opens the other destinations. A first story clear, reaching Kenji's fourth step or 100 rolls restores the event ticker, read-only sky HUD, mount tile, Trait Shard chip, Momentum, Surge and suggested goals. An explicit fusion pin also works during the tutorial. Landscape phones keep the two-page menu with 58 × 52 buttons. The top-center ticker cycles between location and collection, event information and an actionable raid when available. The folded server list and sky occupy the right side. RECENT PULLS uses spare space there and yields when short screens are full. The XP bar stays at bottom left.
 Surge still charges spirit blue, shivers void purple for the last four rolls, and seals gold (UNLEASH SURGE!).
-AUTO / QUICK light their bezel when active. Short screens keep the earlier scaling / compact layout, with Next Goal
-over the roll console. **Centre stage** (2026-11-13, `UI/Reveal` stage, QUICK off): every roll lands mid-screen,
+AUTO / QUICK light their bezel when active. The primary goal sits directly above the roll console. **Centre stage** (2026-11-13, `UI/Reveal` stage, QUICK off): every roll lands mid-screen,
 between the top strip and the avatar. ROLL drops a rocking face-down card at once (`Reveal.Anticipate`), it turns
 over when the server answers (waiting at most 0.35 s for art still loading), then flies toward the pull feed;
 nothing is dimmed or blocked and a newer roll replaces it. Triple Roll / surge batches fan up to three cards,

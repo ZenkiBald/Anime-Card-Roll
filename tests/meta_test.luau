@@ -251,6 +251,19 @@ check(away ~= nil and away.Packs ~= nil and away.Packs["10"] == 6 and away.Shard
 local long = Meta.OfflineReward(5 * 86400)
 check(long ~= nil and long.Seconds == Meta.Offline.CapSeconds and long.Packs["10"] == 16, "days away count as 8 hours (16 packs)")
 
+do
+	local pin = MODULES.FusionTarget
+	local cards = { luna = { BorderCopies = { Normal = 130, Gold = 88 } } }
+	local key = pin.Key("luna", "Gold")
+	local goal = pin.Progress(key, cards)
+	check(goal.Count == 88 and goal.Progress == 0.88 and not goal.Ready, "pin counts the selected pile, even when another pile is ready")
+	cards.luna.BorderCopies.Gold = 100
+	check(pin.Progress(key, cards).Ready, "100 matching copies recommend the forge")
+	cards.luna.BorderCopies.Gold = 0
+	check(pin.Progress(key, cards).Count == 0 and pin.Progress(key, cards).Progress == 0, "spent copies restart the same target")
+	check(pin.Progress("", cards) == nil and pin.Progress("luna:Secret", cards) == nil, "cleared and terminal targets have no tracker")
+end
+
 -- The HUD's Next Goal pill (Goals.luau): the reward closest to landing, a ready fusion first.
 do
 	local Goals = MODULES.Goals

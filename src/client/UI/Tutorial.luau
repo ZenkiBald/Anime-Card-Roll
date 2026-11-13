@@ -38,11 +38,11 @@ local wasReady = false
 -- Hands a reward to the HUD (set by Main: Hud.Reward and Hud.Hint).
 local announce: ((text: string, hint: string?) -> ())? = nil
 -- Tells Main the quest line changed (active, ready): the HUD shows the slot and the KENJI badge.
-local onChange: ((active: boolean, ready: boolean) -> ())? = nil
+local onChange: ((active: boolean, ready: boolean, step: number) -> ())? = nil
 
 local function applyVisible()
 	if onChange then
-		onChange(TutorialUi.Active(), TutorialUi.Ready())
+		onChange(TutorialUi.Active(), TutorialUi.Ready(), if state then state.Step else 1)
 	end
 end
 
@@ -179,7 +179,7 @@ function TutorialUi.Init(
 	playerGui: Instance,
 	slot: GuiObject,
 	announceFn: (text: string, hint: string?) -> (),
-	changeFn: (active: boolean, ready: boolean) -> (),
+	changeFn: (active: boolean, ready: boolean, step: number) -> (),
 	host: any? -- the QUESTS panel (Modal.Tabbed): the path is its first tab
 )
 	announce = announceFn

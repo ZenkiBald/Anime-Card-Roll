@@ -132,6 +132,11 @@ function Tutorial.Ready(step: number, facts: Facts): boolean
 	return goal > 0 and count >= goal
 end
 
+-- Returning players who skipped Kenji still see the full hub after a story clear or 100 pulls.
+function Tutorial.GuidedHud(step: number, rolls: number, cleared: { [string]: boolean }): boolean
+	return step <= 3 and rolls < 100 and next(cleared) == nil
+end
+
 function Tutorial.Done(step: number): boolean
 	return step > #Tutorial.Steps
 end

@@ -15,6 +15,7 @@ local Odds = require(Shared.Odds)
 local Meta = require(Shared.Meta)
 local Collections = require(Shared.Collections)
 local CelestialRolls = require(Shared.CelestialRolls)
+local FusionTarget = require(Shared.FusionTarget)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -50,6 +51,53 @@ local function closeDetail()
 		detail:Destroy()
 		detail = nil
 	end
+end
+
+-- Each button names the result. The matching source pile is the one Hoshi will spend.
+local function fusionPins(card, parent, order)
+	local label = Kit.label({ Name = "PinHelp", Text = "Track a fusion on your HUD", TextXAlignment = Enum.TextXAlignment.Left,
+		Size = UDim2.new(1, 0, 0, 20), LayoutOrder = order, ZIndex = 22, Parent = parent }, 15)
+	local touch = game:GetService("UserInputService").TouchEnabled
+	local row = Kit.new("Frame", { Name = "FusionPins", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, if touch then 88 else 46),
+		LayoutOrder = order + 1, ZIndex = 22, Parent = parent })
+	local buttons, busy = {}, false
+	local function refresh()
+		local entry = State.Cards[card.Id]
+		if not entry then return end
+		for from, button in buttons do
+			local pinned = State.Meta.FusionTarget == FusionTarget.Key(card.Id, from)
+			local count = (entry.BorderCopies or {})[from] or 0
+			button.Label.Text = (if pinned then "UNPIN " else "PIN ") .. string.upper(Borders.Next(from) :: string)
+			button.Count.Text = `{Kit.commas(count)}/{Cards.FusionCost(card)} {Borders.Get(from).Name}`
+			button.Label.TextColor3 = if pinned then Theme.Color.Gold else Theme.Color.Text
+		end
+	end
+	for i, tier in Borders.List do
+		local from = tier.Id
+		if not Borders.Next(from) then continue end
+		local button = Kit.button("", Theme.Color.Info, Theme.Color.InfoDeep, { Name = from, Position = UDim2.new((i-1)/3, 2, 0, 0),
+			Size = UDim2.new(1/3, -4, 1, 0), ZIndex = 23, Parent = row })
+		button.Label.Position = UDim2.fromScale(.5, .33)
+		button.Label.Size = UDim2.fromScale(.94, .48)
+		Kit.label({ Name = "Count", Text = "", Position = UDim2.fromScale(.03,.55), Size = UDim2.fromScale(.94,.36),
+			TextColor3 = Theme.Color.Muted, ZIndex = 24, Parent = button }, 14)
+		buttons[from] = button
+		button.Activated:Connect(function()
+			if busy then return end
+			busy = true
+			local key = FusionTarget.Key(card.Id, from)
+			local result = MetaClient.Call("SetFusionTarget", if State.Meta.FusionTarget == key then "" else key)
+			busy = false
+			if not row.Parent then return end
+			label.Text = if not result.Ok then MetaClient.Message(result)
+				elseif State.Meta.FusionTarget == key then "Pinned to your HUD · tap again to unpin"
+				else "Track a fusion on your HUD"
+			refresh()
+		end)
+	end
+	refresh()
+	local connection = State.Changed:Connect(refresh)
+	row.Destroying:Once(function() connection:Disconnect() end)
 end
 
 local function showDetail(card, chosenBorder: string?, parent: Instance?)
@@ -145,7 +193,8 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 	if owned then
 		order+=1
 		StatLine.new(card,stars,best,node,{Size=UDim2.new(1,0,0,28),LayoutOrder=order,ZIndex=22,Parent=right},true)
-		order = Abilities.List(card, right, order, "big", best)
+		fusionPins(card, right, order + 1)
+		order = Abilities.List(card, right, order + 2, "big", best)
 	end
 	-- Collection data remains available without competing with the ability text.
 	local extras = Kit.new("Frame", { Name = "CollectionDetails", Visible = false, BackgroundTransparency = 1,

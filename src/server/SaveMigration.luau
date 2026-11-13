@@ -20,6 +20,7 @@ local Shared = ReplicatedStorage.Shared
 local Borders = require(Shared.Borders)
 local Tower = require(Shared.Tower)
 local Cards = require(Shared.Cards)
+local FusionTarget = require(Shared.FusionTarget)
 local Collections = require(Shared.Collections)
 local Meta = require(Shared.Meta)
 local Packs = require(Shared.Packs)
@@ -241,6 +242,10 @@ function SaveMigration.Migrate(data: any): { string }
 		table.insert(done,"retired Shard balance and infused packs compensated; active luck potions extended")
 	end
 	data.Settings=if type(data.Settings)=="table" then data.Settings else {}
+	if data.Settings.FusionTarget ~= "" and not FusionTarget.Read(data.Settings.FusionTarget, data.Cards) then
+		data.Settings.FusionTarget = ""
+		table.insert(done, "fusion target initialized")
+	end
 	local reveal=RevealPolicy.Read(data.Settings)
 	-- Version 2 (2026-11-13): Gold and above is the default full reveal. A save still on the old Rainbow
 	-- default moves to Gold once; a later choice (Rainbow included) stays.

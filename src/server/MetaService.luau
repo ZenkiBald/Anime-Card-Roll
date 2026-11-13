@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Cards = require(Shared.Cards)
+local FusionTarget = require(Shared.FusionTarget)
 local Borders = require(Shared.Borders)
 local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
@@ -323,6 +324,7 @@ function MetaService.State(player: Player, data)
 		Gear = data.Gear,
 		Wheel = { Spins = data.Wheel.Spins, Progress = data.Wheel.Progress },
 		Favorite = data.Settings.Favorite,
+		FusionTarget = data.Settings.FusionTarget,
 		Avatar = data.Settings.Avatar, -- the card worn as an avatar aura ("" = none)
 		QuickRoll = data.Settings.QuickRoll == true, -- ROLL plays the short reveal
 		RevealMinimum=RevealPolicy.Read(data.Settings).RevealMinimum,
@@ -471,6 +473,10 @@ local function handle(player: Player, data, action: unknown, arg: unknown)
 			return false, "BadRequest"
 		end
 		data.Settings[if action == "SetMusic" then "Music" else "Effects"] = arg
+		return true
+	elseif action == "SetFusionTarget" then
+		if arg ~= "" and not FusionTarget.Read(arg, data.Cards) then return false, "BadRequest" end
+		data.Settings.FusionTarget = arg
 		return true
 	elseif action == "SetFavorite" then
 		-- An owned card becomes the player's picture (server list, name tag); "" clears it.

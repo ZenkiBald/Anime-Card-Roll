@@ -650,8 +650,8 @@ TutorialUi.Init(playerGui, Hud.QuestSlot(), function(text, hint)
 	if hint then
 		Hud.Hint(hint)
 	end
-end, function(active)
-	Hud.SetQuestActive(active)
+end, function(active, _, step)
+	Hud.SetQuestActive(active, step)
 	Hud.RefreshBadges()
 	questsPanel:SetTabText("KENJI'S PATH", if active then "KENJI'S PATH" else "KENJI'S PATH ✓")
 end, questsPanel)
@@ -693,7 +693,7 @@ Hud.SetVisible(not Title.IsOpen())
 Title.Ready(function()
 	Hud.SetVisible(true)
 	PlayerList.SetHidden("Title", false)
-	if State.Meta.Daily and State.Meta.Daily.CanClaim then
+	if not Hud.IsGuided() and State.Meta.Daily and State.Meta.Daily.CanClaim then
 		task.delay(0.8, function()
 			Hud.Hint(`Daily reward ready: day {State.Meta.Daily.Day} of 7. Open QUESTS!`)
 		end)

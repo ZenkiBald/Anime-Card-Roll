@@ -60,6 +60,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] 2026-11-13, disposable mock profile in Studio. In iPhone 14 landscape (749 × 330 usable), checked the early dock, the full HUD with active sky, and the 52 px pin buttons. Tapped PIN RAINBOW at 99 Gold Celestial Strategist copies. Granted the hundredth on the mock profile, then used Hoshi's single fuse. The forge animation played, the server reported one Rainbow copy and the pinned tracker returned to 0/100 Gold. Verified invalid and unowned targets were refused.
+- [ ] On a physical phone, follow Kenji through the first boss, navigate MORE/BACK and reach Hoshi using the ready target. Rejoin a private published session and check the pin and counts survive. Try the ticker during a live raid and check its tap target with the server list expanded.
+
 - [x] Rift Draft, desktop Studio, 2026-11-13. Entered from BATTLE in a separate local place with a mock profile, checked all twelve portraits in the marks gallery, picked three loan fighters, played a complete Bronze circuit and confirmed three Base awards and Silver unlock. Closed and reopened at the relic choice and inspected an equipped Lotus Spring mid-fight.
 - [ ] Try a fresh Bronze and a Crown run on a landscape phone. Check whether a first-time player understands the enemy intent and discovers the three-fighter relay. Have a returning player try for a missing fighter mark or a better score, and observe whether they choose another run.
 

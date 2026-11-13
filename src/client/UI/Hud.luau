@@ -20,9 +20,13 @@ local Borders = require(Shared.Borders)
 local Foils = require(Shared.Foils)
 local RollBoost = require(Shared.RollBoost)
 local Goals = require(Shared.Goals)
+local FusionTarget = require(Shared.FusionTarget)
+local Tutorial = require(Shared.Tutorial)
+local ZoneFx = require(script.Parent.Parent.ZoneFx)
 local Collections = require(Shared.Collections)
 
 local Kit = require(script.Parent.Kit)
+local Waypoint = require(script.Parent.Waypoint)
 local Theme = require(script.Parent.Theme)
 local HudArt = require(script.Parent.HudArt)
 local BagArt = require(script.Parent.BagArt)
@@ -39,7 +43,11 @@ local ready = false -- StoreState can arrive while Init is still building the cu
 
 local gui: ScreenGui
 local dock: Frame
-local activeCollection: TextLabel
+local momentumRow: Frame
+local guideStep = 1
+local guided = true
+local moreOpen = false
+local raidTurn = false
 local menu: Frame
 local rollButton: any -- children are read by name
 local autoButton: any
@@ -309,6 +317,10 @@ end
 
 local layoutLeftFn: (() -> ())? = nil
 
+function Hud.IsGuided(): boolean
+	return guided
+end
+
 local function applyHidden()
 	local hidden = hiddenBy.Battle or hiddenBy.Reveal
 	dock.Visible = not hidden
@@ -319,10 +331,10 @@ local function applyHidden()
 	boostRow.Visible = not hidden
 	if hidden and boostTip then boostTip.Visible=false; hoveredBoost=nil end
 	levelBar.Visible = not hidden
-	eventPill.Visible = not hidden
-	raidPill.Visible = raidWanted and not hidden
+	eventPill.Visible = not hidden and not guided and not (raidTurn and raidWanted)
+	raidPill.Visible = not hidden and not guided and raidTurn and raidWanted
 	goalPill.Visible = goalWanted and not hidden
-	feed.Visible = not hidden
+	feed.Visible = not hidden and not guided and (not compactHud() or feed:GetAttribute("HasRoom") == true)
 	-- The RECENT PULLS label only shows over pulls, never as a lone heading.
 	local pulls = 0
 	for _, child in feed:GetChildren() do
@@ -330,7 +342,7 @@ local function applyHidden()
 			pulls += 1
 		end
 	end
-	feedHeader.Visible = pulls > 0 and not hidden
+	feedHeader.Visible = pulls > 0 and feed.Visible
 end
 
 -- The hub feed is shorter on phones; applyHidden keeps it out of fights and full reveals.
@@ -341,11 +353,13 @@ local function placeFeed()
 	local sky=State.Weather
 	local preview=Config.CelestialCardsReady and (sky.Id~="clear" or sky.Forecast)
 	local short=compactHud()
-	local skyBottom=if preview then (if short then 188 else 52+238*math.min(1,gui.AbsoluteSize.X*.25/330)) else (if short then 128 else 156)
+	local skyBottom = if short then 42 + (if preview then 146 else 86) * math.min(.82, gui.AbsoluteSize.X*.28/236, math.max(.58,(gui.AbsoluteSize.Y-204)/146))
+		else 52 + (if preview then 238 else 104) * math.min(1, gui.AbsoluteSize.X*.25/330)
 	local top=math.max(gui.AbsoluteSize.Y*.3,skyBottom+28)
+	feed:SetAttribute("HasRoom", top + 62 < gui.AbsoluteSize.Y - 152)
 	feed.AnchorPoint=Vector2.new(1,0)
 	feed.Position=UDim2.new(1,-12,0,top)
-	feed.Size=UDim2.new(.2,0,0,if short then 32 else 70)
+	feed.Size=UDim2.new(.2,0,0,if short then 56 else 70)
 	if feedHeader then feedHeader.Position=UDim2.new(1,-18,0,top-19) end
 end
 
@@ -380,7 +394,6 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	}, {
 		Kit.new("UISizeConstraint", { MinSize = Vector2.new(300, 64), MaxSize = Vector2.new(620, 112) }),
 	})
-	activeCollection=Kit.label({Name="ActiveCollection",Text="",AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,-52),Size=UDim2.new(1,0,0,18),Parent=dock},13)
 	local bar = Kit.new("Frame", {
 		Name = "Buttons",
 		Size = UDim2.fromScale(1, 1),
@@ -453,6 +466,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		BackgroundTransparency = 1,
 		Parent = dock,
 	})
+	momentumRow = row
 	-- Urushi mini-header on top of the roll console: Momentum text, and a 2 px bar filling to the cap.
 	local momentumHeader = Kit.new("Frame", {
 		Name = "MomentumHeader",
@@ -504,6 +518,13 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	}, 13)
 	goalText:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 9
 	Kit.textStroke(Color3.new(0, 0, 0), 1, 0.3).Parent = goalText
+	local guideButton = Kit.new("TextButton", { Name = "FindHoshi", Text = "", BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1,1), ZIndex = 3, Visible = false, Parent = goalPill })
+	guideButton.Activated:Connect(function()
+		if not Waypoint.To("fuser", "HOSHI · FUSION MASTER", Theme.Color.Gold) then
+			Hud.Hint("Visit Hoshi at the fusion workbench in Spawn Town")
+		end
+	end)
 	momentumFill = Kit.new("Frame", {
 		Name = "Fill",
 		AnchorPoint = Vector2.new(0, 1),
@@ -632,14 +653,14 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	local function fitBoosts()
 		local short=gui.AbsoluteSize.Y<540
 		boostScale.Scale=1
-		boostRow.Position=UDim2.new(1,if short then -112 else -18,1,if short then -92 else -18)
-		boostRow.Size=UDim2.fromOffset(if short then 284 else 216,if short then 32 else 104)
-		boostGrid.FillDirectionMaxCells=if short then 8 else 4
+		boostRow.Position=UDim2.new(1,if short then -10 else -18,1,if short then -86 else -18)
+		boostRow.Size=UDim2.fromOffset(if short then 140 else 216,if short then 68 else 104)
+		boostGrid.FillDirectionMaxCells=4
 		boostGrid.CellSize=UDim2.fromOffset(if short then 32 else 48,if short then 32 else 48)
 		boostGrid.CellPadding=UDim2.fromOffset(if short then 4 else 6,if short then 4 else 6)
-		local bottom=if short then 92 else 18
-		local top=gui.AbsoluteSize.Y-bottom-(if short then 32 else 104)
-		boostTip.Position=UDim2.new(1,if short then -112 else -18,0,math.max(8,top-120))
+		local bottom=if short then 86 else 18
+		local top=gui.AbsoluteSize.Y-bottom-(if short then 68 else 104)
+		boostTip.Position=UDim2.new(1,if short then -10 else -18,0,math.max(8,top-120))
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBoosts)
 	fitBoosts()
@@ -689,7 +710,11 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	if handlers.OnDev then
 		menuButton("DEV", "🛠️", 7, Theme.Color.Danger, handlers.OnDev)
 	end
-	local menuRows = if handlers.OnDev then 7 else 6
+	local more = menuButton("MORE", "", 8, Theme.Color.Info, function()
+		moreOpen = not moreOpen
+		if layoutLeftFn then layoutLeftFn() end
+	end)
+	more.Icon.Visible = false
 
 	-- Scale the left column with the screen (a phone held sideways is ~0.6).
 	local function layoutLeft()
@@ -702,9 +727,31 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 		questSlot.Size = UDim2.fromOffset(math.floor(280 * fitScale), math.floor(66 * fitScale))
 		questSlot.Position = UDim2.fromOffset(12, top)
 		local menuTop = if questActive then top + questSlot.Size.Y.Offset + pad + 4 else top
-		grid.CellSize = UDim2.fromOffset(width, cell)
-		grid.CellPadding = UDim2.fromOffset(0, pad)
-		menu.Size = UDim2.fromOffset(width, menuRows * cell + (menuRows - 1) * pad)
+		local short = compactHud()
+		local paged = short or guided
+		local cols = if short then 2 else 1
+		local w, h = if short then 58 else width, if short then 52 else cell
+		local count = 0
+		for name, button in menuButtons do
+			local primary = name == "BATTLE" or name == "BAG" or name == "SQUAD"
+			button.Visible = if name == "MORE" then paged else not paged or primary ~= moreOpen
+			if button.Visible then count += 1 end
+			button.Icon.Visible = name ~= "MORE"
+			button.Icon.AnchorPoint = if short then Vector2.new(.5,0) else Vector2.new(0,.5)
+			button.Icon.Position = if short then UDim2.new(.5,0,0,3) else UDim2.new(0,8,.5,0)
+			button.Icon.Size = UDim2.fromOffset(if short then 28 else 34, if short then 28 else 34)
+			local center = short or name == "MORE"
+			button.Label.TextXAlignment = if center then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
+			button.Label.Position = if center then UDim2.fromScale(.04,if short and name ~= "MORE" then .79 else .5) else UDim2.new(0,48,.5,0)
+			button.Label.Size = if center then UDim2.fromScale(.92,if short then .33 else .6) else UDim2.new(1,-57,.6,0)
+			button.Badge.Size = UDim2.fromOffset(if short then 19 else 26, if short then 19 else 26)
+		end
+		more.Label.Text = if moreOpen then "BACK" else "MORE"
+		grid.FillDirectionMaxCells = cols
+		grid.CellSize = UDim2.fromOffset(w, h)
+		grid.CellPadding = UDim2.fromOffset(pad, pad)
+		local rows = math.ceil(count / cols)
+		menu.Size = UDim2.fromOffset(cols*w + (cols-1)*pad, rows*h + (rows-1)*pad)
 		menu.Position = UDim2.fromOffset(12, menuTop)
 	end
 	layoutLeftFn = layoutLeft
@@ -967,37 +1014,36 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	-- Narrow phones: the level bar and event pill shrink with the top bar.
 	local function fitBars()
 		local compact = compactHud()
-		levelBar.Fit.Scale = if compact then 0.55 else 0.65
+		levelBar.Fit.Scale = if compact then math.min(.55, (gui.AbsoluteSize.X*.24-18)/levelBar.Size.X.Offset) else .65
 		levelBar.AnchorPoint = Vector2.new(0, 1)
-		levelBar.Position = UDim2.new(0, 30, 1, -22)
-		eventPill.Position = UDim2.new(0.5, 0, 0, if compact then 48 else 62)
-		raidPill.Position = UDim2.new(0.5, 0, 0, if compact then 84 else 96)
+		levelBar.Position = UDim2.new(0, if compact then 8 else 30, 1, if compact then -5 else -22)
 		toast.Position = UDim2.new(0.5, 0, 0, if compact then 142 else 140)
 		dock.Size = UDim2.fromScale(if compact then 0.5 else 0.56, 0.15)
 		local limits = dock:FindFirstChildOfClass("UISizeConstraint")
 		if limits then
-			limits.MinSize = Vector2.new(300, if compact then 46 else 64)
+			limits.MinSize = Vector2.new(300, if compact then 52 else 64)
 			limits.MaxSize = Vector2.new(if compact then 480 else 620, if compact then 54 else 88)
 		end
 		momentumHeader.Size = UDim2.new(0.36, 0, 0, if compact then 16 else 22)
-		goalPill.Position = if compact then UDim2.new(0.5, -150, 1, -102) else UDim2.new(0, 18, 1, -76)
-		goalPill.Size = UDim2.fromOffset(if compact then 300 else 300, if compact then 18 else 26)
-		if compact then
-			goalPill.Position=UDim2.new(0,146,1,-104)
-			goalPill.Size=UDim2.fromOffset(math.clamp(gui.AbsoluteSize.X-550,120,220),18)
+		goalPill.Parent = dock
+		goalPill.AnchorPoint = Vector2.new(.5, 1)
+		goalPill.Position = UDim2.new(.5, 0, -.3, -8)
+		goalPill.Size = UDim2.new(.94, 0, 0, if compact then 20 else 25)
+		for i, progressBar in progressRows do
+			progressBar.Position = UDim2.new(0, 18, 1, -50 - (i-1)*24)
+			progressBar.Size = UDim2.fromOffset(math.clamp(gui.AbsoluteSize.X*.22,150,280),20)
 		end
-		for i,bar in progressRows do
-			bar.Position=goalPill.Position+UDim2.fromOffset(0,-goalPill.Size.Y.Offset-4-(i-1)*24)
-			bar.Size=UDim2.fromOffset(goalPill.Size.X.Offset,20)
-		end
+		autoButton.Size = if compact then UDim2.fromScale(.27,1) else UDim2.fromScale(.27,.78)
+		quickButton.Size = autoButton.Size
+		if ready then Hud.RefreshGoal() end
 		petsButton.Size = UDim2.fromOffset(if compact then 44 else 58, if compact then 44 else 58)
 		Hud.RefreshEvent()
 	end
 	for i=1,2 do
-		local bar=Kit.new("Frame",{Name=`NearGoal{i}`,AnchorPoint=Vector2.new(0,1),Position=UDim2.new(0,18,1,-76-i*24),Size=UDim2.fromOffset(300,20),BackgroundColor3=Theme.Color.Panel,Parent=gui},{Kit.corner()})
-		Kit.new("Frame",{Name="Fill",Size=UDim2.fromScale(0,1),BackgroundColor3=Theme.Color.Quick,BackgroundTransparency=.35,Parent=bar},{Kit.corner()})
-		Kit.label({Name="Text",Text="",Size=UDim2.fromScale(1,1),Parent=bar},13)
-		progressRows[i]=bar
+		local goalBar=Kit.new("Frame",{Name=`NearGoal{i}`,AnchorPoint=Vector2.new(0,1),Position=UDim2.new(0,18,1,-76-i*24),Size=UDim2.fromOffset(300,20),BackgroundColor3=Theme.Color.Panel,Parent=gui},{Kit.corner()})
+		Kit.new("Frame",{Name="Fill",Size=UDim2.fromScale(0,1),BackgroundColor3=Theme.Color.Quick,BackgroundTransparency=.35,Parent=goalBar},{Kit.corner()})
+		Kit.label({Name="Text",Text="",Size=UDim2.fromScale(1,1),Parent=goalBar},13)
+		progressRows[i]=goalBar
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBars)
 	fitBars()
@@ -1037,35 +1083,48 @@ local lastEventId = nil
 
 -- The event pill (running event + time left, or the next one).
 function Hud.RefreshEvent()
-	local event, left, untilNext = State.Event()
+	local event, leftTime, untilNext = State.Event()
 	local text = eventPill.Text
-	local compact=compactHud()
-	local compactWidth=math.clamp(gui.AbsoluteSize.X-510,190,250)
-	eventPill.Position=if compact then UDim2.new(0,146,0,48) else UDim2.new(.5,0,0,62)
-	eventPill.AnchorPoint=Vector2.new(if compact then 0 else .5,0)
-	if event then
-		text.Text = `{event.Icon} <b>{event.Name}</b> · {event.Text} · {string.format("%d:%02d", left // 60, math.floor(left % 60))}`
-		eventPill.UIStroke.Color = event.Color
-		eventPill.UIStroke.Transparency = 0
-		eventPill.BackgroundColor3 = event.Color:Lerp(Color3.new(0, 0, 0), 0.55)
-		eventPill.Size = UDim2.fromOffset(if compact then compactWidth else 440, if compact then 30 else 28)
-	else
-		local index = math.floor(workspace:GetServerTimeNow() / Meta.EventEvery) % #Meta.Events + 1
-		local nextEvent = Meta.Events[index]
-		-- Between events the pill also names the week's Featured Card (x3 as likely to pull).
-		local featured = Cards.Get(Cards.FeaturedAt(workspace:GetServerTimeNow()))
-		text.Text = `Next: {nextEvent.Icon} <b>{nextEvent.Name}</b> in {string.format("%d:%02d", untilNext // 60, math.floor(untilNext % 60))}`
-			.. (if featured then (if compactHud() then "\n" else "   ·   ") .. `<font color="#FFD700">⭐ FEATURED <b>{string.upper(featured.Name)}</b> x{Cards.FeaturedBoost}</font>` else "")
-		eventPill.UIStroke.Color = UITheme.Colors.TamahaganeSlate
-		eventPill.UIStroke.Transparency = 0
-		eventPill.BackgroundColor3 = UITheme.Colors.UrushiBase
-		eventPill.Size = UDim2.fromOffset(if compact then compactWidth elseif featured then 470 else 320, if compact then 30 else 26)
+	local compact = compactHud()
+	-- Keep one ticker between Kenji and the sky. Location, event and the tappable raid share the slot.
+	local width = gui.AbsoluteSize.X
+	local left = if compact then 188 else width*.22
+	local right = if compact then width - 26 - math.min(236, width*.28) else width*.74
+	local tickerWidth = math.clamp(right-left, 100, 440)
+	local center = math.floor((left+right)/2)
+	local position = UDim2.fromOffset(center, if compact then 53 else 73)
+	for _, pill in {eventPill, raidPill} do
+		pill.AnchorPoint = Vector2.new(.5,0)
+		pill.Position = position
+		pill.Size = UDim2.fromOffset(tickerWidth, if compact then 34 else 32)
 	end
+	local now = workspace:GetServerTimeNow()
+	local page = math.floor(now/4) % (if raidWanted then 3 else 2)
+	raidTurn = raidWanted and page == 2
+	local color = UITheme.Colors.TamahaganeSlate
+	if page == 0 then
+		local zone = ZoneFx.Current()
+		local location = if zone == "Town" then "Spawn Town" else (zone:gsub("(%l)(%u)", "%1 %2"))
+		local focus = Collections.ById[State.Summary.SelectedCollection or "normal"] or Collections.ById.normal
+		text.Text = `<b>{location}</b> · {focus.Name}`
+	elseif event then
+		color = event.Color
+		text.Text = `<b>{event.Name}</b> · {event.Text} · {string.format("%d:%02d", leftTime // 60, math.floor(leftTime % 60))}`
+	else
+		local index = math.floor(now / Meta.EventEvery) % #Meta.Events + 1
+		local nextEvent = Meta.Events[index]
+		text.Text = `{nextEvent.Name} in {string.format("%d:%02d", untilNext // 60, math.floor(untilNext % 60))}`
+		local featured = Cards.Get(Cards.FeaturedAt(now))
+		if featured then text.Text ..= (if compact then "\n" else " · ") .. `Featured {featured.Name} ×{Cards.FeaturedBoost}` end
+	end
+	eventPill.UIStroke.Color = color
+	eventPill.UIStroke.Transparency = 0
+	eventPill.BackgroundColor3 = if page == 1 and event then color:Lerp(Color3.new(0,0,0),.55) else UITheme.Colors.UrushiBase
 	-- An event just started: pop the pill and say so.
 	local id = event and event.Id
 	if id ~= lastEventId then
-		if event then
-			eventPill.Pop.Scale = 1.4
+		if event and not guided then
+			eventPill.Pop.Scale = 1.06
 			Kit.tween(eventPill.Pop, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
 			Effects.Sparks(eventPill, event.Color, 16, 1)
 			Hud.Hint(`{event.Icon} {event.Name} started! {event.Text}`)
@@ -1108,8 +1167,8 @@ function Hud.RefreshRaid()
 		raidPill.UIStroke.Color = Color3.fromRGB(110, 255, 160)
 	end
 	raidWanted = open or luck or totem
-	if open and not lastRaidOpen then
-		raidPill.Pop.Scale = 1.4
+	if open and not lastRaidOpen and not guided then
+		raidPill.Pop.Scale = 1.06
 		Kit.tween(raidPill.Pop, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
 		Effects.Sparks(raidPill, Color3.fromRGB(255, 80, 120), 16, 1)
 		Hud.Hint(`⚔️ A server raid opened: {raid.Name}! Tap the raid bar to join.`)
@@ -1193,42 +1252,56 @@ function Hud.LevelUp(ups)
 end
 
 -- The Next Goal pill (Goals.Next): text, the bar, and a gold edge when it can be done now.
-local lastGoalText = ""
+local lastGoalText, lastPin, lastCount = "", "", 0
 function Hud.RefreshGoal()
-	if goalPill == nil then
-		return
+	if not goalPill then return end
+	local key = State.Meta.FusionTarget or ""
+	local pin = FusionTarget.Progress(key, State.Cards)
+	local nearest = {}
+	if not guided and not pin then
+		nearest = Goals.Closest({Cards=State.Cards,Rolls=State.Rolls(),Claimed=State.Meta.Milestones,Shards=0,Weather=State.Weather,Now=workspace:GetServerTimeNow(),Tower=State.Tower,Weekly=State.Meta.Weekly})
 	end
-	local nearest=Goals.Closest({Cards=State.Cards,Rolls=State.Rolls(),Claimed=State.Meta.Milestones,Shards=0,Weather=State.Weather,Now=workspace:GetServerTimeNow(),Tower=State.Tower,Weekly=State.Meta.Weekly})
-	local goal=nearest[1]
+	local goal = pin or nearest[1]
 	for i,bar in progressRows do
-		local item=nearest[i+1]
-		bar:SetAttribute("HasGoal",item~=nil)
-		bar.Visible=item~=nil and not hiddenBy.Battle and not hiddenBy.Reveal
+		local item = if compactHud() then nil else nearest[i+1]
+		bar:SetAttribute("HasGoal", item ~= nil)
+		bar.Visible = item and not hiddenBy.Battle and not hiddenBy.Reveal or false
 		if item then bar.Text.Text=item.Text;bar.Fill.Size=UDim2.fromScale(item.Progress,1) end
 	end
+	goalPill.FindHoshi.Visible = pin ~= nil and pin.Ready
 	goalWanted = goal ~= nil
+	goalReady = goal ~= nil and goal.Ready
 	goalPill.Visible = goalWanted and not hiddenBy.Battle and not hiddenBy.Reveal
-	if goal == nil then
-		return
+	local gained = pin and key == lastPin and pin.Count > lastCount
+	lastPin, lastCount = key, if pin then pin.Count else 0
+	if not goal then lastGoalText = ""; return end
+	if goal.Text ~= lastGoalText or gained then
+		goalPill.Text.Text = goal.Text
+		goalPill.Text.TextColor3 = if goal.Ready then UITheme.Colors.SurgeGold else UITheme.Colors.WashiParchment
+		goalPill.UIStroke.Color = if goal.Ready or gained then UITheme.Colors.SurgeGold else UITheme.Colors.TamahaganeSlate
+		goalPill.Fill.BackgroundColor3 = if pin or goal.Ready then UITheme.Colors.SurgeGold else UITheme.Colors.SpiritCyan
+		if goalPill.Visible and (gained or goal.Ready) then
+			task.spawn(Effects.Pulse, goalPill:FindFirstChildOfClass("UIScale") or Kit.new("UIScale", { Parent = goalPill }), 1, .28, .04)
+		end
+		lastGoalText = goal.Text
 	end
-	goalPill.Text.Text = goal.Text
-	goalPill.Text.TextColor3 = if goal.Ready then UITheme.Colors.SurgeGold else UITheme.Colors.WashiParchment
-	goalPill.UIStroke.Color = if goal.Ready then UITheme.Colors.SurgeGold else UITheme.Colors.TamahaganeSlate
-	goalPill.Fill.BackgroundColor3 = if goal.Kind == "Fusion" then UITheme.Colors.VermilionHover
-		elseif goal.Kind == "Awakening" then UITheme.Colors.SpiritCyan
-		else UITheme.Colors.SurgeGold
-	Kit.tween(goalPill.Fill, 0.25, { Size = UDim2.fromScale(math.clamp(goal.Progress, 0.04, 1), 1) })
-	goalReady = goal.Ready
-	if goal.Text ~= lastGoalText and goal.Ready then
-		task.spawn(Effects.Pulse, goalPill:FindFirstChildOfClass("UIScale") or Kit.new("UIScale", { Parent = goalPill }), 1, 0.3, 0.06)
-	end
-	lastGoalText = goal.Text
+	local size = UDim2.fromScale(goal.Progress, 1)
+	if goalPill.Fill.Size ~= size then Kit.tween(goalPill.Fill,.2,{Size=size}) end
 end
 
 function Hud.Refresh()
 	if not ready then return end
 	local s = State.Summary
-	activeCollection.Text="CARD FOCUS: " .. (Collections.ById[s.SelectedCollection or "normal"] or Collections.ById.normal).Name
+	local shouldGuide = Tutorial.GuidedHud(guideStep, State.Rolls(), State.Progress.Cleared or {})
+	if guided ~= shouldGuide then
+		guided = shouldGuide
+		moreOpen = false
+		if layoutLeftFn then layoutLeftFn() end
+	end
+	momentumRow.Visible = not guided
+	petsButton.Visible = not guided
+	currency.TraitShards.Visible = not guided
+	applyHidden()
 	local traitShards = s.TraitShards or State.Meta.TraitShards or 0
 	setCurrency("TraitShards", Kit.commas(traitShards), traitShards)
 	Hud.RefreshMomentum()
@@ -1333,11 +1406,13 @@ function Hud.QuestSlot(): Frame
 	return questSlot
 end
 
-function Hud.SetQuestActive(on: boolean)
-	if questActive == on then
+function Hud.SetQuestActive(on: boolean, step: number)
+	if questActive == on and guideStep == step then
 		return
 	end
 	questActive = on
+	guideStep = step
+	Hud.Refresh()
 	applyHidden()
 	if layoutLeftFn then
 		layoutLeftFn()

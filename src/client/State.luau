@@ -59,6 +59,7 @@ local State = {
 		TraitShards = 0,
 		Gear = { Artifacts = {}, Worn = {} } :: any,
 		Favorite = nil :: any,
+		FusionTarget = "",
 		Avatar = nil :: any,
 		QuickRoll = false,
 		RevealMinimum="Gold",RevealStyle="Pack",RevealDuplicates=false,

@@ -9,6 +9,8 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- Try SQUAD → a card's skills → PIN RAINBOW. Follow it from ROLL to Hoshi and rejoin on a physical phone. Kenji's early HUD puts the other shortcuts under MORE. Evaluate whether players choose their own target after the first boss before adding more grind systems.
+
 - Try BATTLE → RIFT DRAFT on a world screen. Draft three loan fighters, read the intent and clear three duels. Play a second run with different fighters for missing marks or a lower play count. First-time discovery, real phone input and willingness to replay after the first clear need player feedback.
 
 - Try TRAVEL → Ember Village → the illustrated Card Hunts board beside the boss. Pick Dream Reaper, mark the Crow Illusionist, then defeat the leader. Check discovery and guard targeting on a phone. Each world has two permanent Gold prizes. At CARD PACKS, compare Normal Collection with a family focus and check the full preview.
@@ -265,6 +267,9 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-11-13 · Codex · this commit (from 349385e) · Implemented the fusion chase and first-session HUD from the Gemini proposal. Owned cards can pin any of the three recipes from Squad or Index. The existing Meta remote validates ownership and the source border. A single saved pin tracks its exact pile, links to Hoshi when ready, selects that forge recipe and survives both single and bulk fusion. Kenji's early dock, phone MORE/BACK pages, location/event/raid ticker and the primary goal above ROLL reduce competing overlays. Existing card odds, stats, fusion cost, manual/QUICK reveal settings and combat mastery are preserved.
+  - Verification: luau-lsp 0 errors, property checker 6,207 names / 0 problems, headless suite ALL CHECKS PASSED (including battle/tower and new migration, pin and tutorial cases). On a separate unpublished mock Studio profile, MORE/BACK worked and iPhone 14 landscape showed separated HUD regions with an active sky. Pinned 99 Gold Celestial Strategist copies via its detail button, granted one mock copy, fused at Hoshi and observed a Rainbow copy, forge animation and a 0/100 tracker. Rejected unowned and terminal source borders. Stopped the disposable playtest. Physical iPhone and published-save rejoin remain in section 5.
 
 - 2026-11-13 · Codex · this commit · Added Rift Draft as a separate manual card game within BATTLE. Twelve illustrated loan fighters, four bosses with distinct rules, one-turn rest and three-fighter relays, six run relics, three circuit ranks, persistent per-fighter marks, Base and Gold first-clear prizes, wearable Rift Champion title, and best-run records. The server validates each pick and move against the saved revision. Old profiles get a fresh circuit record. Closing or rejoining resumes the current run.
   Type check 0 errors (8 existing warnings), properties 6,181 / 0 problems, bundled tests ALL CHECKS PASSED. Across 48 simulated balanced drafts per rank, a strategy reading the actual previews won 48 Bronze, 47 Silver and 26 Crown. In a separate unpublished Roblox Studio place with a mock profile, used the Battle menu to enter, drafted three cards, played through Bronze, saw the three Base rewards and Silver unlock, inspected the 12-fighter marks gallery, resumed at a relic choice, inspected Lotus Spring, and confirmed a 12-play best result. Stopped the isolated test. The user's running Studio session was left alone. Real phone, long-term replay and first-time comprehension remain open.

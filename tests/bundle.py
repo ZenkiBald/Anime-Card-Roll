@@ -17,6 +17,7 @@ modules = [
     ("CelestialArt", root / "src" / "shared"),
     ("CelestialCards", root / "src" / "shared"),
     ("Cards", root / "src" / "shared"),
+    ("FusionTarget", root / "src" / "shared"),
     ("CardHunts", root / "src" / "shared"),
     ("RiftDraft", root / "src" / "shared"),
     ("BulkRoll", root / "src" / "shared"),

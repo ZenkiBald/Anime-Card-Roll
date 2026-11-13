@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cards = require(Shared.Cards)
 local CardInfo = require(Shared.CardInfo)
 local Borders = require(Shared.Borders)
+local FusionTarget = require(Shared.FusionTarget)
 local Config = require(Shared.Config)
 local Awaken = require(Shared.Awaken)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -77,6 +78,10 @@ local function fuseBorder(entry, card): string?
 				pick, most = id, n
 			end
 		end
+	end
+	local pinnedId, source = FusionTarget.Read(State.Meta.FusionTarget, State.Cards)
+	if pinnedId == card.Id and source and ((copies[source] or 0) >= need or most ~= math.huge) then
+		return source
 	end
 	return pick
 end
@@ -552,6 +557,8 @@ function Fusion.Init(playerGui: Instance, host: any?)
 	}, { Kit.corner(UDim.new(0, 18)), Kit.stroke(FIRE, 2, 0.4), Kit.padding(10) })
 	modal.OnOpen = function()
 		if not busy then
+			local pinnedId = FusionTarget.Read(State.Meta.FusionTarget, State.Cards)
+			if pinnedId then selectedId = pinnedId end
 			drawGrid()
 		end
 	end

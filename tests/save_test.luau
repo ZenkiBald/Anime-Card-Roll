@@ -1,6 +1,19 @@
 -- Old saves brought up to date on load (src/server/SaveMigration.luau): nothing a player owned is lost,
 -- the per-border copy piles add up to the card's total, and running it twice changes nothing.
 local SaveMigration = MODULES.SaveMigration
+do
+	local data = { Cards = { luna = { Copies = 1 } } }
+	SaveMigration.Migrate(data)
+	check(data.Settings.FusionTarget == "", "existing profiles start without a fusion pin")
+	data.Settings.FusionTarget = "luna:Rainbow"
+	SaveMigration.Migrate(data)
+	check(data.Settings.FusionTarget == "luna:Rainbow", "chosen future border survives reload with zero matching copies")
+	for _, invalid in { {}, "luna:Secret", "luna:Fake", "missing:Gold", 14 } do
+		data.Settings.FusionTarget = invalid
+		SaveMigration.Migrate(data)
+		check(data.Settings.FusionTarget == "", "malformed or unowned fusion target clears safely")
+	end
+end
 
 do
 	local old={Cards={},Progress={Cleared={["kurogane:Normal"]=true},BestTime={}}}

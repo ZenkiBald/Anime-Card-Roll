@@ -9,6 +9,10 @@ local Bosses = MODULES.Bosses
 local Engine = MODULES.BattleEngine
 local F = FIXTURES
 
+check(Tutorial.GuidedHud(1, 0, {}) and Tutorial.GuidedHud(3, 99, {}), "Kenji guides the first deck and fight")
+check(not Tutorial.GuidedHud(4, 12, {}) and not Tutorial.GuidedHud(1, 100, {})
+	and not Tutorial.GuidedHud(2, 20, { ["kurogane:Normal"] = true }), "Kenji, experienced rollers and story clears restore the full HUD")
+
 -- 1. The questline -----------------------------------------------------------------------------------
 check(#Tutorial.Steps == 6, "Kenji's path has 6 quests")
 local ids = {}
