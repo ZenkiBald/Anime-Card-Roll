@@ -377,10 +377,8 @@ function HubFx.Start()
 			for model, info in orbiters do
 				if model.Parent == nil then
 					orbiters[model] = nil
-				elseif (info.Base.Position - eye).Magnitude < 220 then
-					-- A slow turn with a gentle rise and fall (LOW effects: it stands still).
-					local turn = if Theme.FxLow then 0 else t * info.Speed
-					model:PivotTo(info.Base * CFrame.new(0, math.sin(t * 0.8) * 0.35, 0) * CFrame.Angles(0, turn, 0))
+				elseif not Theme.FxLow and (info.Base.Position - eye).Magnitude < 220 then
+					model:PivotTo(info.Base * CFrame.new(0, math.sin(t * 0.8) * 0.35, 0) * CFrame.Angles(0, t * info.Speed, 0))
 				end
 			end
 		end)

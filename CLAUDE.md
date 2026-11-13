@@ -34,8 +34,10 @@ to50 /7.2 after. Original save card / deck tables were verified unchanged before
 **World.** A big Studio-built map (terrain, Creator Store models, AI meshes, StreamingEnabled): spawn town in the middle,
 Ember Village (W), Frostfang Peaks (N), Neon Abyss (E), Stormspire Isle (S, over a second bridge), each with a portal and
 its boss. Town NPCs: Kenji (guide), Hoshi (fusion + pack alchemy), Kenshin (traits), Madame Fortuna (Lucky Wheel), the
-tower gate and leaderboards. The spawn plaza has a thin stone fountain border, short service approaches and two
-wooden benches with flower planters. Stalls / services sit around the edge; an explicit Tower marker puts the
+tower gate and leaderboards. The spawn plaza has a warm flagstone court, a jade and brass fountain border, short pale service paths and two
+wooden benches with flower planters. `TownPlaza` lays a 96-stud paving disk over the authored cobbles. The staggered
+joints share one static surface, and the terrain supplies collision. The existing fountain bowls have a two-tone
+stone finish. Stalls / services sit around the edge; an explicit Tower marker puts the
 an endless jade-roofed pagoda northwest of the fountain. `tools/studio/town-polish.luau` applies the plaza's place-only edits once
 and keeps a reversible backup in ServerStorage. The local saved place is under `studio-local/` (ignored by Git).
 The service figures / workbenches / wheel canopy are runtime parts built by `World`, `TownModels` and
@@ -602,7 +604,7 @@ The character artwork pass did not change identities. The later character-to-Att
   `NameTagService`, `LeaderboardService`, `ProfileService`, `TravelService`, `MountService`, `TutorialService`,
   `CollectionService`, `WeatherService`, `FriendService` (friends in the server, for friend luck), `CodeService` + `Codes`, `GlobalAnnounce` (Secret pulls to every server), `NpcRange`, `World` (markers / arena spots),
   `WorldSigns` (NPC plates / gate plaques), `TownModels` (four service figures), `TownServices` (stations / pagoda),
-  `TownShowcase` (fountain card carousel / gate boss banners), `RateLimit`, `ProfileStore` (vendored).
+  `TownShowcase` (fountain card carousel / gate boss banners), `TownPlaza` (paving and stone finishes), `RateLimit`, `ProfileStore` (vendored).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient`, `LightingSetup`, `ZoneFx`, `HubFx`,
   `Followers`, `Avatars`, `Dash`, `SkyFx`, and `UI/*` (Kit helpers incl. `Kit.glyph` / `Kit.statsText` / `Kit.short`, Theme,
   Components/JuicyButton + IconBadge, Modal (+ `Modal.Tabbed`), Controls, Hud, Reveal, CardView, CardTile, CardTooltip,

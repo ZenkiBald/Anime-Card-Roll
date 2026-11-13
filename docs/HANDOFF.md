@@ -10,9 +10,9 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 ## Next up (the user's open asks, newest first)
 
 - TOWN CARD SHOWCASE (2026-11-14): the user asked for a huge step up in quality and visuals. First step taken:
-  the hub now shows the card art (fountain carousel, gate boss banners, spawn camera framed on it). Offered
-  next, not started: restyle the plaza ground / fountain stone, give the four world zones the same treatment,
-  cut the boss screen's text wall. The user picks.
+  the hub now shows the card art (fountain carousel, gate boss banners, spawn camera framed on it). The plaza
+  paving and fountain stone pass is complete. Open choices are improving the four world zones and shortening
+  the clipped boss scout panel.
 
 - Try SQUAD → a card's skills → PIN RAINBOW. Follow it from ROLL to Hoshi and rejoin on a physical phone. Kenji's early HUD puts the other shortcuts under MORE. Evaluate whether players choose their own target after the first boss before adding more grind systems.
 
@@ -273,7 +273,10 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Log (newest first)
 
-- 2026-11-14 · Claude Code · town showcase commit (based on e91fd26, checked and committed by Codex) · User: "huge step up
+- 2026-11-13 · Codex · this commit (from 6d822f6) · Kept the previous showcase in its own commit. Added warm flagstones across the original plaza footprint, a two-tone fountain and jade/brass inlays. Paths use the existing service pavers. The terrain still supplies collision. LOW now stops both carousel rotation and bobbing.
+  - Checked desktop and iPhone 14 landscape in an isolated Studio copy of the town, using current card data and the normal town lighting. Six painted cards and four gate banners loaded. The carousel moved in normal mode and held its pose on LOW. The test character walked 9.9 studs on the original terrain. Type check 0 errors (7 existing warnings), property check 6,247 names / 0 problems, bundle ALL CHECKS PASSED. Play stopped. Physical phone with full HUD and published-place streaming remain in checklist 5. The real place is in Edit and needs Rojo reconnect for the new plaza module. Studio preview: `studio-local/Fountain-Plaza-Preview.jpg` (local only).
+
+- 2026-11-14 · Claude Code · 6d822f6 (checked and committed by Codex) · User: "huge step up
   improvement on the game quality itself along with visuals". Played the current build in desktop Studio
   (fresh Lv 3 save): the hub still showed none of the card art and opened on the fountain's grey wall. New
   `server/TownShowcase` (called from `World.buildFromMap`): `Showcase.Pick` (Featured, four boss cards, rarest

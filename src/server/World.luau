@@ -23,6 +23,7 @@ local Signs = require(script.Parent.WorldSigns)
 local TownModels = require(script.Parent.TownModels)
 local TownServices = require(script.Parent.TownServices)
 local TownShowcase = require(script.Parent.TownShowcase)
+local TownPlaza = require(script.Parent.TownPlaza)
 
 local World = {}
 local gateSigns: { [string]: CFrame } = {}
@@ -613,6 +614,7 @@ local function buildFromMap(map: Instance, markers: Instance)
 	end
 	local hub = Instance.new("Folder")
 	hub.Name = "Hub"
+	if town then TownPlaza.Build(hub, town) end
 	styleMapSigns(map, hub)
 	for _, boss in Bosses.List do
 		local portalMarker = markers:FindFirstChild(`Portal_{boss.Id}`)
