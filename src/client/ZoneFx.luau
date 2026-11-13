@@ -163,6 +163,8 @@ local function petalStep(dt: number)
 			last.Part:Destroy()
 		end
 	end
+	local camera = workspace.CurrentCamera
+	local eye = camera and camera.CFrame.Position
 	for _, petal in petals do
 		petal.Phase += dt
 		petal.Offset -= Vector3.new(0, petal.Fall * dt, 0)
@@ -173,6 +175,8 @@ local function petalStep(dt: number)
 			world = petal.Base + petal.Offset
 		end
 		local sway = Vector3.new(math.sin(petal.Phase * 1.3) * petal.Sway, 0, math.cos(petal.Phase) * petal.Sway * 0.6)
+		-- A petal drifting past the lens would fill the screen as a pink slab: it hides while that close.
+		petal.Part.LocalTransparencyModifier = if eye and (world + sway - eye).Magnitude < 9 then 1 else 0
 		petal.Part.CFrame = CFrame.new(world + sway)
 			* CFrame.Angles(math.sin(petal.Phase * 2) * 0.9, petal.Phase * petal.Spin, math.cos(petal.Phase * 1.7) * 0.7)
 	end

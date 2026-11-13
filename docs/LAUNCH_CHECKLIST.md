@@ -60,6 +60,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] Town card showcase (2026-11-14): desktop Studio checked the spawn view, the carousel from the plaza and
+  the Ember gate banner. Not seen: the other three gate banners up close, the carousel turning over a long
+  session, phone framing of the tilted spawn camera, LOW effects, and streaming in from a far world.
 - [ ] On a physical phone, trigger a Secret near a showcase, listen through CLAIM and check the screen edges. Target a guard in a mixed tower squad, watch its dissolve, then walk the fountain path past the Legend Pedestal. With potions equipped, check RECENT PULLS under an active sky.
 
 - [ ] On a physical phone, listen to a Gold and Secret reveal at your normal volume and check the slash over a guard. With two players in the same server, open a pack that beats the pedestal record, walk past the owner's showcase and rejoin to check the new name and distance falloff.

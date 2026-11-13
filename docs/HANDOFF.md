@@ -9,6 +9,11 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- TOWN CARD SHOWCASE (2026-11-14): the user asked for a huge step up in quality and visuals. First step taken:
+  the hub now shows the card art (fountain carousel, gate boss banners, spawn camera framed on it). Offered
+  next, not started: restyle the plaza ground / fountain stone, give the four world zones the same treatment,
+  cut the boss screen's text wall. The user picks.
+
 - Try SQUAD → a card's skills → PIN RAINBOW. Follow it from ROLL to Hoshi and rejoin on a physical phone. Kenji's early HUD puts the other shortcuts under MORE. Evaluate whether players choose their own target after the first boss before adding more grind systems.
 
 - Try BATTLE → RIFT DRAFT on a world screen. Draft three loan fighters, read the intent and clear three duels. Play a second run with different fighters for missing marks or a lower play count. First-time discovery, real phone input and willingness to replay after the first clear need player feedback.
@@ -267,6 +272,18 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-11-14 · Claude Code · town showcase commit (based on e91fd26, checked and committed by Codex) · User: "huge step up
+  improvement on the game quality itself along with visuals". Played the current build in desktop Studio
+  (fresh Lv 3 save): the hub still showed none of the card art and opened on the fountain's grey wall. New
+  `server/TownShowcase` (called from `World.buildFromMap`): `Showcase.Pick` (Featured, four boss cards, rarest
+  normal), `Carousel` over the fountain rim, `GateBanner` in each town torii. `HubFx`: "Orbit" models turn about
+  Y (still on LOW), town spawn camera starts low and tilted up, Destination titles hide behind the top HUD
+  strip. `ZoneFx`: petals hide within 9 studs of the camera (the pink slab). Type 0 errors, props 0 problems,
+  headless ALL CHECKS PASSED. Rojo was not connected: TownShowcase was created and World / HubFx / ZoneFx edited
+  in the open place through the Studio MCP and hash-matched to disk (place not saved / published). Seen: spawn
+  view, plaza view, Ember gate banner, no new console errors. Unseen: phone, LOW, other gates (checklist 5).
+  No save, balance, card or map-file changes. Studio was launched by this session and left in Edit.
 
 - 2026-11-13 · Codex · this commit (from 8a6e107) · Replaced StarGlint and SlashVFX with the assets from the saved place. Made the Secret flash, rays and speed lines full-screen and transparent. Music and ambience duck through CLAIM. Bosses and guards use existing painted portraits on floating slabs. Guard defeats dissolve the slab and target panel. Stacked the two hub HUD areas, suppressed pull banners during visible battles and moved the authored pedestal 14 studs off the spawn path at runtime.
   - Verification in an unpublished mock Studio place: a full Secret held ambience at 0 until CLAIM and restored it to 0.5. A real World 1 fight loaded the boss and all three guard portraits. A defeated guard dropped 1.2 studs and faded fully in 0.251 seconds. A server pull announcement stayed hidden. On an emulated landscape iPhone 14 (749 × 330 usable), fusion cleared SURGE by 4 px and one complete recent-pull row fit below active Cursed Night with a 5 px gap. The updated glint, slash, rays and speed lines all loaded. Stopped Play and removed temporary test scripts. Type check 0 errors, 7 existing warnings. Property check 6,247 names, 0 problems. Full bundle ALL CHECKS PASSED. Physical phone sound balance and mixed tower guards remain in checklist section 5. The unpublished test place also logged an unrelated asset-type warning for 203785492. No card economy, fusion or save changes.

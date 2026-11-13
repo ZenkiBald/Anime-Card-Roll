@@ -22,6 +22,7 @@ local NpcRange = require(script.Parent.NpcRange)
 local Signs = require(script.Parent.WorldSigns)
 local TownModels = require(script.Parent.TownModels)
 local TownServices = require(script.Parent.TownServices)
+local TownShowcase = require(script.Parent.TownShowcase)
 
 local World = {}
 local gateSigns: { [string]: CFrame } = {}
@@ -661,6 +662,8 @@ local function buildFromMap(map: Instance, markers: Instance)
 		local spot = spawnCFrame * CFrame.new(24, -0.5, -6)
 		towerAt(hub, CFrame.lookAt(spot.Position, Vector3.new(spawnCFrame.X, spot.Y, spawnCFrame.Z)))
 	end
+	-- The card carousel over the fountain and the boss banners in the world gates.
+	TownShowcase.Build(hub, town, gateSigns)
 	hub.Parent = workspace
 
 	-- Zone circles for ZoneFx (music and lighting per zone). Published to ReplicatedStorage because

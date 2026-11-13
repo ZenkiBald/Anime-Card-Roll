@@ -52,6 +52,7 @@ local TIPS = {
 local animated = {} -- [Model] = { Base, Phase }
 local spinners = {} -- [BasePart] = { Base, Phase }
 local turners = {} -- [Model] = { Base, Speed }: Madame Fortuna's wheel, turning about its face
+local orbiters = {} -- [Model] = { Base, Speed }: the fountain's card carousel, turning about its upright axis
 local townFx = {} -- the two new tower emitters; bounded independently of the skyline parts
 local townLights={}
 local tipIndex = 0
@@ -85,6 +86,8 @@ local function track(inst: Instance)
 		spinners[inst] = { Base = inst.CFrame, Phase = math.random() * 10 }
 	elseif inst:IsA("Model") and type(inst:GetAttribute("Turn")) == "number" then
 		turners[inst] = { Base = inst:GetPivot(), Speed = inst:GetAttribute("Turn") }
+	elseif inst:IsA("Model") and type(inst:GetAttribute("Orbit")) == "number" and not orbiters[inst] then
+		orbiters[inst] = { Base = inst:GetPivot(), Speed = inst:GetAttribute("Orbit") }
 	end
 end
 
@@ -184,6 +187,15 @@ function HubFx.CameraBehind(character: Model)
 	task.wait(0.1) -- let the camera module take a new character first
 	local look = root.CFrame.LookVector
 	local focus = root.Position + Vector3.new(0, 1.5, 0)
+	-- Beside the fountain the camera starts lower and looks a little up, so the card carousel over it is
+	-- in frame from the first second; everywhere else it looks slightly down at the character.
+	local zones = ReplicatedStorage:FindFirstChild("Zones")
+	local town = zones and zones:FindFirstChild("Town")
+	local centre = town and town:GetAttribute("Center")
+	if typeof(centre) == "Vector3" and (centre - root.Position).Magnitude < 70 then
+		Workspace.CurrentCamera.CFrame = CFrame.lookAt(focus - look * 13 + Vector3.new(0, 0.6, 0), focus + Vector3.new(0, 3.2, 0))
+		return
+	end
 	Workspace.CurrentCamera.CFrame = CFrame.lookAt(focus - look * 12 + Vector3.new(0, 3.5, 0), focus)
 end
 
@@ -264,6 +276,9 @@ local function fadeSigns()
 		if gui:IsA("BillboardGui") and gui:GetAttribute("Destination") then
 			local scale=math.clamp(1-distance/800,.68,1)*math.clamp(camera.ViewportSize.Y/600,.8,1)
 			gui.Size=UDim2.fromOffset(290*scale,72*scale)
+			-- A gateway title never draws behind the top HUD strip (it returns as the camera tilts down).
+			local pos,onScreen=camera:WorldToViewportPoint(position+gui.StudsOffsetWorldSpace)
+			if onScreen and pos.Y-36*scale<math.min(150,camera.ViewportSize.Y*.26) then gui.Enabled=false; continue end
 		end
 		local plate=gui:FindFirstChild("Plate")
 		if plate and plate:IsA("CanvasGroup") then
@@ -357,6 +372,15 @@ function HubFx.Start()
 					turners[model] = nil
 				elseif (info.Base.Position - eye).Magnitude < 160 then
 					model:PivotTo(info.Base * CFrame.Angles(t * info.Speed, 0, 0)) -- the hub cylinder's axis (X) is the wheel's face normal
+				end
+			end
+			for model, info in orbiters do
+				if model.Parent == nil then
+					orbiters[model] = nil
+				elseif (info.Base.Position - eye).Magnitude < 220 then
+					-- A slow turn with a gentle rise and fall (LOW effects: it stands still).
+					local turn = if Theme.FxLow then 0 else t * info.Speed
+					model:PivotTo(info.Base * CFrame.new(0, math.sin(t * 0.8) * 0.35, 0) * CFrame.Angles(0, turn, 0))
 				end
 			end
 		end)

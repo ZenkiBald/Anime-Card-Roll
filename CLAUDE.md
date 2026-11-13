@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-11-13, after the fusion tracker and onboarding pass). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-11-14, after the town card showcase pass). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -94,6 +94,16 @@ non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server;
 One whoosh per roll action steps from 1.00 to 1.08 over five rolls. Gold and above layer a riser and heartbeat during anticipation. A quarter of Rainbow and Secret stage or cinematic reveals briefly show a Gold border that cracks before the real border appears. Rainbow and Secret snap with a choir. Secret anticipation ducks music and ambience. The snap follows a 0.20-second silence with bass and katana. In the full cinematic, CLAIM dismisses the card and fades ambience back to its saved level. Rays, speed lines and the transparent sparkle flash cover the viewport. A bonded Dual Ultimate also fires that pair. A confirmed parry, defense break and fallen guard have distinct sounds. The boss and each guard show slash and critical or Ultimate impact textures at the actual target.
 
 The town Legend Pedestal displays the highest combined card-and-border rarity actually pulled on this server, including rolls, triple pulls, sky finds and packs. Ties keep the first owner. The card and label bob at `Workspace.Map.Town.LegendPedestal.DisplayAnchor` (a pedestal directly under Workspace is also supported). At startup the authored stand moves 14 studs east of the fountain path. The record lasts for this server's lifetime and replicates to new arrivals.
+
+**Town card showcase** (2026-11-14, `server/TownShowcase`, runtime parts so it travels through Git / Rojo): six
+10.5-stud painted cards float in a ring just over the fountain's rim: the week's Featured Card (FEATURED x3), the
+four boss cards (WORLD N BOSS), then the rarest normal card (APEX), each with its name and "1 IN N" on both
+faces inside a glowing rim (`Showcase.Pick`, data-driven from Cards / Bosses). Clients turn the ring about a
+minute a revolution with a slight bob (`HubFx` "Orbit" attribute; it stands still on LOW) and cull its sparkles
+like other town effects. Each world gate in town flies its boss's card as a hanging banner (found from the gate
+signs' anchors and the nearest `Torii*` model). All of it is anchored, non-colliding and shadowless. In town,
+`HubFx.CameraBehind` starts the camera low and tilted up so the carousel is in frame on spawn. Gateway titles
+hide while they would draw behind the top HUD strip, and sakura petals hide within 9 studs of the lens.
 
 The hub stacks the fusion goal above SURGE and recent pulls below the active sky. The feed fits as many complete entries as the boost tiles and touch controls leave room for. Server pull banners stay hidden while watching a fight.
 
@@ -591,7 +601,8 @@ The character artwork pass did not change identities. The later character-to-Att
   `MetaService` (progression actions, luck / cooldown), `RaidService`, `Momentum`, `MonetizationService`, `AvatarService`,
   `NameTagService`, `LeaderboardService`, `ProfileService`, `TravelService`, `MountService`, `TutorialService`,
   `CollectionService`, `WeatherService`, `FriendService` (friends in the server, for friend luck), `CodeService` + `Codes`, `GlobalAnnounce` (Secret pulls to every server), `NpcRange`, `World` (markers / arena spots),
-  `WorldSigns` (NPC plates / gate plaques), `TownModels` (four service figures), `TownServices` (stations / pagoda), `RateLimit`, `ProfileStore` (vendored).
+  `WorldSigns` (NPC plates / gate plaques), `TownModels` (four service figures), `TownServices` (stations / pagoda),
+  `TownShowcase` (fountain card carousel / gate boss banners), `RateLimit`, `ProfileStore` (vendored).
 - `src/client` -> StarterPlayerScripts.Client: `Main.client`, `State`, `MetaClient`, `LightingSetup`, `ZoneFx`, `HubFx`,
   `Followers`, `Avatars`, `Dash`, `SkyFx`, and `UI/*` (Kit helpers incl. `Kit.glyph` / `Kit.statsText` / `Kit.short`, Theme,
   Components/JuicyButton + IconBadge, Modal (+ `Modal.Tabbed`), Controls, Hud, Reveal, CardView, CardTile, CardTooltip,
