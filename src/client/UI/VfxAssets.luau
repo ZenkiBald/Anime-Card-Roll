@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ids: { [string]: string } = {
 	SunburstRays = "rbxassetid://5626201485", MagicCircle = "rbxassetid://13086801741",
 	CrackOverlay = "rbxassetid://131184670003058", SpeedLines = "rbxassetid://18553799686",
-	StarGlint = "rbxassetid://13761580371", SlashVFX = "rbxassetid://81985560792849",
+	StarGlint = "rbxassetid://431559365", SlashVFX = "rbxassetid://6246398227",
 	HitImpactVFX = "rbxassetid://124966368363599",
 }
 -- A Marketplace Decal ID identifies its container. ImageLabel needs that decal's Texture ID.
@@ -11,9 +11,9 @@ local ids: { [string]: string } = {
 local textures: { [string]: string } = {
 	SpeedLines = "rbxassetid://18553799646",
 	SunburstRays = "rbxassetid://5626201475",
-	SlashVFX = "rbxassetid://99074144587419",
+	SlashVFX = "rbxassetid://6246398215",
 	CrackOverlay = "rbxassetid://95712963976055",
-	StarGlint = "rbxassetid://13761580325",
+	StarGlint = "rbxassetid://431559364",
 	MagicCircle = "rbxassetid://13086801689",
 	HitImpactVFX = "rbxassetid://99566027026247",
 }

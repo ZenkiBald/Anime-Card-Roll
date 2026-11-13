@@ -43,7 +43,6 @@ local function refresh()
 	caption.Text=if active then "EXCLUSIVE ATTACK CARDS · ROLLABLE NOW" else "UPCOMING EXCLUSIVE CARDS"
 	caption.Visible=hasCards;strip.Visible=hasCards
 	edge.Color=def.Color
-	pane.Size=UDim2.fromOffset(330,if hasCards then 238 else 104)
 	footer.Position=UDim2.new(0,12,1,-26)
 	local duration=if active then math.max(1,current.Ends-current.Starts) else 150
 	local left=if active then current.Ends-now elseif forecast then current.Next.Starts-now else 0
@@ -81,7 +80,8 @@ local function refresh()
 	end
 	fit.Scale=if short then math.min(.82,gui.AbsoluteSize.X*.28/236,math.max(.58,(gui.AbsoluteSize.Y-204)/146)) else math.min(1,gui.AbsoluteSize.X*.25/330)
 	pane.Size=UDim2.fromOffset(if short then 236 else 330,if hasCards then (if short then 146 else 238) else (if short then 86 else 104))
-	pane.Position=UDim2.new(1,-14,0,if expanded then math.max(52,listBottom+8) elseif short then 42 else 52)
+	Hud.PlaceSky(if expanded then math.max(52,listBottom+8) elseif short then 42 else 52,
+		math.round(pane.Size.X.Offset*fit.Scale), if pane.Visible then math.ceil(pane.Size.Y.Offset*fit.Scale) else 0, expanded)
 	kicker.Position=UDim2.fromOffset(if short then 10 else 12,if short then 5 else 7)
 	kicker.Size=UDim2.fromOffset(if short then 150 else 210,if short then 10 else 13)
 	kicker.TextSize=if short then 8 else 11
@@ -120,9 +120,9 @@ local function refresh()
 
 end
 function Ui.Init(playerGui)
-	gui=Kit.screenGui("SkyHud",2,playerGui)
-	gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets
-	pane=Kit.new("Frame",{Name="WeatherStatus",AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-14,0,52),Size=UDim2.fromOffset(330,104),BackgroundColor3=Color3.fromRGB(24,29,52),Parent=gui},{Kit.corner(UDim.new(0,12)),Kit.gradient(ColorSequence.new(Color3.fromRGB(38,44,76),Color3.fromRGB(14,18,34)),90)})
+	local slot=Hud.SkySlot()
+	gui=slot:FindFirstAncestorOfClass("ScreenGui")
+	pane=Kit.new("Frame",{Name="WeatherStatus",AnchorPoint=Vector2.new(1,0),Position=UDim2.fromScale(1,0),Size=UDim2.fromOffset(330,104),BackgroundColor3=Color3.fromRGB(24,29,52),Parent=slot},{Kit.corner(UDim.new(0,12)),Kit.gradient(ColorSequence.new(Color3.fromRGB(38,44,76),Color3.fromRGB(14,18,34)),90)})
 	edge=Kit.stroke(Theme.Color.Line,2,0);edge.Parent=pane
 	fit=Kit.new("UIScale",{Parent=pane})
 	kicker=Kit.label({Name="Status",Text="",TextColor3=Color3.fromRGB(180,193,217),TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.fromOffset(12,7),Size=UDim2.fromOffset(210,13),Parent=pane},11)

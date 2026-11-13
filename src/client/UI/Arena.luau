@@ -57,40 +57,29 @@ local function ground(position: Vector3, ignore: { Instance }): Vector3
 	return if hit then hit.Position else position
 end
 
-local function figure(id: string, modelId: string, at: CFrame, scale: number, tint: Color3?)
-	local model = BossModels.Build(modelId)
+local function figure(id: string, modelId: string, at: CFrame, scale: number, color: Color3)
 	local height = BossModels.Height(modelId) * scale
-	if scale ~= 1 then
-		model:ScaleTo(model:GetScale() * scale)
-	end
-	local base = at * CFrame.new(0, height / 2, 0)
+	local model, face = BossSlabRenderer.Build(modelId, height, color)
+	local base = at * CFrame.new(0, height / 2 + 0.8, 0)
 	model:PivotTo(base)
 	model.Parent = folder
 	local highlight = Instance.new("Highlight")
-	highlight.FillColor = tint or Color3.new(1, 1, 1)
-	highlight.FillTransparency = if tint then 0.65 else 1
-	highlight.OutlineColor = tint or Color3.new(0, 0, 0)
-	highlight.OutlineTransparency = if tint then 0.3 else 1
+	highlight.FillTransparency = 1
+	highlight.OutlineColor = color
+	highlight.OutlineTransparency = 0.24
 	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.Parent = model
-	local parts = {}
-	for _, part in model:GetDescendants() do
-		if part:IsA("BasePart") then
-			table.insert(parts, part)
-		end
-	end
 	figures[id] = {
 		Model = model,
 		Base = base,
 		Height = height,
 		Highlight = highlight,
-		Tint = tint,
+		Tint = color,
+		Face = face,
 		Kick = 0,
 		Lunge = 0,
-		Down = 0, -- 0 standing .. 1 toppled (eases toward DownGoal)
+		Down = 0, -- Fades and sinks from 0 (standing) to 1 (defeated).
 		DownGoal = 0,
-		Parts = parts, -- faded out as it falls
-		Faded = 0,
 		Phase = math.random() * 10,
 	}
 	return figures[id]
@@ -326,7 +315,7 @@ function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Stage
 		return CFrame.new(floor) * at.Rotation
 	end
 
-	local leader = figure("Boss", boss.Id, onGround(Vector3.zero), LEADER_SCALE, tint)
+	local leader = figure("Boss", boss.Id, onGround(Vector3.zero), LEADER_SCALE, tint or boss.Accent)
 	-- Sized in studs to the leader, so the boss holder's rings, taps and damage numbers sit on it.
 	local leaderGui = billboard("LeaderStage", leader.Model.PrimaryPart, UDim2.fromScale(leader.Height * 0.95, leader.Height * 0.95), 0)
 	plate = makePlate(leader, name or boss.Name, boss.Accent) -- a tower echo / Colossus shows its own name
@@ -337,10 +326,16 @@ function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Stage
 		if offset == nil then
 			break
 		end
-		local fig = figure(guard.Id, guard.GuardId, onGround(offset), GUARD_SCALE, nil)
+		local fig = figure(guard.Id, guard.GuardId, onGround(offset), GUARD_SCALE, LINK_COLORS[guard.Role] or boss.Accent)
 		fig.Link = link(fig, leader, guard.Role)
+		local hp = billboard("GuardHealth", fig.Model.PrimaryPart, UDim2.fromScale(fig.Height*.65,.27), fig.Height*.52)
+		local track = Kit.new("Frame", {Size=UDim2.fromScale(1,1), BackgroundColor3=Color3.fromRGB(15,17,23), Parent=hp})
+		fig.HpFill = Kit.new("Frame", {Size=UDim2.fromScale(1,1), BorderSizePixel=0, BackgroundColor3=Color3.fromRGB(95,239,154), Parent=track})
+		fig.HpGui = hp
+		hp.Enabled = compactMode
 		local lift = fig.Height / 2 + 2.4
-		guardGuis[i] = billboard(`Guard{i}`, fig.Model.PrimaryPart, UDim2.fromOffset(150, 84), lift)
+		fig.TargetGui = billboard(`Guard{i}`, fig.Model.PrimaryPart, UDim2.fromOffset(142, 64), lift)
+		guardGuis[i] = fig.TargetGui
 	end
 
 	brazier(onGround(Vector3.new(-13, 0, 6)), boss.Accent)
@@ -384,22 +379,16 @@ function Arena.Start(boss, guards: { any }, tint: Color3?, name: string?): Stage
 		for _, f in figures do
 			f.Kick *= math.exp(-dt * 9)
 			f.Lunge *= math.exp(-dt * 7)
-			-- A defeated figure topples back and sinks over ~0.35 s, fading out as it goes.
 			if f.Down ~= f.DownGoal then
-				local step = dt / 0.35
+				local step = dt / 0.25
 				f.Down = if f.DownGoal > f.Down then math.min(f.DownGoal, f.Down + step) else math.max(f.DownGoal, f.Down - step)
-				local fade = f.Down * 0.85
-				if math.abs(fade - f.Faded) > 0.01 or f.Down == f.DownGoal then
-					f.Faded = fade
-					for _, part in f.Parts do
-						part.LocalTransparencyModifier = fade
-					end
-				end
+				f.Model.PrimaryPart.Transparency = f.Down
+				f.Face.GroupTransparency = f.Down
 			end
-			local bob = math.sin((t + f.Phase) * 2.1) * f.Height * 0.012
+			local bob = math.sin((t + f.Phase) * 2.1) * f.Height * 0.024
 			local recoil = CFrame.new(0, 0, f.Height * 0.06 * f.Kick) * CFrame.Angles(math.rad(-6 * f.Kick), 0, 0)
 			local lunge = CFrame.new(0, 0, -f.Height * 0.15 * f.Lunge)
-			local sink = CFrame.new(0, -f.Height * 0.35 * f.Down, 0) * CFrame.Angles(math.rad(-50 * f.Down), 0, 0)
+			local sink = CFrame.new(0, -f.Height * 0.35 * f.Down, 0)
 			f.Model:PivotTo(f.Base * CFrame.new(0, bob, 0) * lunge * recoil * sink)
 		end
 	end)
@@ -521,16 +510,16 @@ function Arena.Hit(id: string, crit: boolean?)
 		-- A white hit-flash, then back to the guard's tint.
 		f.Highlight.FillColor = Color3.new(1, 1, 1)
 		f.Highlight.FillTransparency = if crit then 0.1 else 0.3
-		Kit.tween(f.Highlight, 0.25, { FillTransparency = 0.65 })
+		Kit.tween(f.Highlight, 0.25, { FillTransparency = 1 })
 		task.delay(0.12, function()
-			if f.DownGoal == 0 then
+			if f.DownGoal == 0 and f.Highlight.Parent then
 				f.Highlight.FillColor = f.Tint or Color3.new(1, 1, 1)
 			end
 		end)
 	end
 end
 
--- A guard (or the leader, at the end) topples and fades in a dark red, or stands back up when revived.
+-- A single burst per defeat. The alive snapshot also supports a guard returning.
 function Arena.SetDown(id: string, down: boolean)
 	local f = figures[id]
 	if f then
@@ -540,17 +529,11 @@ function Arena.SetDown(id: string, down: boolean)
 			if f.Link then
 				f.Link.Enabled = not down -- a fallen guard's link snaps
 			end
-			if down then
-				f.Highlight.FillColor = Color3.fromRGB(120, 14, 24)
-				f.Highlight.FillTransparency = 0.2
-				f.Highlight.OutlineColor = Color3.fromRGB(60, 0, 10)
-				Kit.tween(f.Highlight, 0.35, { FillTransparency = 0.55 })
-				Arena.Impact(id, Color3.fromRGB(150, 20, 40), true)
-			else
-				f.Highlight.FillColor = f.Tint or Color3.new(1, 1, 1)
-				f.Highlight.FillTransparency = if f.Tint then 0.65 else 1
-				f.Highlight.OutlineColor = f.Tint or Color3.new(0, 0, 0)
-			end
+			f.Highlight.Enabled = not down
+			if f.TargetGui then f.TargetGui.Active = not down end
+			if id == "Boss" and plate then plate.Gui.Enabled = not down and not arenaHidden and not compactMode end
+			if f.HpGui then f.HpGui.Enabled = not down and compactMode and not arenaHidden end
+			if down then BossSlabRenderer.Shatter(f.Model.PrimaryPart) end
 		end
 	end
 end
@@ -561,16 +544,24 @@ function Arena.SetLeaderHp(ratio: number)
 	end
 end
 
+function Arena.SetGuardHp(id: string, ratio: number)
+	local f = figures[id]
+	if f and f.HpFill then f.HpFill.Size = UDim2.fromScale(math.clamp(ratio,0,1),1) end
+end
+
 function Arena.SetCompact(on: boolean)
 	compactMode = on
+	for _, f in figures do
+		if f.HpGui then f.HpGui.Enabled = on and not arenaHidden and f.DownGoal == 0 end
+	end
 	if plate then
-		plate.Gui.Enabled = not on and not arenaHidden -- the screen's boss bar already carries the name and HP
+		plate.Gui.Enabled = not on and not arenaHidden and figures.Boss.DownGoal == 0 -- the screen's boss bar already carries the name and HP
 	end
 end
 
 function Arena.HitSurface(id: string): BillboardGui?
 	local figure = figures[id]
-	if arenaHidden or not figure then return nil end
+	if arenaHidden or not figure or figure.DownGoal == 1 then return nil end
 	return BossSlabRenderer.Surface(figure.Model, figure.Height)
 end
 
@@ -582,7 +573,7 @@ function Arena.SetHidden(on: boolean)
 	arenaHidden = on
 	if folder then folder.Parent = if on then nil else Workspace end
 	for _, g in guis do g.Enabled = not on end
-	if plate then plate.Gui.Enabled = not on and not compactMode end
+	Arena.SetCompact(compactMode)
 	if dof then dof.Enabled = not on end
 	local camera = Workspace.CurrentCamera
 	camera.CameraType = if on then Enum.CameraType.Custom else if folder then Enum.CameraType.Scriptable else Enum.CameraType.Custom

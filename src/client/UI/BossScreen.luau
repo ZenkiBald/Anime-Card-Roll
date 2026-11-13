@@ -27,7 +27,7 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local Modal = require(script.Parent.Modal)
-local ModelView = require(script.Parent.ModelView)
+local BossSlabRenderer = require(script.Parent.BossSlabRenderer)
 local ElementUi = require(script.Parent.ElementUi)
 local UITheme = require(ReplicatedStorage:WaitForChild("Configs"):WaitForChild("UITheme"))
 local C = UITheme.Colors
@@ -211,14 +211,14 @@ local function setShowcase(boss, floor, raidName: string?)
 		if view then
 			view.Frame:Destroy()
 		end
-		view = ModelView.new(boss.Id, {
+		view = BossSlabRenderer.Preview(boss.Id, {
 			Name = "Boss",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(1, 0.8),
 			ZIndex = 2,
 			Parent = showcase,
-		}, 0, 5)
+		}, boss.Accent)
 		viewBoss = boss.Id
 	end
 	if raidName then
@@ -230,7 +230,7 @@ local function setShowcase(boss, floor, raidName: string?)
 		return
 	end
 	local locked = not Bosses.IsUnlocked(cleared(), boss.Id, "Normal")
-	view:SetTint(if locked then Color3.fromRGB(15, 19, 30) else Color3.new(1, 1, 1))
+	view:SetTint(if locked then Color3.fromRGB(85, 92, 106) else boss.Accent)
 end
 
 -- "GUARDS  🗡️ Ash Ashigaru · Striker   🔥 Ember Monk · Mender ..." for a squad's guard ids.

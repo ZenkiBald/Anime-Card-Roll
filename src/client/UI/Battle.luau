@@ -35,7 +35,7 @@ local BagArt = require(script.Parent.BagArt)
 local Skin = require(script.Parent.Skin)
 local Modal = require(script.Parent.Modal)
 local Effects = require(script.Parent.Effects)
-local ModelView = require(script.Parent.ModelView)
+local BossSlabRenderer = require(script.Parent.BossSlabRenderer)
 local Arena = require(script.Parent.Arena)
 local CardView = require(script.Parent.CardView)
 local CardTile = require(script.Parent.CardTile)
@@ -1094,7 +1094,7 @@ local function showFocus(id: string?)
 	end
 	leaderFocus.Visible = id == "Boss"
 	for gid, tile in enemyTiles do
-		tile.Focus.Visible = gid == id
+		tile.Focus.Visible = not tile.Down and gid == id
 	end
 end
 
@@ -1158,29 +1158,24 @@ end
 local function makeGuardTile(enemy, slot: Frame)
 	local g = Bosses.GuardTypes[enemy.GuardId]
 	local color = if g then g.Color else Theme.Color.Danger
+	local shell = Kit.new("CanvasGroup", {Name = "GuardShell", BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1,1), Parent = slot})
 	local button = Kit.new("TextButton", {
 		Name = enemy.Id,
 		Size = UDim2.fromScale(1, 1),
 		AutoButtonColor = false,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
-		Parent = slot,
+		Parent = shell,
 	}, {
 		Kit.corner(UDim.new(0.14, 0)),
 		Kit.gradient(ColorSequence.new(color:Lerp(Color3.new(0, 0, 0), 0.45), color:Lerp(Color3.new(0, 0, 0), 0.8)), 90),
 		Kit.stroke(color, 2, 0.1),
 	})
 	local scale = Kit.new("UIScale", { Scale = 1, Parent = button })
-	local icon = Kit.label({
-		Name = "Icon",
-		Text = enemy.Icon or "?",
-		Font = Theme.Font.Display,
-		Position = UDim2.fromScale(0.03, 0.06),
-		Size = UDim2.fromScale(0.3, 0.46),
-		Parent = button,
-	}, 40)
-	icon.Visible = false
-	ModelView.new(enemy.GuardId, { Name="AllyPortrait", Position=UDim2.fromScale(0.01,0), Size=UDim2.fromScale(0.33,0.55), BackgroundTransparency=1, Parent=button }, 8)
+	local portrait = BossSlabRenderer.Portrait(enemy.GuardId, button)
+	portrait.Position = UDim2.fromScale(.02,.04)
+	portrait.Size = UDim2.fromScale(.30,.5)
 	Skin.Apply(button, "Panel")
 	ElementUi.Badge(enemy.Element, {
 		AnchorPoint = Vector2.new(1, 0),
@@ -1278,29 +1273,11 @@ local function makeGuardTile(enemy, slot: Frame)
 		ZIndex = 12,
 		Parent = button,
 	}, { Kit.corner(UDim.new(0.14, 0)) })
-	local ko = Kit.new("Frame", {
-		Name = "KO",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(10, 8, 14),
-		BackgroundTransparency = 0.3,
-		Visible = false,
-		ZIndex = 15,
-		Parent = button,
-	}, { Kit.corner(UDim.new(0.14, 0)) })
-	Kit.label({
-		Text = "DOWN",
-		Font = Theme.Font.Display,
-		TextColor3 = Theme.Color.Gold,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.7, 0.5),
-		ZIndex = 16,
-		Parent = ko,
-	}, 30)
 	local tile = {
 		Card = button,
 		Scale = scale,
-		Icon = icon,
+		Shell = shell,
+		Down = false,
 		HpFill = hpFill,
 		HpTrail = hpTrail,
 		HpText = hpText,
@@ -1309,18 +1286,38 @@ local function makeGuardTile(enemy, slot: Frame)
 		Flash = flash,
 		Focus = focus,
 		Warn = warn,
-		Ko = ko,
 		MaxHP = enemy.MaxHP,
 		Color = color,
 		Name = enemy.Name,
 	}
 	enemyTiles[enemy.Id] = tile
 	button.Activated:Connect(function()
-		if not ko.Visible then
+		if not tile.Down then
 			setFocus(enemy.Id)
 		end
 	end)
 	return tile
+end
+
+-- KO and the next snapshot can arrive in either order, including after a target revives.
+local function setGuardDown(id, tile, down)
+	if tile.Down == down then return end
+	tile.Down = down
+	tile.Focus.Visible = false
+	tile.Card.Active = not down
+	Arena.SetDown(id, down)
+	if tile.Fade then tile.Fade:Cancel() end
+	if down then
+		if not Arena.Active() then Effects.Sparks(tile.Shell.Parent, tile.Color, 10, .55) end
+		tile.Fade = Kit.tween(tile.Shell, .25, {GroupTransparency=1, Position=UDim2.fromScale(0,.24)})
+		tile.Fade.Completed:Once(function(state)
+			if state == Enum.PlaybackState.Completed and tile.Down then tile.Shell.Visible = false end
+		end)
+	else
+		tile.Shell.Position = UDim2.fromScale(0,0)
+		tile.Shell.GroupTransparency = 0
+		tile.Shell.Visible = true
+	end
 end
 
 -- Snapshots -------------------------------------------------------------------------------
@@ -1401,12 +1398,8 @@ local function applySnapshot(snap)
 			tile.HpText.Text = if (s.Bar or 0) > 0 then `{Kit.commas(s.H)} · BARRIER` else Kit.commas(s.H)
 			Kit.tween(tile.Gauge, 0.15, { Size = UDim2.fromScale(s.G, 1) }, Enum.EasingStyle.Linear)
 			tile.Status.Text = flagWords(s.F, BOSS_STATUS)
-			local down = s.H <= 0
-			if tile.Ko.Visible ~= down then
-				tile.Ko.Visible = down
-				tile.Focus.Visible = false
-				Arena.SetDown(id, down)
-			end
+			Arena.SetGuardHp(id, s.H / tile.MaxHP)
+			setGuardDown(id, tile, s.H <= 0)
 		else
 			local tile = tiles[id]
 			if tile then
@@ -1978,13 +1971,11 @@ local function playEvent(event)
 			Sfx.Play("KO")
 		elseif guard then
 			Sfx.Play("ShieldBreak")
-			guard.Ko.Visible = true
-			guard.Focus.Visible = false
+			setGuardDown(event.T, guard, true)
 			if current.Focus == event.T then
 				current.Focus = nil
 			end
 			callout(`{string.upper(guard.Name)} DOWN!`, Theme.Color.Gold, 1.2)
-			Effects.Sparks(guard.Card, guard.Color, 18, 0.8)
 			Sfx.Play("HeavyHit", 1.2)
 		end
 	elseif kind == "EnemyHeal" then
@@ -3259,14 +3250,14 @@ local function begin(start, bossId: string, difficulty: string?)
 		bossView = staged.View
 		moveInto(bossHolder, staged.LeaderGui)
 	else
-		bossView = ModelView.new(boss.Id, {
+		bossView = BossSlabRenderer.Preview(boss.Id, {
 			Name = "BossView",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(1.6, 1.25),
+			Size = UDim2.fromScale(1, 1),
 			ZIndex = 2,
 			Parent = bossHolder,
-		}, 10)
+		}, tint or boss.Accent)
 		if tint then
 			bossView:SetTint(tint)
 		end

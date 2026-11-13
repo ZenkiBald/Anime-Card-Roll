@@ -89,11 +89,13 @@ up to three such highlights. Rainbow+ pulls are announced; a Secret gets "[SERVE
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
 
-**Studio reveal, combat and town assets.** The seven decals in `ReplicatedStorage.VFXAssets` supply the reveal rays, circle, crack, speed lines, glint, slash and hit impact. `UI/VfxAssets` maps each Marketplace decal listing to the image inside it. The client preloads those images and the eleven Sound templates. Roll, combat and menu sounds route through `SFX_Roll`, `SFX_Combat` and `SFX_UI`. Zone music and the 22-stud Rainbow/Secret showcase hum route through `Ambience`, with separate music and effect settings.
+**Studio reveal, combat and town assets.** The seven decals in `ReplicatedStorage.VFXAssets` supply the reveal rays, circle, crack, speed lines, glint, slash and hit impact. `UI/VfxAssets` maps each Marketplace decal listing to the image inside it. The client preloads those images and the eleven Sound templates. Roll, combat and menu sounds route through `SFX_Roll`, `SFX_Combat` and `SFX_UI`. Zone music, weather thunder and the 22-stud Rainbow/Secret showcase hum route through `Ambience`, with separate music and effect settings.
 
-One whoosh per roll action steps from 1.00 to 1.08 over five rolls. Gold and above layer a riser and heartbeat during anticipation. A quarter of Rainbow and Secret stage or cinematic reveals briefly show a Gold border that cracks before the real border appears. Rainbow and Secret snap with a choir. A Secret adds a 0.20-second silence before the bass and katana. A bonded Dual Ultimate also fires that pair. A confirmed parry, defense break and fallen guard have distinct sounds. The boss and each guard show slash and critical or Ultimate impact textures at the actual target.
+One whoosh per roll action steps from 1.00 to 1.08 over five rolls. Gold and above layer a riser and heartbeat during anticipation. A quarter of Rainbow and Secret stage or cinematic reveals briefly show a Gold border that cracks before the real border appears. Rainbow and Secret snap with a choir. Secret anticipation ducks music and ambience. The snap follows a 0.20-second silence with bass and katana. In the full cinematic, CLAIM dismisses the card and fades ambience back to its saved level. Rays, speed lines and the transparent sparkle flash cover the viewport. A bonded Dual Ultimate also fires that pair. A confirmed parry, defense break and fallen guard have distinct sounds. The boss and each guard show slash and critical or Ultimate impact textures at the actual target.
 
-The town Legend Pedestal displays the highest combined card-and-border rarity actually pulled on this server, including rolls, triple pulls, sky finds and packs. Ties keep the first owner. The card and label bob at `Workspace.Map.Town.LegendPedestal.DisplayAnchor` (a pedestal directly under Workspace is also supported). The record lasts for this server's lifetime and replicates to new arrivals.
+The town Legend Pedestal displays the highest combined card-and-border rarity actually pulled on this server, including rolls, triple pulls, sky finds and packs. Ties keep the first owner. The card and label bob at `Workspace.Map.Town.LegendPedestal.DisplayAnchor` (a pedestal directly under Workspace is also supported). At startup the authored stand moves 14 studs east of the fountain path. The record lasts for this server's lifetime and replicates to new arrivals.
+
+The hub stacks the fusion goal above SURGE and recent pulls below the active sky. The feed fits as many complete entries as the boost tiles and touch controls leave room for. Server pull banners stay hidden while watching a fight.
 
 **Rift Draft.** Open BATTLE and choose RIFT DRAFT on a world screen. It opens from the first session. Draft three loan fighters from twelve illustrated Attack cards and take them through three distinct opponents drawn from the four world bosses. Each offer includes a damage dealer, a protector and a trickster. Draft rules have their own printed stats. Collection power, borders and passes give no advantage here.
 
@@ -326,9 +328,11 @@ squash and shake; full cards hover and shiver. Support chips show passive status
 or actual healing / shields instead of assigning every support a healing score.
 The boss bar shows its next big move (snapshot Nx). Cost Challenge (Deck Cost by border 2/4/6/8, cap 30) for x2 Trait Shards.
 The engine (`BattleEngine`) is pure and runs headless in tests. Fights are staged in 3D at the boss's spot in its world
-(`UI/Arena`, low cinematic camera, guards as separate faction / role models, with model portraits in their target panels; beams fly from the card slots to the 3D figures,
-hits flash and recoil, guards lunge, boss skills and crits shake the camera; a defeated guard or leader topples
-and fades in dark red; callouts show one at a time with at most three queued); no map = the 2D fallback. Damage
+using a low cinematic camera. Bosses and guards float as illuminated portrait slabs with a colored rim and HP display.
+Bosses use their unlockable card art. Each guard has a matching portrait in its targeting panel.
+Beams fly from the squad to the target. Hits flash and recoil, guards lunge, and boss skills and crits shake the camera.
+Defeated enemies sink and dissolve over 0.25 seconds with a particle burst. Screen-space fights and scouting use the same art.
+Callouts show one at a time with at most three queued. Damage
 numbers have bounded pixel sizes and at most two per target; on the squad's cards they spawn above the frame.
 On short phone screens, guard target panels sit in a fixed right rail and the duplicate leader plate hides;
 Action countdowns use the line below each Attack card's name. Auto Roll continues with its feed hidden during fights,
@@ -337,9 +341,9 @@ while the server fight continues. A RETURN TO BATTLE widget shows leader HP / ti
 Hidden auto-climb / retry stays hidden; results do not interrupt exploration. A validated, rate-limited BattleInput
 View action restores character streaming focus while exploring. Supports have no cast tags.
 
-Story retinues now have distinct names / moves / models: Crimson-Eye clan guards in Ember, Frost Court, Void Court
+Story retinues have distinct names, moves and portraits across four factions, Crimson-Eye clan guards in Ember, Frost Court, Void Court
 and Storm Court. Guard ids / roles / effects remain compatible with mixed tower squads. The Rojo-managed
-`assets/models/bosses-20261027/BossKit.rbxm` supplies the user's selected boss appearances: kurogane uses
+`assets/models/bosses-20261027/BossKit.rbxm` supplies the overworld bosses: kurogane uses
 Naruto Kurama Avatar, rimeveil uses R6 Golden Frieza Rig, vex uses Madara Susanoo, and tenrai uses Muzan [R6].
 Existing boss / card names, ids, stats and retinues remain. Imported scripts / remotes / GUI / sounds / emitters
 were removed; clones also strip executable / interactive content. Cosmetic Humanoids retain clothing with

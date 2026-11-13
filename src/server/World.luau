@@ -736,6 +736,16 @@ end
 function World.Build()
 	local map = workspace:FindFirstChild("Map")
 	local markers = map and map:FindFirstChild("Markers")
+	local town = map and map:FindFirstChild("Town")
+	local pedestal = workspace:FindFirstChild("LegendPedestal") or (town and town:FindFirstChild("LegendPedestal"))
+	local anchor = pedestal and pedestal:FindFirstChild("DisplayAnchor")
+	if pedestal and pedestal:IsA("Model") and anchor and anchor:IsA("BasePart") then
+		-- The authored stand is on the fountain path at (0, 28). Move the entire stand onto
+		-- the adjacent level ground once, retaining its height, rotation and anchored parts.
+		if math.abs(anchor.Position.X) < 1 and math.abs(anchor.Position.Z - 28) < 1 then
+			pedestal:PivotTo(pedestal:GetPivot() + Vector3.new(14, 0, 0))
+		end
+	end
 	if map and markers then
 		prepareAuthoredTower(markers)
 		buildFromMap(map, markers)

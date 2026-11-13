@@ -88,7 +88,8 @@ local questActive = false
 local fitScale = 1 -- the left column's scale (layoutLeft)
 local locks = {} -- [feature] = overlay frame
 local feedOrder = 0
-local FEED_Y = 0.6 -- the Auto Roll feed's centre: below the server list, above the potion tiles
+local rightStack, skySlot
+local skyTop, skyHeight, listExpanded = 52, 0, false
 local bannerToken = 0
 local hintToken = 0
 local hintTween, bannerTween
@@ -334,7 +335,7 @@ local function applyHidden()
 	eventPill.Visible = not hidden and not guided and not (raidTurn and raidWanted)
 	raidPill.Visible = not hidden and not guided and raidTurn and raidWanted
 	goalPill.Visible = goalWanted and not hidden
-	feed.Visible = not hidden and not guided and (not compactHud() or feed:GetAttribute("HasRoom") == true)
+	feed.Visible = not hidden and not guided and feed:GetAttribute("HasRoom") == true
 	-- The RECENT PULLS label only shows over pulls, never as a lone heading.
 	local pulls = 0
 	for _, child in feed:GetChildren() do
@@ -345,22 +346,32 @@ local function applyHidden()
 	feedHeader.Visible = pulls > 0 and feed.Visible
 end
 
--- The hub feed is shorter on phones; applyHidden keeps it out of fights and full reveals.
+-- Sky and pulls share one layout. The sky supplies its rendered size (including UIScale).
 local function placeFeed()
-	if feed == nil or gui == nil then
-		return
-	end
-	local sky=State.Weather
-	local preview=Config.CelestialCardsReady and (sky.Id~="clear" or sky.Forecast)
-	local short=compactHud()
-	local skyBottom = if short then 42 + (if preview then 146 else 86) * math.min(.82, gui.AbsoluteSize.X*.28/236, math.max(.58,(gui.AbsoluteSize.Y-204)/146))
-		else 52 + (if preview then 238 else 104) * math.min(1, gui.AbsoluteSize.X*.25/330)
-	local top=math.max(gui.AbsoluteSize.Y*.3,skyBottom+28)
-	feed:SetAttribute("HasRoom", top + 62 < gui.AbsoluteSize.Y - 152)
-	feed.AnchorPoint=Vector2.new(1,0)
-	feed.Position=UDim2.new(1,-12,0,top)
-	feed.Size=UDim2.new(.2,0,0,if short then 56 else 70)
-	if feedHeader then feedHeader.Position=UDim2.new(1,-18,0,top-19) end
+	if not rightStack or not feed then return end
+	local short = compactHud()
+	local grid = boostRow:FindFirstChildOfClass("UIGridLayout")
+	local occupied = if grid then math.max(0, grid.AbsoluteContentSize.Y) else 0
+	local bottom = gui.AbsoluteSize.Y - (if short then 86 else 18) - occupied - 6
+	-- The header and its gaps take 26 pixels. Fit whole 26px entries with 4px between them.
+	local available = bottom - skyTop - skyHeight - 26
+	local rows = math.clamp(math.floor((available + 4) / 30), 0, if short then 2 else 3)
+	rightStack.Position = UDim2.new(1, -14, 0, skyTop)
+	feed.Size = UDim2.new(1, 0, 0, math.max(0, rows * 30 - 4))
+	feed:SetAttribute("HasRoom", rows > 0 and not (short and listExpanded))
+end
+
+function Hud.SkySlot()
+	return skySlot
+end
+
+function Hud.PlaceSky(top, width, height, expanded)
+	skyTop, skyHeight, listExpanded = top, height, expanded
+	rightStack.Size = UDim2.fromOffset(width, gui.AbsoluteSize.Y - top)
+	skySlot.Size = UDim2.new(1, 0, 0, height)
+	skySlot.Visible = height > 0
+	placeFeed()
+	applyHidden()
 end
 
 export type Handlers = {
@@ -458,13 +469,18 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	autoButton.Activated:Connect(handlers.OnAuto)
 
 	-- Above the roll console: the Momentum header (Auto Roll never stops: it rolls until switched off) ---
+	local progressStack = Kit.new("Frame", {
+		Name = "RollProgress", AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -4), Size = UDim2.new(1, 0, 0, 90),
+		BackgroundTransparency = 1, Parent = dock,
+	}, { Kit.new("UIListLayout", { VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) }) })
 	local row = Kit.new("Frame", {
-		Name = "InfoRow",
+		Name = "InfoRow", LayoutOrder = 2,
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 0, -4),
-		Size = UDim2.fromScale(1, 0.3),
+		Size = UDim2.new(1, 0, 0, 22),
 		BackgroundTransparency = 1,
-		Parent = dock,
+		Parent = progressStack,
 	})
 	momentumRow = row
 	-- Urushi mini-header on top of the roll console: Momentum text, and a 2 px bar filling to the cap.
@@ -484,15 +500,13 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	-- The Next Goal pill, above the Momentum header: the reward closest to landing (a fusion, an Awakening
 	-- node, a roll milestone or a Shard upgrade) with a bar filling toward it, updated on every roll.
 	goalPill = Kit.new("Frame", {
-		Name = "NextGoal",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 18, 1, -76),
+		Name = "NextGoal", LayoutOrder = 1,
 		Size = UDim2.fromOffset(260, 22),
 		BackgroundColor3 = UITheme.Colors.UrushiInset,
 		BackgroundTransparency = 0.1,
 		ClipsDescendants = true,
 		Visible = false,
-		Parent = gui,
+		Parent = progressStack,
 	}, {
 		Kit.corner(UDim.new(1, 0)),
 		Kit.stroke(UITheme.Colors.TamahaganeSlate, 1, 0),
@@ -803,16 +817,21 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	petsButton.Activated:Connect(handlers.OnPets)
 
 	-- Auto Roll feed (right side) ------------------------------------------------------------
+	rightStack = Kit.new("Frame", { Name = "RightStack", AnchorPoint = Vector2.new(1, 0), BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(330, 400), Parent = gui }, {
+		Kit.new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Right, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5) }),
+	})
+	skySlot = Kit.new("Frame", {Name = "SkySlot", LayoutOrder = 0, BackgroundTransparency = 1, Parent = rightStack})
 	feed = Kit.new("Frame", {
 		Name = "Feed",
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -12, FEED_Y, 0),
+		LayoutOrder = 2,
 		Size = UDim2.fromScale(0.22, 0.34),
 		BackgroundTransparency = 1,
 		ClipsDescendants = true,
-		Parent = gui,
+		Parent = rightStack,
 	}, {
-		Kit.new("UISizeConstraint", { MinSize = Vector2.new(150, 56), MaxSize = Vector2.new(280, 360) }),
+		Kit.new("UISizeConstraint", { MinSize = Vector2.zero, MaxSize = Vector2.new(280, 360) }),
 		Kit.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Vertical,
 			VerticalAlignment = Enum.VerticalAlignment.Bottom,
@@ -827,10 +846,14 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 	feedHeader = Kit.label({
 		Name = "FeedHeader", Text = "RECENT PULLS", Font = Theme.Font.Heavy, TextColor3 = Theme.Color.Gold,
 		TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -18, 0.3, -20), Size = UDim2.fromOffset(180, 16), Parent = gui,
+		LayoutOrder = 1, Size = UDim2.fromOffset(160, 16), Parent = rightStack,
 	}, 12)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeFeed)
 	placeFeed()
+	boostGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		placeFeed()
+		applyHidden()
+	end)
 	feed.ChildAdded:Connect(applyHidden)
 	feed.ChildRemoved:Connect(applyHidden)
 
@@ -1025,9 +1048,7 @@ function Hud.Init(playerGui: Instance, handlers: Handlers)
 			limits.MaxSize = Vector2.new(if compact then 480 else 620, if compact then 54 else 88)
 		end
 		momentumHeader.Size = UDim2.new(0.36, 0, 0, if compact then 16 else 22)
-		goalPill.Parent = dock
-		goalPill.AnchorPoint = Vector2.new(.5, 1)
-		goalPill.Position = UDim2.new(.5, 0, -.3, -8)
+		row.Size = UDim2.new(1, 0, 0, if compact then 18 else 24)
 		goalPill.Size = UDim2.new(.94, 0, 0, if compact then 20 else 25)
 		for i, progressBar in progressRows do
 			progressBar.Position = UDim2.new(0, 18, 1, -50 - (i-1)*24)
@@ -1436,6 +1457,12 @@ end
 -- Rolls continue during fights; their feed waits offscreen so it cannot cover enemy targets.
 function Hud.SetBattleMode(on: boolean)
 	hiddenBy.Battle = on
+	if on and banner then
+		bannerToken += 1
+		if bannerTween then bannerTween:Cancel() end
+		banner.Visible = false
+		banner.Position = UDim2.new(0.5, 0, 0, -80)
+	end
 	applyHidden()
 	placeFeed()
 end
@@ -1662,6 +1689,7 @@ end
 
 -- `global`: the pull happened on another server (GlobalAnnounce: Secret borders reach every server).
 function Hud.Announce(playerName: string, cardId: string, borderId: string?, foilId: string?, global: boolean?)
+	if hiddenBy.Battle or (State.InBattle and not State.BattleHidden) then return end
 	local card = Cards.Get(cardId)
 	if card == nil then
 		return

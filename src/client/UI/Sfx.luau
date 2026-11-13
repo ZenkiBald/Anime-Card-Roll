@@ -50,7 +50,7 @@ local SOUNDS = {
 	Shield = { Id = asset(9116163448), Volume = 0.35, Pitch = 0.9, Gap = 0.1 },
 	Victory = { Id = asset(1836860398), Volume = 0.7 }, -- APM: Winning Spirit
 	Defeat = { Id = asset(1839909504), Volume = 0.6 }, -- APM: Shock Sting
-	Thunder = { Id = asset(9116282544), Volume = 0.55, Region = 6, Gap = 1 }, -- PSE: lightning strike, sharp crack + rolling decay
+	Thunder = { Id = asset(9116282544), Group = "Ambience", Volume = 0.55, Region = 6, Gap = 1 }, -- PSE: lightning strike, sharp crack + rolling decay
 
 	-- Kept for older calls: the sounds that ship with Roblox.
 	Impact = { Id = "rbxasset://sounds/impact_explosion_03.mp3", Volume = 0.4 },
@@ -89,6 +89,8 @@ local groups = {}
 local levels = {}
 local effectsVolume = 1
 local dipCount = 0
+local secretHolds = 0
+local ambienceFade
 local hums = {}
 local function group(name: string): SoundGroup
 	local g = groups[name]
@@ -175,6 +177,7 @@ function playOne(name: string, pitch: number?, volumeScale: number?)
 	lastPlayed[name] = now
 	local speed = (def.Pitch or 1) * (pitch or 1)
 	local volume = (def.Volume or 0.5) * (volumeScale or 1)
+	if def.Group == "Ambience" then volume *= effectsVolume end
 	if def.Region then
 		playRegion(def, name, speed, volume)
 		return
@@ -222,20 +225,43 @@ function Sfx.Resonance()
 	playOne("KatanaUnsheathe")
 end
 
-local buses = { "SFX_Roll", "SFX_Combat", "SFX_UI", "Ambience" }
+local buses = { "SFX_Roll", "SFX_Combat", "SFX_UI" }
+local function ambienceMix(seconds: number)
+	local bus = group("Ambience")
+	if ambienceFade then ambienceFade:Cancel() end
+	local target = if secretHolds > 0 or dipCount > 0 then 0 else levels.Ambience
+	if seconds == 0 then bus.Volume = target; return end
+	ambienceFade = TweenService:Create(bus, TweenInfo.new(seconds), { Volume = target })
+	ambienceFade:Play()
+end
+
+-- The Music subgroup lives under Ambience, so this also ducks a track started during the reveal.
+function Sfx.HoldSecretAmbience()
+	secretHolds += 1
+	if secretHolds == 1 then ambienceMix(0.12) end
+	local held = true
+	return function()
+		if not held then return end
+		held = false
+		secretHolds -= 1
+		if secretHolds == 0 then ambienceMix(0.55) end
+	end
+end
 local function mix()
 	for _, name in buses do
 		local bus = group(name)
-		bus.Volume = if dipCount > 0 then 0 else levels[name] * (if name == "Ambience" then 1 else effectsVolume)
+		bus.Volume = if dipCount > 0 then 0 else levels[name] * effectsVolume
 	end
 end
 
 -- Called while the card is edge-on. Even if the show is replaced, always restore the mix.
 function Sfx.SecretDip()
 	dipCount += 1
+	ambienceMix(0)
 	mix()
 	task.wait(0.20)
 	dipCount -= 1
+	ambienceMix(if secretHolds > 0 then 0 else 0.55)
 	mix()
 end
 

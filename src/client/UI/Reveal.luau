@@ -283,6 +283,8 @@ local function playFull(result, item)
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
+	local releaseSecret = if borderId == "Secret" then Director.SecretSession(root) else nil
+	if releaseSecret then item.ReleaseSecret = releaseSecret end
 	local dim = Kit.new("TextButton", {
 		Name = "Dim",
 		Size = UDim2.fromScale(1, 1),
@@ -331,6 +333,7 @@ local function playFull(result, item)
 	local skippedFlag = false
 	local skipAllFlag = false
 	local closeSignal = Instance.new("BindableEvent")
+	closeSignal.Parent = root
 	local function skipped(): boolean
 		return skippedFlag or skipAllFlag
 	end
@@ -450,8 +453,11 @@ local function playFull(result, item)
 	end
 	Sfx.Play("Flip")
 	Kit.tween(flip, 0.09, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Wait()
-	Effects.Flash(root, flashColor, 0.4 + idx * 0.06, if idx >= 5 then 0 else 0.4)
-	if borderId == "Secret" and not skipAllFlag then Sfx.SecretDip() end
+	if borderId == "Secret" then
+		if not skipAllFlag then Sfx.SecretDip(); Director.Flash(stage, flashColor, 0.55) end
+	else
+		Effects.Flash(root, flashColor, 0.4 + idx * 0.06, if idx >= 5 then 0 else 0.4)
+	end
 	if not skipAllFlag then Director.Snap(stage, borderId) end
 	if borderId ~= "Secret" then Sfx.Sting(tier.Sting) end
 	if closeBars then
@@ -570,38 +576,26 @@ local function playFull(result, item)
 		Parent = root,
 	}, 30)
 	Kit.tween(outcome, 0.3, { TextTransparency = 0 })
-	local hint = Kit.label({
-		Text = "Tap to continue",
-		Font = Theme.Font.Medium,
-		TextColor3 = Theme.Color.Muted,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.925),
-		Size = UDim2.fromScale(0.4, 0.03),
-		TextTransparency = 1,
-		ZIndex = 30,
-		Parent = root,
-	}, 20)
-	task.delay(0.6, function()
-		if hint.Parent then
-			Kit.tween(hint, 0.3, { TextTransparency = 0.2 })
-		end
-	end)
-
-	-- Close on tap, or by itself after a while (at once after SKIP ALL).
-	local shownAt = os.clock()
-	local tapConnection = dim.Activated:Connect(function()
-		if os.clock() - shownAt > 0.35 then
-			closeSignal:Fire()
-		end
-	end)
-	local autoClose = if special then 6 elseif idx <= 2 then 1.3 elseif idx == 3 then 2.2 else 6
-	task.delay(autoClose, function()
-		closeSignal:Fire()
-	end)
-	if not skipAllFlag then
-		closeSignal.Event:Wait()
+	if borderId == "Secret" then
+		local claim = Kit.button("CLAIM", Theme.Color.Gold, Theme.Color.Panel, {
+			Name = "Claim", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.945),
+			Size = UDim2.fromScale(0.24, 0.075), ZIndex = 65, Parent = root,
+		})
+		claim.Activated:Connect(function() closeSignal:Fire() end)
+	else
+		Kit.label({ Text = "Tap to continue", Font = Theme.Font.Medium, TextColor3 = Theme.Color.Muted,
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.925),
+			Size = UDim2.fromScale(0.4, 0.03), ZIndex = 30, Parent = root }, 20)
+		local shownAt = os.clock()
+		dim.Activated:Connect(function()
+			if os.clock() - shownAt > 0.35 then closeSignal:Fire() end
+		end)
+		task.delay(if special then 6 elseif idx <= 2 then 1.3 elseif idx == 3 then 2.2 else 6, function()
+			if closeSignal.Parent then closeSignal:Fire() end
+		end)
 	end
-	tapConnection:Disconnect()
+	if not skipAllFlag then closeSignal.Event:Wait() end
+	if releaseSecret then releaseSecret(); item.ReleaseSecret = nil end
 	closeSignal:Destroy()
 
 	Kit.tween(scale, 0.18, { Scale = 0.85 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -628,6 +622,7 @@ local function pump()
 			local item = table.remove(queue, 1)
 			local ok, err = pcall(playFull, item.Result, item)
 			if not ok then
+				if item.ReleaseSecret then item.ReleaseSecret() end
 				warn("Reveal failed:", err)
 			end
 			if item.OnDone then
@@ -693,6 +688,7 @@ local function leaveStage(replaced: boolean?)
 	end
 	show = nil
 	if old.EndHold then old.EndHold() end
+	if old.ReleaseSecret then old.ReleaseSecret() end
 	local seconds = if replaced then 0.1 else 0.24
 	if not replaced then
 		Kit.tween(old.Root, seconds, { Position = UDim2.fromScale(0.86, 0.62) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -830,6 +826,7 @@ local function turnOver(slot, result, delay: number, onFace: ((number) -> ())?)
 			task.wait(delay)
 		end
 		if show ~= owner or slot.Frame.Parent == nil then return end
+		if leadSpecial and borderId == "Secret" then owner.ReleaseSecret = Director.SecretSession(owner.Root) end
 		if leadSpecial then owner.EndHold = Director.Hold(slot.Frame, borderId, tease.Color, math.max(0.15, swell)) end
 		slot.Wobble:Cancel()
 		slot.Frame.Rotation = slot.Tilt
@@ -939,7 +936,7 @@ local function stage(cards)
 			end
 		end
 		if heat >= 3 then
-			Effects.Flash(gui, color, 0.45, 0.6)
+			if borderId == "Secret" then Director.Flash(item.Root, color, 0.45) else Effects.Flash(gui, color, 0.45, 0.6) end
 			Effects.Shake(item.Row, 7, 0.35)
 		end
 		task.delay(RevealPolicy.HeatHold[heat], function()
@@ -984,6 +981,8 @@ function Reveal.Init(playerGui: Instance)
 	task.spawn(Sfx.Preload)
 	gui = Kit.screenGui("RevealGui", 20, playerGui)
 	gui.IgnoreGuiInset = true
+	gui.ScreenInsets = Enum.ScreenInsets.None
+	gui.ClipToDeviceSafeArea = false
 
 	stageArea = Kit.new("Frame", {
 		Name = "Stage",
@@ -1093,6 +1092,7 @@ function Reveal.Quick(result, batchSize: number?)
 	if borderId ~= "Normal" then
 		borderSting(borderId)
 		if borderId == "Secret" then
+			Director.SecretSession(slot)
 			task.spawn(function()
 				Sfx.SecretDip()
 				if slot.Parent then Director.Snap(slot, borderId) end
@@ -1106,7 +1106,7 @@ function Reveal.Quick(result, batchSize: number?)
 	Sfx.Play("Flip", 1.1 + math.random() * 0.2)
 	if borderId ~= "Secret" then Sfx.Sting(tier.Sting, true) end
 	if tier.Index >= 4 then
-		Effects.Flash(gui, tier.Color, 0.35, 0.65)
+		if borderId == "Secret" then Director.Flash(slot, tier.Color, 0.35) else Effects.Flash(gui, tier.Color, 0.35, 0.65) end
 		Effects.Sparks(slot, tier.Color, 10, 0.9)
 	end
 	if tier.Index >= 5 then
