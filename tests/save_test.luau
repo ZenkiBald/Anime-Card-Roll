@@ -284,13 +284,23 @@ end
 do
  local d={Cards={},Settings={QuickRoll=true}}
  SaveMigration.Migrate(d)
- check(d.RevealSettingsVersion==1 and d.Settings.RevealMinimum=="Rainbow" and d.Settings.RevealStyle=="Pack" and d.Settings.RevealDuplicates==false and d.Settings.QuickRoll==true,"old saves get safe reveal defaults without changing QUICK")
+ check(d.RevealSettingsVersion==2 and d.Settings.RevealMinimum=="Gold" and d.Settings.RevealStyle=="Pack" and d.Settings.RevealDuplicates==false and d.Settings.QuickRoll==true,"old saves get safe reveal defaults without changing QUICK")
  d.Settings.RevealMinimum="Secret";d.Settings.RevealStyle="Cinematic";d.Settings.RevealDuplicates=true
  SaveMigration.Migrate(d)
  check(d.Settings.RevealMinimum=="Secret" and d.Settings.RevealStyle=="Cinematic" and d.Settings.RevealDuplicates==true,"reveal migration preserves choices and is idempotent")
  d.Settings.RevealMinimum={};d.Settings.RevealStyle="invalid";d.Settings.RevealDuplicates="yes"
  SaveMigration.Migrate(d)
- check(d.Settings.RevealMinimum=="Rainbow" and d.Settings.RevealStyle=="Pack" and d.Settings.RevealDuplicates==false,"malformed reveal preferences are repaired")
+ check(d.Settings.RevealMinimum=="Gold" and d.Settings.RevealStyle=="Pack" and d.Settings.RevealDuplicates==false,"malformed reveal preferences are repaired")
+ -- Version 2: a save left on the old Rainbow default moves to Gold once; choosing Rainbow afterwards stays.
+ local old={Cards={},Settings={RevealMinimum="Rainbow",RevealStyle="Cinematic"},RevealSettingsVersion=1}
+ SaveMigration.Migrate(old)
+ check(old.RevealSettingsVersion==2 and old.Settings.RevealMinimum=="Gold" and old.Settings.RevealStyle=="Cinematic","the old Rainbow reveal default becomes Gold once, other choices kept")
+ old.Settings.RevealMinimum="Rainbow"
+ SaveMigration.Migrate(old)
+ check(old.Settings.RevealMinimum=="Rainbow","a Rainbow reveal choice made after the change is kept")
+ local secret={Cards={},Settings={RevealMinimum="Secret"},RevealSettingsVersion=1}
+ SaveMigration.Migrate(secret)
+ check(secret.Settings.RevealMinimum=="Secret","a non-default reveal choice survives the Gold default change")
 end
 
 -- Battle controls: AUTO ULT and HOLD ULT FOR BREAK switch on once; a later OFF survives.

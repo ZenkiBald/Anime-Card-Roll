@@ -60,6 +60,10 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] Centre-stage roll reveal (2026-11-13): desktop Studio checked a real ROLL, AUTO, and client-only previews
+  of a Gold copy and a three-card fan. Not seen: phone layout (stage sits at 43% height, 40% tall under 500 px),
+  a real Gold / Rainbow full reveal under the new Gold+ default, Fast Roll / Roll Rush pacing, the heat-3 flash
+  in ordinary play, and whether AUTO's centre cards get in the way while walking (QUICK moves them to the tray).
 - [x] Trait artwork / inventory QoL (2026-11-13, desktop): all sixteen uploaded icons fetched successfully;
   actual trait picker / ODDS / card chip / collection rows rendered. Card and trait-name search, native
   clear-search click, AUTO target scroll after selection, larger roster captions, and one / two-candidate

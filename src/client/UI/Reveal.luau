@@ -7,6 +7,7 @@
 --   Rainbow   + cinematic letterbox, full-screen cut-in banner, light burst before the flip
 --   Secret    + blackout heartbeat, prismatic frame
 
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
@@ -643,9 +644,346 @@ local function placeToasts()
 	toastArea.Size = UDim2.fromOffset(if short then 148 else 224, if short then 90 else 142)
 end
 
+-- Centre stage ----------------------------------------------------------------------------------------
+-- Every roll lands in the middle of the screen (QUICK off): a face-down card drops in the moment ROLL is
+-- pressed, turns over when the server answers, then flies off toward the pull feed. Nothing is dimmed or
+-- blocked, so the next roll simply replaces it. The size of the moment follows the pull's rarity number
+-- (RevealPolicy.Heat): a soft glow, then sparks, then a swell + rays + a callout, then a screen flash.
+-- Plain frames and tweens only, like the rest of the reveals.
+local stageArea: Frame
+local show: any = nil -- the show on stage: { Root, RootScale, Row, Slots, Revealed }
+local preloaded: { Instance } = {} -- unparented ImageLabels that keep the pool's art loaded
+
+-- Per card count: { x offset in card widths, size, tilt }. The rarest card of a batch takes slot 1.
+local FAN = {
+	{ { 0, 1, 0 } },
+	{ { -0.56, 0.94, -4 }, { 0.56, 0.94, 4 } },
+	{ { 0, 1, 0 }, { -1, 0.84, -6 }, { 1, 0.84, 6 } },
+}
+local CENTRE = Vector2.new(0.5, 0.5)
+
+local function placeStage()
+	local height = gui.AbsoluteSize.Y
+	local short = height > 0 and height < 500
+	-- Between the top HUD strip and the avatar's shoulders; a little lower and larger on a phone.
+	stageArea.Position = UDim2.fromScale(0.5, if short then 0.43 else 0.38)
+	stageArea.Size = UDim2.fromScale(1, if short then 0.4 else 0.34)
+end
+
+local function stageOpen(): boolean
+	if gui == nil or running or State.InBattle or State.Meta.QuickRoll == true then
+		return false
+	end
+	return not (Reveal.Muted and Reveal.Muted())
+end
+
+-- Sends the show off: toward the pull feed when its time is up, or out of the way of a newer roll.
+local function leaveStage(replaced: boolean?)
+	local old = show
+	if old == nil then
+		return
+	end
+	show = nil
+	local seconds = if replaced then 0.1 else 0.24
+	if not replaced then
+		Kit.tween(old.Root, seconds, { Position = UDim2.fromScale(0.86, 0.62) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	end
+	Kit.tween(old.RootScale, seconds, { Scale = if replaced then 0.55 else 0.1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	task.delay(seconds, function()
+		old.Root:Destroy()
+	end)
+end
+
+local function newShow(count: number)
+	leaveStage(true)
+	placeStage()
+	local root = Kit.new("Frame", {
+		Name = "Show",
+		AnchorPoint = CENTRE,
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Parent = stageArea,
+	})
+	-- One card wide and as tall as the stage: the slots fan out from it.
+	local row = Kit.new("Frame", {
+		Name = "Row",
+		AnchorPoint = CENTRE,
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 5,
+		Parent = root,
+	}, { Kit.aspect(0.72, Enum.DominantAxis.Height) })
+	local item = { Root = root, RootScale = Kit.new("UIScale", { Scale = 1, Parent = root }), Row = row, Slots = {}, Revealed = false }
+	for i, spec in FAN[count] do
+		local frame = Kit.new("Frame", {
+			Name = "Slot",
+			AnchorPoint = CENTRE,
+			Position = UDim2.fromScale(0.5 + spec[1], 0.5),
+			Size = UDim2.fromScale(spec[2], spec[2]),
+			Rotation = spec[3],
+			BackgroundTransparency = 1,
+			ZIndex = if i == 1 then 3 else 2,
+			Parent = row,
+		})
+		local flip = Kit.new("Frame", {
+			Name = "Flip",
+			AnchorPoint = CENTRE,
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Parent = frame,
+		})
+		local back = CardView.back()
+		unlock(back)
+		back.Parent = flip
+		local scale = Kit.new("UIScale", { Scale = 0, Parent = frame })
+		Kit.tween(scale, 0.16, { Scale = 1 }, Enum.EasingStyle.Back)
+		-- It rocks while the answer is on its way.
+		frame.Rotation = spec[3] - 4
+		local wobble = TweenService:Create(
+			frame,
+			TweenInfo.new(0.09, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+			{ Rotation = spec[3] + 4 }
+		)
+		wobble:Play()
+		item.Slots[i] = { Frame = frame, Flip = flip, Back = back, Scale = scale, Tilt = spec[3], Wobble = wobble }
+	end
+	show = item
+	return item
+end
+
+local function stageGlow(item, color: Color3, heat: number)
+	for i, spec in { { 1.75, 0.9 }, { 1.35, 0.86 }, { 1, 0.8 } } do
+		local circle = Kit.new("Frame", {
+			Name = "Glow",
+			AnchorPoint = CENTRE,
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(spec[1], spec[1]),
+			BackgroundColor3 = color,
+			BackgroundTransparency = 1,
+			ZIndex = 1,
+			Parent = item.Root,
+		}, { Kit.corner(UDim.new(1, 0)), Kit.aspect(1, Enum.DominantAxis.Height) })
+		Kit.tween(circle, 0.18 + i * 0.05, { BackgroundTransparency = spec[2] - heat * 0.035 })
+	end
+end
+
+local function stageCaption(item, text: string, color: Color3, gradient: ColorSequence?)
+	local label = Kit.label({
+		Name = "Caption",
+		Text = text,
+		Font = Theme.Font.Display,
+		TextColor3 = color,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, 6),
+		Size = UDim2.fromScale(0.7, 0.17),
+		ZIndex = 8,
+		Parent = item.Root,
+	}, 44)
+	Kit.textStroke(Color3.new(0, 0, 0), 3, 0.1).Parent = label
+	if gradient then
+		Kit.gradient(gradient, 0).Parent = label
+	end
+	local scale = Kit.new("UIScale", { Scale = 0.4, Parent = label })
+	Kit.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
+end
+
+-- Turns one slot over to its pull; `onFace(heat)` runs the moment its face shows.
+local function turnOver(slot, result, delay: number, onFace: ((number) -> ())?)
+	local card = Cards.Get(result.CardId)
+	local borderId = result.Border or "Normal"
+	local border = Borders.Get(borderId)
+	local special = Borders.Index(borderId) >= 2
+	local heat = RevealPolicy.Heat(Cards.Rarity(card.Id, borderId))
+	local color = if special then border.Color else CardView.Glow(card.Id)
+	local swell = if heat >= 2 then 0.14 + heat * 0.04 else 0
+	-- The art starts loading under the face-down card straight away, so the face never turns up empty.
+	local warm = if card.Image
+		then Kit.new("ImageLabel", {
+			Name = "Warm",
+			AnchorPoint = CENTRE,
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.8, 0.8),
+			BackgroundTransparency = 1,
+			Image = card.Image,
+			ZIndex = 0,
+			Parent = slot.Flip,
+		})
+		else nil
+	task.spawn(function()
+		if delay > 0 then
+			task.wait(delay)
+		end
+		if slot.Frame.Parent == nil then
+			return
+		end
+		slot.Wobble:Cancel()
+		slot.Frame.Rotation = slot.Tilt
+		-- The tease: the back takes the pull's colour, and a rare one swells before it turns.
+		if heat >= 1 then
+			local stroke = slot.Back:FindFirstChild("BackStroke")
+			if stroke then
+				stroke.Color = if special then Color3.new(1, 1, 1) else color
+				stroke.Thickness = 5 + heat
+				stroke.Transparency = 0
+				if special then
+					Kit.gradient(border.Gradient, 45).Parent = stroke
+				end
+			end
+			local emblem = slot.Back:FindFirstChild("Emblem")
+			if emblem then
+				emblem.BackgroundColor3 = color
+				emblem.BackgroundTransparency = 0.25
+			end
+		end
+		if swell > 0 then
+			Sfx.Play("Riser", 1.15 + heat * 0.15)
+			Kit.tween(slot.Scale, swell, { Scale = 1.1 + heat * 0.03 }, Enum.EasingStyle.Sine).Completed:Wait()
+			if slot.Frame.Parent == nil then
+				return
+			end
+		end
+		-- A beat longer, at most, for art that is still on its way.
+		local deadline = os.clock() + 0.35
+		while warm and not warm.IsLoaded and os.clock() < deadline and slot.Frame.Parent do
+			task.wait()
+		end
+		Sfx.Play("Flip", 1.1 + math.random() * 0.2)
+		Kit.tween(slot.Flip, 0.07, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Wait()
+		if slot.Frame.Parent == nil then
+			return
+		end
+		slot.Back:Destroy()
+		local front = RollCard.new(card.Id, borderId, RollCard.IsNew(result))
+		unlock(front)
+		front.Parent = slot.Flip
+		if warm then
+			warm:Destroy()
+		end
+		Kit.tween(slot.Flip, 0.13, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
+		slot.Scale.Scale = 1.18 + heat * 0.07
+		Kit.tween(slot.Scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
+		Sfx.Sting(border.Sting, true)
+		if special then
+			borderSting(borderId)
+		end
+		if heat >= 1 then
+			Effects.Sparks(slot.Frame, color, 4 + heat * 6, 0.8 + heat * 0.25)
+		end
+		if heat >= 3 then
+			Effects.Shimmer(front, 1)
+		end
+		if onFace then
+			onFace(heat)
+		end
+	end)
+end
+
+-- Shows a click's cards (rarest first, at most three) on the stage, reusing the face-down card that
+-- Reveal.Anticipate dropped when it fits.
+local function stage(cards)
+	if not stageOpen() then
+		leaveStage(true)
+		return
+	end
+	local count = math.min(3, #cards)
+	local item = show
+	local lead = 0
+	if item == nil or item.Revealed or #item.Slots ~= count then
+		item = newShow(count)
+		lead = 0.12 -- let the back land before it turns
+	end
+	item.Revealed = true
+	-- The backdrop and callout follow the rarest card of the batch, the moment it turns face up.
+	local best = cards[1]
+	local card = Cards.Get(best.CardId)
+	local borderId = best.Border or "Normal"
+	local border = Borders.Get(borderId)
+	local special = Borders.Index(borderId) >= 2
+	local color = if special then border.Color else CardView.Glow(card.Id)
+	local function onFace(heat: number)
+		if show ~= item then
+			return
+		end
+		stageGlow(item, color, heat)
+		if heat >= 2 then
+			local rays = Effects.Rays(item.Root, color, 5 + heat * 2)
+			rays.ZIndex = 2
+			if special then
+				stageCaption(item, `{string.upper(border.Name)} BORDER!`, Color3.new(1, 1, 1), border.Gradient)
+			elseif card.SkyOneIn then
+				stageCaption(item, "CELESTIAL PULL!", color)
+			else
+				stageCaption(item, "RARE PULL!", color)
+			end
+		end
+		if heat >= 3 then
+			Effects.Flash(gui, color, 0.45, 0.6)
+			Effects.Shake(item.Row, 7, 0.35)
+		end
+		task.delay(RevealPolicy.HeatHold[heat], function()
+			if show == item then
+				leaveStage(false)
+			end
+		end)
+	end
+	for i, slot in item.Slots do
+		turnOver(slot, cards[i], lead + (i - 1) * 0.07, if i == 1 then onFace else nil)
+	end
+	-- Whatever happens, a show never outstays its welcome.
+	task.delay(6, function()
+		if show == item then
+			leaveStage(false)
+		end
+	end)
+end
+
+-- ROLL was pressed: a face-down card drops onto the stage at once, before the server answers.
+function Reveal.Anticipate(count: number?)
+	if not stageOpen() then
+		return
+	end
+	local item = newShow(math.clamp(count or 1, 1, 3))
+	-- A refused or lost roll never leaves a face-down card behind.
+	task.delay(4, function()
+		if show == item and not item.Revealed then
+			leaveStage(true)
+		end
+	end)
+end
+
+function Reveal.CancelAnticipate()
+	if show and not show.Revealed then
+		leaveStage(true)
+	end
+end
+
 function Reveal.Init(playerGui: Instance)
 	gui = Kit.screenGui("RevealGui", 20, playerGui)
 	gui.IgnoreGuiInset = true
+
+	stageArea = Kit.new("Frame", {
+		Name = "Stage",
+		AnchorPoint = CENTRE,
+		Position = UDim2.fromScale(0.5, 0.38),
+		Size = UDim2.fromScale(1, 0.34),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	})
+	-- The normal pool's art loads in the background, so a card never turns over to an empty frame the
+	-- first time it is rolled. (Sky cards are rare and load when they appear.)
+	task.spawn(function()
+		for _, card in Cards.List do
+			if card.Image and not card.SkyOneIn then
+				table.insert(preloaded, Kit.new("ImageLabel", { Image = card.Image }))
+			end
+		end
+		pcall(function()
+			ContentProvider:PreloadAsync(preloaded)
+		end)
+	end)
 
 	toastArea = Kit.new("Frame", {
 		Name = "Toasts",
@@ -663,8 +1001,12 @@ function Reveal.Init(playerGui: Instance)
 			Padding = UDim.new(0, 8),
 		}),
 	})
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeToasts)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		placeToasts()
+		placeStage()
+	end)
 	placeToasts()
+	placeStage()
 end
 
 function Reveal.IsBusy(): boolean
@@ -685,6 +1027,7 @@ end
 
 -- `batch` (optional): a pack's cinematic run { Index, Total, Skipped } so SKIP ALL can stop it.
 function Reveal.Full(result, onDone: (() -> ())?, batch: { Index: number, Total: number, Skipped: boolean? }?)
+	leaveStage(true) -- the full show takes the screen
 	table.insert(queue, { Result = result, OnDone = onDone, Batch = batch })
 	pump()
 end
@@ -762,7 +1105,8 @@ function Reveal.Quick(result, batchSize: number?)
 	end)
 end
 
--- One click is one visual batch: rarest qualifying reveal first, or all three quick cards together.
+-- One click is one visual batch: rarest qualifying reveal first, otherwise its cards on the centre stage
+-- (or, with QUICK on, in the compact tray on the right).
 local lastQuickBatch = -math.huge
 function Reveal.Batch(result, onDone: (() -> ())?): boolean
 	local cards = { result }
@@ -776,6 +1120,11 @@ function Reveal.Batch(result, onDone: (() -> ())?): boolean
 		end
 		return true
 	end
+	if State.Meta.QuickRoll ~= true then
+		stage(cards)
+		return false
+	end
+	leaveStage(true)
 	-- The feed records every pull; a fast auto batch must not replace a just-arrived tray mid-entry.
 	if os.clock()-lastQuickBatch < 1.4 then return false end
 	lastQuickBatch = os.clock()

@@ -9,6 +9,13 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- GAME REVIEW + ROLL REVEAL (2026-11-13): the user asked for a judge. Verdict given in chat after playing the
+  save in desktop Studio; ranked fixes: 1 roll reveal (DONE, below), 2 bosses that match the card art (flat
+  untextured models, R6 final boss), 3 player input in fights (they play themselves), 4 fill or cut the empty
+  worlds, 5 hide systems until they matter, 6 HUD overlap / menu text diet. Also seen: a petal particle fills
+  the camera as a pink slab; the results screen's Roll Pack box showed no picture; Scout labels clip.
+  The user picks the next item; none of 2-6 is started.
+
 - TRAIT ART / INVENTORY QoL COMPLETE (2026-11-13): all 16 matching transparent icons generated with
   built-in imagegen, uploaded and wired through UI/TraitArt. Originals / padded uploads / exact prompts /
   hashes / asset IDs / preview: art/ui/traits-20261113. Trait Master has card / trait-name search, larger
@@ -254,6 +261,20 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-11-13 · Claude Code · uncommitted (the user has not asked for a commit) · User: judge the game, then
+  "Yes, start reveal". Centre-stage reveal in `UI/Reveal` (`Reveal.Anticipate` / `CancelAnticipate`, internal
+  `stage`): every roll with QUICK off drops a face-down card mid-screen on click, flips on the server's answer,
+  flies to the feed; Triple Roll fans three; effects scale by `RevealPolicy.Heat` (rarity 50 / 300 / 20,000) and
+  `HeatHold`. Art warms under the back and the flip waits up to 0.35 s for it; the normal pool preloads.
+  `Main.client` calls Anticipate on ROLL and cancels on a refused roll. QUICK on keeps the old tray. Default full
+  reveal is Gold+ (`RevealPolicy.DefaultMinimum`, DataService / State defaults, SaveMigration
+  `RevealSettingsVersion = 2`, save_test + pack_batch_test cases). Type 0 errors, props 0 problems, headless
+  ALL CHECKS PASSED. Rojo was not connected: the six changed scripts were edited in the open place with the
+  Studio MCP and hash-matched to disk (place not saved / published); reconnect Rojo or keep them. Seen in desktop
+  Studio: real ROLL, AUTO, client-only Gold copy and three-card fan previews, no new console errors. Unseen:
+  phone, a real Gold full reveal, Fast Roll pacing (checklist 5). Play-testing used the real save: about ten
+  rolls, one World 3 Normal win (2 Roll Packs, 9 Trait Shards), and QUICK was switched off.
 
 - 2026-11-13 · Codex · this commit (based on a72d6d1) · User: "make those icons by yourself and make
   the game more better and find some visual and qol". Generated 16 separate transparent trait icons

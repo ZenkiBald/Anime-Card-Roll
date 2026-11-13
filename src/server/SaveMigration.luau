@@ -241,7 +241,13 @@ function SaveMigration.Migrate(data: any): { string }
 	end
 	data.Settings=if type(data.Settings)=="table" then data.Settings else {}
 	local reveal=RevealPolicy.Read(data.Settings)
-	if data.RevealSettingsVersion~=1 then table.insert(done,"reveal preferences initialized");data.RevealSettingsVersion=1 end
+	-- Version 2 (2026-11-13): Gold and above is the default full reveal. A save still on the old Rainbow
+	-- default moves to Gold once; a later choice (Rainbow included) stays.
+	if data.RevealSettingsVersion~=2 then
+		table.insert(done,if data.RevealSettingsVersion==1 then "full reveals now start at Gold" else "reveal preferences initialized")
+		if reveal.RevealMinimum=="Rainbow" then reveal.RevealMinimum="Gold" end
+		data.RevealSettingsVersion=2
+	end
 	for key,value in reveal do data.Settings[key]=value end
 	-- 2026-10-30 battle controls: AUTO ULT and HOLD ULT FOR BREAK start on (once), so AFK / hidden fights
 	-- keep firing Ultimates; later choices stay. Malformed values are repaired to on.

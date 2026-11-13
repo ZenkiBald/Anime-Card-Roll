@@ -77,6 +77,11 @@ do
  check(not P.Eligible(duplicate,{RevealMinimum="Secret"}) and P.Eligible(duplicate,{RevealMinimum="Secret",RevealDuplicates=true}),"duplicate reveals follow the saved new-only choice")
  check(not P.Eligible(fresh,{RevealMinimum="Off"}),"reveal OFF skips even a Secret cinematic")
  check(#P.Select({fresh,fresh,duplicate,rainbow},{RevealMinimum="Secret"})==1,"eligible pack cinematics are unique by card and border")
+ local gold={CardId="noa",Border="Gold",Outcome="New"}
+ check(P.Read(nil).RevealMinimum=="Gold" and P.Eligible(gold,nil) and not P.Eligible({CardId="noa",Border="Normal",Outcome="New"},nil),"a new Gold gets the full reveal by default, a Base card does not")
+ check(not P.Eligible({CardId="noa",Border="Gold",Outcome="Copy"},nil),"Gold copies stay on the centre stage by default")
+ check(P.Heat(10)==0 and P.Heat(49)==0 and P.Heat(50)==1 and P.Heat(299)==1 and P.Heat(300)==2 and P.Heat(19999)==2 and P.Heat(20000)==3 and P.Heat(4e8)==3,"centre-stage heat follows the rarity number")
+ for heat=1,3 do check(P.HeatHold[heat]>P.HeatHold[heat-1],"a hotter pull stays on stage longer") end
  local sum=MODULES.RewardBundle.Merge({TraitShards=2,Packs={["10"]=1}},{TraitShards=3,Packs={["10"]=2},TowerArtifacts={hundredcrown=true}})
  check(sum.TraitShards==5 and sum.Packs["10"]==3 and sum.TowerArtifacts.hundredcrown==true,"claim-all receipt combines paid quantities and permanent unlocks")
 end

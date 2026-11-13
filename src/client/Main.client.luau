@@ -123,6 +123,8 @@ local function requestRoll(mode: string)
 	end
 	busy = true
 	Sfx.Play("Whoosh", if mode == "Full" then 0.9 else 1.15)
+	-- A face-down card drops onto the centre stage at once, and turns over when the server answers.
+	Reveal.Anticipate(if State.Perk("TripleRoll", true) then 3 else 1)
 	-- If a reveal was tapped away early, wait out the rest of the cooldown instead of being refused. A tap
 	-- made while the cooldown still runs is an Early input: it never counts as a perfect Overcharge Surge
 	-- (that needs a clean tap after the surge ring lights up).
@@ -136,6 +138,7 @@ local function requestRoll(mode: string)
 	end)
 	if not ok or not result or not result.Ok then
 		busy = false
+		Reveal.CancelAnticipate()
 		local reason = if ok and result then result.Reason else nil
 		Hud.Hint(REASONS[reason] or "Roll failed, try again")
 		return
@@ -180,7 +183,7 @@ local function toggleQuick()
 	local on = not State.Meta.QuickRoll
 	State.Meta.QuickRoll = on -- optimistic; the server saves it
 	Hud.SetQuick(on)
-	Hud.Hint(if on then "⚡ QUICK ROLL on: rolls skip the long reveal" else "Quick Roll off")
+	Hud.Hint(if on then "⚡ QUICK ROLL on: cards pop up small on the right" else "Quick Roll off: every card takes centre stage")
 	task.spawn(function()
 		local result = MetaClient.Call("SetQuickRoll", on)
 		if not result.Ok then

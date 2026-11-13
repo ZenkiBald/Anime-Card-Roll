@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-11-13, after the trait artwork / inventory QoL pass). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-11-13, after the centre-stage roll reveal pass). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -78,7 +78,8 @@ RollService single / bulk pulls and the ODDS panel. A maxed player (Training + 3
 Potion III + Blood Moon x Raid Luck x Lucky Storm) reaches ~54x effective luck (meta_test). Pure luck: no pity. Every card shows its **rarity number** per border (`Cards.Rarity`: 1 / (pull
 chance x border chance) at 1x luck, snapped to a round number by `Odds.Round` like "7,500,000", never "1 in"; it is the
 big number on card tiles; `Odds.FormatRarity` for the ODDS panel). Every pull also rolls a foil (Aura / Golden Ki /
-Demon Seal, battle-only). ROLL (R), QUICK toggle (T: ROLL plays the short reveal, saved), AUTO (E; never stops by
+Demon Seal, battle-only). ROLL (R), QUICK toggle (T: cards pop small in the right-hand tray instead of the centre
+stage, saved), AUTO (E; never stops by
 itself: a pull eligible under saved reveal preferences holds the next roll `Config.AutoBigRevealHold` s, then it
 rolls on). Momentum chain: +1% speed / +0.01x luck per 10 rolls, max 500, breaks after 30 s idle. Overcharge Surge every
 25th roll (`TotalRolls % 25`): 5x border odds, or 3 cards at 6x on a perfect tap; HUD meter binds to `SurgeProgress`.
@@ -367,7 +368,9 @@ highlights, one reveal candidate per card / border, grouped quantities, border c
 whole pile in that one request (one retry if the open limiter answers TooFast), then shows one combined
 summary: total cards, the five rarest groups first, every card / border stack.
 Saved SETTINGS: full reveal minimum All / Gold+ / Rainbow+ / Secret+ / Off; pack animation Pack Flip or
-the existing manual Cinematic; duplicates New Only or Include Copies. Defaults Rainbow+ / Pack / New Only.
+the existing manual Cinematic; duplicates New Only or Include Copies. Defaults Gold+ / Pack / New Only
+(`RevealPolicy.DefaultMinimum`, 2026-11-13; `RevealSettingsVersion = 2` moves a save still on the old Rainbow
+default to Gold once and keeps every other choice).
 Pack reveals are unique per card / border, use discovery flags from the server and skip directly to
 the complete quantity summary when nothing qualifies. Repeated copies in later chunks preserve a real
 discovery's one reveal. The cinematic reveal shows the card's DMG / HP (sword / heart StatLine pill under it, with
@@ -472,7 +475,15 @@ XP and nearest-progress bars at bottom-left on desktop, and AUTO / ROLL / QUICK 
 band. The server list starts folded (tap to expand). RECENT PULLS shows up to three rows, two on short screens.
 Surge still charges spirit blue, shivers void purple for the last four rolls, and seals gold (UNLEASH SURGE!).
 AUTO / QUICK light their bezel when active. Short screens keep the earlier scaling / compact layout, with Next Goal
-over the roll console. Quick-roll cards use a bounded two-card 2D tray on the right, clear of the avatar's torso
+over the roll console. **Centre stage** (2026-11-13, `UI/Reveal` stage, QUICK off): every roll lands mid-screen,
+between the top strip and the avatar. ROLL drops a rocking face-down card at once (`Reveal.Anticipate`), it turns
+over when the server answers (waiting at most 0.35 s for art still loading), then flies toward the pull feed;
+nothing is dimmed or blocked and a newer roll replaces it. Triple Roll / surge batches fan up to three cards,
+rarest in the middle. `RevealPolicy.Heat` sizes the moment from the pull's rarity number (50 / 300 / 20,000):
+glow, then sparks, then a swell + rays + GOLD BORDER! / RARE PULL! / CELESTIAL PULL! callout, then a screen
+flash and shake; `HeatHold` is how long it stays. AUTO uses it too; it stays away during panels, fights and
+full reveals. The normal pool's art preloads in the background. With QUICK on, cards use the older bounded
+two-card 2D tray on the right, clear of the avatar's torso
 and bottom controls. `UI/RollCard` gives quick / full / reward reveals an art-first face: FredokaOne name
 top-left, element top-right, plain rarity at the bottom over a short vignette. No type line, rarity pill,
 DUPE / COPY badge or border ribbon covers the art. Only a new card or newly discovered Index border
