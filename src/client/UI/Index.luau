@@ -13,6 +13,7 @@ local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
 local Odds = require(Shared.Odds)
 local Meta = require(Shared.Meta)
+local CelestialRolls = require(Shared.CelestialRolls)
 
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
@@ -21,6 +22,7 @@ local CardView = require(script.Parent.CardView)
 local StatLine=require(script.Parent.StatLine)
 local Abilities = require(script.Parent.Abilities)
 local CardTile = require(script.Parent.CardTile)
+local TraitArt = require(script.Parent.TraitArt)
 local Controls = require(script.Parent.Controls)
 local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
@@ -160,8 +162,13 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 	local chance=if card.SkyOneIn then 1/card.SkyOneIn else Cards.PullChances(Cards.Pool(State.Progress.Cleared),nil,nil,Cards.FeaturedAt(workspace:GetServerTimeNow()))[card.Id]
 	if card.SkyOneIn then
 		local sky=require(Shared.Weather).ById[card.Weather]
-		line(sky.Name.." only · "..Odds.FormatPercent(100*chance).." per sky search",Theme.Font.Medium,Theme.Color.Muted,20,15)
-		line("Every ROLL / AUTO / pack pull searches the active sky. Luck adds 35% of its bonus to the chance (30x luck = about 11x the finds).",Theme.Font.Medium,Theme.Color.Muted,20,14)
+		local active=State.Weather.Id==card.Weather
+		if active then
+			local pool=Cards.WeatherPool(card.Weather)
+			for i,value in CelestialRolls.Chances(pool,State.Luck()) do if pool[i].Id==card.Id then chance=value;break end end
+		end
+		line(sky.Name..(if active then " active · " else " only · ")..Odds.FormatPercent(100*chance)..(if active then " per pull at your luck" else " base chance per pull"),Theme.Font.Medium,Theme.Color.Muted,24,15)
+		line(`Each real ROLL / AUTO / pack pull searches the active sky. Sky luck adds {CelestialRolls.LuckWeight*100}% of your luck bonus, capped at {CelestialRolls.MaxLuckFactor}x sky odds.`,Theme.Font.Medium,Theme.Color.Muted,38,14)
 	elseif chance then
 		line(Odds.FormatPercent(chance*100).." card chance · any border",Theme.Font.Medium,Theme.Color.Muted,20,15)
 	elseif card.Boss then
@@ -179,7 +186,12 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 		if foil.Id~="standard" then line(foil.Name..": "..foil.Text,Theme.Font.Medium,foil.Color,22,15) end
 		for i,id in {entry.Trait or "",entry.Trait2 or ""} do
 			local trait=Traits.Get(id)
-			if trait then line("TRAIT "..i.."  "..trait.Name.." · "..Traits.Text(id),Theme.Font.Medium,Theme.Color.Text,22,15) end
+			if trait then
+				local label=line("TRAIT "..i.."  "..trait.Name.." · "..Traits.Text(id),Theme.Font.Medium,Theme.Color.Text,32,15)
+				local row=Kit.new("Frame",{Name=`TraitFact{i}`,BackgroundTransparency=1,Size=UDim2.new(1,0,0,32),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=label.LayoutOrder,ZIndex=22,Parent=infoParent})
+				label.Parent=row;label.Position=UDim2.fromOffset(38,0);label.Size=UDim2.new(1,-38,0,32)
+				TraitArt.Icon(row,id,{Size=UDim2.fromOffset(32,32),ZIndex=23})
+			end
 		end
 		if not entry.Trait2Unlocked and node<Traits.Slot2Node then line("Second trait: reach 10 distinct boss victories.",Theme.Font.Medium,Theme.Color.Muted,20,14) end
 		line("MASTERY  "..Awaken.Count(entry).." distinct boss victories",Theme.Font.Heavy,Theme.Color.Gold,22,17)

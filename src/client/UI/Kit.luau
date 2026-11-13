@@ -356,4 +356,15 @@ function Kit.statsText(card, stars: number, border: string?, awaken: number?, lo
 	return `<font color="#8BDDB1"><b>{CardInfo.Headline(card, stars, border, awaken)}</b></font>`
 end
 
+-- Layout / automatic canvas sizes settle after a redraw. Restore then, without jumping to a blank area.
+function Kit.restoreScroll(frame: ScrollingFrame, position: Vector2)
+	task.defer(function()
+		game:GetService("RunService").Heartbeat:Wait()
+		if frame.Parent == nil then return end
+		local canvas, window = frame.AbsoluteCanvasSize, frame.AbsoluteWindowSize
+		frame.CanvasPosition = Vector2.new(math.clamp(position.X, 0, math.max(0, canvas.X-window.X)),
+			math.clamp(position.Y, 0, math.max(0, canvas.Y-window.Y)))
+	end)
+end
+
 return Kit

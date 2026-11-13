@@ -13,6 +13,7 @@ local Config = require(Shared.Config)
 local Meta = require(Shared.Meta)
 local Borders = require(Shared.Borders)
 local Traits = require(Shared.Traits)
+local TraitArt = require(script.Parent.TraitArt)
 local Foils = require(Shared.Foils)
 local RollBoost = require(Shared.RollBoost)
 local Collections = require(Shared.Collections)
@@ -297,23 +298,24 @@ function OddsPanel.Init(playerGui: Instance)
 			BackgroundColor3 = Theme.Color.PanelLight,
 			Parent = scroll,
 		}, { Kit.corner(UDim.new(0, 10)) })
+		TraitArt.Icon(row,trait.Id,{Position=UDim2.fromOffset(3,2),Size=UDim2.fromOffset(32,32),ZIndex=5})
 		Kit.label({
 			Text = `{trait.Name}  <font color="#A8A2C8">{trait.Multiplier}x DMG / HP</font>`,
 			RichText = true,
 			Font = Theme.Font.Heavy,
 			TextColor3 = tier.Color,
 			TextXAlignment = Enum.TextXAlignment.Left,
-			Position = UDim2.new(0, 10, 0.2, 0),
-			Size = UDim2.new(0.7, -10, 0.6, 0),
+			Position = UDim2.new(0, 40, 0.2, 0),
+			Size = UDim2.new(0.7, -40, 0.6, 0),
 			Parent = row,
 		}, 16)
 		Kit.label({
-			Text = percentAndRarity(traitChances[trait.Id] * 100),
+			Text = Odds.FormatPercent(traitChances[trait.Id]*100).."\n~1 in "..Kit.commas(math.floor(1/traitChances[trait.Id]+.5)),
 			Font = Theme.Font.Heavy,
 			TextColor3 = Theme.Color.Muted,
 			TextXAlignment = Enum.TextXAlignment.Right,
-			Position = UDim2.new(0.7, 0, 0.2, 0),
-			Size = UDim2.new(0.3, -8, 0.6, 0),
+			Position = UDim2.new(0.7, 0, 0.04, 0),
+			Size = UDim2.new(0.3, -8, 0.92, 0),
 			Parent = row,
 		}, 15)
 	end

@@ -28,6 +28,8 @@ local Effects = require(script.Parent.Effects)
 local Sfx = require(script.Parent.Sfx)
 local State = require(script.Parent.Parent.State)
 local RewardLine = require(script.Parent.RewardLine)
+local TraitArt = require(script.Parent.TraitArt)
+local Controls = require(script.Parent.Controls)
 
 local TraitMaster = {}
 
@@ -54,11 +56,15 @@ local hintLabel: TextLabel
 local selectedId: string? = nil
 local busy = false
 local hintToken = 0
+local hintTween
+local cardSearch = ""
+local emptyRoster
+local autoCanvas = Vector2.zero
 local lockSlot = 1 -- LOCK & ROLL keeps this slot
 local autoSlot = 1 -- AUTO ROLL rolls this slot
 local autoCancelled = false
 local autoView = false -- the detail panel shows AUTO ROLL (drawAuto) instead of the card
-local lastAuto: { Title: string, Color: Color3, Detail: string }? = nil -- the last run's result, kept on the stage
+local lastAuto: { Title: string, Color: Color3, Detail: string, Icon: string? }? = nil -- the last run's result, kept on the stage
 local targets: { [string]: boolean } = {} -- AUTO ROLL stops on these (for the session)
 for _, trait in Traits.List do
 	targets[trait.Id] = Traits.TierIndex(trait.Id) >= 4 -- Mythic and Secret
@@ -67,11 +73,12 @@ end
 local function hint(text: string)
 	hintToken += 1
 	local token = hintToken
+	if hintTween then hintTween:Cancel() end
 	hintLabel.Text = text
 	hintLabel.TextTransparency = 0
 	task.delay(2.6, function()
 		if token == hintToken then
-			Kit.tween(hintLabel, 0.4, { TextTransparency = 1 })
+			hintTween = Kit.tween(hintLabel, 0.4, { TextTransparency = 1 })
 		end
 	end)
 end
@@ -149,24 +156,27 @@ end
 -- The roll: trait names flicker past, slowing down, and land on the rolled ones.
 local function playRoll(stage: Frame, rolled: { string }, done: () -> ())
 	clear(stage)
-	local labels = {}
+	local labels, icons = {}, {}
 	for i = 1, #rolled do
 		local label = Kit.label({
 			Text = "",
 			RichText = true,
 			Font = Theme.Font.Display,
-			Position = UDim2.fromScale(0, (i - 1) / #rolled),
-			Size = UDim2.fromScale(1, 1 / #rolled),
+			Position = UDim2.fromScale(.19, (i - 1) / #rolled),
+			Size = UDim2.fromScale(.79, 1 / #rolled),
 			Parent = stage,
 		}, 34)
 		Kit.textStroke(Color3.new(0, 0, 0), 2, 0.1).Parent = label
 		labels[i] = label
+		icons[i]=TraitArt.Icon(stage,nil,{Position=UDim2.fromScale(.025,(i-1)/#rolled),Size=UDim2.fromScale(.16,1/#rolled)})
 	end
 	task.spawn(function()
 		local delay = 0.04
 		for _ = 1, 18 do
-			for _, label in labels do
+			if not modal.IsOpen or not stage.Parent then done(); return end
+			for i, label in labels do
 				local fake = Traits.List[math.random(1, #Traits.List)]
+				icons[i].Image=TraitArt.Get(fake.Id) or ""
 				label.Text = `{string.upper(fake.Name)}`
 				label.TextColor3 = Rarity.Get(fake.Tier).Color
 			end
@@ -178,6 +188,7 @@ local function playRoll(stage: Frame, rolled: { string }, done: () -> ())
 		for i, id in rolled do
 			local trait = Traits.Get(id)
 			if trait then
+				icons[i].Image=TraitArt.Get(trait.Id) or ""
 				labels[i].Text = `{string.upper(trait.Name)}`
 				labels[i].TextColor3 = Rarity.Get(trait.Tier).Color
 				best = math.max(best, Traits.TierIndex(id))
@@ -200,11 +211,13 @@ end
 -- stage says nothing hit.
 local function playAuto(stage: Frame, result, done: () -> ())
 	clear(stage)
+	local icon=TraitArt.Icon(stage,nil,{Position=UDim2.fromScale(.02,.02),Size=UDim2.fromScale(.16,.58)})
 	local label = Kit.label({
 		Text = "",
 		RichText = true,
 		Font = Theme.Font.Display,
-		Size = UDim2.fromScale(1, 0.62),
+		Position = UDim2.fromScale(.19,0),
+		Size = UDim2.fromScale(.79, 0.62),
 		Parent = stage,
 	}, 34)
 	Kit.textStroke(Color3.new(0, 0, 0), 2, 0.1).Parent = label
@@ -220,8 +233,10 @@ local function playAuto(stage: Frame, result, done: () -> ())
 		local rolled = result.Rolled or {}
 		local from = math.max(1, #rolled - 24) -- show the last two dozen at most
 		for i = from, #rolled do
+			if not modal.IsOpen or not stage.Parent then done();return end
 			local trait = Traits.Get(rolled[i])
 			if trait then
+				icon.Image=TraitArt.Get(trait.Id) or ""
 				label.Text = `{string.upper(trait.Name)}`
 				label.TextColor3 = Rarity.Get(trait.Tier).Color
 			end
@@ -231,6 +246,7 @@ local function playAuto(stage: Frame, result, done: () -> ())
 		end
 		local hit = Traits.Get(result.Hit)
 		if hit then
+			icon.Image=TraitArt.Get(hit.Id) or ""
 			label.Text = `{string.upper(hit.Name)}!`
 			label.TextColor3 = Rarity.Get(hit.Tier).Color
 			count.Text = `Hit on roll {result.TotalRolled or #rolled} · {result.TotalSpent or result.Spent} Trait Shards spent · applied to slot {result.Slot}`
@@ -247,14 +263,39 @@ local function playAuto(stage: Frame, result, done: () -> ())
 			Sfx.Play("Reward", 0.9)
 			task.wait(0.6)
 		end
-		lastAuto = { Title = label.Text, Color = label.TextColor3, Detail = count.Text }
+		lastAuto = { Title = label.Text, Color = label.TextColor3, Detail = count.Text, Icon = if hit then TraitArt.Get(hit.Id) else nil }
 		done()
 	end)
+end
+
+-- Compare the rolled trait's own multiplier / specialties, before the player spends its pending choice.
+local function traitPanel(parent, id, caption, position, size, compact)
+	local trait=Traits.Get(id)
+	local color=if trait then Rarity.Get(trait.Tier).Color else Theme.Color.Muted
+	local panel=Kit.new("Frame",{Name=caption,Position=position,Size=size,BackgroundColor3=Theme.Color.Panel,Parent=parent},
+		{Kit.corner(UDim.new(0,9)),Kit.stroke(color,1,.3)})
+	TraitArt.Icon(panel,id,{Position=UDim2.fromScale(.025,if compact then .08 else .19),Size=UDim2.fromScale(if compact then .12 else .31,if compact then .84 else .34),Visible=trait~=nil,ZIndex=5})
+	Kit.label({Text=caption,Font=Theme.Font.Medium,TextColor3=Theme.Color.Muted,TextXAlignment=Enum.TextXAlignment.Left,
+		Position=UDim2.fromScale(if compact then .17 else .05,.03),Size=UDim2.fromScale(.8,if compact then .29 else .12),Parent=panel},12)
+	Kit.label({Text=if trait then trait.Name else "No trait",Font=Theme.Font.Bold,TextColor3=color,TextXAlignment=Enum.TextXAlignment.Left,
+		Position=UDim2.fromScale(if compact then .17 else .38,if compact then .36 else .2),Size=UDim2.fromScale(if compact then .39 else .57,if compact then .51 else .2),Parent=panel},18)
+	Kit.label({Text=string.format("%gx DMG & HP",if trait then trait.Multiplier else 1),Font=Theme.Font.Bold,TextColor3=Theme.Color.Support,
+		TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.fromScale(if compact then .59 else .05,if compact then .36 else .57),Size=UDim2.fromScale(if compact then .38 else .9,if compact then .51 else .16),Parent=panel},18)
+	if not compact then
+		Kit.label({Text=if trait then trait.Tier else "Empty slot",Font=Theme.Font.Medium,TextColor3=color,TextXAlignment=Enum.TextXAlignment.Left,
+			Position=UDim2.fromScale(.38,.41),Size=UDim2.fromScale(.57,.12),Parent=panel},12)
+		Kit.label({Text=if trait then Traits.SpecialtyText(id) else "Choose a roll to add a trait.",Font=Theme.Font.Medium,TextColor3=Theme.Color.Text,
+			TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.fromScale(.05,.76),Size=UDim2.fromScale(.9,.21),Parent=panel},14)
+	end
+	return panel
 end
 
 local drawAuto -- below
 
 local function drawDetail()
+	local oldTargets=detail:FindFirstChild("TraitTargets",true)
+	if oldTargets and detail:GetAttribute("CardId")==selectedId then autoCanvas=oldTargets.CanvasPosition end
+	detail:SetAttribute("CardId",selectedId)
 	clear(detail)
 	local id = selectedId
 	local entry = id and State.Cards[id]
@@ -353,22 +394,19 @@ local function drawDetail()
 	if pending then
 		-- A roll waiting for its choice.
 		local slotTrait = if pending.Slot == 2 then entry.Trait2 else entry.Trait
-		local labelText = `SLOT {pending.Slot} · now {traitText(slotTrait)}`
-		line(stage, 1, labelText, Theme.Color.Muted, 14).Position = UDim2.fromOffset(10, 4)
-		local shown = Kit.new("Frame", { Position = UDim2.new(0, 0, 0, 22), Size = UDim2.new(1, 0, 1, -22), BackgroundTransparency = 1, Parent = stage })
-		for i, rolledId in pending.Traits do
-			local trait = Traits.Get(rolledId)
-			if trait then
-				local label = Kit.label({
-					Text = `{string.upper(trait.Name)} · {Traits.Text(trait.Id)}`,
-					Font = Theme.Font.Display,
-					TextColor3 = Rarity.Get(trait.Tier).Color,
-					Position = UDim2.fromScale(0, (i - 1) / #pending.Traits),
-					Size = UDim2.fromScale(1, 1 / #pending.Traits),
-					Parent = shown,
-				}, 28)
-				Kit.textStroke(Color3.new(0, 0, 0), 2, 0.1).Parent = label
-			end
+		view.Size=UDim2.fromScale(.36,.39)
+		info.Size=UDim2.fromScale(.61,.39)
+		-- Only the balance and current slots belong above the comparison; the odds stay in ODDS / AUTO.
+		for _,child in info:GetChildren() do if child:IsA("TextLabel") and child.LayoutOrder==4 then child:Destroy() end end
+		stage.Position=UDim2.fromScale(0,.42)
+		stage.Size=UDim2.fromScale(1,.4)
+		if #pending.Traits==1 then
+			traitPanel(stage,slotTrait,`CURRENT · SLOT {pending.Slot}`,UDim2.fromScale(.015,.03),UDim2.fromScale(.475,.94))
+			traitPanel(stage,pending.Traits[1],"ROLLED",UDim2.fromScale(.51,.03),UDim2.fromScale(.475,.94))
+		else
+			traitPanel(stage,slotTrait,`CURRENT · SLOT {pending.Slot}`,UDim2.fromScale(.015,.02),UDim2.fromScale(.97,.25),true)
+			traitPanel(stage,pending.Traits[1],"TOP ROLL",UDim2.fromScale(.015,.29),UDim2.fromScale(.475,.68))
+			traitPanel(stage,pending.Traits[2],"BOTTOM ROLL",UDim2.fromScale(.51,.29),UDim2.fromScale(.475,.68))
 		end
 		local function choose(pick: number)
 			busy = true
@@ -529,8 +567,9 @@ function drawAuto(id: string, entry, card)
 
 	-- The trait tiles: icon, name, tier and what it does; ticked ones glow in their tier colour.
 	local grid = Kit.new("ScrollingFrame", {
+		Name = "TraitTargets",
 		LayoutOrder = 4,
-		Size = UDim2.new(1, 0, 1, -330),
+		Size = UDim2.new(1, 0, 1, -306),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 6,
@@ -540,7 +579,7 @@ function drawAuto(id: string, entry, card)
 		Parent = list,
 	}, {
 		Kit.new("UIGridLayout", {
-			CellSize = UDim2.new(.5, -8, 0, 122),
+			CellSize = UDim2.new(.5, -8, 0, 130),
 			CellPadding = UDim2.fromOffset(8, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
@@ -556,15 +595,16 @@ function drawAuto(id: string, entry, card)
 			BackgroundColor3 = if on then color:Lerp(Color3.new(0, 0, 0), 0.35) else Color3.fromRGB(14, 20, 28),
 			Parent = grid,
 		}, { Kit.corner(UDim.new(0, 12)), Kit.stroke(color, if on then 3 else 1.5, if on then 0 else 0.5) })
+		TraitArt.Icon(tileButton,trait.Id,{Position=UDim2.fromOffset(6,6),Size=UDim2.fromOffset(52,52),ZIndex=5})
 		Kit.label({ Name="TraitName", Text=trait.Name, Font=Theme.Font.Bold, TextXAlignment=Enum.TextXAlignment.Left,
-			Position=UDim2.fromOffset(10,7), Size=UDim2.new(1,-42,0,22), Parent=tileButton },20)
+			Position=UDim2.fromOffset(64,7), Size=UDim2.new(1,-96,0,22), Parent=tileButton },20)
 		Kit.label({ Name="Selected", Text=if on then "✓" else "", TextColor3=color, Position=UDim2.new(1,-30,0,7), Size=UDim2.fromOffset(24,22), Parent=tileButton },20)
 		Kit.label({ Name="TierOdds", Text=string.format("%s · %.3g%%",trait.Tier,Traits.Chances()[trait.Id]*100), Font=Theme.Font.Medium, TextColor3=color,
-			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(10,31), Size=UDim2.new(1,-20,0,17), Parent=tileButton },13)
+			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(64,31), Size=UDim2.new(1,-74,0,17), Parent=tileButton },13)
 		Kit.label({ Name="StatBoost", Text=string.format("%gx DMG & HP",trait.Multiplier or 1), Font=Theme.Font.Bold, TextColor3=Theme.Color.Support,
-			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(10,51), Size=UDim2.new(1,-20,0,22), Parent=tileButton },19)
+			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(10,62), Size=UDim2.new(1,-20,0,22), Parent=tileButton },19)
 		Kit.label({ Name="Specialties", Text=Traits.SpecialtyText(trait.Id), Font=Theme.Font.Medium, TextColor3=Theme.Color.Text,
-			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(10,77), Size=UDim2.new(1,-20,0,37), Parent=tileButton },14)
+			TextXAlignment=Enum.TextXAlignment.Left, Position=UDim2.fromOffset(10,87), Size=UDim2.new(1,-20,0,37), Parent=tileButton },14)
 
 		tileButton.Activated:Connect(function()
 			if not busy then
@@ -574,22 +614,25 @@ function drawAuto(id: string, entry, card)
 		end)
 	end
 
+	Kit.restoreScroll(grid,autoCanvas)
 	-- The run's stage, big.
 	local stage = Kit.new("Frame", {
 		Name = "Stage",
 		LayoutOrder = 5,
-		Size = UDim2.new(1, 0, 0, 96),
+		Size = UDim2.new(1, 0, 0, 72),
 		BackgroundColor3 = Color3.fromRGB(10, 26, 30),
 		BackgroundTransparency = 0.2,
 		ClipsDescendants = true,
 		Parent = list,
 	}, { Kit.corner(UDim.new(0, 14)), Kit.stroke(PINK, 2, 0.3) })
 	local shown = lastAuto
+	if shown and shown.Icon then TraitArt.Icon(stage,nil,{Image=shown.Icon,Position=UDim2.fromScale(.02,.02),Size=UDim2.fromScale(.16,.58)}) end
 	Kit.label({
 		Text = if shown then shown.Title else "Tick the traits you want, then START",
 		Font = Theme.Font.Display,
 		TextColor3 = if shown then shown.Color else Theme.Color.Muted,
-		Size = UDim2.fromScale(1, 0.62),
+		Position = UDim2.fromScale(if shown and shown.Icon then .19 else 0,0),
+		Size = UDim2.fromScale(if shown and shown.Icon then .79 else 1, 0.62),
 		Parent = stage,
 	}, if shown then 34 else 22)
 	Kit.label({
@@ -678,11 +721,17 @@ function drawAuto(id: string, entry, card)
 end
 
 function drawGrid()
+	local canvas=grid.CanvasPosition
 	clear(grid)
 	local list = {}
 	for id, entry in State.Cards do
 		local card = Cards.Get(id)
-		if card then
+		local trait=Traits.Get(entry.Trait)
+		local second=Traits.Get(entry.Trait2)
+		local matches=card and (cardSearch=="" or string.find(string.lower(card.Name),cardSearch,1,true)
+			or (trait and string.find(string.lower(trait.Name),cardSearch,1,true))
+			or (second and string.find(string.lower(second.Name),cardSearch,1,true)))
+		if matches then
 			table.insert(list, { Card = card, Entry = entry })
 		end
 	end
@@ -701,6 +750,7 @@ function drawGrid()
 	if selectedId == nil or State.Cards[selectedId] == nil then
 		selectedId = if list[1] then list[1].Card.Id else nil
 	end
+	emptyRoster.Visible=#list==0
 	for i, item in list do
 		local card, entry = item.Card, item.Entry
 		local tile = CardTile.new(card.Id, {
@@ -711,7 +761,11 @@ function drawGrid()
 		})
 		tile.LayoutOrder = i
 		tile.Parent = grid
+		-- The trait caption owns this row here; the normal rarity caption would overlap it.
+		tile.Rarity.Visible=false
+		tile.CardName.Position=UDim2.fromScale(.5,.79)
 		local trait = Traits.Get(entry.Trait)
+		if trait then TraitArt.Icon(tile,trait.Id,{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-4,0,4),Size=UDim2.fromOffset(30,30),ZIndex=9}) end
 		local tag = Kit.label({
 			Text = if entry.Pending then "CHOOSE!" elseif trait then `{trait.Name}` else "no trait",
 			Font = Theme.Font.Heavy,
@@ -729,15 +783,18 @@ function drawGrid()
 			end
 			if selectedId ~= card.Id then
 				lastAuto = nil
+				autoCanvas = Vector2.zero
 			end
 			selectedId = card.Id
 			drawGrid()
 		end)
 	end
+	Kit.restoreScroll(grid,canvas)
 	drawDetail()
 end
 
 function TraitMaster.Init(playerGui: Instance)
+	TraitArt.Preload()
 	modal = Modal.new(playerGui, "TraitMasterGui", "TRAIT MASTER", Vector2.new(0.88, 0.86), Vector2.new(1080, 680))
 	hintLabel = Kit.label({
 		Text = "",
@@ -750,9 +807,18 @@ function TraitMaster.Init(playerGui: Instance)
 		Size = UDim2.new(0.5, 0, 0, 20),
 		Parent = modal.Header,
 	}, 16)
+	local searchBox=Controls.Search(modal.Body,{Name="CardSearch",Size=UDim2.new(.42,-8,0,36)},function(value)
+		cardSearch=value
+		if busy then return end
+		grid.CanvasPosition=Vector2.zero
+		drawGrid()
+	end)
+	searchBox.PlaceholderText="Find a card or trait..."
+	emptyRoster=Kit.label({Name="EmptyRoster",Text="No matching cards\nTry another card or trait name.",Font=Theme.Font.Medium,TextColor3=Theme.Color.Muted,Position=UDim2.fromScale(.03,.36),Size=UDim2.fromScale(.35,.2),Visible=false,Parent=modal.Body},18)
 	grid = Kit.new("ScrollingFrame", {
 		Name = "Cards",
-		Size = UDim2.fromScale(0.42, 1),
+		Position = UDim2.fromOffset(0,44),
+		Size = UDim2.new(0.42,0,1,-44),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 6,
@@ -769,6 +835,16 @@ function TraitMaster.Init(playerGui: Instance)
 		}),
 		Kit.new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 8) }),
 	})
+	local function fitRoster()
+		local width=Kit.logicalSize(grid).X-20
+		if width<=0 then return end
+		local columns=math.clamp(math.floor(width/125),2,4)
+		local cell=math.floor((width-10*(columns-1))/columns)
+		local layout=grid:FindFirstChildOfClass("UIGridLayout")
+		if layout then layout.CellSize=UDim2.fromOffset(cell,cell) end
+	end
+	grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitRoster)
+	fitRoster()
 	detail = Kit.new("Frame", {
 		Name = "Detail",
 		Position = UDim2.fromScale(0.44, 0),

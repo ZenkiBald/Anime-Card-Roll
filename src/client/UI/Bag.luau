@@ -58,15 +58,19 @@ local tiles = {} -- [key] = { Button, Sub, Entry } so timers tick without a rebu
 local busy = false -- a pack reveal is over the bag
 local openPack -- pack tiles and the detail panel share the same operation
 local hintToken = 0
+local hintTween
+local emptyState, emptyTitle, emptyBody
+local lastView = nil
 
 local function hint(text: string)
 	hintToken += 1
 	local token = hintToken
+	if hintTween then hintTween:Cancel() end
 	hintLabel.Text = text
 	hintLabel.TextTransparency = 0
 	task.delay(2.2, function()
 		if token == hintToken then
-			Kit.tween(hintLabel, 0.4, { TextTransparency = 1 })
+			hintTween=Kit.tween(hintLabel, 0.4, { TextTransparency = 1 })
 		end
 	end)
 end
@@ -481,7 +485,11 @@ openPack=function(pack, count: (number | string)?)
 end
 
 local function showDetail(entry)
+	local key=entry and entry.Key
+	local canvas=if detail:GetAttribute("ItemKey")==key then detail.CanvasPosition else Vector2.zero
+	detail:SetAttribute("ItemKey",key)
 	clear(detail)
+	Kit.restoreScroll(detail,canvas)
 	detail:SetAttribute("Timer", nil)
 	Kit.new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6), Parent = detail })
 	Kit.new("UIPadding", {
@@ -645,27 +653,35 @@ function Bag.Refresh()
 		#(gear().Worn or {}),
 		Items.ArtifactSlots
 	)
-	for _, child in grid:GetChildren() do
-		if child:IsA("GuiObject") then
-			child:Destroy()
-		end
-	end
-	table.clear(tiles)
 	local list = entries()
 	local selected = nil
-	for _, entry in list do
-		if entry.Key == selectedKey then
-			selected = entry
-		end
+	for _, entry in list do if entry.Key==selectedKey then selected=entry;break end end
+	if not selected then selected=list[1];selectedKey=selected and selected.Key end
+	-- Quest / deck snapshots should not destroy inventory controls under the pointer.
+	local view={currentTab,search,selectedKey or "",tostring(State.Luck()),tostring(State.Cooldown()),
+		tostring((State.Meta.Celestial or {Fragments=0}).Fragments or 0),tostring(State.Weather.Id),tostring(State.Weather.Ends)}
+	for _,entry in list do
+		table.insert(view,`{entry.Key}:{entry.Count}:{entry.Level or 0}:{tostring(entry.Worn)}:{tostring(entry.Running)}`)
 	end
-	if selected == nil then
-		selected = list[1]
-		selectedKey = selected and selected.Key
-	end
+	local fingerprint=table.concat(view,"|")
+	if lastView==fingerprint then return end
+	lastView=fingerprint
+	local canvas=grid.CanvasPosition
+	for _,child in grid:GetChildren() do if child:IsA("GuiObject") then child:Destroy() end end
+	table.clear(tiles)
+	emptyState.Visible=#list==0
+	detail.Visible=selected~=nil or currentTab=="SKY ITEMS"
+	emptyState.Size=UDim2.new(if detail.Visible then .64 else 1,0,1,-170)
+	emptyTitle.Text=if search~="" then "No matching items" elseif currentTab=="ALL" then "Your Bag is empty" else `No {string.lower(currentTab)} yet`
+	emptyBody.Text=if search~="" then "Try another name or clear your search."
+		elseif currentTab=="SKY ITEMS" then "Craft a Sky Sigil with the fragments shown on the right."
+		else "Earn items from battles, tower floors and quests. They will appear here."
+
 	for i, entry in list do
 		tile(entry, i)
 	end
 	showDetail(selected)
+	Kit.restoreScroll(grid,canvas)
 end
 
 -- Timers tick once a second without rebuilding the grid.
@@ -675,6 +691,7 @@ local function tickTimers()
 	end
 	for _, refs in tiles do
 		if refs.Entry.Kind == "Potion" and refs.Entry.Running then
+			if State.PotionLeft(refs.Entry.Id)<=0 then Bag.Refresh();return end
 			local text, color = subText(refs.Entry)
 			refs.Sub.Text = text
 			refs.Sub.TextColor3 = color
@@ -689,11 +706,16 @@ local function tickTimers()
 end
 
 local function showTab(name: string)
+	local changed=currentTab~=name
 	currentTab = name
 	for tab, set in tabSetters do
 		set(tab == name)
 	end
-	selectedKey = nil
+	if changed then
+		selectedKey=nil
+		grid.CanvasPosition=Vector2.zero
+		detail.CanvasPosition=Vector2.zero
+	end
 	Bag.Refresh()
 end
 
@@ -772,6 +794,9 @@ function Bag.Init(playerGui: Instance)
 		}),
 		Kit.new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 8) }),
 	})
+	emptyState=Kit.new("Frame",{Name="InventoryEmpty",BackgroundTransparency=1,Position=UDim2.new(0,0,0,115),Size=UDim2.new(.64,0,1,-170),Visible=false,Parent=modal.Body})
+	emptyTitle=Kit.label({Name="Title",Text="",Font=Theme.Font.Display,TextColor3=Theme.Color.Text,Position=UDim2.fromScale(.05,.25),Size=UDim2.fromScale(.9,.17),Parent=emptyState},25)
+	emptyBody=Kit.label({Name="Description",Text="",Font=Theme.Font.Medium,TextColor3=Theme.Color.Muted,Position=UDim2.fromScale(.1,.46),Size=UDim2.fromScale(.8,.2),Parent=emptyState},18)
 	local function fitTiles()
 		local cell = if modal.Gui.AbsoluteSize.Y < 540 then 120 else 96
 		local layout = grid:FindFirstChildOfClass("UIGridLayout")

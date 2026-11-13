@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-11-03, after the relic / checkpoint / Clash-window and weekly quest passes). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-11-13, after the trait artwork / inventory QoL pass). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -203,8 +203,14 @@ guard / starting-energy specialty: Rare 1.10x, Epic 1.20x, Legendary 1.40x, Myth
 so each Secret is 1 in 6,000. The strongest unlocked trait among the Attack and matching Support's two
 slots supplies one column multiplier, capped at 2x; specialties still combine. Locked second slots do
 nothing. BattleEngine, deck ratings / Best Deck and stat panels use that same rule; a Support never gains
-its own DMG or HP. Existing trait IDs / pending rolls need no save-format change. All sixteen icon
-prompts / filenames are in `docs/TRAIT_ICON_PROMPTS.md`; the picker uses text until supplied.
+its own DMG or HP. Existing trait IDs / pending rolls need no save-format change. `UI/TraitArt` supplies
+sixteen matching transparent illustrations in the picker, roll animation, pending comparisons, card
+trait chips, collection facts and ODDS. Originals, upload copies, prompts and asset IDs are under
+`art/ui/traits-20261113/`; `docs/TRAIT_ICON_PROMPTS.md` lists their subjects. Artwork preloads asynchronously.
+The Trait Master roster searches card / trait names and uses larger adaptive thumbnails without
+overlapping rarity captions. AUTO target selections and the roster retain scroll position on redraw.
+Pending single / locked rolls compare the current and candidate traits' multipliers / specialties
+before choosing; these panels do not change server rolls, costs or trait bonuses.
 AUTO continues until a ticked trait lands, Stop, closing the panel, insufficient shards or leaving Kenshin.
 Each server request validates / charges at most `Traits.AutoMax` rolls; Stop finishes the current batch. The UI
 shows cumulative rolls and spending for the run. A miss keeps the old trait. Every action is rate-limited. The Index lists
@@ -435,9 +441,13 @@ and qualifying full reveals run rarest first under the existing preferences / SK
 identified separately from Triple Roll; every result still updates ownership and the feed.
 
 BAG inventory tabs omit unowned items; a running potion can remain visible without an x0 count. SKY ITEMS
-keeps text crafting buttons even with no Sigils owned. Trait Master balances / reroll costs use the current
-Trait Shard image, with slot names above the cost. All 13 trait icon subjects and a shared art prompt are
-in `docs/TRAIT_ICON_PROMPTS.md`; their existing icons remain until the user supplies the new artwork.
+keeps text crafting buttons even with no Sigils owned. BAG keeps the selected item when reopened and
+restores list / detail scroll on inventory redraws. Unrelated state snapshots retain the existing controls;
+timers tick separately, and expired potions refresh the list. Empty / filtered lists explain what to do
+without showing unowned icons. Shared search fields expose a clear button while text is entered.
+Trait Master balances / reroll costs use the current Trait Shard image, with slot names above the cost.
+The collection sheet derives active sky chances and luck limits from `CelestialRolls`; inactive cards
+explicitly show their base per-pull chance. ODDS lists trait percentages and approximate one-in chances.
 Holographic rarity rims follow the outside silhouette at zero inset, retaining the inner white bevel.
 CardTile clips only its art well, inset 3 pixels; its root does not clip the exterior rim. Grid padding
 reserves space around outer strokes. Small card names / rarity use GothamBold with thin outlines;

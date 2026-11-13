@@ -9,6 +9,19 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- TRAIT ART / INVENTORY QoL COMPLETE (2026-11-13): all 16 matching transparent icons generated with
+  built-in imagegen, uploaded and wired through UI/TraitArt. Originals / padded uploads / exact prompts /
+  hashes / asset IDs / preview: art/ui/traits-20261113. Trait Master has card / trait-name search, larger
+  roster cards, clear current-vs-rolled comparisons, and retained scroll for AUTO targets / roster.
+  Card chips, collection facts and ODDS use the same art. BAG keeps selected item / scroll and avoids
+  rebuilding controls for unrelated snapshots; empty states and shared clear-search buttons added.
+  Collection sky odds now use the actual shared 10% luck-weight / 2x cap instead of stale copy.
+  No trait / roll / battle balance, saves, card or boss names changed. Type 0 errors / 9 existing warnings,
+  props 6020 / 0 problems, full suite ALL CHECKS PASSED. Desktop UI checked; no real reroll / choose /
+  inventory grant actions or profile replacement. Phone sizing / actual reroll pacing / user aesthetic
+  review remain checklist 5. Studio Edit, no map edits / publishing; temporary helpers removed / upload
+  server stopped. Pull / reconnect Rojo / restart Play.
+
 - UI / SKY / TRAIT POLISH COMPLETE (2026-10-31): four-sided exterior tile rims (only art clips),
   restrained small-text outlines / Gotham body fonts, single authored gateway headings / compact NPC
   plates, emoji-free battle previews, serialized reward toasts / cancelled stale hint and banner tweens.
@@ -18,7 +31,7 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
   the existing fixture decks' new ratings (HP / moves untouched). Traits grant both DMG / HP: Rare 1.10x,
   Epic 1.20x, Legendary 1.40x, Mythic 1.75x; new Secret Apex 1.90x, Sovereign / Eternal 2x. Strongest
   unlocked trait in each column wins that multiplier; specialties combine, Supports have no own stats.
-  All 16 icon prompts / exact filenames: docs/TRAIT_ICON_PROMPTS.md (art not supplied / integrated yet).
+  All 16 icon prompts / exact filenames: docs/TRAIT_ICON_PROMPTS.md (art integrated 2026-11-13 above).
   Type 0 errors / 7 existing warnings, props 5942 / 0 problems, full headless suite passed. Desktop
   Squad / Trait Master / Tower / labels / rapid notifications checked. Studio Edit; no map / asset edits
   or publishing. User aesthetics / phone / long-session sky and trait pacing remain checklist 5.
@@ -35,7 +48,7 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
   remain separate text actions. 10000-roll Colossal Pack / ten Mega -> one Colossal alchemy added.
   Triple Roll now applies to AUTO too; ROLL x3 / three quick cards / rarest-first eligible cinematics /
   separate sky-bonus counts. Trait Shard costs use current art. All 13 trait prompts / exact filenames:
-  docs/TRAIT_ICON_PROMPTS.md (user will supply artwork; existing trait icons remain until then).
+  docs/TRAIT_ICON_PROMPTS.md (expanded to 16 and integrated 2026-11-13 above).
   Desktop / runtime checks and all required checks passed: type 0, props 5926 / 0, full suite passed.
   30 Base-only / no-sky starter samples all won. Studio Edit, real card / deck data preserved, no map
   edits / publishing. User review / phone / live older-save catch-up / longer reward pacing remain in
@@ -241,6 +254,27 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-11-13 · Codex · this commit (based on a72d6d1) · User: "make those icons by yourself and make
+  the game more better and find some visual and qol". Generated 16 separate transparent trait icons
+  with built-in imagegen; originals, 512px padded uploads, prompts / hashes / Roblox image IDs and
+  contact sheet saved in art/ui/traits-20261113. All 16 fetched successfully in Studio. Central TraitArt
+  registry feeds picker / animations / pending choices / full-card trait chips / collection / ODDS.
+  Larger searchable Trait Master roster removes rarity-caption overlap; target / roster scroll survives
+  redraws. Pending one / two-choice panels show current and candidate stat multipliers / specialties.
+  BAG preserves selection on reopening and grid / detail scroll on redraw, skips unrelated-state rebuilds,
+  removes expired zero-count potions and explains empty / filtered lists. Shared search boxes get a clear
+  button; Bag / Trait Master hint tweens cancel stale fades. Collection sky chance copy now derives from
+  CelestialRolls; ODDS shows percent plus approximate one-in trait chances. No mechanics, saves or names
+  changed; Claude's weekly quests / reward work retained. Required checks: luau-lsp 0 errors (9 existing
+  warnings), UI props 6020 / 0 problems, rebuilt full headless suite ALL CHECKS PASSED. Desktop Studio:
+  trait search, icons, Secret target scroll, native clear click, pending comparison layouts, full-card
+  chip / collection rows, Bag tile identity and selection memory / empty states inspected. Pending
+  examples used restored client-only State.Cards copies; no roll / choose / grant requests and no real
+  profile replacement. Console only existing wrong-type asset 203785492; no new game errors observed.
+  Play stopped, helpers absent in Edit, final local modules synced; no map edits / publishing. Local
+  image upload server stopped. Unsure: phone layout, user aesthetic preference, real reroll animation
+  pacing and longer-session balance; those checks remain in checklist 5. Pull / reconnect Rojo / restart.
 
 - 2026-11-03 · Claude Code · this commit · User: "do more polish and qol changes". Weekly Champion bonus
   (`Meta.WeeklyBonus`, ClaimWeekly "w_all" once all six are claimed: Mega Pack + 25 Trait Shards + title;

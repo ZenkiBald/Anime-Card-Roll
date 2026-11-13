@@ -21,6 +21,7 @@ local Foils = require(Shared.Foils)
 local Kit = require(script.Parent.Kit)
 local Theme = require(script.Parent.Theme)
 local StatLine=require(script.Parent.StatLine)
+local TraitArt=require(script.Parent.TraitArt)
 local Skin = require(script.Parent.Skin)
 local BorderFx = require(script.Parent.BorderFx)
 local ElementUi = require(script.Parent.ElementUi)
@@ -610,7 +611,7 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			local tagList = {}
 			local trait = Traits.Get(options.Trait)
 			if trait then
-				table.insert(tagList, { trait.Name, Rarity.Get(trait.Tier).Color })
+				table.insert(tagList, { trait.Name, Rarity.Get(trait.Tier).Color, trait.Id })
 			end
 			local foil = Foils.Get(options.Foil)
 			if options.Foil and options.Foil ~= "standard" then
@@ -620,6 +621,11 @@ function CardView.new(cardId: string, opts: Options?): Frame
 			for i, tagInfo in tagList do
 				local tag = chip(tags, i, tagInfo[1], tagInfo[2], 0.45)
 				tag.Size = UDim2.new(0.47, 0, 1, 0)
+				if tagInfo[3] then
+					TraitArt.Icon(tag,tagInfo[3],{Position=UDim2.fromScale(.02,.08),Size=UDim2.fromScale(.21,.84),ZIndex=7})
+					local label=tag:FindFirstChildWhichIsA("TextLabel")
+					label.Position=UDim2.fromScale(.61,.5);label.Size=UDim2.fromScale(.72,.78)
+				end
 			end
 		end
 

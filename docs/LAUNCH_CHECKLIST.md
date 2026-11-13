@@ -60,6 +60,18 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Trait artwork / inventory QoL (2026-11-13, desktop): all sixteen uploaded icons fetched successfully;
+  actual trait picker / ODDS / card chip / collection rows rendered. Card and trait-name search, native
+  clear-search click, AUTO target scroll after selection, larger roster captions, and one / two-candidate
+  comparisons checked. BAG kept the same tile across an unrelated refresh and retained the selected item
+  on reopen; empty / filtered states checked. Sky collection odds now match shared chance / luck limits.
+  Comparisons used temporary client-only copies, without roll / choose / grant calls or profile replacement.
+  Play stopped; temporary helpers gone; no map edits / publishing. Type 0 errors (9 existing warnings),
+  props 6020 / 0 problems, full headless suite ALL CHECKS PASSED.
+- [ ] Check the new trait icons / search controls and pending comparisons on a sideways phone, and review
+  actual manual / AUTO reroll animation pacing during normal play. No real shard-spending rerolls were
+  performed in the artwork pass. User review of the complete set: art/ui/traits-20261113/contact-sheet.jpg.
+
 - [ ] Quest / potion QoL (2026-11-03): finishing a daily quest shows QUEST COMPLETE once (not again after a
   rejoin); claiming all six weekly quests enables the Weekly Champion row (Mega Pack, 25 Trait Shards, title)
   and CLAIM ALL takes it; GOALS has a WEEKLY QUESTS card whose OPEN QUESTS button lands on DAILY & GIFTS; the HUD
@@ -90,8 +102,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 - [ ] Live pacing review: sky base chances now span 1 in 10,000–200,000 per eligible pull; sky luck
   caps at twice those odds, and packs still search once per real pull. Headless single / bulk distributions,
   all sixteen strengths, trait stat / column cap / locked-slot rules and saved pending rolls pass.
-  Check 1.10x–2x traits feel worthwhile over a normal session. User supplies sixteen icons from
-  docs/TRAIT_ICON_PROMPTS.md; custom trait images are not integrated yet.
+  Check 1.10x–2x traits feel worthwhile over a normal session. Sixteen custom icons are now integrated;
+  the artwork / small-screen checks above cover their remaining review.
 
 - [x] Tower / bond / inventory QoL (2026-10-30, desktop): isolated Play-only profile, original cards /
   decks verified unchanged, runtime accessors restored / Play stopped. Typed 7 training points reached

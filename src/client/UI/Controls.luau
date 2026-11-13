@@ -207,6 +207,11 @@ function Controls.Search(parent: Instance, props: { [string]: any }, onChange: (
 		ClearTextOnFocus = false,
 		Parent = frame,
 	})
+	local clear = Kit.new("TextButton", {Name="ClearSearch", Text="", BackgroundTransparency=1,
+		AnchorPoint=Vector2.new(1,.5), Position=UDim2.new(1,-6,.5,0), Size=UDim2.fromOffset(26,26),
+		Visible=false, ZIndex=box.ZIndex+1, Parent=frame})
+	Kit.glyph("Cross",Theme.Color.Muted,{Name="CloseGlyph",AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(12,12),ZIndex=clear.ZIndex,Parent=clear})
+	clear.Activated:Connect(function() box.Text="" end)
 	box.Focused:Connect(function()
 		frame.UIStroke.Color = Theme.Color.Neon
 	end)
@@ -214,6 +219,8 @@ function Controls.Search(parent: Instance, props: { [string]: any }, onChange: (
 		frame.UIStroke.Color = Theme.Color.Line
 	end)
 	box:GetPropertyChangedSignal("Text"):Connect(function()
+		clear.Visible=box.Text~=""
+		box.Size=UDim2.new(1,if clear.Visible then -48 else -24,1,0)
 		onChange(string.lower(box.Text))
 	end)
 	return box

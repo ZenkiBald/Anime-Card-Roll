@@ -1,9 +1,10 @@
 # Trait icon artwork
 
-There are 16 traits. Generate one image per prompt, then send the files with the matching trait names.
-Use the same model, style reference and lighting for the whole set. These are standalone icons; the
-game supplies the rarity frame and trait name. The 2026-10-31 stat bonuses below are already implemented;
-these prompts are for artwork only. Keep the thirteen existing names and use the three new Secret names.
+All 16 traits now have matching AI artwork, generated and integrated by Codex on 2026-11-13 with the
+built-in image generation tool (one image per call). Originals, padded transparent 512px uploads,
+contact sheet, exact production prompts, hashes and Roblox asset IDs are in `art/ui/traits-20261113/`.
+`UI/TraitArt.luau` is the live registry. The game supplies the rarity frame and trait name; the stat
+bonuses below are unchanged. These subject prompts remain here for future artwork revisions.
 
 All traits boost both DMG and HP. The strongest unlocked trait in a column supplies that multiplier;
 Attack / Support slots do not multiply those bonuses together. Their other battle specialties combine.
@@ -46,9 +47,8 @@ For every image, copy this style paragraph followed by that trait's subject para
 | `eternal.png` | Eternal · Secret | A luminous violet infinity loop forged from two intertwined platinum armor bands, protecting a small emerald energy core. Three broad protective metal fins frame the lower half. A crisp enduring defense silhouette, bright white edges, restrained magenta glow, no circular badge or outer border. |
 
 Keep transparent backgrounds and padding in the final exports. Do not put trait names or rarity
-letters inside the images. The icon integration pass will connect the supplied files to these exact
-trait IDs. Save files as the exact filenames above. Until supplied, the picker uses clean text instead
-of emoji stand-ins.
+letters inside the images. The integrated files use these exact trait IDs / filenames. Trait names
+remain visible alongside the artwork, including in the picker and pending roll comparisons.
 
 The subjects match the implemented specialties: Swift +5% speed; Keen +5% crit; Sturdy +5% damage
 reduction; Eager +15% starting Ultimate charge; Fleet +10% speed; Sharp +20% crit damage; Stalwart

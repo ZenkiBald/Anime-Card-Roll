@@ -1,0 +1,295 @@
+{
+  "date": "2026-11-13",
+  "tool": "built-in image_gen",
+  "transparent_background": true,
+  "items": [
+    {
+      "id": "swift",
+      "name": "Swift \u00b7 Rare",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A compact silver winged boot swept forward by three cyan wind ribbons. Rounded steel toe and bright blue accents. Emphasize quick movement with a clear horizontal silhouette.",
+      "source": "swift.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "sourceSHA256": "8e0cbb51ad6673ebdd0bd18e6b4740d550d9a6ebe55790bafe6d3bd65c4d8adb",
+      "upload": "upload/swift.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "e24bcf785198df1ea1dd78f4ad75181c8a0ded7104fae7db3ecbb90221d81fb6",
+      "assetId": "rbxassetid://135973696132504"
+    },
+    {
+      "id": "keen",
+      "name": "Keen \u00b7 Rare",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: One luminous cyan precision eye set inside a silver aiming reticle with four short points. Dark navy iris, bright focused pupil, clean symmetrical construction. Precision rather than a realistic eyeball.",
+      "source": "keen.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "43c6fe442e8c25dfaa4f8d12d1ab25e983feb6578756bbff1b3d8bbe0deaaf0b",
+      "upload": "upload/keen.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "624794f1642918441638d1c126b60654737c07c017fde3be5652b3ea9feeea9f",
+      "assetId": "rbxassetid://107837530998657"
+    },
+    {
+      "id": "sturdy",
+      "name": "Sturdy \u00b7 Rare",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A broad solid shield carved from dark blue stone, with a silver rim and a single glowing cyan seam. Thick, compact and dependable, with two large stone facets.",
+      "source": "sturdy.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "2c416b70cacbcb1cdc9554e217781147a60ea22e4ae1cbe47943d8810585fef5",
+      "upload": "upload/sturdy.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "c7eaf61602b7cdc5a23018407f373561215d1bf84bb58d53cf082a5a471f933f",
+      "assetId": "rbxassetid://94409701219530"
+    },
+    {
+      "id": "eager",
+      "name": "Eager \u00b7 Rare",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A small polished silver energy vessel holding a bright cyan rising spark. Three simple energy segments inside the vessel, with a dynamic spark lifting from the top. It should read as starting energy, not a modern battery emoji.",
+      "source": "eager.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "fbc7ed9e0f6a7dd1b24baa2616065aec319bf88e28cd294beb44389bd6daaacb",
+      "upload": "upload/eager.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "4c53cbf4947a4f8c62059530c5d2458eedd5e21828cd5df65300fe3b66232572",
+      "assetId": "rbxassetid://97038139511218"
+    },
+    {
+      "id": "fleet",
+      "name": "Fleet \u00b7 Epic",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: Two swept-back silver feather wings forming a forward arrow, wrapped in one violet wind ribbon. More elegant and aerodynamic than the Swift boot, with broad readable feathers.",
+      "source": "fleet.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "d35bddf3dc2e6c4723f86a209ea4fe8ff283bc3ac37640c83026880a0443924f",
+      "upload": "upload/fleet.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "54cae222eb9cd4660fc4e0192854e4c4c57d836f461deb975fafed0c3dbf7f0d",
+      "assetId": "rbxassetid://123180438967045"
+    },
+    {
+      "id": "sharp",
+      "name": "Sharp \u00b7 Epic",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A single angled obsidian dagger with a silver cutting edge and a bright violet slash glint. Thick, dramatic blade silhouette; one clean star-shaped glint on its tip.",
+      "source": "sharp.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "5063e5541f7bf2aee8dec8d7f5c6ac6772d8bb4c0ea228ceb0de9b1a7ed2f63e",
+      "upload": "upload/sharp.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "2ecf51d1e9880b2a37c3f18e495e5819575037e29e068ea9b49eb29ddf9d4eee",
+      "assetId": "rbxassetid://136257003568581"
+    },
+    {
+      "id": "stalwart",
+      "name": "Stalwart \u00b7 Epic",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A layered silver tower shield with two violet crystal braces and a dark purple center. Heavy protective silhouette, visibly more reinforced than Sturdy, with broad armor plates.",
+      "source": "stalwart.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "7705a348a35b0d30530909598def4b047b3f2a57a2500e0818c0409fd7ad1f6d",
+      "upload": "upload/stalwart.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "da031909af69209d34022446026dc872ae95b78caa157d0811417912dcd0c618",
+      "assetId": "rbxassetid://110680453605726"
+    },
+    {
+      "id": "charged",
+      "name": "Charged \u00b7 Epic",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A faceted violet power crystal enclosed by two curved silver conductor prongs. Two short violet lightning forks arc into the crystal. Compact stored energy with a bright white core.",
+      "source": "charged.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "29218ee86b89cbf0a536e1518fb4173eda84100826077173440c74b0ffcc750d",
+      "upload": "upload/charged.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "cbe0fa76841c4dd12115fc158922c87f65bda8c52db29d088ed95d9f252ff29a",
+      "assetId": "rbxassetid://75031846068424"
+    },
+    {
+      "id": "tempest",
+      "name": "Tempest \u00b7 Legendary",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A gold-edged twisting storm funnel with one bright amber lightning bolt spiraling through its center. Three broad curved bands, dramatic but legible; a single metallic gold fin at the top.",
+      "source": "tempest.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "81e557472aec3e609814b116abfced66b558b5f1a606f96391890dfeaad4856a",
+      "upload": "upload/tempest.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "db8a223d2b7ce18b2712ce0f43ecebfe262062efd7bea67475416d4b78d3449c",
+      "assetId": "rbxassetid://134067588643187"
+    },
+    {
+      "id": "assassin",
+      "name": "Assassin \u00b7 Legendary",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: Two crossed dark daggers behind a gold crescent blade, with a small crimson focus gem at their intersection. Elegant stealth equipment, polished gold cutting edges, no face or person.",
+      "source": "assassin.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "306746473224f0fdd2b96e8c5d902656b99ebed51105d3bae7432bddaa85ad6c",
+      "upload": "upload/assassin.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "509d7c070ffcf1b61eb0b6d02fc4022f46d10d0d04a3bd9abf9716f5ee3f2b36",
+      "assetId": "rbxassetid://79703869659632"
+    },
+    {
+      "id": "bulwark",
+      "name": "Bulwark \u00b7 Legendary",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A broad dark-metal fortress shield with three golden battlements across its top and a glowing amber central core. Unmistakable defensive wall silhouette, substantial layered metal.",
+      "source": "bulwark.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "6a05c2b1335241902db047f6fdd6cb00a3f76082d70f8d351017f99e9d10312b",
+      "upload": "upload/bulwark.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "c485172de3cb9eafac9b5e14c3d6bc26ffb7cc9d6572c787997a124ebbfdd205",
+      "assetId": "rbxassetid://135485470568415"
+    },
+    {
+      "id": "godspeed",
+      "name": "Godspeed \u00b7 Mythic",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A radiant white-gold winged lightning spear encircled by a crimson energy arc. Two bold swept wings and a long lightning tip; restrained purple edge glow. Powerful ascending movement, with no crown or text.",
+      "source": "godspeed.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "c41e8b4af3ac146509a8e50a8cc61fded3097adbb9ee48d3fa80b5e3e810ac0f",
+      "upload": "upload/godspeed.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "331a256340f9d5110aaf98bed2ab428e956ec435379348420265fcc9b702a1f0",
+      "assetId": "rbxassetid://78768396963901"
+    },
+    {
+      "id": "executioner",
+      "name": "Executioner \u00b7 Mythic",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A massive obsidian execution blade crossing a curved crimson scythe edge, a bright red gem at the joint and sharp white-gold bevels. Formidable clean equipment silhouette, no blood, gore, skull or person.",
+      "source": "executioner.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "adda4507e27b4764214bce6249e996327a3b94bf7529e4654a0a460b1923331d",
+      "upload": "upload/executioner.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "9080dc9da393b34d228fc427f9c89d8ac3396e34e244f2e9d62df8948197ac7e",
+      "assetId": "rbxassetid://84368299925530"
+    },
+    {
+      "id": "apex",
+      "name": "Apex \u00b7 Secret",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: An obsidian falcon crest with two sharply swept wings, a brilliant violet diamond core and three short magenta speed trails. White platinum cutting edges. A powerful predatory silhouette representing speed and precision, without a face, letters or surrounding badge.",
+      "source": "apex.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "0c12fdb655d83dbc03c363d0e3e2314be4497f679b3fccb57e2c974e32bddbd9",
+      "upload": "upload/apex.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "e0fa58b4b90e4f85c0e7025df153b8696cd30663702c08917f7a3eac65e81af1",
+      "assetId": "rbxassetid://80106047555083"
+    },
+    {
+      "id": "sovereign",
+      "name": "Sovereign \u00b7 Secret",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A floating black-platinum crown with five broad upward points surrounding a radiant crimson star-shaped crystal. Two short violet energy arcs curve behind it. Commanding, weighty and compact; exquisite white highlights and clean metal planes, no jewelry clutter or outer medallion.",
+      "source": "sovereign.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "bf406cd0d1eb0f7f81dafd76389a830a6bbed87f7959df63c22f08a40b79a5f8",
+      "upload": "upload/sovereign.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "b81e760d55539fc0b643fa1a12e4283bd3f8c7b1b1bb03a32d4a6bc33e27009c",
+      "assetId": "rbxassetid://85247668188414"
+    },
+    {
+      "id": "eternal",
+      "name": "Eternal \u00b7 Secret",
+      "prompt": "Use case: stylized-concept. Asset: a standalone transparent PNG inventory icon for the existing glossy Roblox anime card game. Square composition. One centered bold object filling about 78% with generous safe margins. Glossy illustrated 3D vector style, sculpted chunky toy-like forms, crisp dark contour, smooth rich cel shading, polished silver bevels and bright white highlights, consistent upper-left lighting, slight three-quarter perspective. Clean bold silhouette immediately readable at 32 pixels. Real transparent background with alpha. Do not include words, letters, numbers, emoji, watermark, background scenery, an outer frame, a badge container, a border, or a character portrait. Avoid fine filigree and broad fuzzy glow. Subject: A luminous violet infinity loop forged from two intertwined platinum armor bands, protecting a small emerald energy core. Three broad protective metal fins frame the lower half. A crisp enduring defense silhouette, bright white edges, restrained magenta glow, no circular badge or outer border.",
+      "source": "eternal.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "92b21a6a67f58af5ca767b3bb8e4cfd53dd1bf52e6e0891f9b433966119a5d3b",
+      "upload": "upload/eternal.png",
+      "uploadSize": [
+        512,
+        512
+      ],
+      "uploadSHA256": "10a75691a0587c07c3254d2a2b6217f6d201443d0c2460a40695053b58ba9ace",
+      "assetId": "rbxassetid://135837378388872"
+    }
+  ]
+}
