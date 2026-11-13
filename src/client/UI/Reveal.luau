@@ -26,6 +26,8 @@ local CardView = require(script.Parent.CardView)
 local RollCard = require(script.Parent.RollCard)
 local Abilities = require(script.Parent.Abilities)
 local Sfx = require(script.Parent.Sfx)
+local Director = require(script.Parent.SecretRevealDirector)
+local VfxAssets = require(script.Parent.VfxAssets)
 local StatLine = require(script.Parent.StatLine)
 
 local Reveal = {}
@@ -149,11 +151,10 @@ local function heartbeat(root: Instance, skipped: () -> boolean)
 		Parent = root,
 	}, 110)
 	local scale = Kit.new("UIScale", { Scale = 1, Parent = label })
-	for beat = 1, 3 do
+	for _ = 1, 3 do
 		if skipped() then
 			break
 		end
-		Sfx.Play("LowHit", 0.55 + beat * 0.05) -- heartbeat
 		pulse(scale, 0.55, 0.25, skipped)
 	end
 	label:Destroy()
@@ -258,10 +259,6 @@ local function borderSting(borderId: string)
 	elseif borderId == "Rainbow" then
 		Sfx.Play("Upgrade", 1.1)
 		Sfx.Play("Reward", 1.3)
-	elseif borderId == "Secret" then
-		Sfx.Play("Boom", 0.85)
-		Sfx.Play("LowHit", 0.8)
-		Sfx.Play("Reward", 0.9)
 	end
 end
 
@@ -273,7 +270,11 @@ local function playFull(result, item)
 		return
 	end
 	local batch = item and item.Batch
-	local tier = Borders.RevealTier(result.Border)
+	local borderId = result.Border or "Normal"
+	local fakeout = Director.Fakeout(borderId)
+	local tease = Borders.Get(if fakeout then "Gold" else borderId)
+	local tier = Borders.RevealTier(borderId)
+	local intro = if fakeout then Borders.RevealTier("Gold") else tier
 	local idx = tier.Index
 
 	local root = Kit.new("Frame", {
@@ -293,7 +294,7 @@ local function playFull(result, item)
 	})
 	local dimTarget = if idx >= 7 then 0 elseif idx >= 5 then 0.15 else 0.35
 	Kit.tween(dim, 0.25, { BackgroundTransparency = dimTarget })
-	scene(root, tier)
+	scene(root, intro)
 	local closeBars = if idx >= 5 then letterbox(root) else nil
 
 	local stage = Kit.new("Frame", {
@@ -371,10 +372,13 @@ local function playFull(result, item)
 		end)
 	end
 
+	local special = Borders.Index(borderId) >= 2
+	local endHold = Director.Hold(stage, borderId, tease.Color, if idx >= 6 then 1.8 else 0.8)
+
 	-- Mythic and Secret open with their own intro.
-	if idx == 6 then
-		cutInBanner(root, tier, skipped)
-	elseif idx == 7 then
+	if intro.Index == 6 then
+		cutInBanner(root, intro, skipped)
+	elseif intro.Index == 7 then
 		heartbeat(root, skipped)
 	end
 
@@ -400,7 +404,6 @@ local function playFull(result, item)
 				break
 			end
 			local period = math.max(0.22, 0.55 - i * 0.1)
-			Sfx.Play("Riser", 0.85 + i * 0.15 + (idx - 3) * 0.05) -- climbs with each pulse and each tier
 			if idx >= 5 then
 				Effects.Sparks(stage, tier.Color, 6, 0.35)
 			end
@@ -412,16 +415,14 @@ local function playFull(result, item)
 		Kit.tween(holder, 0.07, { Rotation = 0 }).Completed:Wait()
 	end
 	-- A special border teases itself before the flip: the back takes on the border's colours.
-	local borderId = result.Border or "Normal"
-	local special = Borders.Index(borderId) >= 2
 	if special and not skipped() then
 		local stroke = back:FindFirstChild("BackStroke")
 		if stroke then
 			stroke.Color = Color3.new(1, 1, 1)
 			stroke.Thickness = 7
 			stroke.Transparency = 0
-			local gradient = stroke:FindFirstChildOfClass("UIGradient") or Kit.gradient(Borders.Get(borderId).Gradient, 45)
-			gradient.Color = Borders.Get(borderId).Gradient
+			local gradient = stroke:FindFirstChildOfClass("UIGradient") or Kit.gradient(tease.Gradient, 45)
+			gradient.Color = tease.Gradient
 			gradient.Parent = stroke
 			if borderId ~= "Gold" then
 				Effects.Spin(gradient, 240)
@@ -430,7 +431,12 @@ local function playFull(result, item)
 		Sfx.Play("Chime", 1.3 + Borders.Index(borderId) * 0.1)
 		Effects.Sparks(stage, Borders.Get(borderId).Color, 14, 0.5)
 		pulse(scale, 0.4, 0.14, skipped)
+		if fakeout and not skipped() then
+			Director.Crack(back)
+			waitFor(0.16, skipped)
+		end
 	end
+	endHold()
 	if skipButton then
 		skipButton:Destroy()
 	end
@@ -445,7 +451,9 @@ local function playFull(result, item)
 	Sfx.Play("Flip")
 	Kit.tween(flip, 0.09, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Wait()
 	Effects.Flash(root, flashColor, 0.4 + idx * 0.06, if idx >= 5 then 0 else 0.4)
-	Sfx.Sting(tier.Sting)
+	if borderId == "Secret" and not skipAllFlag then Sfx.SecretDip() end
+	if not skipAllFlag then Director.Snap(stage, borderId) end
+	if borderId ~= "Secret" then Sfx.Sting(tier.Sting) end
 	if closeBars then
 		closeBars()
 	end
@@ -684,6 +692,7 @@ local function leaveStage(replaced: boolean?)
 		return
 	end
 	show = nil
+	if old.EndHold then old.EndHold() end
 	local seconds = if replaced then 0.1 else 0.24
 	if not replaced then
 		Kit.tween(old.Root, seconds, { Position = UDim2.fromScale(0.86, 0.62) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -798,6 +807,10 @@ local function turnOver(slot, result, delay: number, onFace: ((number) -> ())?)
 	local special = Borders.Index(borderId) >= 2
 	local heat = RevealPolicy.Heat(Cards.Rarity(card.Id, borderId))
 	local color = if special then border.Color else CardView.Glow(card.Id)
+	local owner = show
+	local leadSpecial = special and onFace ~= nil
+	local fakeout = leadSpecial and Director.Fakeout(borderId)
+	local tease = if fakeout then Borders.Get("Gold") else border
 	local swell = if heat >= 2 then 0.14 + heat * 0.04 else 0
 	-- The art starts loading under the face-down card straight away, so the face never turns up empty.
 	local warm = if card.Image
@@ -816,9 +829,8 @@ local function turnOver(slot, result, delay: number, onFace: ((number) -> ())?)
 		if delay > 0 then
 			task.wait(delay)
 		end
-		if slot.Frame.Parent == nil then
-			return
-		end
+		if show ~= owner or slot.Frame.Parent == nil then return end
+		if leadSpecial then owner.EndHold = Director.Hold(slot.Frame, borderId, tease.Color, math.max(0.15, swell)) end
 		slot.Wobble:Cancel()
 		slot.Frame.Rotation = slot.Tilt
 		-- The tease: the back takes the pull's colour, and a rare one swells before it turns.
@@ -829,7 +841,7 @@ local function turnOver(slot, result, delay: number, onFace: ((number) -> ())?)
 				stroke.Thickness = 5 + heat
 				stroke.Transparency = 0
 				if special then
-					Kit.gradient(border.Gradient, 45).Parent = stroke
+					Kit.gradient(tease.Gradient, 45).Parent = stroke
 				end
 			end
 			local emblem = slot.Back:FindFirstChild("Emblem")
@@ -839,7 +851,7 @@ local function turnOver(slot, result, delay: number, onFace: ((number) -> ())?)
 			end
 		end
 		if swell > 0 then
-			Sfx.Play("Riser", 1.15 + heat * 0.15)
+			if not special then Sfx.Play("Riser", 1.15 + heat * 0.15) end
 			Kit.tween(slot.Scale, swell, { Scale = 1.1 + heat * 0.03 }, Enum.EasingStyle.Sine).Completed:Wait()
 			if slot.Frame.Parent == nil then
 				return
@@ -850,11 +862,18 @@ local function turnOver(slot, result, delay: number, onFace: ((number) -> ())?)
 		while warm and not warm.IsLoaded and os.clock() < deadline and slot.Frame.Parent do
 			task.wait()
 		end
+		if show ~= owner or not slot.Frame.Parent then return end
+		if fakeout then
+			Director.Crack(slot.Back)
+			task.wait(0.14)
+			if show ~= owner then return end
+		end
+		if leadSpecial and owner.EndHold then owner.EndHold() end
 		Sfx.Play("Flip", 1.1 + math.random() * 0.2)
 		Kit.tween(slot.Flip, 0.07, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In).Completed:Wait()
-		if slot.Frame.Parent == nil then
-			return
-		end
+		if leadSpecial and borderId == "Secret" and show == owner then Sfx.SecretDip() end
+		if show ~= owner or slot.Frame.Parent == nil then return end
+		if leadSpecial then Director.Snap(slot.Frame, borderId) end
 		slot.Back:Destroy()
 		local front = RollCard.new(card.Id, borderId, RollCard.IsNew(result))
 		unlock(front)
@@ -865,7 +884,7 @@ local function turnOver(slot, result, delay: number, onFace: ((number) -> ())?)
 		Kit.tween(slot.Flip, 0.13, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
 		slot.Scale.Scale = 1.18 + heat * 0.07
 		Kit.tween(slot.Scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
-		Sfx.Sting(border.Sting, true)
+		if borderId ~= "Secret" then Sfx.Sting(border.Sting, true) end
 		if special then
 			borderSting(borderId)
 		end
@@ -961,6 +980,8 @@ function Reveal.CancelAnticipate()
 end
 
 function Reveal.Init(playerGui: Instance)
+	task.spawn(VfxAssets.Preload)
+	task.spawn(Sfx.Preload)
 	gui = Kit.screenGui("RevealGui", 20, playerGui)
 	gui.IgnoreGuiInset = true
 
@@ -1069,11 +1090,21 @@ function Reveal.Quick(result, batchSize: number?)
 	local view = RollCard.new(card.Id, borderId, RollCard.IsNew(result))
 	view.Parent = slot
 
-	if borderId ~= "Normal" then borderSting(borderId) end
+	if borderId ~= "Normal" then
+		borderSting(borderId)
+		if borderId == "Secret" then
+			task.spawn(function()
+				Sfx.SecretDip()
+				if slot.Parent then Director.Snap(slot, borderId) end
+			end)
+		else
+			Director.Snap(slot, borderId)
+		end
+	end
 
 	Kit.tween(scale, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
 	Sfx.Play("Flip", 1.1 + math.random() * 0.2)
-	Sfx.Sting(tier.Sting, true)
+	if borderId ~= "Secret" then Sfx.Sting(tier.Sting, true) end
 	if tier.Index >= 4 then
 		Effects.Flash(gui, tier.Color, 0.35, 0.65)
 		Effects.Sparks(slot, tier.Color, 10, 0.9)
@@ -1109,6 +1140,7 @@ end
 -- (or, with QUICK on, in the compact tray on the right).
 local lastQuickBatch = -math.huge
 function Reveal.Batch(result, onDone: (() -> ())?): boolean
+	if not (Reveal.Muted and Reveal.Muted()) then Sfx.RollWhoosh() end
 	local cards = { result }
 	for _, extra in result.Extra or {} do table.insert(cards, extra) end
 	table.sort(cards, function(a, b) return Cards.Rarity(a.CardId, a.Border) > Cards.Rarity(b.CardId, b.Border) end)

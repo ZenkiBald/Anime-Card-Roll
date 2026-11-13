@@ -60,6 +60,8 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [ ] On a physical phone, listen to a Gold and Secret reveal at your normal volume and check the slash over a guard. With two players in the same server, open a pack that beats the pedestal record, walk past the owner's showcase and rejoin to check the new name and distance falloff.
+
 - [x] 2026-11-13, disposable mock profile in Studio. In iPhone 14 landscape (749 × 330 usable), checked the early dock, the full HUD with active sky, and the 52 px pin buttons. Tapped PIN RAINBOW at 99 Gold Celestial Strategist copies. Granted the hundredth on the mock profile, then used Hoshi's single fuse. The forge animation played, the server reported one Rainbow copy and the pinned tracker returned to 0/100 Gold. Verified invalid and unowned targets were refused.
 - [ ] On a physical phone, follow Kenji through the first boss, navigate MORE/BACK and reach Hoshi using the ready target. Rejoin a private published session and check the pin and counts survive. Try the ticker during a live raid and check its tap target with the server list expanded.
 

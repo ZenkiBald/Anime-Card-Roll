@@ -1738,6 +1738,12 @@ end
 
 local SHIELDED_COLOR = Color3.fromRGB(150, 165, 190)
 
+local CombatController = require(script.Parent.CombatController)
+local function cardStrike(target, impact, color)
+	local surface = if Arena.Active() then Arena.HitSurface(target) else targetFrame(target)
+	CombatController.Hit(surface, impact, color)
+end
+
 local function playEvent(event)
 	if current == nil then
 		return
@@ -1782,9 +1788,9 @@ local function playEvent(event)
 		-- world-space billboard).
 		local aimId = if event.T and (event.T == "Boss" or enemyTiles[event.T]) then event.T else "Boss"
 		local staged = Arena.Active()
-		local function shoot(color: Color3, thick: number, big: boolean?)
+		local function shoot(color: Color3, thick: number)
 			if staged then
-				Arena.Beam(screenOf(tile.Card), aimId, color, thick, big)
+				Arena.Beam(screenOf(tile.Card), aimId, color, thick)
 			else
 				bolt(tile.Card, aim, color, thick)
 			end
@@ -1796,7 +1802,7 @@ local function playEvent(event)
 			if tile.IsAttack then
 				animateAttack(tile, "Ultimate")
 				for i = 1, 3 do
-					task.delay(i * 0.05, shoot, tile.TierColor, 10, i == 3)
+					task.delay(i * 0.05, shoot, tile.TierColor, 10)
 				end
 				if staged then
 					task.delay(0.3, Arena.Shake, 0.6, 0.35)
@@ -1813,7 +1819,7 @@ local function playEvent(event)
 			Sfx.Play("Whoosh", if event.Ab == "Skill" then 1.05 else 1.25 + math.random() * 0.15)
 			if event.Ab == "Skill" then
 				castTag(tile, event.N, "Skill")
-				task.delay(0.06, shoot, tile.TierColor, 9, true)
+				task.delay(0.06, shoot, tile.TierColor, 9)
 			end
 		else
 			-- Support: its turn reads as a lift of 8 px with a glow in its colour.
@@ -1828,6 +1834,10 @@ local function playEvent(event)
 			end
 		end
 	elseif kind == "Hit" or kind == "Burn" or kind == "Bleed" then
+		if kind == "Hit" and (event.T == "Boss" or enemyTiles[event.T]) then
+			cardStrike(event.T, false, Theme.Color.Roll)
+			if event.C or event.Ult then cardStrike(event.T, true, Theme.Color.Gold) end
+		end
 		local frame = targetFrame(event.T)
 		if event.T == "Boss" then
 			local color = if kind == "Burn" or kind == "Bleed" then Theme.Color.Roll
@@ -1862,9 +1872,7 @@ local function playEvent(event)
 				-- Sparks in the world's colour (embers, ice, void, lightning); crits burst and shake.
 				local spark = current.BossColor:Lerp(Color3.new(1, 1, 1), 0.25)
 				if event.C then
-					if Arena.Active() then
-						Arena.Impact("Boss", Theme.Color.Gold, true)
-					else
+					if not Arena.Active() then
 						ring(centerOf(bossHolder), Theme.Color.Gold, 140)
 					end
 					Effects.Sparks(bossHolder, spark, 14, 0.7)
@@ -1946,6 +1954,7 @@ local function playEvent(event)
 			end
 		end
 	elseif kind == "Debuff" then
+		if event.Stat == "DEF" and (event.T == "Boss" or enemyTiles[event.T]) then Sfx.Play("ShieldBreak") end
 		local label = if event.Stat == "Vuln" then "DMG TAKEN" else event.Stat
 		local sign = if event.Stat == "Vuln" then "+" else "-"
 		float(targetFrame(event.T) or bossHolder, `{label} {sign}{math.floor(event.A * 100 + 0.5)}%`, Theme.Color.Support)
@@ -1968,6 +1977,7 @@ local function playEvent(event)
 			shakeCard(tile, 10)
 			Sfx.Play("KO")
 		elseif guard then
+			Sfx.Play("ShieldBreak")
 			guard.Ko.Visible = true
 			guard.Focus.Visible = false
 			if current.Focus == event.T then
@@ -1998,6 +2008,8 @@ local function playEvent(event)
 	elseif kind == "ClashOpen" then
 		openClash((event.S or Config.Battle.ClashWindow) / math.max(1, current.Speed))
 	elseif kind == "Clash" then
+		cardStrike("Boss", true, Theme.Color.Gold)
+		Sfx.Play("SwordClash", 0.95 + math.random() * 0.1)
 		closeClash()
 		local tile = tiles[event.U]
 		callout(`CLASH! {if tile then string.upper((Cards.Get(tile.CardId) :: any).Name) else ""} PARRIES {string.upper(event.N or "")}`, Color3.fromRGB(150, 230, 255), 1.6)
@@ -2013,7 +2025,7 @@ local function playEvent(event)
 			end)
 			glow(tile, Color3.fromRGB(150, 230, 255))
 			if Arena.Active() then
-				Arena.Beam(screenOf(tile.Card), "Boss", Color3.fromRGB(150, 230, 255), 14, true)
+				Arena.Beam(screenOf(tile.Card), "Boss", Color3.fromRGB(150, 230, 255), 14)
 			else
 				bolt(tile.Card, bossHolder, Color3.fromRGB(150, 230, 255), 14)
 			end
@@ -2055,6 +2067,7 @@ local function playEvent(event)
 			bossView:Flash(Color3.fromRGB(220, 140, 255), 0.5)
 		end
 	elseif kind == "Break" then
+		Sfx.Play("ShieldBreak")
 		callout("BARRIER BROKEN!", Theme.Color.Gold, 1.4)
 		Effects.Sparks(bossHolder, Color3.fromRGB(230, 130, 255), 22, 0.9)
 		Effects.Flash(gui, Color3.fromRGB(230, 130, 255), 0.35, 0.6)
@@ -2064,6 +2077,7 @@ local function playEvent(event)
 	elseif kind == "SupportProc" then
 		float(targetFrame(event.T), event.N, Theme.Color.Support)
 	elseif kind == "Stagger" then
+		Sfx.Play("ShieldBreak")
 		-- Shield Break: the glass shatters, the leader is stunned and takes 1.5x.
 		closeClash()
 		local taken = Config.Battle.BrokenTaken
@@ -2091,6 +2105,8 @@ local function playEvent(event)
 			float(tile.Card, `-{Kit.commas(event.A)} 👹`, Color3.fromRGB(230, 40, 80))
 		end
 	elseif kind == "Bond" then
+		Sfx.Resonance()
+		cardStrike("Boss", true, Theme.Color.Gold)
 		-- A Dual Ultimate: both bonded cards flare and strike the leader together.
 		callout(`🤝 {string.upper(event.N)}!`, Color3.fromRGB(255, 190, 120), 1.8)
 		Effects.Flash(gui, Color3.fromRGB(255, 190, 120), 0.5, 0.5)

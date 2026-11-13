@@ -6,7 +6,7 @@
 --   * Spring scale (a UIScale on the button, or on `ScaleTarget` so it stacks with a scale the button
 --     already animates): hover 1.05 (Quad Out 0.15 s, the sheen goes fully opaque), press 0.95 (Quad Out
 --     0.08 s), release springs back to 1.05 (Back Out 0.25 s), or to 1 on touch, where there is no hover.
---   * Sound: a high spirit shimmer on hover, a heavy blade knock on press (Sfx SpiritHover / BladeClick).
+--   * Sound: a high spirit shimmer on hover, the shared UI click on press.
 --   * Content: JuicyButton.new puts its contents in a CanvasGroup ("Content", same corner as the button),
 --     so cooldown sweeps and drain fills clip cleanly against the border, without pixel bleed past the
 --     corners. JuicyButton.Content(button) adds one to an existing button.
@@ -105,7 +105,7 @@ function JuicyButton.Apply(button: GuiButton, options: { [string]: any }?)
 	button.MouseButton1Down:Connect(function()
 		to(PRESS, pressInfo)
 		if not o.Silent then
-			Sfx.Play("BladeClick")
+			Sfx.Play("Click")
 		end
 	end)
 	button.MouseButton1Up:Connect(function()

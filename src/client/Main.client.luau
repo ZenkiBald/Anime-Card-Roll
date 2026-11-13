@@ -124,7 +124,6 @@ local function requestRoll(mode: string)
 		return
 	end
 	busy = true
-	Sfx.Play("Whoosh", if mode == "Full" then 0.9 else 1.15)
 	-- A face-down card drops onto the centre stage at once, and turns over when the server answers.
 	Reveal.Anticipate(if State.Perk("TripleRoll", true) then 3 else 1)
 	-- If a reveal was tapped away early, wait out the rest of the cooldown instead of being refused. A tap
@@ -340,6 +339,7 @@ PlayerList.Init(playerGui, Profile.Open, Settings.Toggle)
 Dash.Start(Title.IsOpen)
 Followers.Start()
 Avatars.Start()
+require(script.Parent.SocialAuraController).Start()
 CardTooltip.Init(playerGui)
 ElementGuide.Init(playerGui)
 TraitMaster.Init(playerGui)

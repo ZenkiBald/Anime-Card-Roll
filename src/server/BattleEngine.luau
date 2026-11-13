@@ -723,6 +723,7 @@ function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: 
 		T = enemy.Id,
 		A = amount,
 		C = crit or nil,
+		Ult = if kind == "Hit" and self.Slot == "Ultimate" then true else nil,
 		Bl = if enemy.Barrier > 0 then true else nil,
 		El = el, -- legacy: elements are neutral, always nil
 		Sd = if shield == "Up" then true else nil,

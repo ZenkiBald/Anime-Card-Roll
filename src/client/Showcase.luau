@@ -38,6 +38,23 @@ local function emitter(parent, name, texture, color, rate)
 	return p
 end
 
+function Showcase.Faces(part: BasePart, cardId: string, borderId: string)
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local surface = Instance.new("SurfaceGui")
+		surface.Name = "ShowcaseArt"
+		surface.Face = face
+		surface.CanvasSize = Vector2.new(380,540)
+		surface.LightInfluence = 0
+		surface.Brightness = 2
+		surface.AlwaysOnTop = false
+		surface.MaxDistance = 120
+		surface.Parent = part
+		local art = RollCard.new(cardId,borderId)
+		art:FindFirstChildOfClass("UIAspectRatioConstraint"):Destroy()
+		art.Parent = surface
+	end
+end
+
 function Showcase.new(root: BasePart, cardId: string, borderId: string, elementColor: Color3, parent: Instance)
 	local card = assert(Cards.Get(cardId))
 	local border = Borders.Get(borderId)
@@ -57,20 +74,7 @@ function Showcase.new(root: BasePart, cardId: string, borderId: string, elementC
 	weld.Part0 = root
 	weld.Part1 = part
 	weld.Parent = part
-	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
-		local surface = Instance.new("SurfaceGui")
-		surface.Name = "ShowcaseArt"
-		surface.Face = face
-		surface.CanvasSize = Vector2.new(380,540)
-		surface.LightInfluence = 0
-		surface.Brightness = 2
-		surface.AlwaysOnTop = false
-		surface.MaxDistance = 120
-		surface.Parent = part
-		local art = RollCard.new(cardId,borderId)
-		art:FindFirstChildOfClass("UIAspectRatioConstraint"):Destroy()
-		art.Parent = surface
-	end
+	Showcase.Faces(part, cardId, borderId)
 
 	local colors = ColorSequence.new(elementColor, if borderId == "Normal" then elementColor:Lerp(Color3.new(1,1,1),.7) else border.Color)
 	local core = emitter(part, "CoreGlow", SMOKE, colors, 18)

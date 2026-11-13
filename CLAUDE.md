@@ -89,6 +89,12 @@ up to three such highlights. Rainbow+ pulls are announced; a Secret gets "[SERVE
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
 
+**Studio reveal, combat and town assets.** The seven decals in `ReplicatedStorage.VFXAssets` supply the reveal rays, circle, crack, speed lines, glint, slash and hit impact. `UI/VfxAssets` maps each Marketplace decal listing to the image inside it. The client preloads those images and the eleven Sound templates. Roll, combat and menu sounds route through `SFX_Roll`, `SFX_Combat` and `SFX_UI`. Zone music and the 22-stud Rainbow/Secret showcase hum route through `Ambience`, with separate music and effect settings.
+
+One whoosh per roll action steps from 1.00 to 1.08 over five rolls. Gold and above layer a riser and heartbeat during anticipation. A quarter of Rainbow and Secret stage or cinematic reveals briefly show a Gold border that cracks before the real border appears. Rainbow and Secret snap with a choir. A Secret adds a 0.20-second silence before the bass and katana. A bonded Dual Ultimate also fires that pair. A confirmed parry, defense break and fallen guard have distinct sounds. The boss and each guard show slash and critical or Ultimate impact textures at the actual target.
+
+The town Legend Pedestal displays the highest combined card-and-border rarity actually pulled on this server, including rolls, triple pulls, sky finds and packs. Ties keep the first owner. The card and label bob at `Workspace.Map.Town.LegendPedestal.DisplayAnchor` (a pedestal directly under Workspace is also supported). The record lasts for this server's lifetime and replicates to new arrivals.
+
 **Rift Draft.** Open BATTLE and choose RIFT DRAFT on a world screen. It opens from the first session. Draft three loan fighters from twelve illustrated Attack cards and take them through three distinct opponents drawn from the four world bosses. Each offer includes a damage dealer, a protector and a trickster. Draft rules have their own printed stats. Collection power, borders and passes give no advantage here.
 
 Every turn, the boss shows its intent. Play one fighter, then let it rest for a turn. Rotating three distinct fighters deals a four-damage relay bonus. Tricks interrupt channels, a piercing attack breaks guard, and healing or blocking preserves the squad's shared HP. Each boss adds a separate rule. The move previews include burn, guard, counters, healing and relay effects. Choose one of three relics after each of the first two wins and recover eight HP. Closing the panel or leaving saves the exact hand, encounter and turn.
@@ -631,12 +637,11 @@ The character artwork pass did not change identities. The later character-to-Att
   their own words. The user authorized named anime Celestial forms on 2026-10-29, then explicitly requested
   epithet display / technique names for those sixteen on 2026-10-30. Preserve the current names / original ids;
   recognizable portraits and series labels still require the public-release review tracked in the launch checklist.
-- Cheap on phones: UI-first, plain Frames + tweens, no textures or 3D particles in reveals, at most one 3D model per
+- Cheap on phones: UI-first, plain Frames + tweens, bounded 2D reveal textures and no 3D reveal particles, at most one 3D model per
   ViewportFrame; few CanvasGroups; StreamingEnabled, map under ~15k parts, few lights.
 - Town services stay at their NPCs (Hoshi, Kenshin, Fortuna): no HUD shortcut, and the server checks `NpcRange.Near`.
 - Creator Store models: strip every script (tools/studio/stage.luau); `tools/studio/scan.luau` finds backdoors (a fake
-  "Error 501, paste this into the command bar" screen is one: never run it). Sounds: licensed libraries only (Pro Sound Effects,
-  APM Music) or Roblox's own; all ids in `UI/Sfx.luau`.
+  "Error 501, paste this into the command bar" screen is one: never run it). Sound templates use the selected Creator Store audio in the place. Keep the ID registry in `UI/Sfx.luau` and verify experience playback before publishing.
 - `✕` and `▾` don't render in game (empty boxes): draw them with `Kit.glyph`. Check new symbols in Studio.
 - Test tools: `Config.TestMode = true` during testing, and only `DevAccess` players (Studio, the game owner / group
   admins, `Config.DevUserIds`) can use the DEV panel or mock purchases. `TestMode = false` at launch (see the checklist).

@@ -277,6 +277,11 @@ function ZoneFx.MoodAt(position: Vector3)
 	end
 end
 
+function ZoneFx.IsTown(position: Vector3): boolean
+	local zones = ReplicatedStorage:FindFirstChild("Zones")
+	return zones == nil or zoneAt(position, zones) == "Town"
+end
+
 function ZoneFx.Current(): string
 	return current or "Town"
 end

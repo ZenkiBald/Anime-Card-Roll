@@ -22,7 +22,10 @@ local compactMode = false
 local Kit = require(script.Parent.Kit)
 local ZoneFx = require(script.Parent.Parent.ZoneFx)
 
+local BossSlabRenderer = require(script.Parent.BossSlabRenderer)
+local CombatController = require(script.Parent.CombatController)
 local Arena = {}
+
 
 local GUARD_SCALE = 0.55
 -- Where guards stand, in the leader's frame (it faces -Z): left, right, and the third in front-right, a
@@ -426,12 +429,8 @@ local function fxPart(name: string, size: Vector3, cframe: CFrame, color: Color3
 	return part
 end
 
-local function fade(part: BasePart, seconds: number, grow: Vector3?)
-	local goal: { [string]: any } = { Transparency = 1 }
-	if grow then
-		goal.Size = grow
-	end
-	local tween = TweenService:Create(part, TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), goal)
+local function fade(part: BasePart, seconds: number)
+	local tween = TweenService:Create(part, TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Transparency = 1 })
 	tween.Completed:Connect(function()
 		part:Destroy()
 	end)
@@ -453,30 +452,13 @@ local function fromScreen(at: Vector2, depth: number): Vector3
 	return ray.Origin + ray.Direction * depth
 end
 
--- An impact: a neon flash that swells and fades, plus two crossing slashes facing the camera.
+-- Guard shatters and shield breaks use the same impact surface as card hits.
 function Arena.Impact(id: string, color: Color3, big: boolean?)
-	local at = chest(id)
-	if folder == nil or at == nil then
-		return
-	end
-	local f = figures[id]
-	local size = f.Height * (if big then 0.5 else 0.3)
-	local flash = fxPart("Impact", Vector3.one * size * 0.4, CFrame.new(at), color, Enum.PartType.Ball)
-	flash.Transparency = 0.2
-	fade(flash, 0.28, Vector3.one * size)
-	local face = CFrame.lookAt(at, Workspace.CurrentCamera.CFrame.Position)
-	for i, angle in { 35, -30 } do
-		local cut = fxPart("Slash", Vector3.new(0.25, 0.25, 0.1), face * CFrame.Angles(0, 0, math.rad(angle)) * CFrame.new(0, 0, -0.5), color:Lerp(Color3.new(1, 1, 1), 0.5))
-		task.delay((i - 1) * 0.05, function()
-			if cut.Parent then
-				fade(cut, 0.22, Vector3.new(size * 1.6, 0.18, 0.1))
-			end
-		end)
-	end
+	CombatController.Hit(Arena.HitSurface(id), big, color)
 end
 
--- A beam from a card slot on screen (viewport pixels) to a figure: a glowing bolt flies there and bursts.
-function Arena.Beam(from: Vector2, toId: string, color: Color3, thick: number?, big: boolean?)
+-- The beam travels to the figure. Its server-confirmed hit event draws the impact.
+function Arena.Beam(from: Vector2, toId: string, color: Color3, thick: number?)
 	local target = chest(toId)
 	if folder == nil or target == nil then
 		return
@@ -490,7 +472,6 @@ function Arena.Beam(from: Vector2, toId: string, color: Color3, thick: number?, 
 	})
 	tween.Completed:Connect(function()
 		bolt:Destroy()
-		Arena.Impact(toId, color, big)
 	end)
 	tween:Play()
 end
@@ -585,6 +566,12 @@ function Arena.SetCompact(on: boolean)
 	if plate then
 		plate.Gui.Enabled = not on and not arenaHidden -- the screen's boss bar already carries the name and HP
 	end
+end
+
+function Arena.HitSurface(id: string): BillboardGui?
+	local figure = figures[id]
+	if arenaHidden or not figure then return nil end
+	return BossSlabRenderer.Surface(figure.Model, figure.Height)
 end
 
 function Arena.Active(): boolean

@@ -51,6 +51,18 @@ local DevAccess = require(script.Parent.DevAccess)
 local DevCommands = require(Shared.DevCommands)
 
 local RollService = {}
+local HttpService = game:GetService("HttpService")
+local serverRecord = 0
+
+-- One replicated value gives late joiners the same record, including after its owner leaves.
+local function recordPull(player: Player, cardId: string, border: string)
+	local rarity = Cards.Rarity(cardId, border)
+	if rarity <= serverRecord then return end
+	serverRecord = rarity
+	ReplicatedStorage:SetAttribute("ServerLegend", HttpService:JSONEncode({
+		CardId = cardId, Border = border, Owner = player.Name, Rarity = rarity,
+	}))
+end
 
 local rng = Random.new()
 -- While a sky is active, every normal pull searches it once (CelestialRolls): `searches` at once, with
@@ -224,6 +236,7 @@ local function doRoll(player: Player, profile, luck: number?, batch: { XP: numbe
 
 	-- The copy goes on the pile of its border; the card keeps every border it has found and wears the best.
 	local newBorder = addCopy(entry, border)
+	recordPull(player, card.Id, border)
 	if newBorder and profile.Data.Settings.Avatar == card.Id then
 		AvatarService.Apply(player) -- the worn card found a better border: its trail changes now
 	end
@@ -470,6 +483,7 @@ function RollService.AnnounceBatch(player: Player, batch)
 		end
 	end
 	local best = batch.Results[1]
+	if best then recordPull(player, best.CardId, best.Border) end
 	if said == 0 and best and Borders.Index(best.Border) >= Borders.Index(Config.AnnounceFrom) then
 		GlobalAnnounce.Pull(player, best.CardId, best.Border)
 	end

@@ -6,6 +6,7 @@ local Kit = require(script.Parent.Kit)
 local Modal = require(script.Parent.Modal)
 local Theme = require(script.Parent.Theme)
 local Sfx = require(script.Parent.Sfx)
+local CombatController = require(script.Parent.CombatController)
 local State = require(script.Parent.Parent.State)
 
 local Arena = {}
@@ -248,7 +249,11 @@ send=function(action,value)
 			elseif r and r.Phase=="Relic" then "Reward" elseif action=="Play" then "Hit" else "Flip")
 		if action=="Play" and r and r.Phase=="Fight" then
 			local art=page:FindFirstChild("Portrait")
-			if art then art.ImageColor3=C.Attack;Kit.tween(art,.22,{ImageColor3=Color3.new(1,1,1)}) end
+			if art then
+				CombatController.Hit(art, false, C.Attack)
+				art.ImageColor3=C.Attack
+				Kit.tween(art,.22,{ImageColor3=Color3.new(1,1,1)})
+			end
 		end
 	end
 end

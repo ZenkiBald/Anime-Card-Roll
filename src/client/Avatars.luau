@@ -23,6 +23,9 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Theme = require(script.Parent.UI.Theme)
 local Showcase = require(script.Parent.Showcase)
+local Sfx = require(script.Parent.UI.Sfx)
+local ZoneFx = require(script.Parent.ZoneFx)
+local State = require(script.Parent.State)
 
 local Avatars = {}
 
@@ -39,6 +42,7 @@ local overrides = {}
 local function clear(character)
 	local aura = auras[character]
 	if aura then
+		if aura.Hum then aura.Hum:Destroy() end
 		aura.Attachment:Destroy()
 		if aura.Showcase then aura.Showcase.Part:Destroy() end
 		auras[character] = nil
@@ -196,6 +200,15 @@ local function update(now: number)
 		if aura == nil or aura.Key ~= `{element}:{border}:{cardId or ""}` or aura.Attachment.Parent ~= root then
 			build(character, root, element, border, cardId)
 			aura = auras[character]
+		end
+		local audible = aura.Showcase and (border == "Rainbow" or border == "Secret") and camera
+			and (camera.CFrame.Position - root.Position).Magnitude <= 30
+			and (not State.InBattle or State.BattleHidden) and ZoneFx.IsTown(root.Position)
+		if audible and not aura.Hum then
+			aura.Hum = Sfx.AuraHum(root)
+		elseif not audible and aura.Hum then
+			aura.Hum:Destroy()
+			aura.Hum = nil
 		end
 		if aura.Showcase and camera then
 			local part = aura.Showcase.Part

@@ -1,8 +1,6 @@
 --!nonstrict
 -- Sound effects, rarity stings and background music.
--- Everything is a licensed Creator Store sound (Pro Sound Effects and APM Music, shared by Roblox for
--- every experience) or one that ships with Roblox, so nothing needs uploading. To swap a sound, change
--- its id here: every screen plays sounds by name.
+-- Authored SoundGroup templates live in the place. IDs also support places that have only the scripts.
 --
 -- A sound entry: Id, Volume, Pitch (playback speed), Region (seconds to play, for long files) and Gap
 -- (the shortest time between two plays, so a burst of battle hits doesn't stack into noise).
@@ -19,7 +17,17 @@ end
 
 local SOUNDS = {
 	-- Interface
-	Click = { Id = asset(9113885290), Volume = 0.55, Gap = 0.04 }, -- PSE: track ball button click
+	Click = { Id = asset(88442833509532), Template = "UIClick", Group = "SFX_UI", Volume = 0.55, Gap = 0.04 },
+	CardWhoosh = { Id = asset(9118883081), Group = "SFX_Roll", Volume = 0.5 },
+	RiserCharge = { Id = asset(1843490542), Group = "SFX_Roll", Volume = 0.42 },
+	HeartbeatLoop = { Id = asset(6202853067), Group = "SFX_Roll", Volume = 0.35 },
+	GlassShatter = { Id = asset(5688350595), Group = "SFX_Roll", Volume = 0.6, Region = 0.9 },
+	ChoirSwell = { Id = asset(1840524246), Group = "SFX_Roll", Volume = 0.45, Region = 1.8 },
+	SubBassBoom = { Id = asset(119977062667102), Group = "SFX_Combat", Volume = 0.65, Region = 1.1 },
+	KatanaUnsheathe = { Id = asset(130317074796316), Group = "SFX_Combat", Volume = 0.55, Region = 0.85 },
+	SwordClash = { Id = asset(9119072660), Group = "SFX_Combat", Volume = 0.65, Region = 0.8 },
+	ShieldBreak = { Id = asset(9117458008), Group = "SFX_Combat", Volume = 0.6, Region = 0.9, Gap = 0.09 },
+	DarkAuraHum = { Id = asset(1843755646), Group = "Ambience", Volume = 0.22 },
 	Whoosh = { Id = asset(9126229267), Volume = 0.55, Gap = 0.05 }, -- PSE: fast airy whoosh by
 	Flip = { Id = asset(9126229267), Volume = 0.45, Pitch = 1.8, Gap = 0.05 }, -- the same whoosh, quick: a card snapping over
 	Riser = { Id = asset(9125807267), Volume = 0.5 }, -- PSE: rising whoosh burst (reveal build-up)
@@ -28,9 +36,8 @@ local SOUNDS = {
 	Potion = { Layers = { { "Glug" }, { "Chime", Pitch = 1.3, Delay = 0.35 } } },
 	Glug = { Id = asset(9117641945), Volume = 0.6, Region = 1.1, Pitch = 1.25 }, -- PSE: liquid glugs
 	Upgrade = { Layers = { { "Riser", Pitch = 1.25 }, { "Chime", Pitch = 1.1, Delay = 0.3 } } },
-	-- JuicyButton (UI/Components): a thin high spirit shimmer on hover, a heavy wood / blade knock on press.
+	-- JuicyButton hover. Press uses the shared UI click.
 	SpiritHover = { Id = asset(9116163448), Volume = 0.16, Pitch = 2.4, Gap = 0.08 }, -- PSE short dings, pitched up
-	BladeClick = { Layers = { { "Thud", Pitch = 0.7, Volume = 0.55 }, { "Hit", Pitch = 1.6, Volume = 0.22 } } },
 
 	-- Impacts
 	Hit = { Id = asset(9126229601), Volume = 0.5, Gap = 0.06 }, -- PSE: whoosh into a pounding thud
@@ -79,13 +86,22 @@ local MUSIC = {
 }
 
 local groups = {}
+local levels = {}
+local effectsVolume = 1
+local dipCount = 0
+local hums = {}
 local function group(name: string): SoundGroup
 	local g = groups[name]
 	if g == nil then
-		g = SoundService:FindFirstChild(name) or Instance.new("SoundGroup")
-		g.Name = name
-		g.Volume = 1
-		g.Parent = SoundService
+		local parent = if name == "Music" then group("Ambience") else SoundService
+		g = parent:FindFirstChild(name)
+		if not g or not g:IsA("SoundGroup") then
+			g = Instance.new("SoundGroup")
+			g.Name = name
+			g.Volume = 1
+			g.Parent = parent
+		end
+		levels[name] = g.Volume
 		groups[name] = g
 	end
 	return g
@@ -94,14 +110,29 @@ end
 local cache = {}
 local lastPlayed = {}
 
-local function makeSound(def, name: string): Sound
-	local sound = Instance.new("Sound")
-	sound.Name = name
+local combat = { Hit=true, Whoosh=true, HeavyHit=true, Boom=true, LowHit=true, Shield=true, Heal=true, Victory=true, Defeat=true, Impact=true, Thud=true }
+local interface = { Glug=true, SpiritHover=true }
+local function makeSound(def, name: string, parent: Instance?): Sound
+	local bus = group(def.Group or (if combat[name] then "SFX_Combat" elseif interface[name] then "SFX_UI" else "SFX_Roll"))
+	local template = bus:FindFirstChild(def.Template or name)
+	local sound = if template and template:IsA("Sound") then template:Clone() else Instance.new("Sound")
+	sound.Name = def.Template or name
 	sound.SoundId = def.Id
 	sound.Volume = def.Volume or 0.5
-	sound.SoundGroup = group("Effects")
-	sound.Parent = SoundService
+	sound.SoundGroup = bus
+	sound.Looped = false
+	sound.PlayOnRemove = false
+	sound.Parent = parent or SoundService
 	return sound
+end
+
+function Sfx.Preload()
+	local holder = Instance.new("Folder")
+	for name, def in SOUNDS do
+		if def.Group then makeSound(def, name, holder) end
+	end
+	pcall(function() game:GetService("ContentProvider"):PreloadAsync(holder:GetChildren()) end)
+	holder:Destroy()
 end
 
 local playOne
@@ -155,12 +186,69 @@ function playOne(name: string, pitch: number?, volumeScale: number?)
 	end
 	sound.PlaybackSpeed = speed
 	sound.Volume = volume
-	SoundService:PlayLocalSound(sound)
+	sound.TimePosition = 0
+	sound:Play()
 end
 
 -- Plays a named sound; `pitch` multiplies its playback speed (higher = brighter and shorter).
 function Sfx.Play(name: string, pitch: number?)
 	playOne(name, pitch)
+end
+
+local rollStep, previousRoll = 0, -math.huge
+function Sfx.RollWhoosh()
+	local now = os.clock()
+	rollStep = if now - previousRoll > 5 then 0 else (rollStep + 1) % 5
+	previousRoll = now
+	playOne("CardWhoosh", 1 + rollStep * 0.02)
+end
+
+function Sfx.Anticipation(duration: number)
+	local riser = makeSound(SOUNDS.RiserCharge, "RiserCharge")
+	local heart = makeSound(SOUNDS.HeartbeatLoop, "HeartbeatLoop")
+	riser.Looped, heart.Looped = true, true
+	riser.PlaybackSpeed = 0.85
+	riser:Play()
+	heart:Play()
+	TweenService:Create(riser, TweenInfo.new(duration, Enum.EasingStyle.Linear), { PlaybackSpeed = 1.65 }):Play()
+	return function()
+		riser:Destroy()
+		heart:Destroy()
+	end
+end
+
+function Sfx.Resonance()
+	playOne("SubBassBoom")
+	playOne("KatanaUnsheathe")
+end
+
+local buses = { "SFX_Roll", "SFX_Combat", "SFX_UI", "Ambience" }
+local function mix()
+	for _, name in buses do
+		local bus = group(name)
+		bus.Volume = if dipCount > 0 then 0 else levels[name] * (if name == "Ambience" then 1 else effectsVolume)
+	end
+end
+
+-- Called while the card is edge-on. Even if the show is replaced, always restore the mix.
+function Sfx.SecretDip()
+	dipCount += 1
+	mix()
+	task.wait(0.20)
+	dipCount -= 1
+	mix()
+end
+
+function Sfx.AuraHum(root: BasePart): Sound
+	local hum = makeSound(SOUNDS.DarkAuraHum, "DarkAuraHum", root)
+	hum.Looped = true
+	hum.RollOffMinDistance = 4
+	hum.RollOffMaxDistance = 22
+	hum.Volume = SOUNDS.DarkAuraHum.Volume * effectsVolume
+	hums[hum] = true
+	hum.Destroying:Once(function() hums[hum] = nil end)
+	hum:Play()
+	return hum
 end
 
 -- The reveal sting for a rarity. `short` (quick rolls, reward fans) skips the long music stings.
@@ -255,7 +343,9 @@ function Sfx.SetMusicVolume(scale: number)
 end
 
 function Sfx.SetEffectsVolume(scale: number)
-	group("Effects").Volume = scale
+	effectsVolume = scale
+	mix()
+	for hum in hums do hum.Volume = SOUNDS.DarkAuraHum.Volume * scale end
 end
 
 return Sfx
