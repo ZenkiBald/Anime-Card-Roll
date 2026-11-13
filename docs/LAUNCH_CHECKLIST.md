@@ -60,6 +60,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Rift Draft, desktop Studio, 2026-11-13. Entered from BATTLE in a separate local place with a mock profile, checked all twelve portraits in the marks gallery, picked three loan fighters, played a complete Bronze circuit and confirmed three Base awards and Silver unlock. Closed and reopened at the relic choice and inspected an equipped Lotus Spring mid-fight.
+- [ ] Try a fresh Bronze and a Crown run on a landscape phone. Check whether a first-time player understands the enemy intent and discovers the three-fighter relay. Have a returning player try for a missing fighter mark or a better score, and observe whether they choose another run.
+
 - [x] Desktop Studio, 2026-11-13. Four hunt boards spawned. On an isolated test profile, the Ember Village board offered two Gold rewards. Started Dream Reaper, checked the named guard cue, sent the target input, broke the seal, won, saw the Gold reward and confirmed a repeat was refused.
 - [ ] Try both Ember Village hunts with an early deck on a landscape phone. Check board discovery, tapping moving guard cards, retry after a loss, and the two later-world choices at each camp. At the Card Packs keeper, compare a family with Normal Collection while AUTO runs and check that reading and scrolling remain comfortable.
 

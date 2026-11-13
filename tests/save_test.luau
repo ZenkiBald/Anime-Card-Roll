@@ -6,9 +6,13 @@ do
 	local old={Cards={},Progress={Cleared={["kurogane:Normal"]=true},BestTime={}}}
 	SaveMigration.Migrate(old)
 	check(next(old.Progress.Hunts)==nil and old.Progress.Cleared["kurogane:Normal"],"old story wins keep all card hunts available")
+	check(old.RiftDraft.Version==1 and old.RiftDraft.Unlocked==1 and not next(old.RiftDraft.Marks),"older profiles start the Bronze circuit with clean marks")
+	old.RiftDraft.Marks.tomo=2
+	old.RiftDraft.Run={Phase="Relic", HP=13}
 	old.Progress.Hunts.yume=true
 	SaveMigration.Migrate(old)
 	check(old.Progress.Hunts.yume,"reloading keeps claimed hunt rewards")
+	check(old.RiftDraft.Run.HP==13 and old.RiftDraft.Marks.tomo==2,"reloading keeps the draft checkpoint and permanent marks")
 end
 
 -- Trait stat tuning adds definitions, not a save format. Existing rolls and new Secret IDs survive.

@@ -18,6 +18,7 @@ modules = [
     ("CelestialCards", root / "src" / "shared"),
     ("Cards", root / "src" / "shared"),
     ("CardHunts", root / "src" / "shared"),
+    ("RiftDraft", root / "src" / "shared"),
     ("BulkRoll", root / "src" / "shared"),
     ("CelestialRolls", root / "src" / "shared"),
     ("RevealPolicy", root / "src" / "shared"),
@@ -41,7 +42,7 @@ modules = [
     ("BattleEngine", root / "src" / "server"),
     ("SaveMigration", root / "src" / "server"),
 ]
-test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau", "phase2_test.luau", "support_test.luau", "ftue_test.luau", "save_test.luau", "pack_batch_test.luau", "celestial_test.luau", "dev_test.luau", "bulk_test.luau", "clash_test.luau", "economy_test.luau"]
+test_files = ["odds_test.luau", "meta_test.luau", "battle_test.luau", "tower_test.luau", "strategy_test.luau", "phase2_test.luau", "support_test.luau", "ftue_test.luau", "save_test.luau", "pack_batch_test.luau", "celestial_test.luau", "dev_test.luau", "bulk_test.luau", "clash_test.luau", "economy_test.luau", "rift_test.luau"]
 
 out = [(tests / "stubs.luau").read_text(encoding="utf-8"), (tests / "harness.luau").read_text(encoding="utf-8"), "MODULES = {}"]
 for name, folder in modules:

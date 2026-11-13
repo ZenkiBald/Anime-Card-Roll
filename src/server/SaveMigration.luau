@@ -23,6 +23,7 @@ local Cards = require(Shared.Cards)
 local Collections = require(Shared.Collections)
 local Meta = require(Shared.Meta)
 local Packs = require(Shared.Packs)
+local RiftDraft = require(Shared.RiftDraft)
 
 local RevealPolicy=require(Shared.RevealPolicy)
 local SaveMigration = {}
@@ -284,6 +285,10 @@ function SaveMigration.Migrate(data: any): { string }
 	if type(data.Progress.Hunts) ~= "table" then
 		data.Progress.Hunts = {}
 		table.insert(done, "world hunt records initialized")
+	end
+	if type(data.RiftDraft) ~= "table" then
+		data.RiftDraft = RiftDraft.NewRecord()
+		table.insert(done, "rift draft initialized")
 	end
 	return done
 end

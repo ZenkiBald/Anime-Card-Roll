@@ -38,6 +38,7 @@ local State = require(script.Parent.Parent.State)
 local BossScreen = {}
 
 export type Actions = {
+	OpenDraft: () -> (),
 	EditDeck: (target: string) -> (), -- target: the boss id, Tower.Id or Raid.Id the deck is for
 	Fight: (bossId: string, difficulty: string?, options: Bosses.FightOptions?) -> (boolean, string?), -- bossId may be Tower.Id, Tower.PagodaId or Raid.Id
 }
@@ -974,6 +975,10 @@ local function build()
 	setShowcase(boss)
 	buildTabs()
 
+	local draft = Kit.button("RIFT DRAFT  ·  BORROW A TRIO", C.SpiritCyan, Theme.Color.InfoDeep, {
+		Name="RiftDraft", LayoutOrder=0, Size=UDim2.new(1,0,0,46), Parent=body,
+	})
+	draft.Activated:Connect(actions.OpenDraft)
 	text(body, 1, boss.Mechanic, Theme.Color.Muted, 18, Theme.Font.Bold)
 	text(body, 1, guardLine(boss.Guards), Theme.Color.Text, 16, Theme.Font.Heavy)
 	scoutBox(3, boss.Id, boss.Guards, deck, boss.Id)

@@ -4,7 +4,7 @@ Roblox RNG card game: roll anime-style cards, build a 4 Attack + 4 Support deck,
 tower and join server raids. Original design doc (it predates the border tiers, so its rarity sections are out of date):
 https://claude.ai/code/artifact/7c2c0257-e3da-4a93-adae-2ccb87e751bb
 
-This file describes the game as it is now (2026-11-13, after the centre-stage roll reveal pass). How it got here is in `git log` (one commit per pass).
+This file describes the game as it is now (2026-11-13, after the Rift Draft pass). How it got here is in `git log` (one commit per pass).
 Launch steps: `docs/LAUNCH_CHECKLIST.md`.
 Two AIs share this repo, one at a time (Claude Code and ChatGPT / Codex): `AGENTS.md` is the common brief. Read
 `docs/HANDOFF.md` first (branch, status, open asks) and add a log entry there when you finish a pass.
@@ -88,6 +88,12 @@ A pull of combined rarity 1 in 10,000,000 or rarer (`Config.ChatAnnounceFrom`) a
 up to three such highlights. Rainbow+ pulls are announced; a Secret gets "[SERVER] {Player} rolled a SECRET BORDER {Card}!" here and "[GLOBAL] ..."
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
+
+**Rift Draft.** Open BATTLE and choose RIFT DRAFT on a world screen. It opens from the first session. Draft three loan fighters from twelve illustrated Attack cards and take them through three distinct opponents drawn from the four world bosses. Each offer includes a damage dealer, a protector and a trickster. Draft rules have their own printed stats. Collection power, borders and passes give no advantage here.
+
+Every turn, the boss shows its intent. Play one fighter, then let it rest for a turn. Rotating three distinct fighters deals a four-damage relay bonus. Tricks interrupt channels, a piercing attack breaks guard, and healing or blocking preserves the squad's shared HP. Each boss adds a separate rule. The move previews include burn, guard, counters, healing and relay effects. Choose one of three relics after each of the first two wins and recover eight HP. Closing the panel or leaving saves the exact hand, encounter and turn.
+
+Bronze, Silver and Crown unlock in order. A fighter's first Bronze clear earns its Base copy, its first Silver clear earns its Gold copy, and Crown records the highest mark. A higher first clear also pays any missed lower mark. The first Crown clear unlocks the wearable Rift Champion title. The fighter marks page shows all twelve portraits and which ones still need a clear at each rank. Each circuit also keeps the winning trio with the fewest plays, using remaining HP to break ties. Players can inspect equipped relics between moves. The server stores and validates every transition in `RiftDraft`, including the revision on each command so repeats cannot pay twice.
 
 **World card hunts.** Each of the four boss camps has an illustrated board offering two specific Gold copies.
 Travel shows the number claimed in each world. At the board, pick the reward, tap the named guard, defeat it to

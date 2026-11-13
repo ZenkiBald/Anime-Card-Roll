@@ -25,6 +25,7 @@ local TEMPLATE = {
 	SelectedCollection = "normal",
 	Celestial = { Fragments=0, Inventory={} },
 	Shards = 0,
+	RiftDraft = {Version=1, Revision=0, Unlocked=1, Marks={}, Best={}},
 	TraitShards = 0, -- the Trait Master's currency
 	Playtime = 0, -- seconds, saved when the player leaves
 	-- Favorite: the card shown as the player's picture in the server list and on their name tag ("" = none).

@@ -24,6 +24,7 @@
         "Dev": { "$className": "RemoteFunction" },
         "Deck": { "$className": "RemoteFunction" },
         "BattleStart": { "$className": "RemoteFunction" },
+        "RiftDraft": { "$className": "RemoteFunction" },
         "BattleInput": { "$className": "RemoteEvent" },
         "BattleEvent": { "$className": "RemoteEvent" },
         "Meta": { "$className": "RemoteFunction" },
