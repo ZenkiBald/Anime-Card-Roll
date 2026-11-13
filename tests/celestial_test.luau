@@ -2,15 +2,27 @@
 do
 	local C,W=MODULES.Collections,MODULES.Weather
 	check(not C.Unlocked("galactic",{}) and C.Unlocked("galactic",{["kurogane:Normal"]=true}),"collection unlock follows earned boss progress")
-	local pool=C.Pool("chakra",{})
-	local family=true
-	for _,card in pool do family=family and C.CardFamily[card.Id]=="chakra" end
-	check(family and #pool>0,"Chakra pack has only its familiar characters and Supports before boss unlocks")
-	local unlocked=C.Pool("chakra",{["rimeveil:Normal"]=true})
-	local boss=false
-	for _,card in unlocked do if card.Id=="rimeveil_card" then boss=true end end
-	check(boss,"unlocked boss cards remain available beside any selected collection")
-	check(#C.Pool("invalid",{})==#C.Pool("normal",{}),"invalid collection falls back to the normal pool")
+	local clears={["kurogane:Normal"]=true,["rimeveil:Normal"]=true,["vex:Normal"]=true,["rimeveil:Hard"]=true}
+	local pool, base = C.Distribution("normal",clears,nil,nil,"raijen",12)
+	for _, def in C.List do
+		local all, chances = C.Distribution(def.Id,clears,nil,nil,"raijen",12)
+		local sum, family, original, bossMass = 0,0,0,0
+		local valid = #all == #pool
+		for _,card in pool do
+			local p = chances[card.Id] or 0
+			valid = valid and p > 0 and not card.Weather
+			sum += p
+			if C.CardFamily[card.Id] == def.Id then family += p; original += base[card.Id] end
+			if card.Boss then bossMass += p; valid = valid and p == base[card.Id] end
+		end
+		check(valid and math.abs(sum-1)<1e-9,def.Name.." keeps all eligible cards and boss odds")
+		if def.Id~="normal" then
+			check(math.abs(family-(original*.75+(1-bossMass)*.25))<1e-9,def.Name.." correctly favors its family")
+		end
+	end
+	local _,fallback = C.Distribution("galactic",{})
+	local _,normal = C.Distribution("normal",{})
+	check(fallback.kaito==normal.kaito and fallback.kurogane_card==nil,"locked focus falls back and locked bosses stay excluded")
 	local drift,previous=false,nil
 	local eclipses=0
 	for slot=1900000,1901000 do

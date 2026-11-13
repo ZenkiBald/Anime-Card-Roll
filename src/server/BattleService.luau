@@ -25,6 +25,9 @@ local Traits = require(Shared.Traits)
 local Tower = require(Shared.Tower)
 local Raid = require(Shared.Raid)
 local Cards = require(Shared.Cards)
+local CardHunts = require(Shared.CardHunts)
+local NpcRange = require(script.Parent.NpcRange)
+local AvatarService = require(script.Parent.AvatarService)
 local Items = require(Shared.Items)
 local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
@@ -101,6 +104,16 @@ local function recordResult(player: Player, state)
 	end
 	local data = profile.Data
 	local record = { FirstClear = false, NewBest = false }
+	if state.Hunt then
+		if CardHunts.Award(data, battle.BossId, state.Hunt.Card, battle) then
+			record.HuntPrize = state.Hunt.Card
+			record.Cards = { [state.Hunt.Card] = DataService.CardState(data.Cards[state.Hunt.Card]) }
+			if data.Settings.Avatar == state.Hunt.Card then AvatarService.Apply(player) end
+		end
+		record.Progress = data.Progress
+		record.SpeedUnlocked = speedAllowed(data, 2)
+		return record
+	end
 	if state.Raid then
 		-- A raid run: its damage already went into the pool; the payout comes when the raid ends. Only a
 		-- run that was fought (not given up at once) counts for the daily quest.
@@ -241,6 +254,7 @@ local function run(player: Player, state)
 	end
 	local record = recordResult(player, state)
 	if record then
+		summary.HuntPrize = record.HuntPrize
 		summary.FirstClear = record.FirstClear
 		summary.Practice=record.Practice
 		summary.NewBest = record.NewBest
@@ -262,7 +276,7 @@ local function run(player: Player, state)
 			if battle.Result == "Win" and towerRewards then
 				summary.Rewards = towerRewards(player, state.Floor, state.Mode, record.FirstClear)
 			end
-		elseif battle.Result == "Win" and not record.Practice and rewardRolls and boss then
+		elseif battle.Result == "Win" and not state.Hunt and not record.Practice and rewardRolls and boss then
 			summary.Rewards = rewardRolls(player, boss.Difficulties[battle.Difficulty].D, record.FirstClear, state.Cost,state.Corrupted)
 			summary.CostChallenge = state.Cost
 			-- A first Normal clear puts the boss's own card into this player's roll pool (Cards.Pool).
@@ -348,6 +362,18 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 		return { Ok = false, Reason = "Loading" }
 	end
 	local data = profile.Data
+
+	local hunt = nil
+	local huntId = if type(options) == "table" then (options :: any).Hunt else nil
+	if huntId ~= nil then
+		hunt = CardHunts.Find(bossId, huntId)
+		if not hunt or isTower or isRaid or difficulty ~= "Normal" then return { Ok=false, Reason="BadRequest" } end
+		local board = "hunt_" .. bossId
+		if typeof(ReplicatedStorage:GetAttribute("NpcSpot_" .. board)) ~= "Vector3" or not NpcRange.Near(player, board) then
+			return { Ok=false, Reason="HuntDistance" }
+		end
+		if data.Progress.Hunts[hunt.Card] then return { Ok=false, Reason="HuntComplete" } end
+	end
 
 	local deck = DeckService.Active(data)
 	if Deck.Count(deck, "Attack") == 0 then
@@ -436,6 +462,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	end
 
 	local battle = Engine.new({
+		HuntGuard = hunt and hunt.Guard,
 		WeatherId=WeatherService.State().Id,
 		Units = deckUnits(data, deck, mutator),
 		BossId = boss.Id,
@@ -451,7 +478,8 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 	battle.ClashWindow = Engine.ClashWindowFor(speed) -- at least 1 real second at 2x
 	local state = {
 		Corrupted=corrupted,
-		Practice=not isTower and not isRaid and ((data.Progress.RewardAt or {})[Bosses.FightKey(bossId,difficulty)] or 0)>os.time(),
+		Hunt=hunt,
+		Practice=not hunt and not isTower and not isRaid and ((data.Progress.RewardAt or {})[Bosses.FightKey(bossId,difficulty)] or 0)>os.time(),
 		Engine = battle,
 		Speed = speed,
 		Started = false,
@@ -470,6 +498,7 @@ local function start(player: Player, bossId: unknown, difficulty: unknown, optio
 
 	return {
 		Ok = true,
+		Hunt = hunt,
 		Info = battle:Info(),
 		Tower = floor, -- the floor being fought (nil for a boss fight)
 		Mutator = if mutator then mutator.Id else nil, -- the day's tower mutator

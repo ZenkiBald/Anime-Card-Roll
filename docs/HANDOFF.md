@@ -9,12 +9,14 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 
 ## Next up (the user's open asks, newest first)
 
+- Try TRAVEL → Ember Village → the illustrated Card Hunts board beside the boss. Pick Dream Reaper, mark the Crow Illusionist, then defeat the leader. Check discovery and guard targeting on a phone. Each world has two permanent Gold prizes. At CARD PACKS, compare Normal Collection with a family focus and check the full preview.
+
 - GAME REVIEW + ROLL REVEAL (2026-11-13): the user asked for a judge. Verdict given in chat after playing the
   save in desktop Studio; ranked fixes: 1 roll reveal (DONE, below), 2 bosses that match the card art (flat
   untextured models, R6 final boss), 3 player input in fights (they play themselves), 4 fill or cut the empty
   worlds, 5 hide systems until they matter, 6 HUD overlap / menu text diet. Also seen: a petal particle fills
   the camera as a pink slab; the results screen's Roll Pack box showed no picture; Scout labels clip.
-  The user picks the next item; none of 2-6 is started.
+  World exploration and battle input now have a first pass in Card Hunts below. The boss model, petal, scout label and HUD findings remain open.
 
 - TRAIT ART / INVENTORY QoL COMPLETE (2026-11-13): all 16 matching transparent icons generated with
   built-in imagegen, uploaded and wired through UI/TraitArt. Originals / padded uploads / exact prompts /
@@ -261,6 +263,9 @@ Shared by Claude Code and ChatGPT (Codex); see `AGENTS.md`. Read this first and 
 - Parked: real iPhone review. Town brightness was confirmed; per-world lighting remains worth checking.
 
 ## Log (newest first)
+
+- 2026-11-13 · Codex · this commit · Broadened family packs and added eight playable card hunts. The keeper, ODDS, Index, manual/AUTO and bulk packs use one distribution. A focus devotes a quarter of non-boss probability to its family and leaves all unlocked cards eligible. Boss odds and sky searches retain their own rules. Each boss camp has a physical board with two specific Gold prizes, a guard to mark and defeat, and a sealed leader. The server checks proximity, access, target and victory and records each claim with its Gold copy. Travel tracks completion. Older saves receive an empty hunt ledger on load.
+  Preserved the preceding uncommitted centre-stage reveal separately in `6ade2ba`. Type check 0 errors (8 existing warnings), property check 6,133 names / 0 problems, bundled tests ALL CHECKS PASSED. Tests covered all eight encounters with their world's recommended squad, one-time awards, migration, and focus odds. Desktop Studio spawned four boards and played the Ember Village Dream Reaper hunt through victory with a temporary mock profile. The results showed the Gold prize and the server refused a second claim. Stopped Play and verified Edit mode had the production store and server startup enabled. Phone, early-player discovery and the remaining boards in live play still need a look. No publish.
 
 - 2026-11-13 · Claude Code · uncommitted (the user has not asked for a commit) · User: judge the game, then
   "Yes, start reveal". Centre-stage reveal in `UI/Reveal` (`Reveal.Anticipate` / `CancelAnticipate`, internal

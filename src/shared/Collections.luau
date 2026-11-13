@@ -1,5 +1,5 @@
 --!strict
--- Collection packs select the normal pool; consumable Roll Packs merely supply pulls from it.
+-- A family changes the distribution inside the unlocked pool for singles and consumable packs.
 local Cards = require(script.Parent.Cards)
 local Collections = {}
 Collections.List = {
@@ -24,12 +24,36 @@ function Collections.Unlocked(id: string, cleared: {[string]:boolean}): boolean
 	local def=Collections.ById[id]
 	return def~=nil and (def.Unlock=="" or cleared[def.Unlock]==true)
 end
-function Collections.Pool(id: string?, cleared: {[string]:boolean}): {Cards.Card}
-	local selected=if id and Collections.Unlocked(id,cleared) then id else "normal"
-	local pool={}
-	for _, card in Cards.Pool(cleared) do
-		if selected=="normal" or card.Boss~=nil or Collections.CardFamily[card.Id]==selected then table.insert(pool,card) end
+-- Redistribute one quarter of the original non-boss probability among the focused family.
+-- This leaves every normal card available and preserves unlocked boss odds exactly.
+Collections.FocusShare = 0.25
+function Collections.Distribution(id: string?, cleared: {[string]:boolean}, element: string?, elementWeight: number?, featured: string?, luck: number?)
+	local pool = Cards.Pool(cleared)
+	local chances = Cards.PullChances(pool, element, elementWeight, featured, luck)
+	if not id or id == "normal" or not Collections.Unlocked(id, cleared) then
+		return pool, chances
 	end
-	return pool
+
+	local normalShare, familyShare = 0, 0
+	for _, card in pool do
+		if not card.Boss then
+			normalShare += chances[card.Id]
+			if Collections.CardFamily[card.Id] == id then
+				familyShare += chances[card.Id]
+			end
+		end
+	end
+	if familyShare > 0 then
+		for _, card in pool do
+			if not card.Boss then
+				local original = chances[card.Id]
+				chances[card.Id] = original * (1 - Collections.FocusShare)
+				if Collections.CardFamily[card.Id] == id then
+					chances[card.Id] += Collections.FocusShare * normalShare * original / familyShare
+				end
+			end
+		end
+	end
+	return pool, chances
 end
 return Collections

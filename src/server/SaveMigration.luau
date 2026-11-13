@@ -280,6 +280,11 @@ function SaveMigration.Migrate(data: any): { string }
 		data.Weekly = { Week = 0, Progress = {}, Claimed = {} }
 		table.insert(done, "weekly quests initialized")
 	end
+	data.Progress = data.Progress or { Cleared = {}, BestTime = {} }
+	if type(data.Progress.Hunts) ~= "table" then
+		data.Progress.Hunts = {}
+		table.insert(done, "world hunt records initialized")
+	end
 	return done
 end
 

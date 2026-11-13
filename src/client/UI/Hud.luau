@@ -1228,7 +1228,7 @@ end
 function Hud.Refresh()
 	if not ready then return end
 	local s = State.Summary
-	activeCollection.Text="ACTIVE PACK: " .. (Collections.ById[s.SelectedCollection or "normal"] or Collections.ById.normal).Name
+	activeCollection.Text="CARD FOCUS: " .. (Collections.ById[s.SelectedCollection or "normal"] or Collections.ById.normal).Name
 	local traitShards = s.TraitShards or State.Meta.TraitShards or 0
 	setCurrency("TraitShards", Kit.commas(traitShards), traitShards)
 	Hud.RefreshMomentum()

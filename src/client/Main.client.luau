@@ -27,6 +27,7 @@ local Bag = require(UI.Bag)
 local StatsPanel = require(UI.Stats)
 local Gifts = require(UI.Gifts)
 local CollectionsUi = require(UI.Collections)
+local HuntBoard = require(UI.HuntBoard)
 local WeatherUi = require(UI.Weather)
 local Journey = require(UI.Journey)
 local Travel = require(UI.Travel)
@@ -312,6 +313,7 @@ StatsPanel.Init(playerGui, squadPanel)
 squadPanel:SetTabText("UPGRADES","TRAINING")
 Gifts.Init(playerGui, questsPanel)
 CollectionsUi.Init(playerGui)
+HuntBoard.Init(playerGui, Battle.Start)
 Journey.Init(questsPanel, function(goal)
 	if goal.Action == "Squad" then
 		squadPanel:Show("DECK")
@@ -408,7 +410,10 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		return
 	end
 	local bossId = prompt:GetAttribute("BossId")
-	if type(bossId) == "string" then
+	local huntWorld = prompt:GetAttribute("HuntWorld")
+	if type(huntWorld) == "string" then
+		HuntBoard.Open(huntWorld)
+	elseif type(bossId) == "string" then
 		BossScreen.Open(bossId)
 	elseif prompt:GetAttribute("Npc") == "sage" then
 		-- While his questline runs, Kenji opens KENJI'S PATH; after it, he's back to tips.

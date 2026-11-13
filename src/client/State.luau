@@ -26,7 +26,7 @@ local State = {
 		IsSurgeRoll = false, -- the last roll was a surge
 	},
 	Decks = { Active = 1, Presets = {} }, -- presets: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
-	Progress = { Cleared = {}, BestTime = {}, RewardAt={} },
+	Progress = { Cleared = {}, BestTime = {}, RewardAt={}, Hunts={} },
 	Tower = { Best = 0, Run = 0, Pagoda = 0 }, -- Infinite Tower best run and run now, Pagoda floors cleared
 	Packs = {}, -- Roll Packs held: Packs.luau id -> count
 	Battle = { AutoUlt = true, HoldUlt = true, Speed = 1 },

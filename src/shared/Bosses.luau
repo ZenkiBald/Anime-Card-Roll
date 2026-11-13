@@ -62,6 +62,8 @@ export type GuardType = {
 	Moves: { Move },
 }
 
+export type FightOptions = { Cost: boolean?, Hunt: string?, Quick: boolean?, Sweep: boolean? }
+
 export type Difficulty = {
 	D: number, -- difficulty score: rewards scale with it (Rewards.luau)
 	Recommended: number, -- recommended Deck Power

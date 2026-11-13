@@ -38,7 +38,7 @@ local Effects = require(script.Parent.Effects)
 local ModelView = require(script.Parent.ModelView)
 local Arena = require(script.Parent.Arena)
 local CardView = require(script.Parent.CardView)
-local RewardReveal = require(script.Parent.RewardReveal)
+local CardTile = require(script.Parent.CardTile)
 local PackOpen = require(script.Parent.PackOpen)
 local Packs = require(Shared.Packs)
 local Abilities = require(script.Parent.Abilities)
@@ -131,6 +131,8 @@ local SHIELD_COLOR = Color3.fromRGB(150, 210, 255)
 local ICE_COLOR = Color3.fromRGB(150, 230, 255)
 
 local REASONS = {
+	HuntComplete = "This hunt is complete. Choose another card at the board.",
+	HuntDistance = "Stand beside the hunt board to start.",
 	NoAttack = "Put at least one Attack card in your deck first",
 	Locked = "Beat the previous fight first",
 	InBattle = "Already in a fight",
@@ -1198,7 +1200,7 @@ local function makeGuardTile(enemy, slot: Frame)
 	}, 15)
 	Kit.label({
 		Name = "Role",
-		Text = ROLE_TEXT[enemy.Role] or enemy.Role,
+		Text = if current.Hunt and current.Hunt.Guard == enemy.Id then "HUNT TARGET · TAP" else ROLE_TEXT[enemy.Role] or enemy.Role,
 		Font = Theme.Font.Bold,
 		TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.4),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -1342,6 +1344,13 @@ local function applySnapshot(snap)
 		local leader = snap.U.Boss
 		local pct = if leader then math.floor(100 * leader.H / current.Info.Boss.MaxHP) else 0
 		returnButton.Label.Text = `RETURN TO BATTLE · {pct}% HP\n{timerLabel.Text}`
+	end
+	if current.Hunt then
+		local guard = current.Hunt.Guard
+		local down = snap.U[guard] and snap.U[guard].H <= 0
+		bossName.Text = if down then "Seal broken · defeat the boss"
+			elseif snap.HuntMarked then "Defeat " .. enemyNames[guard]
+			else "Tap to mark " .. enemyNames[guard]
 	end
 	local cost = current.Info.UltimateCost
 	current.Holding = snap.Ho == true
@@ -2436,6 +2445,7 @@ local function showResults(summary)
 	-- Wins pay Shards and gear at once and drop Roll Packs (boss wins, some tower floors) into the BAG;
 	-- the panel shows them and can open one now.
 	local hasRewards = rewards ~= nil
+	local wide = hasRewards or summary.HuntPrize ~= nil
 	if rewards and rewards.Packs then
 		State.ApplyPacks(rewards.Packs)
 	end
@@ -2445,14 +2455,14 @@ local function showResults(summary)
 		Name = "Panel",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.53),
-		Size = UDim2.fromScale(if hasRewards then 0.9 else 0.55, 0.86),
+		Size = UDim2.fromScale(if wide then 0.9 else 0.55, 0.86),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Parent = results,
 	}, {
 		Kit.corner(UDim.new(0, 22)),
 		Kit.gradient(ColorSequence.new(Color3.fromRGB(24, 31, 49), Color3.fromRGB(10, 12, 19)), 90),
 		Kit.stroke(title[2], 3, 0),
-		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(if hasRewards then 1100 else 560, 620), MinSize = Vector2.new(300, 280) }),
+		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(if wide then 1100 else 560, 620), MinSize = Vector2.new(300, 280) }),
 	})
 	Skin.Apply(panel, "Panel")
 	local panelScale = Kit.new("UIScale", { Scale = 0.85, Parent = panel })
@@ -2480,7 +2490,7 @@ local function showResults(summary)
 	})
 	local list = Kit.new("ScrollingFrame", {
 		Name = "Summary",
-		Size = UDim2.new(if hasRewards then 0.38 else 1, 0, 1, 0),
+		Size = UDim2.new(if wide then 0.38 else 1, 0, 1, 0),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
@@ -2613,6 +2623,7 @@ local function showResults(summary)
 		end
 	elseif summary.Result == "Win" then
 		local notes = {}
+		if summary.HuntPrize then table.insert(notes, "Card hunt complete!") end
 		if tower then
 			table.insert(notes, `Floor {tower.Floor} cleared!`)
 			if summary.NewBest and tower.Mode ~= Tower.PagodaId then
@@ -2783,7 +2794,16 @@ local function showResults(summary)
 			Padding = UDim.new(0, 10),
 		}),
 	})
-	if hasRewards then
+	if summary.HuntPrize then
+		local prize = CardTile.new(summary.HuntPrize, {Owned=true, Border="Gold"})
+		prize.AnchorPoint = Vector2.new(.5,.5)
+		prize.Position = UDim2.fromScale(.7,.48)
+		prize.Size = UDim2.fromScale(.45,.7)
+		prize.Parent = content
+		Kit.new("UIAspectRatioConstraint", {AspectRatio=1,Parent=prize})
+		Kit.label({Text="GOLD COPY ADDED TO SQUAD", Font=Theme.Font.Display, TextColor3=Theme.Color.Gold,
+			Position=UDim2.fromScale(.42,.86), Size=UDim2.fromScale(.56,.09),Parent=content},24)
+	elseif hasRewards then
 		-- A dark inset: REWARDS on the left of its header row, the fan's SKIP button on the right.
 		local box = Kit.new("Frame", {
 			Name = "Rewards",
@@ -2955,7 +2975,7 @@ local function showResults(summary)
 		end
 	end
 
-	local back = Kit.button("BACK TO HUB", Theme.Color.Auto, Theme.Color.AutoDeep, {
+	local back = Kit.button(if current.Hunt then "BACK TO WORLD" else "BACK TO HUB", Theme.Color.Auto, Theme.Color.AutoDeep, {
 		LayoutOrder = 1,
 		Size = UDim2.new(0, 210, 1, 0),
 		Parent = buttons,
@@ -2994,6 +3014,7 @@ local function showResults(summary)
 			hint(message)
 		end
 	end
+	again.Visible = summary.HuntPrize == nil
 	again.Activated:Connect(function()
 		current.StopClimb = true
 		goAgain()
@@ -3001,7 +3022,7 @@ local function showResults(summary)
 	-- Auto-climb / auto-repeat: after a tower win the next floor starts by itself after a short countdown
 	-- (AUTO CLIMB, on by default); after a boss win the same fight can do the same (AUTO REPEAT, opt-in, for
 	-- farming). Opening the rolls, leaving or switching it off stops it; a loss never repeats.
-	if summary.Result == "Win" and not conquered and current.Raid == nil then
+	if summary.Result == "Win" and not conquered and current.Raid == nil and not current.Hunt then
 		local name = if tower then "AUTO CLIMB" else "AUTO REPEAT"
 		local function isOn(): boolean
 			return if tower then autoClimb else autoRepeat
@@ -3124,7 +3145,7 @@ end
 -- screen's AUTO REPEAT switch; in the towers it is AUTO CLIMB; raids have no retry.
 local function setRetryLabel()
 	local raid = current ~= nil and current.Raid ~= nil
-	retryButton.Visible = not raid
+	retryButton.Visible = not raid and not (current and current.Hunt)
 	local tower = current ~= nil and current.Tower ~= nil
 	local on = if tower then autoClimb else autoRepeat
 	retryButton.Label.Text = `{if tower then "AUTO CLIMB" else "AUTO-RETRY"}: {if on then "ON" else "OFF"}`
@@ -3146,6 +3167,7 @@ local function begin(start, bossId: string, difficulty: string?)
 	local boss = Bosses.Get(if tower then tower.Boss else start.Info.BossId or bossId)
 	current = {
 		Info = start.Info,
+		Hunt = start.Hunt,
 		Practice=start.Practice,
 		Corrupted=start.Corrupted,
 		BossId = boss.Id,
@@ -3274,7 +3296,7 @@ local function begin(start, bossId: string, difficulty: string?)
 		bossChip.BackgroundColor3 = if tower.Guardian then Theme.Color.Gold else Color3.fromRGB(40, 170, 165)
 	else
 		bossName.Text = `{icon}{string.upper(boss.Name)}  <font color="#A8A2C8">{boss.Title}</font>`
-		bossChip.Label.Text = string.upper(difficulty or "Normal")
+		bossChip.Label.Text = if start.Hunt then "HUNT" else string.upper(difficulty or "Normal")
 		bossChip.BackgroundColor3 = if diffIndex == 3 then Theme.Color.Danger elseif diffIndex == 2 then Theme.Color.Roll else Theme.Color.Quick
 	end
 	bossHpFill.Size = UDim2.fromScale(1, 1)
@@ -3339,13 +3361,13 @@ local function begin(start, bossId: string, difficulty: string?)
 		)
 	end
 	task.delay((start.Intro or 2) + 0.3, function()
-		if current and not current.Ended and current.Focus == nil then
+		if current and not current.Ended and not current.Hunt and current.Focus == nil then
 			hint("Tap an enemy to focus every attack on it")
 		end
 	end)
 end
 
-function startFight(bossId: string, difficulty: string?, options: { Cost: boolean? }?)
+function startFight(bossId: string, difficulty: string?, options: Bosses.FightOptions?)
 	if current and not current.Ended then
 		return false, nil
 	end
@@ -4034,7 +4056,7 @@ end
 
 -- Starts a fight. Returns false and a message when the server refuses.
 -- bossId is a boss id, or Tower.Id / Tower.PagodaId for that tower's next floor (difficulty is ignored).
-function Battle.Start(bossId: string, difficulty: string?, options: { Cost: boolean? }?): (boolean, string?)
+function Battle.Start(bossId: string, difficulty: string?, options: Bosses.FightOptions?): (boolean, string?)
 	return startFight(bossId, difficulty, options)
 end
 

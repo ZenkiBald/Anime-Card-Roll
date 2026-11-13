@@ -80,6 +80,7 @@ export type Setup = {
 	Guards: { string }?,
 	TimeLimit: number?,
 	WeatherId: string?,
+	HuntGuard: string?,
 }
 
 -- Effects that only make sense on a card with HP.
@@ -226,6 +227,8 @@ function Engine.new(setup: Setup)
 	local self = setmetatable({}, Engine)
 	self.Rng = setup.Rng or Random.new()
 	self.Time = 0
+	self.HuntGuard = setup.HuntGuard
+	self.HuntMarked = false
 	self.WeatherId=setup.WeatherId or "clear"
 	self.NextTeamUltimateAt=0
 	self.Over = false
@@ -457,6 +460,7 @@ function Engine:SetFocus(id: unknown): boolean
 		return false
 	end
 	self.Focus = id
+	if id == self.HuntGuard then self.HuntMarked = true end
 	return true
 end
 
@@ -706,6 +710,9 @@ function Engine:DamageEnemy(enemy, source, amount: number, crit: boolean, kind: 
 	if self.Over or not enemy.Alive then
 		return
 	end
+	-- A hunt starts with two seals. Marking opens the quarry, defeating it opens the leader.
+	if self.HuntGuard and ((enemy.Leader and self.ById[self.HuntGuard].Alive)
+		or (enemy.Id == self.HuntGuard and not self.HuntMarked)) then return end
 	enemy.HP = math.max(0, enemy.HP - amount)
 	if source then
 		source.Dealt += amount
@@ -1898,7 +1905,7 @@ function Engine:Snapshot()
 			Nx = if enemy.Leader and enemy.Alive then self:NextBigMove(enemy) else nil, -- { N = name, In = actions }
 		}
 	end
-	return { T = math.floor(self.Time * 10) / 10, U = units, Fo = self.Focus, Ho = self.Holding or nil, AU = self.AutoUlt or nil, HB = self.HoldForBreak or nil }
+	return { T = math.floor(self.Time * 10) / 10, U = units, HuntMarked = self.HuntMarked or nil, Fo = self.Focus, Ho = self.Holding or nil, AU = self.AutoUlt or nil, HB = self.HoldForBreak or nil }
 end
 
 -- End-of-fight numbers for the results screen.

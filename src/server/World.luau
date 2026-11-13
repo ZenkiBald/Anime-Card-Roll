@@ -12,6 +12,8 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CollectionService = game:GetService("CollectionService")
 
+local CardHunts = require(ReplicatedStorage.Shared.CardHunts)
+local Cards = require(ReplicatedStorage.Shared.Cards)
 local Bosses = require(ReplicatedStorage.Shared.Bosses)
 local BossModels = require(ReplicatedStorage.Shared.BossModels)
 local Meta = require(ReplicatedStorage.Shared.Meta)
@@ -102,6 +104,61 @@ local function npc(id: string, pivot: CFrame, parent: Instance, action: string, 
 	model.Parent = parent
 	NpcRange.Set(id, pivot.Position) -- its services only work beside it
 	return model
+end
+
+-- A small physical display at each boss camp. Both faces show the two actual prizes.
+local function huntBoard(area: Instance, boss: Bosses.Boss, floor: CFrame)
+	local hunts = CardHunts.ByWorld[boss.Id]
+	if not hunts then return end
+	local side = floor:PointToWorldSpace(Vector3.new(15, 0, 6))
+	local params = RaycastParams.new()
+	params.RespectCanCollide = true
+	local ground = workspace:Raycast(side + Vector3.yAxis * 8, -Vector3.yAxis * 45, params)
+	local base = Vector3.new(side.X, if ground then ground.Position.Y else floor.Position.Y, side.Z)
+	local center = base + Vector3.yAxis * 3.8
+	local face = CFrame.lookAt(center, Vector3.new(floor.X, center.Y, floor.Z))
+	local board = part({Name="HuntBoard", Size=Vector3.new(7.2,5.6,.6), CFrame=face,
+		Material=Enum.Material.Wood, Color=Color3.fromRGB(44,32,36), Parent=area})
+	for _, x in {-2.9, 2.9} do
+		part({Name="BoardPost", Size=Vector3.new(.45,3,.45), CFrame=face*CFrame.new(x,-2.45,0),
+			Color=board.Color, Material=Enum.Material.Wood, Parent=area})
+	end
+	for _, normal in {Enum.NormalId.Front, Enum.NormalId.Back} do
+		local surface = Instance.new("SurfaceGui")
+		surface.Face = normal
+		surface.CanvasSize = Vector2.new(400,300)
+		surface.LightInfluence = 0
+		surface.Parent = board
+		for i, hunt in hunts do
+			local card = Cards.Get(hunt.Card)
+			if card and card.Image then
+				local portrait = Instance.new("ImageLabel")
+				portrait.Size = UDim2.fromScale(.47,.79)
+				portrait.Position = UDim2.fromScale(.02+(i-1)*.49,.19)
+				portrait.ScaleType = Enum.ScaleType.Crop
+				portrait.Image = card.Image
+				portrait.BorderSizePixel = 0
+				portrait.Parent = surface
+			end
+		end
+		local header = Instance.new("TextLabel")
+		header.Size = UDim2.fromScale(1,.18)
+		header.BackgroundTransparency = 1
+		header.Font = Enum.Font.GothamBold
+		header.TextColor3 = Color3.fromRGB(255,220,135)
+		header.TextScaled = true
+		header.Text = "CARD HUNTS"
+		header.Parent = surface
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Choose a hunt"
+	prompt.ObjectText = boss.WorldName
+	prompt.KeyboardKeyCode = Enum.KeyCode.F
+	prompt.RequiresLineOfSight = false
+	prompt.MaxActivationDistance = 12
+	prompt:SetAttribute("HuntWorld", boss.Id)
+	prompt.Parent = board
+	NpcRange.Set("hunt_" .. boss.Id, center)
 end
 
 local function buildWorld(hub: Instance, boss: Bosses.Boss, position: Vector3)
@@ -235,6 +292,7 @@ local function buildWorld(hub: Instance, boss: Bosses.Boss, position: Vector3)
 
 	-- The boss, standing guard in front of its portal.
 	local height = BossModels.Height(boss.Id)
+	huntBoard(area, boss, frame)
 	local model = npc(boss.Id, frame * CFrame.new(0, 1 + height / 2, -3), area, "Challenge", `{boss.Name}, {boss.Title}`)
 	local prompt = (model.PrimaryPart :: BasePart):FindFirstChildOfClass("ProximityPrompt")
 	if prompt then
@@ -530,6 +588,7 @@ local function mapWorld(hub: Instance, boss: Bosses.Boss, portalMarker: BasePart
 
 	local height = BossModels.Height(boss.Id)
 	local stand = bossMarker.CFrame
+	huntBoard(area, boss, stand)
 	-- Fights are staged here (client Arena): published so clients know the spot before it streams in.
 	local arenas = ReplicatedStorage:FindFirstChild("Arenas") or Instance.new("Folder")
 	arenas.Name = "Arenas"

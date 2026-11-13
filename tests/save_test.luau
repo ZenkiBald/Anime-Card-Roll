@@ -2,6 +2,15 @@
 -- the per-border copy piles add up to the card's total, and running it twice changes nothing.
 local SaveMigration = MODULES.SaveMigration
 
+do
+	local old={Cards={},Progress={Cleared={["kurogane:Normal"]=true},BestTime={}}}
+	SaveMigration.Migrate(old)
+	check(next(old.Progress.Hunts)==nil and old.Progress.Cleared["kurogane:Normal"],"old story wins keep all card hunts available")
+	old.Progress.Hunts.yume=true
+	SaveMigration.Migrate(old)
+	check(old.Progress.Hunts.yume,"reloading keeps claimed hunt rewards")
+end
+
 -- Trait stat tuning adds definitions, not a save format. Existing rolls and new Secret IDs survive.
 do
 	local data={Cards={hana={Copies=1,Stars=0,Borders={Normal=true},BorderCopies={Normal=1},

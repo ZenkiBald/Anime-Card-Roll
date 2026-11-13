@@ -30,7 +30,7 @@ local TEMPLATE = {
 	-- Favorite: the card shown as the player's picture in the server list and on their name tag ("" = none).
 	Settings = { AutoUlt = true, HoldUlt = true, BattleSpeed = 1, Music = 1, Effects = 1, Mount = "pup", Favorite = "", Title = "", Avatar = "", QuickRoll = false, RevealMinimum="Gold", RevealStyle="Pack", RevealDuplicates=false },
 	Decks = { Active = 1, Presets = presets }, -- each preset: { Attack = {4 ids}, Support = {4 ids} }, "" = empty
-	Progress = { Cleared = {}, BestTime = {} }, -- keyed by Bosses.FightKey, e.g. "kurogane:Normal"
+	Progress = { Cleared = {}, BestTime = {}, Hunts = {} }, -- keyed by Bosses.FightKey, e.g. "kurogane:Normal"
 	-- Long-term progression (Meta.luau): potions owned / seconds left running (ticks only while online),
 	-- Shard upgrade levels, claimed Index rarities, daily streak, claimed roll milestones ("50", "100", ...).
 	Potions = { Inventory = {}, Active = {} },

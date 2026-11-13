@@ -64,8 +64,8 @@ never draw over the world, and hide with player name tags while a panel,
 fight or reveal is up (`Modal.Changed`, `HubFx.SetWorldLabelsHidden`). TRAVEL fast-travels (server-owned). Mounts (5, G to ride), a shoulder pet, dash (Q, two charges) and a
 double jump. Lighting: a bright town afternoon (`LightingSetup`); each world has its own theme (`ZoneFx` moods: Ember golden sunset, Frostfang snowy morning, Neon Abyss violet night, Stormspire grey storm with lightning) and zone music.
 
-**Rolling.** The server owns every roll. Each pull picks a card by its `Weight` from the selected collection (`Collections.Pool`; a boss's
-own card joins after that boss's first Normal clear) and rolls its **border**, which is the tier: Base ("Normal" in
+**Rolling.** The server owns every roll. Each normal pull uses the full unlocked pool and the player's family focus (`Collections.Distribution`). A boss's
+own card joins after that boss's first Normal clear. Each pull then rolls its **border**, which is the tier: Base ("Normal" in
 saves) 1x / Gold 4x / Rainbow 16x / Secret 64x stats, base odds 1 in 200 / 5,000 / 500,000 (rare on purpose: story
 bosses are beaten with Base + Gold, Rainbow and Secret are the tower chase). Luck raises each special border by luck ^
 0.6 / 0.8 / 1 (Border Chance and surges multiply them; the specials are capped at 50% together). Total luck = (earned base + strongest potion bonus + active sky bonus) x event / Raid Luck / Totem / VIP /
@@ -89,12 +89,20 @@ up to three such highlights. Rainbow+ pulls are announced; a Secret gets "[SERVE
 in every other live server (`GlobalAnnounce`, MessagingService). Weekly **Featured Card** (`Cards.FeaturedAt`): one rare
 non-boss card weighs x3 for a week (Monday 00:00 UTC), the same on every server; the event pill, ODDS and Index show it.
 
-**Collections and Celestial Skies.** The CARD PACKS keeper near spawn selects a saved normal-card pool.
-Normal Collection includes every normal card; Chakra Legends is available immediately. Galactic Warriors,
-Cursed Spirits, Demon Hunters and Soul Reapers unlock from the displayed boss clears. ROLL, AUTO and every
-consumable Roll Pack use that selection; any unlocked boss card remains eligible. Existing cards stay owned
-and decks may mix collections. The selector shows contents and exact featured-adjusted card chances; ACTIVE
-PACK appears over ROLL. Selection requires the keeper's 24-stud server range. A brand-new empty save receives
+**World card hunts.** Each of the four boss camps has an illustrated board offering two specific Gold copies.
+Travel shows the number claimed in each world. At the board, pick the reward, tap the named guard, defeat it to
+break the leader's seal, then win the fight. Each prize can be earned once per player. Hunts use the world's
+Normal encounter and its story access requirement. The server verifies proximity, the target and the fight outcome,
+then grants the Gold copy and records the claim together in the profile. Hunts pay their own prize. Regular story
+fights still award packs, progression and first-clear rewards. The eight cards and their targets live in `CardHunts`.
+
+**Collections and Celestial Skies.** The CARD PACKS keeper near spawn saves a family focus. Normal Collection
+uses the ordinary weights. Chakra Legends is available immediately. Galactic Warriors, Cursed Spirits, Demon
+Hunters and Soul Reapers unlock after the displayed boss clears. ROLL, AUTO and consumable Roll Packs can draw
+every eligible normal card with any focus. A family focus assigns 25% of the non-boss draw to that family and
+draws the remaining 75% from all eligible non-boss cards, using their adjusted weights in both cases. Unlocked
+boss probabilities and the separate sky search keep their usual odds. The selector lists focused cards first and
+shows individual chances at current luck. CARD FOCUS appears over ROLL. Selection requires the keeper's 24-stud server range. A brand-new empty save receives
 one ten-card Roll Pack once, and Kenji explains opening it / BEST DECK / the first boss.
 The first tracker points at that starter pack. Kenji's second quest requires four Attack cards;
 Supports are optional and never block advancing to the first boss. Claiming Trial by Flame also

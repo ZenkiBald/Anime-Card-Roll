@@ -39,7 +39,7 @@ local BossScreen = {}
 
 export type Actions = {
 	EditDeck: (target: string) -> (), -- target: the boss id, Tower.Id or Raid.Id the deck is for
-	Fight: (bossId: string, difficulty: string?, options: { Cost: boolean? }?) -> (boolean, string?), -- bossId may be Tower.Id, Tower.PagodaId or Raid.Id
+	Fight: (bossId: string, difficulty: string?, options: Bosses.FightOptions?) -> (boolean, string?), -- bossId may be Tower.Id, Tower.PagodaId or Raid.Id
 }
 
 local actions: Actions

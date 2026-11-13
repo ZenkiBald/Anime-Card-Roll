@@ -67,7 +67,7 @@ local function refresh()
 	surgeTitle.Text = `OVERCHARGE SURGE  <font color="#FFC42E">(every {cfg.Every}th roll · next in {untilSurge})</font>`
 	-- Which card a pull gives (any border): its pull weight among the cards unlocked so far, tilted toward
 	-- rare cards by your luck (Cards.LuckTilt).
-	local pull = Cards.PullChances(Collections.Pool(State.Summary.SelectedCollection,State.Progress.Cleared), nil, nil, Cards.FeaturedAt(workspace:GetServerTimeNow()), luck)
+	local _, pull = Collections.Distribution(State.Summary.SelectedCollection, State.Progress.Cleared, nil, nil, Cards.FeaturedAt(workspace:GetServerTimeNow()), luck)
 	local skyChances = {}
 	local skyPool = Cards.WeatherPool(State.Weather.Id)
 	for i, chance in CelestialRolls.Chances(skyPool, luck) do skyChances[skyPool[i].Id] = chance end
@@ -80,7 +80,7 @@ local function refresh()
 			row.OneIn.Text=sky.Name.." only"
 		else
 			row.Chance.Text=if chance then Odds.FormatPercent(chance*100) else "Unavailable"
-			row.OneIn.Text=if chance then Odds.FormatRarity(chance*100) else "Change collection / unlock boss"
+			row.OneIn.Text=if chance then Odds.FormatRarity(chance*100) else "Clear its boss on Normal"
 		end
 	end
 end

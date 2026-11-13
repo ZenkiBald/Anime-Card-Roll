@@ -7,6 +7,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Bosses = require(Shared.Bosses)
+local Cards = require(Shared.Cards)
+local Hunts = require(Shared.CardHunts)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Kit = require(script.Parent.Kit)
@@ -24,8 +26,6 @@ local here = {} -- [zone] = "YOU ARE HERE" label
 local lastTravel = -math.huge
 local COOLDOWN = 2 -- matches the server's rate limit
 
--- Emoji per boss particle theme (no icon art for worlds yet).
-local WORLD_ICONS = { Embers = "🏮", Snow = "🏔️", Motes = "🌌", Rain = "⚡" }
 -- Biome glow behind each card: ember crimson, deep ice, void purple, storm indigo; the town warm gold.
 local BIOME = {
 	Town = Color3.fromRGB(150, 110, 30),
@@ -50,16 +50,17 @@ end
 
 local function stops()
 	local list = {
-		{ Id = "Town", Zone = "Town", Name = "Spawn Town", Sub = "Fountain plaza · Kenji the Card Sage", Accent = Theme.Color.Gold, Icon = "⛲" },
+		{ Id = "Town", Zone = "Town", Name = "Spawn Town", Sub = "Fountain plaza · Kenji the Card Sage", Accent = Theme.Color.Gold, Image = require(script.Parent.BagArt).Get("Pack:10") },
 	}
 	for _, boss in Bosses.List do
+		local bossCard = Cards.ForBoss(boss.Id)
 		table.insert(list, {
 			Id = boss.Id,
 			Zone = (boss.WorldName:gsub(" ", "")), -- ZoneFx names zones like "EmberVillage"
 			Name = boss.WorldName,
 			Sub = `World {boss.World} · {boss.Name}`,
 			Accent = boss.Accent,
-			Icon = WORLD_ICONS[boss.Particles] or "⚔️",
+			Image = if bossCard then bossCard.Image else "",
 			Biome = BIOME[boss.Particles] or boss.Accent,
 			Boss = boss,
 		})
@@ -165,14 +166,14 @@ function Travel.Init(playerGui: Instance, showHint: (string) -> ())
 			Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = badge })
 			badges[stop.Boss.Id] = { Label = badge, Boss = stop.Boss }
 		end
-		Kit.label({
-			Text = stop.Icon,
-			Font = Theme.Font.Heavy,
+		Kit.new("ImageLabel", {
+			Name = "WorldArt", Image = stop.Image, ScaleType = Enum.ScaleType.Crop,
+			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, 14, 0.5, 0),
 			Size = UDim2.new(0.26, 0, 0.62, 0),
 			Parent = tile,
-		}, 64)
+		}, { Kit.corner(UDim.new(0,8)) })
 		local name = Kit.label({
 			Text = stop.Name,
 			Font = Theme.Font.Display,
@@ -182,7 +183,7 @@ function Travel.Init(playerGui: Instance, showHint: (string) -> ())
 			Parent = tile,
 		}, 32)
 		Kit.textStroke(Color3.fromRGB(13, 17, 27), 2.5, 0).Parent = name
-		Kit.label({
+		local route = Kit.label({
 			Text = stop.Sub,
 			Font = Theme.Font.Heavy,
 			TextColor3 = stop.Accent:Lerp(Color3.new(1, 1, 1), 0.45),
@@ -191,6 +192,7 @@ function Travel.Init(playerGui: Instance, showHint: (string) -> ())
 			Size = UDim2.new(0.66, 0, 0.17, 0),
 			Parent = tile,
 		}, 17)
+		if stop.Boss then badges[stop.Id].Route = route end
 		here[stop.Zone] = Kit.label({
 			Text = "YOU ARE HERE",
 			Font = Theme.Font.Heavy,
@@ -212,6 +214,12 @@ function Travel.Init(playerGui: Instance, showHint: (string) -> ())
 		end
 		for _, entry in badges do
 			entry.Label.Text = bossStatus(entry.Boss)
+			local complete = 0
+			local hunts = Hunts.ByWorld[entry.Boss.Id] or {}
+			for _, hunt in hunts do
+				if (State.Progress.Hunts or {})[hunt.Card] then complete += 1 end
+			end
+			entry.Route.Text = `Hunt board by the boss · {complete}/{#hunts} Gold cards`
 		end
 	end
 end

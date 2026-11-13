@@ -153,8 +153,8 @@ export type RollOptions = {
 -- A card from the player's pool by Weight (the infused element's cards and the week's Featured Card
 -- weighted up, and luck tilting it toward rare cards: Cards.LuckTilt).
 local function pickCard(data, element: string?, luck: number?)
-	local pool = Collections.Pool(data.SelectedCollection, data.Progress.Cleared)
-	local chances = Cards.PullChances(pool, element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()), luck)
+	local pool, chances = Collections.Distribution(data.SelectedCollection, data.Progress.Cleared,
+		element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()), luck)
 	local target = rng:NextNumber()
 	for _, card in pool do
 		target -= chances[card.Id]
@@ -420,8 +420,8 @@ local function openPack(player: Player, profile, pack: Packs.Pack, count: number
 		borderMult = if boosted then Packs.InfuseBorderMult else nil
 	end
 	local total = count * pack.Rolls
-	local pool = Collections.Pool(data.SelectedCollection, data.Progress.Cleared)
-	local chances = Cards.PullChances(pool, pack.Element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()), luck)
+	local pool, chances = Collections.Distribution(data.SelectedCollection, data.Progress.Cleared,
+		pack.Element, Packs.InfuseWeight, Cards.FeaturedAt(os.time()), luck)
 	local probs, commonest = {}, 1
 	for i, card in pool do
 		probs[i] = chances[card.Id]

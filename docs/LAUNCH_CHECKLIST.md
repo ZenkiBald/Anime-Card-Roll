@@ -60,6 +60,9 @@ this repo (sync with Rojo, then publish); the rest are Roblox Studio / Creator D
 
 ## 5. Things still to check in Studio (never seen there yet)
 
+- [x] Desktop Studio, 2026-11-13. Four hunt boards spawned. On an isolated test profile, the Ember Village board offered two Gold rewards. Started Dream Reaper, checked the named guard cue, sent the target input, broke the seal, won, saw the Gold reward and confirmed a repeat was refused.
+- [ ] Try both Ember Village hunts with an early deck on a landscape phone. Check board discovery, tapping moving guard cards, retry after a loss, and the two later-world choices at each camp. At the Card Packs keeper, compare a family with Normal Collection while AUTO runs and check that reading and scrolling remain comfortable.
+
 - [ ] Centre-stage roll reveal (2026-11-13): desktop Studio checked a real ROLL, AUTO, and client-only previews
   of a Gold copy and a three-card fan. Not seen: phone layout (stage sits at 43% height, 40% tall under 500 px),
   a real Gold / Rainbow full reveal under the new Gold+ default, Fast Roll / Roll Rush pacing, the heat-3 flash

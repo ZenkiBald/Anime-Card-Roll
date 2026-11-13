@@ -13,6 +13,7 @@ local Foils = require(Shared.Foils)
 local Awaken = require(Shared.Awaken)
 local Odds = require(Shared.Odds)
 local Meta = require(Shared.Meta)
+local Collections = require(Shared.Collections)
 local CelestialRolls = require(Shared.CelestialRolls)
 
 local Kit = require(script.Parent.Kit)
@@ -159,7 +160,8 @@ local function showDetail(card, chosenBorder: string?, parent: Instance?)
 	end)
 	infoParent = extras
 	line(tier.Name.." border · "..card.Type,Theme.Font.Heavy,tier.Color,22,17)
-	local chance=if card.SkyOneIn then 1/card.SkyOneIn else Cards.PullChances(Cards.Pool(State.Progress.Cleared),nil,nil,Cards.FeaturedAt(workspace:GetServerTimeNow()))[card.Id]
+	local _, chances = Collections.Distribution(State.Summary.SelectedCollection, State.Progress.Cleared, nil, nil, Cards.FeaturedAt(workspace:GetServerTimeNow()), State.Luck())
+	local chance = if card.SkyOneIn then 1/card.SkyOneIn else chances[card.Id]
 	if card.SkyOneIn then
 		local sky=require(Shared.Weather).ById[card.Weather]
 		local active=State.Weather.Id==card.Weather

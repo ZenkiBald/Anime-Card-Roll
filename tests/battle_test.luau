@@ -9,6 +9,31 @@ local Rewards = MODULES.Rewards
 local Engine = MODULES.BattleEngine
 local F = FIXTURES
 
+do
+	local hunts = MODULES.CardHunts
+	local data = {Cards={yume={Copies=2,BorderCopies={Normal=2},Trait="swift"}},Progress={Hunts={}}}
+	local seen = {}
+	for world, choices in hunts.ByWorld do
+		for _,hunt in choices do
+			local battle=Engine.new({BossId=world,Difficulty="Normal",Units={},HuntGuard=hunt.Guard,Rng=Random.new(9)})
+			local guard=battle.ById[hunt.Guard]
+			local full=guard.HP
+			check(Cards.Get(hunt.Card)~=nil and not seen[hunt.Card],"distinct hunt prize "..hunt.Card)
+			seen[hunt.Card]=true
+			battle:DamageEnemy(guard,nil,full,false,"Hit")
+			battle:DamageEnemy(battle.Boss,nil,battle.Boss.HP,false,"Hit")
+			check(guard.HP==full and not battle.Over,"hunt seals hold before marking "..hunt.Card)
+			battle:SetFocus(hunt.Guard)
+			battle:DamageEnemy(guard,nil,full,false,"Hit")
+			check(not hunts.Award(data,world,hunt.Card,battle),"guard alone does not pay")
+			battle:DamageEnemy(battle.Boss,nil,battle.Boss.HP,false,"Hit")
+			check(hunts.Award(data,world,hunt.Card,battle) and not hunts.Award(data,world,hunt.Card,battle)
+				and data.Cards[hunt.Card].BorderCopies.Gold==1,"marked guard and win award exactly one Gold "..hunt.Card)
+		end
+	end
+	check(data.Cards.yume.Copies==3 and data.Cards.yume.Trait=="swift" and data.Cards.yume.BorderCopies.Normal==2,"hunt adds a copy without disturbing invested cards")
+end
+
 -- 1. Deck rules ---------------------------------------------------------------------
 local starterIds = { "rook", "kaede", "tomo", "noa", "mitotic_seal", "wisteria_vial", "thunderclap_form", "heavenly_pact" }
 local starterOwned = F.own(starterIds)
@@ -292,6 +317,18 @@ check(rate >= 0.9, `an all-Base starter deck beats Kurogane Normal ({math.floor(
 
 for _, fx in F.FIGHTS do
 	local deck, owned = F.fixtureDeck(fx)
+	if fx.Difficulty == "Normal" then
+		for _, hunt in MODULES.CardHunts.ByWorld[fx.Boss] do
+			local b = Engine.new({Units=F.units(deck, owned), BossId=fx.Boss, Difficulty="Normal", HuntGuard=hunt.Guard, Rng=Random.new(12)})
+			b.AutoUlt = true
+			while not b.Over do
+				if not b.HuntMarked and b.Time >= 3 then b:SetFocus(hunt.Guard) end
+				b:Step(Config.Battle.Tick)
+				b:TakeEvents()
+			end
+			check(b.Result=="Win" and not b.ById[hunt.Guard].Alive, `{fx.Boss} recommended squad completes hunt for {hunt.Card}`)
+		end
+	end
 	local power = Deck.Power(deck, owned)
 	local recommended = Bosses.Get(fx.Boss).Difficulties[fx.Difficulty].Recommended
 	local r, t, k = F.campaign(fx.Boss, fx.Difficulty, deck, owned, 100)
